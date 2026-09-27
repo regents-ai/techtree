@@ -17,10 +17,9 @@ if [[ "$source_revision" != "$upstream_revision" ]]; then
   exit 1
 fi
 
-# Stage the resolved shared package into this application-only build context.
-mix regent_ui.stage
-mix regent_identity.stage
-mix regent_blog.stage
+# The blog's posts and images live beside platform/ and are compiled in, so
+# they are copied into this application-only build context.
+rsync -a --delete ../blog/ blog_content/
 
 exec flyctl deploy \
   --app techtree-sh \

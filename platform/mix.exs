@@ -1,6 +1,15 @@
 defmodule Techtree.MixProject do
   use Mix.Project
 
+  # Shared Regent libraries, each pinned to one published commit. To move a pin,
+  # change its ref and run `mix deps.update <name>`.
+  @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
+  @elixir_utils_ref "b8691b1ae91797f9acd5b2c9f6aa392d111cbd54"
+  @design_system "https://github.com/regents-ai/design-system.git"
+  @design_system_ref "a64ec86721a171faea39ae525a9478daa1f66847"
+  @regents "https://github.com/regents-ai/regents.git"
+  @regents_ref "0d5d18c2f4501a6a5bd00b0bedb005677d8876cc"
+
   def project do
     [
       app: :techtree,
@@ -53,17 +62,13 @@ defmodule Techtree.MixProject do
   #
   # Type `mix help deps` for examples and options.
   defp deps do
-    shared = System.get_env("REGENT_DEPS_ROOT", Path.expand("../..", __DIR__))
-
     [
-      {:regent_ui,
-       path: System.get_env("REGENT_UI_PATH", Path.join(shared, "design-system/regent_ui"))},
-      {:regent_blog,
-       path: System.get_env("REGENT_BLOG_PATH", Path.join(shared, "elixir-utils/blog"))},
+      {:regent_ui, git: @design_system, ref: @design_system_ref, sparse: "regent_ui"},
+      {:regent_blog, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "blog"},
+      # regent_identity names regent_privy by a sibling path; this pin replaces it.
       {:regent_privy,
-       path: System.get_env("REGENT_PRIVY_PATH", Path.join(shared, "elixir-utils/privy"))},
-      {:regent_identity,
-       path: System.get_env("REGENT_IDENTITY_PATH", Path.join(shared, "regents/identity"))},
+       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
+      {:regent_identity, git: @regents, ref: @regents_ref, sparse: "identity"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_phoenix, "~> 2.0"},
       {:ash_postgres, "~> 2.13.0"},

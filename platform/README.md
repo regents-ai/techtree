@@ -254,28 +254,17 @@ protocol names them; everywhere else, a fingerprint is a fingerprint.
 
 ## Shared dependencies
 
-From a directory containing sibling product repositories, acquire the shared libraries:
-
-```sh
-git clone https://github.com/regents-ai/design-system.git
-git clone https://github.com/regents-ai/elixir-utils.git
-git clone https://github.com/regents-ai/regents.git
-```
-
-The expected layout is `<workspace>/<product>/platform`,
-`<workspace>/design-system/regent_ui`, `<workspace>/elixir-utils/` and
-`<workspace>/regents/identity`.
-From this component directory, `REGENT_DEPS_ROOT` may point at `<workspace>` when
-it is elsewhere. Individual packages may instead be selected with `REGENT_UI_PATH`,
-`REGENT_PRIVY_PATH` and `REGENT_IDENTITY_PATH`. Record all three repository commit IDs with check results;
-release builds and isolated agent worktrees must use their selected immutable
-revisions, rather than updating sibling checkouts during verification.
+The shared Regent libraries (`regent_ui` from design-system, `regent_blog` and
+`regent_privy` from elixir-utils, `regent_identity` from regents) are git
+dependencies pinned to one commit per repository at the top of `mix.exs`, and
+`mix deps.get` fetches them. To move a pin, change its ref and run
+`mix deps.update <name>`. `make check-required-fixes` from the monorepo root
+checks the pins against ash-template's list of required fixes.
 Do not clone recursive Solidity submodules for a web-only change.
 
 ## Development
 
-Requires Elixir/Erlang, Node and PostgreSQL 14 or newer, plus the shared dependency
-layout above. Run from `platform/`; registry-contract checks separately require Foundry.
+Requires Elixir/Erlang, Node and PostgreSQL 14 or newer. Run from `platform/`; registry-contract checks separately require Foundry.
 
 ```bash
 mix setup   # deps, database, assets
@@ -316,24 +305,15 @@ database. Future migrations and Ash snapshot changes need the imported schema as
 their baseline; do not regenerate or reset the existing publication sequence.
 This setting does not bootstrap a fresh namespaced database or change runtime grants.
 
-## Shared UI in release builds
+## Release builds
 
-The UI source remains in `design-system/regent_ui`. Before a standalone Docker or
-Fly build, prepare the release worktree and run
-`mix regent_ui.stage`.
-Staging requires the selected pinned dependency snapshot, verifies package content,
-and records its revision and SHA256 in `.regent-ui-generated`. Keep that evidence
-with the release. This creates ignored `vendor/regent_ui`; the Dockerfile uses that generated
-copy through `REGENT_UI_PATH`. Staging performs no remote action. Previous generated
-copies remain in ignored `vendor/.regent-ui-history`, excluded from Docker contexts.
-For isolated verification, `REGENT_DEPS_ROOT` selects the worktree's pinned libraries.
+`scripts/deploy_site.sh` deploys a clean, pushed checkout. The Docker build
+fetches the shared libraries from GitHub at the commits `mix.lock` pins. The
+script copies the monorepo's `blog/` into the ignored `blog_content/` first,
+because the blog is compiled in and lives outside this build context.
 
-## Shared profile release inputs
+## Shared profile migrations
 
-Run `mix regent_identity.stage` through the prepared worktree with pinned
-`REGENT_IDENTITY_REVISION` and `REGENT_PRIVY_REVISION`, alongside `mix regent_ui.stage`.
-Both shared packages must match their snapshot manifests. The generated vendor
-packages are build inputs; staging does not migrate a database or deploy.
 The Regents release owner alone runs `RegentIdentity.Migrator.up(Repo)` on the
 identified shared destination, before enabling profiles on consumers.
 

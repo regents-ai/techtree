@@ -40,18 +40,11 @@ WORKDIR /app
 RUN mix local.hex --force && mix local.rebar --force
 
 ENV MIX_ENV="prod"
-ENV REGENT_PRIVY_PATH="/app/vendor/regent_privy_shared"
-ENV REGENT_IDENTITY_PATH="/app/vendor/regent_identity"
-ENV REGENT_UI_PATH="/app/vendor/regent_ui"
-ENV REGENT_BLOG_PATH="/app/vendor/regent_blog"
 
 # Dependencies first, and only the production ones, so that editing application
-# code does not re-fetch or re-compile them.
+# code does not re-fetch or re-compile them. The shared Regent libraries are
+# fetched from GitHub at the commits mix.lock pins.
 COPY mix.exs mix.lock ./
-COPY vendor/regent_ui vendor/regent_ui
-COPY vendor/regent_privy_shared vendor/regent_privy_shared
-COPY vendor/regent_identity vendor/regent_identity
-COPY vendor/regent_blog vendor/regent_blog
 RUN mix deps.get --only $MIX_ENV
 
 RUN mkdir config
@@ -60,7 +53,7 @@ RUN mix deps.compile
 
 COPY priv priv
 COPY lib lib
-COPY vendor/regent_blog_content /blog
+COPY blog_content /blog
 COPY assets assets
 
 # The browser dependency the hero canvas is drawn with, at the exact versions

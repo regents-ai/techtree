@@ -62,12 +62,10 @@ The catalog is compiled into the application, so a release does not read this
 source folder at runtime. `mix regent_blog.assets` stages `images/` and the local
 math module as part of both `mix assets.build` and `mix assets.deploy`.
 
-The shared package is `repos/elixir-utils/blog`; choose it with `REGENT_BLOG_PATH`
-when using a pinned dependency snapshot. Shared UI requires the matching blog
-components in `regent_ui`. Commit/review shared work first, then advance consumer
-CI/release pins to those actual commits; do not invent a future revision.
+The shared package is elixir-utils `blog/`, pinned in `platform/mix.exs`. Shared UI
+requires the matching blog components in `regent_ui`. Commit/review shared work
+first, then advance the pins to those actual commits; do not invent a future
+revision.
 
-Before the application-only Docker build, run `mix regent_blog.stage` alongside
-existing shared dependency staging. It requires the pinned elixir-utils snapshot
-and its exact `REGENT_BLOG_REVISION`. Generated `platform/vendor/regent_blog` and
-`platform/vendor/regent_blog_content` are build inputs, not checked-in copies.
+`platform/scripts/deploy_site.sh` copies this folder into the ignored
+`platform/blog_content/` before the application-only Docker build.
