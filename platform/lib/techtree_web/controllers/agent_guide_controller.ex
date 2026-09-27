@@ -8,7 +8,9 @@ defmodule TechtreeWeb.AgentGuideController do
 
   @path Path.expand("../../../priv/pages/llms.txt", __DIR__)
   @external_resource @path
-  @guide @path |> File.read!() |> String.replace("{{tools}}", TechtreeWeb.Tools.markdown_table())
+  @guide @path
+         |> File.read!()
+         |> String.replace("{{tools}}", Techtree.Capabilities.markdown_table())
 
   def show(conn, _params) do
     conn

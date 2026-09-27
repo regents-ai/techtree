@@ -224,7 +224,7 @@ defmodule TechtreeWeb.DocsLive do
               CLI and its key.
             </p>
             <.definition_list>
-              <:fact :for={tool <- TechtreeWeb.Tools.all()} term={tool["title"]}>
+              <:fact :for={tool <- Techtree.Capabilities.tools()} term={tool["title"]}>
                 <code>{tool["name"]}</code> reads <code>{tool["route"]}</code>
               </:fact>
             </.definition_list>
