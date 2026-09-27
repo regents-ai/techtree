@@ -14,6 +14,7 @@ defmodule TechtreeWeb.Router do
 
   # Most pages are HTML only. The home page, About, Contact and Privacy also
   # answer `Accept: text/markdown`; `TechtreeWeb.MD` holds their Markdown.
+  # `/skill.md` is Markdown whichever is asked for.
   pipeline :html_only do
     plug :accepts, ["html"]
   end
@@ -35,9 +36,11 @@ defmodule TechtreeWeb.Router do
     plug :put_root_layout, html: {TechtreeWeb.Layouts, :root}
     plug :protect_from_forgery
 
+    # Browser agents may use the tools every page registers, from this site only.
     plug :put_secure_browser_headers, %{
       "content-security-policy" => @content_security_policy,
-      "referrer-policy" => "no-referrer"
+      "referrer-policy" => "no-referrer",
+      "permissions-policy" => "tools=(self)"
     }
   end
 
@@ -75,6 +78,7 @@ defmodule TechtreeWeb.Router do
     get "/about", PagesController, :about
     get "/contact", PagesController, :contact
     get "/privacy", PagesController, :privacy
+    get "/skill.md", SkillController, :show
   end
 
   scope "/", TechtreeWeb do
@@ -89,7 +93,6 @@ defmodule TechtreeWeb.Router do
     live "/repo2rlenv", Repo2RLEnvLive
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show
-    get "/skill.md", SkillController, :show
 
     # The addresses release documents already point at, unchanged.
     live "/start", StartLive
@@ -105,6 +108,7 @@ defmodule TechtreeWeb.Router do
 
   scope "/", TechtreeWeb do
     get "/sitemap.xml", SitemapController, :index
+    get "/llms.txt", AgentGuideController, :show
   end
 
   scope "/api/v1", TechtreeWeb do

@@ -46,6 +46,7 @@ defmodule TechtreeWeb.DocsLive do
               title="CLI"
               links={[
                 {"Machine interface", "#integration"},
+                {"Browser agents", "#browser-tools"},
                 {"Data boundary", "#data-boundary"},
                 {"Troubleshooting", "#troubleshooting"}
               ]}
@@ -213,6 +214,20 @@ defmodule TechtreeWeb.DocsLive do
               Protocol payloads retain their schema field names even where the public site uses
               simpler words.
             </p>
+          </section>
+
+          <section id="browser-tools" class="doc-section">
+            <h2>Let a browser's agent read Techtree</h2>
+            <p>
+              Every page offers the agent built into a browser these tools. Each only reads public
+              information, needs no account and spends nothing. Publishing a Result stays with the
+              CLI and its key.
+            </p>
+            <.definition_list>
+              <:fact :for={tool <- TechtreeWeb.Tools.all()} term={tool["title"]}>
+                <code>{tool["name"]}</code> reads <code>{tool["route"]}</code>
+              </:fact>
+            </.definition_list>
           </section>
 
           <section id="data-boundary" class="doc-section">

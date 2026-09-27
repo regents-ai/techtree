@@ -1,7 +1,9 @@
 import {installSharedProfile} from "./shared_profile.js"
+import {installPublicTools} from "./public_tools.js"
 import "../vendor/regent_ui/blog.mjs"
 
 installSharedProfile()
+installPublicTools()
 // The pages are read-only documents. This bundle keeps the live connection,
 // copies published commands, remembers the reader's color preference, and
 // reads the repository's public star
