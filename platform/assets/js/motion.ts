@@ -31,8 +31,12 @@ function press(event: MouseEvent) {
   squish(el)
 }
 
+// Each word rises inside a clipping box (`.split-clip`). The box is named by a
+// class because the page's security policy refuses styles written into markup.
 // The words are joined back into plain text once they have risen.
+const WORD = '<span class="split-clip"><span data-word="{i}">{value}</span></span>'
+
 function rise(headline: HTMLElement) {
-  const split = splitText(headline, {words: {wrap: "clip"}})
+  const split = splitText(headline, {words: WORD})
   HEADLINES.rise(split).then(() => split.revert())
 }
