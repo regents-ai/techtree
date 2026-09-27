@@ -11,7 +11,7 @@ defmodule TechtreeWeb.ErrorMD do
   ## Where to go instead
 
   - [Home](/): what Techtree is and how to start
-  - [Start](/start): try the example Climb, evaluate your own Skill, or build tasks from your repository
+  - [Start](/start): install Techtree, check your setup, and make your first controlled run
   - [Results](/results): published Results, newest first
   - [Docs](/docs): install, run, verify, publish and integrate
   - [OpenAPI description](/openapi.json): every public API address, typed

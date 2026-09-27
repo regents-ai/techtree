@@ -8,7 +8,6 @@
 
 - Deciding whether a change to a Skill is worth keeping.
 - Comparing an agent with and without a Skill on the same fixed tasks.
-- Building repair tasks from a repository's own history (experimental).
 - Verifying someone else's published Result offline, without trusting this site.
 
 When not to use it: Techtree is not a general benchmark of a model's broad
