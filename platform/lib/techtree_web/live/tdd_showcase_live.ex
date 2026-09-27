@@ -339,7 +339,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
   defp averages(assigns) do
     ~H"""
     <p :if={@part.graded > 0} class="assessment__means">
-      {means(@part)} {extremes(@part)} {coverage(@part)}
+      {means(@part)} {extremes(@part)} {coverage(@part)} Averages are rounded to three decimal places.
     </p>
     """
   end

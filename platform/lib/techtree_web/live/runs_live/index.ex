@@ -19,9 +19,14 @@ defmodule TechtreeWeb.RunsLive.Index do
   checked. Both are short labels of a fixed shape, never a sentence, which is
   why there is nothing on this page to moderate.
 
-  Scores are shown as recorded. A Campaign names its score and the rule that
-  decides between the two runs, and states no unit or range, so no mean is
-  turned into a percentage and no bar pretends to know where the scale ends.
+  Scores are rounded to three decimal places and otherwise shown as recorded.
+  A Campaign names its score and the rule that decides between the two runs,
+  and states no unit or range, so no mean is turned into a percentage and no
+  bar pretends to know where the scale ends.
+
+  The page repeats nothing typed into its address. An address it cannot read
+  says so; one naming a selection with no Results names only the parts this
+  site recognises.
 
   A withdrawn run keeps its row and says so. Withdrawal is an event appended to
   the log rather than a hole punched in it, and a log that quietly dropped its
@@ -65,31 +70,22 @@ defmodule TechtreeWeb.RunsLive.Index do
   def handle_params(params, _uri, socket) do
     families = Query.agent_families()
 
-    {selection, filters, page, matched?} =
-      with {:ok, options} <- Query.read_page_options(params),
-           {:ok, selection} <- AgentVersions.select(families, params),
-           {:ok, filters} <- ResultFilters.select(selection, params) do
-        options =
-          if selection,
-            do:
-              Keyword.merge(options,
-                agent: selection.family.id,
-                agent_version: selection.version,
-                model: filters.model,
-                challenge: filters.challenge
-              ),
-            else: options
-
-        {selection, filters, Query.page(options), true}
-      else
-        _no_match ->
-          {nil, ResultFilters.empty(), %{entries: [], next_before_sequence: nil}, false}
+    socket =
+      case Query.read_page_options(params) do
+        {:ok, options} -> show_selection(socket, families, params, options)
+        {:error, _reason} -> show_empty(socket, families, :unreadable, [])
       end
 
-    earlier? = Map.has_key?(params, "before_sequence")
+    {:noreply, socket}
+  end
 
-    socket =
-      assign(socket,
+  defp show_selection(socket, families, params, options) do
+    with {:ok, selection} <- AgentVersions.select(families, params),
+         {:ok, filters} <- ResultFilters.select(selection, params) do
+      page = Query.page(page_options(options, selection, filters))
+
+      socket
+      |> assign(
         families: families,
         selection: selection,
         filters: filters,
@@ -97,30 +93,60 @@ defmodule TechtreeWeb.RunsLive.Index do
         entries: page.entries,
         next_before_sequence: page.next_before_sequence,
         score_name: score_name(filters.challenge),
-        empty: empty(page.entries, families, matched?, earlier?),
-        asked_for: asked_for(families, params)
+        empty: empty(page.entries, families, Map.has_key?(params, "before_sequence")),
+        asked_for: []
       )
+      |> pin_selection(selection, filters, params)
+    else
+      :error -> show_empty(socket, families, :no_match, asked_for(families, params))
+    end
+  end
 
-    # Resolve "latest" once, then retain that exact version through reloads
-    # and reconnects even when a newer runtime is subsequently submitted.
-    socket =
-      if connected?(socket) && selection &&
-           Enum.any?(~w(agent agent_version model challenge), &(!Map.has_key?(params, &1))) do
-        push_patch(socket,
-          to:
-            AgentVersions.url(selection.family.id, selection.version,
-              model: filters.model,
-              challenge: filters.challenge,
-              before_sequence: Map.get(params, "before_sequence"),
-              limit: Map.get(params, "limit")
-            ),
-          replace: true
-        )
-      else
-        socket
-      end
+  defp show_empty(socket, families, empty, asked_for) do
+    assign(socket,
+      families: families,
+      selection: nil,
+      filters: ResultFilters.empty(),
+      page_limit: nil,
+      entries: [],
+      next_before_sequence: nil,
+      score_name: nil,
+      empty: empty,
+      asked_for: asked_for
+    )
+  end
 
-    {:noreply, socket}
+  defp page_options(options, nil, _filters), do: options
+
+  defp page_options(options, selection, filters) do
+    Keyword.merge(options,
+      agent: selection.family.id,
+      agent_version: selection.version,
+      model: filters.model,
+      challenge: filters.challenge
+    )
+  end
+
+  # Resolve "latest" once, then retain that exact version through reloads
+  # and reconnects even when a newer runtime is subsequently submitted.
+  defp pin_selection(socket, nil, _filters, _params), do: socket
+
+  defp pin_selection(socket, selection, filters, params) do
+    if connected?(socket) &&
+         Enum.any?(~w(agent agent_version model challenge), &(!Map.has_key?(params, &1))) do
+      push_patch(socket,
+        to:
+          AgentVersions.url(selection.family.id, selection.version,
+            model: filters.model,
+            challenge: filters.challenge,
+            before_sequence: Map.get(params, "before_sequence"),
+            limit: Map.get(params, "limit")
+          ),
+        replace: true
+      )
+    else
+      socket
+    end
   end
 
   @impl true
@@ -240,6 +266,11 @@ defmodule TechtreeWeb.RunsLive.Index do
           <.link patch={~p"/results"}>Show the newest Results</.link>
         </p>
 
+        <p :if={@empty == :unreadable} id="results-unreadable" class="runs-index__empty empty-state">
+          This address doesn't describe a list of Results.<br />
+          <.link patch={~p"/results"}>Show the newest Results</.link>
+        </p>
+
         <p :if={@empty == :no_earlier} id="results-no-earlier" class="runs-index__empty empty-state">
           There are no earlier Results for {selection_words(@selection, @filters)}.
           <.link patch={results_url(@selection, @filters, @page_limit)}>Back to the newest page</.link>
@@ -247,7 +278,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p :if={@entries != []} id="results-score-scale" class="section-note small quiet">
           Scores are each run's mean <code>{@score_name}</code>
-          over its tasks, shown as recorded. This Climb does not say what unit or range the score uses.
+          over its tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
         </p>
 
         <div
@@ -259,8 +290,8 @@ defmodule TechtreeWeb.RunsLive.Index do
         >
           <table class="results-ledger">
             <caption>
-              Published Results, newest first. Scores are shown as recorded. Δ is candidate minus
-              baseline, not a rank.
+              Published Results, newest first. Scores are rounded to three decimal places. Δ is
+              candidate minus baseline, not a rank.
             </caption>
             <thead>
               <tr>
@@ -389,28 +420,49 @@ defmodule TechtreeWeb.RunsLive.Index do
     climb.projection["scoring"]["primary_reward"]
   end
 
-  # Which of the four empty pages this is, if any: nothing published at all,
-  # nothing matching what the address asked for, or a page past the oldest
-  # entry of a selection that has entries.
-  defp empty([_entry | _entries], _families, _matched?, _earlier?), do: nil
-  defp empty([], [], true, _earlier?), do: :log
-  defp empty([], _families, true, true), do: :no_earlier
-  defp empty([], _families, _matched?, _earlier?), do: :no_match
+  # Which empty page a readable selection is, if any: nothing published at
+  # all, a page past the oldest entry of a selection that has entries, or a
+  # selection with no entries. An address the page cannot read at all, or one
+  # naming a selection that does not exist, never gets this far.
+  defp empty([_entry | _entries], _families, _earlier?), do: nil
+  defp empty([], [], _earlier?), do: :log
+  defp empty([], _families, true), do: :no_earlier
+  defp empty([], _families, false), do: :no_match
 
-  # What the address asked for, in the words the filters use.
+  # What the address asked for, naming only what this site recognises: a
+  # harness it has Results for, a version of that harness, a model a Result
+  # names, and a Campaign this site publishes. Anything else is "that harness",
+  # "that model" or "that challenge", so no text from an address is repeated.
   defp asked_for(families, params) do
-    agent =
-      case Enum.find(families, &(&1.id == params["agent"])) do
-        %{label: label} -> label
-        nil -> params["agent"]
-      end
-
     [
-      agent && Enum.join(Enum.reject([agent, params["agent_version"]], &is_nil/1), " "),
-      params["model"],
-      params["challenge"] && "challenge " <> ResultAssessment.short_digest(params["challenge"])
+      params["agent"] && harness_words(families, params["agent"], params["agent_version"]),
+      params["model"] && model_words(params["model"]),
+      params["challenge"] && challenge_words(params["challenge"])
     ]
     |> Enum.reject(&is_nil/1)
+  end
+
+  defp harness_words(families, agent, version) do
+    case Enum.find(families, &(&1.id == agent)) do
+      nil ->
+        "that harness"
+
+      family ->
+        if version in family.versions,
+          do: "#{family.label} #{version}",
+          else: "that version of #{family.label}"
+    end
+  end
+
+  defp model_words(model) do
+    if model in Query.result_models(), do: model, else: "that model"
+  end
+
+  defp challenge_words(challenge) do
+    case Catalog.get_any_climb_by_campaign_digest(challenge) do
+      {:ok, _climb} -> "challenge " <> ResultAssessment.short_digest(challenge)
+      {:error, _unknown} -> "that challenge"
+    end
   end
 
   defp no_match_words([]), do: "No published Results match this address."

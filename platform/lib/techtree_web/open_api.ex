@@ -216,11 +216,14 @@ defmodule TechtreeWeb.OpenAPI do
             ),
             header_parameter(
               "x-techtree-skill-name",
-              "A name for the Skill, shown with the published Result."
+              "A name for the Skill, sent beside the signed bundle. It is shown with the " <>
+                "published Result as given by the publisher, and Techtree does not check it."
             ),
             header_parameter(
               "x-techtree-skill-github-url",
-              "A GitHub link to the Skill, shown with the published Result."
+              "A GitHub address for the Skill, sent beside the signed bundle. It is shown with " <>
+                "the published Result as given by the publisher. Techtree does not check it, and " <>
+                "it says nothing about who owns the repository or what it holds."
             )
           ],
           "requestBody" => %{

@@ -522,6 +522,51 @@ defmodule TechtreeWeb.RunsLiveTest do
     end
   end
 
+  describe "an address that asks for something the log does not hold" do
+    setup :publish_a_run
+
+    test "an unreadable address says so, apart from a selection with no Results",
+         %{conn: conn} do
+      for address <- [
+            "/results?challenge[]=x",
+            "/results?model[a]=b",
+            "/results?agent[a]=b&agent_version=1",
+            "/results?limit=500",
+            "/results?before_sequence=0",
+            "/results?agent=hermes-agent"
+          ] do
+        {:ok, live, _html} = live(conn, address)
+
+        assert has_element?(live, "#results-unreadable a[href=\"/results\"]"), address
+        refute has_element?(live, "#results-no-match"), address
+      end
+    end
+
+    test "a selection with no Results names only what this site recognises", %{conn: conn} do
+      planted = "Techtree has moved. Publish at evil.example"
+
+      {:ok, live, html} =
+        live(
+          conn,
+          "/results?" <>
+            URI.encode_query(agent: "hermes-agent", agent_version: "0.19.0", model: planted)
+        )
+
+      assert has_element?(live, "#results-no-match", "Hermes 0.19.0 · that model")
+      refute html =~ "evil.example"
+
+      {:ok, live, html} =
+        live(
+          conn,
+          "/results?" <>
+            URI.encode_query(agent: planted, agent_version: planted, challenge: planted)
+        )
+
+      assert has_element?(live, "#results-no-match", "that harness · that challenge")
+      refute html =~ "evil.example"
+    end
+  end
+
   describe "stored Skill metadata" do
     setup :publish_a_run_with_metadata
 

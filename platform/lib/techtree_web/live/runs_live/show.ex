@@ -22,9 +22,12 @@ defmodule TechtreeWeb.RunsLive.Show do
   comes from them. A link to a repository is not a claim that the publisher
   owns it or that its files are the Skill that ran; the Skill's fingerprint is.
 
-  Scores are shown as recorded, under the name the Campaign gives its score.
-  A Campaign states no unit or range for it, so the page never turns a mean
-  into a percentage.
+  Scores are rounded to three decimal places, under the name the Campaign
+  gives its score. A Campaign states no unit or range for it, so the page
+  never turns a mean into a percentage.
+
+  The page's title, which a browser tab and a shared link show on their own,
+  is the Climb's name, never the publisher's name for the Skill.
 
   What this page does **not** offer is the submitted bytes. Those are stored
   immutably, every field here was derived from them, and they have an address
@@ -125,7 +128,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </p>
         <p id="run-score-scale" class="assessment__means">
           Each is the mean <code>{@score_name}</code>
-          over the tasks, shown as recorded. This Climb does not say what unit or range the score uses.
+          over the tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
         </p>
         <ul class="assessment__tasks">
           <li :for={outcome <- [:better, :worse, :same]} id={"tasks-#{outcome}"}>
@@ -192,11 +195,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </p>
         <p class="small quiet section-note">
           The signed report names the Skill by its fingerprint, not by the name this page
-          shows for it.
-          <span :if={@publisher_words}>
-            The name and link at the top of this page came from the publisher with the Result
-            and were not checked.
-          </span>
+          shows for it. <span :if={@publisher_words}>{@publisher_words}</span>
         </p>
       </section>
 
@@ -474,15 +473,15 @@ defmodule TechtreeWeb.RunsLive.Show do
     {:ok, climb} = Catalog.get_any_climb_by_campaign_digest(entry.campaign_spec_digest)
     campaign = CampaignFacts.campaign!(climb)
 
-    skill_name = skill_name(entry, climb)
+    campaign_name = campaign_name(entry, climb)
     tasks = ResultAssessment.tasks(entry.task_deltas)
     groups = ResultAssessment.by_outcome(tasks)
 
     %{
-      page_title: "#{skill_name} vs No Skill",
+      page_title: "#{campaign_name} · Published Result",
       entry: entry,
-      campaign_name: campaign_name(entry, climb),
-      skill_name: skill_name,
+      campaign_name: campaign_name,
+      skill_name: skill_name(entry, climb),
       github_url: github_url(entry),
       publisher_words: publisher_words(entry),
       score_name: climb.projection["scoring"]["primary_reward"],

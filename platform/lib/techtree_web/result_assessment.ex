@@ -13,13 +13,13 @@ defmodule TechtreeWeb.ResultAssessment do
   fingerprint, because that is all a published Result holds about a task. It
   keeps neither the task's words nor the agent's answers.
 
-  Every number is shown from its exact decimal value, so a change that is zero
-  reads as zero and a change that is not never rounds into the wrong sign.
+  Every number is rounded to three decimal places from its exact decimal
+  value. A value that is zero reads as zero, one too small to show at three
+  places says so rather than rounding to zero, and nothing reads as "-0".
 
-  Scores are shown as the Climb's checker recorded them. A Campaign names its
-  score and the rule that decides between the two runs, and states no unit or
-  range, so a mean that happens to fall between 0 and 1 is not taken for a
-  share and is never turned into a percentage.
+  A Campaign names its score and the rule that decides between the two runs,
+  and states no unit or range, so a mean that happens to fall between 0 and 1
+  is not taken for a share and is never turned into a percentage.
   """
 
   alias Techtree.Network.Assessment
@@ -211,21 +211,23 @@ defmodule TechtreeWeb.ResultAssessment do
   defp exact_mean(assessment, :candidate),
     do: Decimal.div(assessment.candidate_total, assessment.task_count)
 
-  # A change to three places, with its sign. A change too small to show at
-  # three places says so rather than rounding to zero.
-  defp signed(value) do
+  # A change carries its sign; a score carries only a minus.
+  defp signed(value), do: three_places(value, "+")
+  defp plain(value), do: three_places(value, "")
+
+  # A value to three places. One too small to show at three places says so
+  # rather than rounding to zero, and zero is always "0", never "-0".
+  defp three_places(value, plus) do
     rounded = Decimal.round(value, 3)
 
     cond do
       Decimal.eq?(value, 0) -> "0"
-      Decimal.eq?(rounded, 0) and Decimal.gt?(value, 0) -> "between 0 and +0.001"
+      Decimal.eq?(rounded, 0) and Decimal.gt?(value, 0) -> "between 0 and #{plus}0.001"
       Decimal.eq?(rounded, 0) -> "between 0 and -0.001"
-      Decimal.gt?(value, 0) -> "+" <> text(rounded)
+      Decimal.gt?(value, 0) -> plus <> text(rounded)
       true -> text(rounded)
     end
   end
-
-  defp plain(value), do: value |> Decimal.round(3) |> text()
 
   defp text(value), do: value |> Decimal.normalize() |> Decimal.to_string(:normal)
 

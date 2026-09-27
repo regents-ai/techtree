@@ -95,6 +95,9 @@ defmodule Techtree.Network.Query do
     |> Enum.map(& &1.subject_model)
   end
 
+  @doc "Every model a published Result names, across all harness versions."
+  def result_models, do: result_models(nil, nil)
+
   @doc "Exact Campaign choices for one harness version and model; never merge by title."
   def result_challenges(agent, version, model) do
     PublicationEntry
