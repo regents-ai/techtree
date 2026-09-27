@@ -67,9 +67,24 @@ defmodule Techtree.Network.Ingest do
 
   *A withdrawal is written, not applied.* Taking an entry off the log appends a
   `withdrawn` event carrying the participant's own signature over their own
-  withdrawal request, and writes the entry's `withdrawn_at` from it. The entry
-  keeps every column it had and keeps its place, and no resource here offers a
-  destroy action that could do otherwise.
+  withdrawal request, and writes the entry's `withdrawn_at` from it, together
+  with the withdrawal receipt signed over that time and the fingerprint of the
+  key that signed it. The entry keeps every column it had and keeps its place,
+  and no resource here offers a destroy action that could do otherwise.
+
+  A withdrawal is idempotent the same way a publication is, by the database
+  rather than by looking first. Everything goes in one transaction: the event,
+  which a unique index allows once per entry, and the transition of the entry,
+  which only an entry that is not yet withdrawn makes. The loser of two racing
+  withdrawals is refused by one of those, reads the entry back, and hands back
+  the receipt the winner stored — the same code as a retry after a lost response.
+
+  *A stored receipt does not need the key.* Every receipt this module hands
+  back is one it stored, so a retry of a publication or a withdrawal that is
+  already on the log can be answered while this site cannot sign anything.
+  `recall/2` and `recall_withdrawal/1` do that: they run every check the
+  writing path runs, then answer only from what is already stored, and write
+  nothing. Anything that would need a new signature comes back `:unrecorded`.
 
   The one exception to that last rule is the contributor address, which is not
   evidence — it is something a person volunteered about themselves. Removing it
@@ -124,10 +139,28 @@ defmodule Techtree.Network.Ingest do
   @spec accept(binary(), Key.t(), keyword()) ::
           {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
   def accept(raw, %Key{} = key, options \\ []) when is_binary(raw) do
-    with {:ok, address} <- volunteered(Keyword.get(options, :contributor_address)),
-         {:ok, metadata} <- metadata(options),
-         {:ok, bundle} <- Bundle.verify(raw) do
+    with {:ok, bundle, address, metadata} <- checked(raw, options) do
       append(bundle, address, metadata, key, Keyword.get(options, :origin, ""))
+    end
+  end
+
+  @doc """
+  The stored answer to one submission, for when this site cannot sign.
+
+  Every check `accept/3` runs is run here too, so a digest on its own never
+  reaches a stored receipt. Returns `{:ok, entry, :existing}` when this exact
+  document is already published, and `:unrecorded` when answering it would
+  take a new signature — a new publication, or a different document under a
+  digest already held. Nothing is written either way.
+  """
+  @spec recall(binary(), keyword()) ::
+          {:ok, PublicationEntry.t(), :existing} | :unrecorded | {:error, Error.t()}
+  def recall(raw, options \\ []) when is_binary(raw) do
+    with {:ok, bundle, _address, _metadata} <- checked(raw, options) do
+      case stored(bundle) do
+        {:same, entry} -> {:ok, entry, :existing}
+        _other -> :unrecorded
+      end
     end
   end
 
@@ -164,19 +197,49 @@ defmodule Techtree.Network.Ingest do
 
   Returns `{:ok, entry, :recorded}` when this withdrawal was the one that
   marked it, and `{:ok, entry, :existing}` when it was already withdrawn — a
-  retry of a lost response is not a second event.
+  retry of a lost response, or the loser of two sent at once, is not a second
+  event. Either way `entry.withdrawal_receipt_bytes` is the receipt to hand
+  back.
+
+  `origin` is where this site answers, which the receipt names.
   """
-  @spec withdraw(binary()) :: {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
-  def withdraw(raw) when is_binary(raw) do
-    with {:ok, claimed} <- WithdrawalRequest.claimed_bundle_digest(raw),
-         {:ok, entry} <- entry_named(claimed),
-         {:ok, request} <- WithdrawalRequest.verify(raw, entry) do
-      if is_nil(entry.withdrawn_at) do
-        {:ok, mark_withdrawn(entry, request), :recorded}
-      else
-        {:ok, entry, :existing}
-      end
+  @spec withdraw(binary(), Key.t(), String.t()) ::
+          {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
+  def withdraw(raw, %Key{} = key, origin) when is_binary(raw) and is_binary(origin) do
+    with {:ok, entry, request} <- verified_withdrawal(raw) do
+      append_withdrawal(entry, request, key, origin)
     end
+  end
+
+  @doc """
+  The stored answer to one withdrawal request, for when this site cannot sign.
+
+  The request is checked in full against the entry it names, as `withdraw/3`
+  checks it. Returns `{:ok, entry, :existing}` when that entry is already
+  withdrawn, and `:unrecorded` when it is not. Nothing is written either way.
+  """
+  @spec recall_withdrawal(binary()) ::
+          {:ok, PublicationEntry.t(), :existing} | :unrecorded | {:error, Error.t()}
+  def recall_withdrawal(raw) when is_binary(raw) do
+    with {:ok, entry, _request} <- verified_withdrawal(raw) do
+      if is_nil(entry.withdrawn_at), do: :unrecorded, else: {:ok, entry, :existing}
+    end
+  end
+
+  @doc """
+  Sign and store a withdrawal receipt for every entry withdrawn before
+  withdrawal receipts were stored, dated with the time it was withdrawn and
+  signed with `key`, which the entry records.
+  """
+  @spec record_withdrawal_receipts(Key.t(), String.t()) :: [PublicationEntry.t()]
+  def record_withdrawal_receipts(%Key{} = key, origin) when is_binary(origin) do
+    Enum.map(Network.list_withdrawn_entries_without_receipt!(@internal), fn entry ->
+      Network.record_publication_entry_withdrawal_receipt!(
+        entry,
+        withdrawal_receipt(entry, key, origin),
+        @internal
+      )
+    end)
   end
 
   @doc """
@@ -214,6 +277,16 @@ defmodule Techtree.Network.Ingest do
   """
   @spec events(PublicationEntry.t()) :: [PublicationEvent.t()]
   def events(%PublicationEntry{id: id}), do: Network.list_events_for_entry!(id, @internal)
+
+  # -- Checking ---------------------------------------------------------------
+
+  defp checked(raw, options) do
+    with {:ok, address} <- volunteered(Keyword.get(options, :contributor_address)),
+         {:ok, metadata} <- metadata(options),
+         {:ok, bundle} <- Bundle.verify(raw) do
+      {:ok, bundle, address, metadata}
+    end
+  end
 
   # -- The volunteered address ----------------------------------------------
 
@@ -351,14 +424,11 @@ defmodule Techtree.Network.Ingest do
   # published. Anything else is a defect, and a defect is raised rather than
   # dressed up as a refusal.
   defp conflict(%Bundle{} = bundle) do
-    digest = Bundle.digest(bundle)
-    sent = submission_digest(bundle.raw)
-
-    case Network.get_publication_entry_by_digest(digest, @internal) do
-      {:ok, %PublicationEntry{submission_digest: ^sent} = entry} ->
+    case stored(bundle) do
+      {:same, entry} ->
         {:ok, {:ok, entry, :existing}}
 
-      {:ok, %PublicationEntry{} = entry} ->
+      {:different, entry} ->
         {:ok,
          {:error,
           Error.new(
@@ -368,8 +438,20 @@ defmodule Techtree.Network.Ingest do
             %{"bundle_digest" => entry.bundle_digest, "log_sequence" => entry.log_sequence}
           )}}
 
-      _other ->
+      :none ->
         run_conflict(bundle)
+    end
+  end
+
+  # What the log already holds under this bundle's digest: this same document,
+  # a different one, or nothing.
+  defp stored(%Bundle{} = bundle) do
+    sent = submission_digest(bundle.raw)
+
+    case Network.get_publication_entry_by_digest(Bundle.digest(bundle), @internal) do
+      {:ok, %PublicationEntry{submission_digest: ^sent} = entry} -> {:same, entry}
+      {:ok, %PublicationEntry{} = entry} -> {:different, entry}
+      _other -> :none
     end
   end
 
@@ -515,6 +597,14 @@ defmodule Techtree.Network.Ingest do
 
   # -- Withdrawing -----------------------------------------------------------
 
+  defp verified_withdrawal(raw) do
+    with {:ok, claimed} <- WithdrawalRequest.claimed_bundle_digest(raw),
+         {:ok, entry} <- entry_named(claimed),
+         {:ok, request} <- WithdrawalRequest.verify(raw, entry) do
+      {:ok, entry, request}
+    end
+  end
+
   defp entry_named(digest) do
     case Network.get_publication_entry_by_digest(digest, @internal) do
       {:ok, %PublicationEntry{} = entry} ->
@@ -530,8 +620,13 @@ defmodule Techtree.Network.Ingest do
     end
   end
 
-  defp mark_withdrawn(entry, %WithdrawalRequest{} = request) do
-    {:ok, updated} =
+  # The event goes first, so the unique index on an entry's events is what the
+  # loser of a race meets; the entry's transition only happens where it is not
+  # already withdrawn. Whichever refuses it, the refused attempt reads back the
+  # entry the winner wrote and hands back its receipt. Anything else is a
+  # defect, and a defect is raised rather than dressed up as an outcome.
+  defp append_withdrawal(entry, %WithdrawalRequest{} = request, key, origin) do
+    appended =
       Ash.transact([PublicationEntry, PublicationEvent], fn ->
         event =
           Network.record_publication_event!(
@@ -544,13 +639,36 @@ defmodule Techtree.Network.Ingest do
             @internal
           )
 
-        Network.mark_publication_entry_withdrawn!(
-          entry,
-          %{withdrawn_at: event.inserted_at},
-          @internal
-        )
+        attributes =
+          %{entry | withdrawn_at: event.inserted_at}
+          |> withdrawal_receipt(key, origin)
+          |> Map.put(:withdrawn_at, event.inserted_at)
+
+        Network.mark_publication_entry_withdrawn!(entry, attributes, @internal)
       end)
 
-    updated
+    case appended do
+      {:ok, updated} ->
+        {:ok, updated, :recorded}
+
+      {:error, refusal} ->
+        case Network.get_publication_entry_by_digest(entry.bundle_digest, @internal) do
+          {:ok, %PublicationEntry{withdrawn_at: %DateTime{}} = withdrawn} ->
+            {:ok, withdrawn, :existing}
+
+          _other ->
+            raise refusal
+        end
+    end
+  end
+
+  defp withdrawal_receipt(%PublicationEntry{} = withdrawn, key, origin) do
+    receipt = Receipt.issue_withdrawal(withdrawn, origin, key)
+
+    %{
+      withdrawal_receipt_bytes: Receipt.encode(receipt),
+      withdrawal_receipt_digest: Receipt.payload_digest(receipt),
+      withdrawal_network_key_id: key.key_id
+    }
   end
 end

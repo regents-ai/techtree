@@ -325,6 +325,17 @@ defmodule Techtree.NetworkFixture do
   end
 
   @doc """
+  Withdraw one published entry through the ingest, with the network key and
+  origin the controller would hand it.
+  """
+  @spec withdraw(binary()) :: term()
+  def withdraw(request) do
+    {:ok, key} = Key.load()
+
+    Techtree.Network.Ingest.withdraw(request, key, TechtreeWeb.Endpoint.url())
+  end
+
+  @doc """
   One entry written straight through the create action the ingest uses.
 
   This arranges database states that an honest submission cannot produce, such

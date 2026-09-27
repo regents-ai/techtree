@@ -125,7 +125,7 @@ defmodule Techtree.Network.ConformanceTest do
       {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
 
       {:ok, withdrawn, :recorded} =
-        Techtree.Network.Ingest.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+        NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
 
       {:ok, key} = Key.load()
 
@@ -139,6 +139,9 @@ defmodule Techtree.Network.ConformanceTest do
 
       assert receipt["payload"]["schema_version"] ==
                "techtree.publication-withdrawal-receipt.v1alpha1"
+
+      # And the bytes actually stored on the entry are that same document.
+      assert Jason.decode!(withdrawn.withdrawal_receipt_bytes) == receipt
     end
 
     test "the withdrawal request this site accepts is the one its schema fixes" do

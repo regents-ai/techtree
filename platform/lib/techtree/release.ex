@@ -87,6 +87,33 @@ defmodule Techtree.Release do
   end
 
   @doc """
+  Sign and store the withdrawal receipt of every Result withdrawn before
+  withdrawal receipts were stored, so that every withdrawal is answered from a
+  stored receipt. Each receipt carries the time its Result was withdrawn and is
+  signed with the key this release holds, which the entry records. Run it once,
+  straight after the migration that adds the stored withdrawal receipt.
+  """
+  @spec receipt_withdrawals() :: :ok
+  def receipt_withdrawals do
+    load_app()
+
+    {:ok, _apps} = Application.ensure_all_started(@app)
+
+    case Techtree.Network.Key.load() do
+      {:ok, key} ->
+        key
+        |> Techtree.Network.Ingest.record_withdrawal_receipts(TechtreeWeb.Endpoint.url())
+        |> Enum.each(&IO.puts("receipted #{&1.log_sequence} #{&1.bundle_digest}"))
+
+      :error ->
+        IO.puts(:stderr, "no signing key is configured, so no withdrawal receipt was stored")
+        exit({:shutdown, 1})
+    end
+
+    :ok
+  end
+
+  @doc """
   Publish one already-staged bootstrap release on its channel.
 
   This is the rollback command: releases are immutable, and which one a channel

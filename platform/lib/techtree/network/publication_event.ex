@@ -4,7 +4,8 @@ defmodule Techtree.Network.PublicationEvent do
 
   Two things can happen to an entry and both of them are appended rather than
   applied. It is `accepted` once, when the log takes it, and it may later be
-  `withdrawn`, when the participant asks for it to be. Neither event edits the
+  `withdrawn`, when the participant asks for it to be — once, which a unique
+  index over the entry and the kind holds. Neither event edits the
   entry's own evidence: acceptance writes the row, and withdrawal writes a
   second event and a date on the row that says the second event exists.
 
@@ -107,5 +108,11 @@ defmodule Techtree.Network.PublicationEvent do
       allow_nil? false
       public? true
     end
+  end
+
+  identities do
+    # An entry is accepted once and withdrawn at most once. The database holds
+    # that, so two withdrawals arriving together cannot both be appended.
+    identity :one_event_of_each_kind, [:publication_entry_id, :kind]
   end
 end

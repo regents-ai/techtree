@@ -56,9 +56,11 @@ defmodule Techtree.Network.Receipt do
 
   Both are served as canonical bytes, so the payload a verifier reconstructs is
   a member-for-member subset of what they were handed rather than a
-  re-rendering of it. The publication receipt is also stored on the entry, so a
-  participant who retries after a lost response is handed the identical
-  document rather than a second one that agrees with the first.
+  re-rendering of it. Both are also stored on the entry, with the fingerprint
+  of the key that signed them, so a participant who retries after a lost
+  response is handed the identical document rather than a second one that
+  agrees with the first — even after this site has started signing with
+  another key.
   """
 
   alias Techtree.Canonical
