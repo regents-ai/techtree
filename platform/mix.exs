@@ -67,7 +67,7 @@ defmodule Techtree.MixProject do
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:ash_phoenix, "~> 2.0"},
       {:ash_postgres, "~> 2.13.0"},
-      {:ash, "~> 3.33.4"},
+      {:ash, "~> 3.33.11"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.4"},
