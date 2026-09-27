@@ -7,22 +7,31 @@ defmodule Techtree.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      TechtreeWeb.Telemetry,
-      Techtree.Repo,
-      {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Techtree.PubSub},
-      Techtree.Network.RateLimit,
-      # Start a worker by calling: Techtree.Worker.start_link(arg)
-      # {Techtree.Worker, arg},
-      # Start to serve requests, typically the last entry
-      TechtreeWeb.Endpoint
-    ]
+    children =
+      [
+        TechtreeWeb.Telemetry,
+        Techtree.Repo,
+        {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: Techtree.PubSub},
+        Techtree.Network.RateLimit,
+        # Start a worker by calling: Techtree.Worker.start_link(arg)
+        # {Techtree.Worker, arg},
+        # Start to serve requests, typically the last entry
+        TechtreeWeb.Endpoint,
+        metrics_child()
+      ]
+      |> Enum.reject(&is_nil/1)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Techtree.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  # Metrics are served beside the site, never by a process that only runs a task.
+  defp metrics_child do
+    if Phoenix.Endpoint.server?(:techtree, TechtreeWeb.Endpoint),
+      do: TechtreeWeb.Metrics
   end
 
   # Tell Phoenix to update the endpoint configuration

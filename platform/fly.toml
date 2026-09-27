@@ -44,6 +44,12 @@ swap_size_mb = 512
   # part 1b). Unset, the release serves the `development` channel. Production
   # serves `stable`.
 
+# Metrics are served on their own port (`TechtreeWeb.Metrics`), which Fly's
+# scraper reads over the private network. No public traffic is routed to it.
+[metrics]
+  port = 9091
+  path = "/metrics"
+
 [deploy]
   # Migrations run in a one-off machine on the new image, before any machine
   # serving traffic is replaced. This is the only thing a deploy does to the

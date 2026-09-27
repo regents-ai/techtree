@@ -21,6 +21,9 @@ config :techtree, TechtreeWeb.Endpoint, cache_static_manifest: "priv/static/cach
 config :techtree, TechtreeWeb.Endpoint,
   force_ssl: [rewrite_on: [:x_forwarded_proto], exclude: ["localhost", "127.0.0.1"]]
 
+# The private port fly.toml names under [metrics]; Fly routes no public traffic to it.
+config :techtree, :metrics_listener, ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 9091
+
 # Do not print debug messages in production
 config :logger, level: :info
 

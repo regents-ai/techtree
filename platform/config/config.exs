@@ -102,6 +102,10 @@ config :techtree, TechtreeWeb.Endpoint,
   pubsub_server: Techtree.PubSub,
   live_view: [signing_salt: "TLsHrJnt"]
 
+# Metrics listen on loopback, on a port the system picks, so this site runs
+# beside the other sites' local servers without taking the one port they share.
+config :techtree, :metrics_listener, ip: {127, 0, 0, 1}, port: 0
+
 # Configure esbuild (the version is required). The crown is a separate entry so
 # the homepage can load it on demand.
 config :esbuild,

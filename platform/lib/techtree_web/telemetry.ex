@@ -9,14 +9,26 @@ defmodule TechtreeWeb.Telemetry do
   @impl true
   def init(_arg) do
     children = [
+      {TelemetryMetricsPrometheus.Core,
+       metrics: prometheus_metrics(), name: prometheus_reporter(), start_async: false},
       # Telemetry poller will execute the given period measurements
       # every 10_000ms. Learn more here: https://hexdocs.pm/telemetry_metrics
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000}
-      # Add reporters as children of your supervision tree.
-      # {Telemetry.Metrics.ConsoleReporter, metrics: metrics()}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)
+  end
+
+  def prometheus_reporter, do: :techtree_prometheus
+
+  # What `TechtreeWeb.Metrics` serves: the publication rate-limit table after
+  # each sweep.
+  def prometheus_metrics do
+    [
+      last_value("techtree.rate_limit.sweep.duration", unit: {:microsecond, :millisecond}),
+      last_value("techtree.rate_limit.sweep.deleted"),
+      last_value("techtree.rate_limit.sweep.size")
+    ]
   end
 
   def metrics do
