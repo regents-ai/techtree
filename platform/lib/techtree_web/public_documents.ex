@@ -2,9 +2,11 @@ defmodule TechtreeWeb.PublicDocuments do
   @moduledoc """
   The pages Techtree publishes to people and to agents at the same address.
 
-  Each is committed Markdown in `priv/public`. An agent that asks `/`, `/about`,
-  `/contact` or `/privacy` for `text/markdown` receives it with one closing
-  line, answered before the router by `RegentAgentAccess.Plug`. About, Contact
+  Each is committed Markdown in `priv/public`, and the changelog is
+  `priv/changelog.md`, the same file the Changelog page shows. An agent that
+  asks `/`, `/about`, `/contact`, `/privacy` or `/changelog` for `text/markdown`
+  receives it with one closing line, answered before the router by
+  `RegentAgentAccess.Plug`. About, Contact
   and Privacy show the same words as pages, so the two never say different
   things; the home page's own design is its LiveView, and its Markdown is the
   same facts in words. `/llms.txt` is the agent guide with the browser tool
@@ -14,11 +16,17 @@ defmodule TechtreeWeb.PublicDocuments do
   @directory Application.app_dir(:techtree, "priv/public")
   @names ~w(home about contact privacy llms)
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
-  @sources Map.new(@names, &{&1, File.read!(Path.join(@directory, &1 <> ".md"))})
-  @paths %{"/" => "home", "/about" => "about", "/contact" => "contact", "/privacy" => "privacy"}
+  @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
+  @external_resource @changelog_file
+  @sources @names
+           |> Map.new(&{&1, File.read!(Path.join(@directory, &1 <> ".md"))})
+           |> Map.put("changelog", File.read!(@changelog_file))
+  @pages %{"/about" => "about", "/contact" => "contact", "/privacy" => "privacy"}
+  @paths Map.merge(@pages, %{"/" => "home", "/changelog" => "changelog"})
 
-  @trailer "\n---\n\nTechtree answers `/`, `/about`, `/contact` and `/privacy` as Markdown " <>
-             "when asked with `Accept: text/markdown`. Public API: [/openapi.json](/openapi.json). " <>
+  @trailer "\n---\n\nTechtree answers `/`, `/about`, `/contact`, `/privacy` and `/changelog` " <>
+             "as Markdown when asked with `Accept: text/markdown`. " <>
+             "Public API: [/openapi.json](/openapi.json). " <>
              "Agent guide: [/llms.txt](/llms.txt).\n"
 
   @llms String.replace(@sources["llms"], "{{tools}}", Techtree.Capabilities.markdown_table())
@@ -41,7 +49,7 @@ defmodule TechtreeWeb.PublicDocuments do
   one-paragraph lede under it, and the rest rendered as HTML.
   """
   @spec page(String.t()) :: %{title: String.t(), lede: String.t(), body_html: String.t()}
-  for {path, name} <- Map.delete(@paths, "/") do
+  for {path, name} <- @pages do
     ["# " <> title, lede, body] = String.split(@sources[name], "\n\n", parts: 3)
     {body_html, _contents} = RegentBlog.markdown(body)
 

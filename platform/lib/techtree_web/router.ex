@@ -8,9 +8,10 @@ defmodule TechtreeWeb.Router do
 
   @theme_cookie "techtree_theme"
 
-  # Pages are HTML here. The home page, About, Contact and Privacy also answer
-  # `Accept: text/markdown`, from `TechtreeWeb.PublicDocuments`, before the
-  # router. `/skill.md` is Markdown whichever is asked for.
+  # Pages are HTML here. The home page, About, Contact, Privacy and the
+  # Changelog also answer `Accept: text/markdown`, from
+  # `TechtreeWeb.PublicDocuments`, before the router. `/skill.md` is Markdown
+  # whichever is asked for.
   pipeline :html_only do
     plug :accepts, ["html"]
   end
