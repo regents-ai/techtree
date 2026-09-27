@@ -75,6 +75,7 @@ __all__ = [
     "FORGE_RUN_SPEC_SCHEMA_VERSION",
     "FORGE_SOURCE_SCHEMA_VERSION",
     "FORGE_TASK_CONTENT_SCHEMA_VERSION",
+    "FORGE_TASK_CORRECTION_SCHEMA_VERSION",
     "FORGE_TASK_SET_SCHEMA_VERSION",
     "MAX_CLAIMS",
     "MAX_PLANNED_TASKS",
@@ -188,6 +189,8 @@ __all__ = [
     "ForgeSourceStatus",
     "ForgeSubjectToolset",
     "ForgeTaskConsistency",
+    "ForgeTaskCorrection",
+    "ForgeTaskCorrectionChange",
     "ForgeTaskId",
     "ForgeTaskKind",
     "ForgeTaskRegression",
@@ -1609,14 +1612,15 @@ FORGE_CONSTRUCTION_CALL_SCHEMA_VERSION: Final = (
 FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION: Final = (
     "techtree.forge-construction-package.v1alpha2"
 )
-FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha3"
+FORGE_TASK_CORRECTION_SCHEMA_VERSION: Final = "techtree.forge-task-correction.v1alpha1"
+FORGE_COLLECTION_SCHEMA_VERSION: Final = "techtree.forge-collection.v1alpha4"
 FORGE_COLLECTION_ACCEPTANCE_SCHEMA_VERSION: Final = (
     "techtree.forge-collection-acceptance.v1alpha1"
 )
 FORGE_COLLECTION_IMPORT_SCHEMA_VERSION: Final = (
     "techtree.forge-collection-import.v1alpha1"
 )
-FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha3"
+FORGE_EXPORT_SCHEMA_VERSION: Final = "techtree.forge-export.v1alpha4"
 
 #: The most tasks one plan may ask for: Skill2Env's own default workflow count.
 MAX_PLANNED_TASKS: Final = 8
@@ -2196,14 +2200,59 @@ type ForgeConstructionCallState = Literal[
 ]
 
 
+class ForgeTaskCorrectionChange(ProtocolModel):
+    """One file or folder a correction added, removed or modified."""
+
+    path: NonEmptyString
+    change: Literal["added", "removed", "modified"]
+
+
+class ForgeTaskCorrection(ProtocolModel):
+    """A person's correction of one task of an ended construction.
+
+    ``build_id`` is the build the corrected package was admitted and
+    qualified in, as a created package is, and ``content_digest`` the digest
+    of its files. ``replaces`` is the build of the package it corrects: the
+    newest earlier correction of the task, else the package the creator's
+    answer became, and ``None`` when the creator wrote none.
+    ``replaced_digest`` is that package's content digest, ``None`` when it
+    was never admitted; ``changes`` are worked out against it, every entry
+    added when there is none. Recorded only once the package qualified.
+    """
+
+    schema_version: Literal["techtree.forge-task-correction.v1alpha1"]
+    construction_id: NonEmptyString
+    task_name: ForgeProposedTaskName
+    corrected_at: UtcDateTime
+    replaces: NonEmptyString | None
+    replaced_digest: Digest | None
+    build_id: NonEmptyString
+    content_digest: Digest
+    changes: list[ForgeTaskCorrectionChange] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_replaced(self) -> Self:
+        if self.replaced_digest is not None and self.replaces is None:
+            raise ValueError("a replaced package's digest names its build")
+        if self.replaced_digest == self.content_digest:
+            raise ValueError("a correction changes the package it replaces")
+        paths = [change.path for change in self.changes]
+        if paths != sorted(set(paths)):
+            raise ValueError("changed paths are unique and sorted")
+        return self
+
+
 class ForgeConstructionTaskStatus(ProtocolModel):
-    """One task of a construction: its call, if made, and its package, if any."""
+    """One task of a construction: its call, if made, its package, if any,
+    and a person's corrections of it, oldest first; the newest is the one
+    in use."""
 
     task_name: ForgeProposedTaskName
     package_name: NonEmptyString
     state: ForgeConstructionCallState
     call: ForgeConstructionCall | None
     package: ForgeConstructionPackage | None
+    corrections: list[ForgeTaskCorrection]
 
 
 class ForgeConstructionStatus(ProtocolModel):
@@ -2229,21 +2278,30 @@ class ForgeCollectionCandidate(ProtocolModel):
     """One proposed task as acceptance shows it: how it went, last time tried.
 
     ``construction_id`` is the construction that last called the creator for
-    it. ``build_id`` names the build its package became, if one was written,
-    and ``usable`` is whether that build qualified it; the build's status says
-    why one did not. ``why`` is what stopped a call that made no package.
+    it. ``corrections`` are a person's corrections of the task there, oldest
+    first. ``build_id`` names the build of the newest of them, else the build
+    the creator's package became, if one was written, and ``usable`` is
+    whether that build qualified it; the build's status says why one did
+    not. ``why`` is what stopped a call that made no package.
     """
 
     task_name: ForgeProposedTaskName
     construction_id: NonEmptyString
     state: ForgeConstructionCallState
+    corrections: list[ForgeTaskCorrection]
     build_id: NonEmptyString | None
     usable: bool
     why: NonEmptyString | None
 
     @model_validator(mode="after")
     def validate_outcome(self) -> Self:
-        if self.usable and (self.build_id is None or self.why is not None):
+        if self.corrections and (
+            not self.usable or self.build_id != self.corrections[-1].build_id
+        ):
+            raise ValueError("a corrected task is its newest correction's build")
+        if self.usable and (
+            self.build_id is None or (self.why is not None and not self.corrections)
+        ):
             raise ValueError("a usable task names its build and no reason it stopped")
         return self
 
@@ -2414,7 +2472,7 @@ class ForgeCollectionReview(ProtocolModel):
 class ForgeCollectionRecord(ProtocolModel):
     """A prepared collection: its review and the digest acceptance names."""
 
-    schema_version: Literal["techtree.forge-collection.v1alpha3"]
+    schema_version: Literal["techtree.forge-collection.v1alpha4"]
     collection_id: NonEmptyString
     created_at: UtcDateTime
     review: ForgeCollectionReview
@@ -2492,7 +2550,7 @@ class ForgeExport(ProtocolModel):
     checked against it byte for byte rather than written again.
     """
 
-    schema_version: Literal["techtree.forge-export.v1alpha3"]
+    schema_version: Literal["techtree.forge-export.v1alpha4"]
     exported_at: UtcDateTime
     collection: ForgeCollectionRecord
     acceptance: ForgeCollectionAcceptance

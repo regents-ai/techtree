@@ -33,8 +33,14 @@ so its README, verify-export and import show the collection's fingerprint for
 its reader to match; a changed export, one whose tasks name another Skill than
 its collection, one built for another Docker platform, or one whose task does
 not qualify on the importing computer, leaves nothing behind, and an import
-that fails never removes what another made. The creator, Docker and Hermes
-are the stand-ins of the construction and run tests; no model is called.
+that fails never removes what another made. A person's corrected copy of a
+built task is admitted and qualified like a created one, as a new build, and
+recorded with what it replaced and which files changed, the original build
+left as it was; collecting takes each task's newest correction and marks on
+every task whether a person corrected it, and a folder that is unchanged,
+misnamed, refused at admission or does not qualify records nothing. The
+creator, Docker and Hermes are the stand-ins of the construction and run
+tests; no model is called.
 """
 
 from __future__ import annotations
@@ -64,7 +70,13 @@ from fixtures.forge.support import (
 )
 from techtree.canonical import digest_object
 from techtree.cli.app import create_app
-from techtree.errors import RunError, TechtreeError, ValidationError, VerificationError
+from techtree.errors import (
+    NotFoundError,
+    RunError,
+    TechtreeError,
+    ValidationError,
+    VerificationError,
+)
 from techtree.forge.capture import MANIFEST_FILENAME
 from techtree.forge.collection import read_collection_status
 from techtree.forge.comparability import (
@@ -72,7 +84,12 @@ from techtree.forge.comparability import (
     compare_run_specs,
 )
 from techtree.forge.compare import compare_runs, read_comparison_status
-from techtree.forge.construction import start_construction
+from techtree.forge.construction import (
+    correct_task,
+    read_construction_status,
+    start_construction,
+)
+from techtree.forge.content import verify_task_set
 from techtree.forge.experiment import declare_run_spec
 from techtree.forge.improvement import (
     ForgeImprovementCollection,
@@ -84,6 +101,8 @@ from techtree.forge.models import (
     ForgeBuildStatus,
     ForgeCollectionReview,
     ForgeCollectionTasks,
+    ForgeConstructionStatus,
+    ForgeConstructionTaskStatus,
     ForgeEvidence,
     ForgeExport,
     ForgeOutputLimits,
@@ -480,6 +499,313 @@ def test_a_retried_task_joins_as_a_new_version(
     assert warning["id"] == "forge_few_held_out"
     assert "at least 2 repetitions per task" in warning["text"]
     assert invoke(home, "verify", v1)[0] == 0
+
+
+# ---------------------------------------------------------------------------
+# A person's correction of a task
+# ---------------------------------------------------------------------------
+
+
+def correct(
+    home: Path, construction_id: str, task_name: str, folder: Path, *, qualifies: bool
+) -> ForgeConstructionStatus:
+    """Correct a task, its package graded as qualifying or, when not, by tests
+    that pass when nothing is done."""
+    paths = paths_from_root(home)
+    run = (
+        FakeDocker(reward=0.0, reference_reward=1.0)
+        if qualifies
+        else FakeDocker(reward=1.0)
+    )
+    return correct_task(
+        paths,
+        construction_id,
+        task_name,
+        folder,
+        qualify=lambda task_dir, source_skill, source_digest: ForgeService(
+            paths, run, Path("/fake/uv")
+        ).import_skill(
+            task_dir=task_dir, source_skill=source_skill, source_digest=source_digest
+        ),
+    )
+
+
+def copy_out(home: Path, build_id: str, destination: Path) -> Path:
+    """Copy a built package out of its build, as a person does to edit it."""
+    [package] = Path(
+        read_build_status(paths_from_root(home), build_id).tasks_path
+    ).iterdir()
+    destination.mkdir()
+    return Path(shutil.copytree(package, destination / package.name))
+
+
+def task_status(
+    home: Path, construction_id: str, task_name: str
+) -> ForgeConstructionTaskStatus:
+    status = read_construction_status(paths_from_root(home), construction_id)
+    [task] = [task for task in status.tasks if task.task_name == task_name]
+    return task
+
+
+def append(path: Path, text: str) -> None:
+    path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")
+
+
+def test_a_corrected_task_is_checked_as_a_new_build_and_recorded(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    paths = paths_from_root(home)
+    construction_id = construct(home, proposal_id, profiles, ae5_creator())
+    created = task_status(home, construction_id, QUALIFIES).package
+    assert created is not None
+    original = read_build_status(paths, created.build_id)
+    assert original.build is not None
+    folder = copy_out(home, created.build_id, tmp_path / "edit")
+    append(folder / "tests" / "test.sh", "# read and checked by hand\n")
+    (folder / "tests" / "helper.py").write_text("TOTAL = 5\n", encoding="utf-8")
+
+    status = correct(home, construction_id, QUALIFIES, folder, qualifies=True)
+
+    [task] = [task for task in status.tasks if task.task_name == QUALIFIES]
+    [correction] = task.corrections
+    built = read_build_status(paths, correction.build_id)
+    assert built.build is not None and built.usable_tasks == 1
+    assert correction.build_id != created.build_id
+    assert correction.replaces == created.build_id
+    assert correction.replaced_digest == original.build.task_set.tasks[0].content_digest
+    assert correction.content_digest == built.build.task_set.tasks[0].content_digest
+    assert [(change.path, change.change) for change in correction.changes] == [
+        ("tests/helper.py", "added"),
+        ("tests/test.sh", "modified"),
+    ]
+    # The original build is left exactly as it was built.
+    verify_task_set(Path(original.tasks_path), original.build.task_set)
+    assert task.package == created
+    code, shown = invoke(home, "status", construction_id)
+    assert code == 0
+    assert [
+        correction["build_id"]
+        for correction in shown["facts"]["tasks"][0]["corrections"]
+    ] == [correction.build_id]
+    printed = CliRunner().invoke(
+        create_app(), ["--home", str(home), "forge", "status", construction_id]
+    )
+    words = " ".join(printed.output.split())
+    assert (
+        f"{QUALIFIES}: corrected by a person, usable, checked as build "
+        f"{correction.build_id}"
+    ) in words
+    assert "tests/helper.py added, tests/test.sh modified" in words
+
+
+def test_collect_takes_each_tasks_newest_correction_and_says_so(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    construction_id = construct(home, proposal_id, profiles, ae5_creator())
+    created = task_status(home, construction_id, QUALIFIES).package
+    assert created is not None
+    first_dir = copy_out(home, created.build_id, tmp_path / "first")
+    (first_dir / "tests" / "helper.py").write_text("TOTAL = 5\n", encoding="utf-8")
+    correct(home, construction_id, QUALIFIES, first_dir, qualifies=True)
+    [first] = task_status(home, construction_id, QUALIFIES).corrections
+    second_dir = copy_out(home, first.build_id, tmp_path / "second")
+    (second_dir / "tests" / "helper.py").unlink()
+    append(second_dir / "instruction.md", "Write only the number.\n")
+    correct(home, construction_id, QUALIFIES, second_dir, qualifies=True)
+    _, second = task_status(home, construction_id, QUALIFIES).corrections
+    # A built package that did not qualify is rescued the same way.
+    unqualified = task_status(home, construction_id, DOES_NOT_QUALIFY).package
+    assert unqualified is not None and unqualified.usable_tasks == 0
+    rescue_dir = copy_out(home, unqualified.build_id, tmp_path / "rescue")
+    append(rescue_dir / "tests" / "test.sh", "# fails when nothing is done\n")
+    correct(home, construction_id, DOES_NOT_QUALIFY, rescue_dir, qualifies=True)
+    [rescue] = task_status(home, construction_id, DOES_NOT_QUALIFY).corrections
+    also = task_status(home, construction_id, ALSO_QUALIFIES).package
+    assert also is not None
+
+    assert second.replaces == first.build_id
+    assert second.replaced_digest == first.content_digest
+    assert [(change.path, change.change) for change in second.changes] == [
+        ("instruction.md", "modified"),
+        ("tests/helper.py", "removed"),
+    ]
+    review = collect(home, construction_id)["facts"]["record"]["review"]
+    tasks = {task["task_name"]: task for task in review["tasks"]}
+    assert tasks[QUALIFIES]["build_id"] == second.build_id
+    assert [c["build_id"] for c in tasks[QUALIFIES]["corrections"]] == [
+        first.build_id,
+        second.build_id,
+    ]
+    assert tasks[DOES_NOT_QUALIFY]["usable"] is True
+    assert tasks[ALSO_QUALIFIES]["corrections"] == []
+    assert {
+        member["task_name"]: member["build_id"] for member in review["members"]
+    } == {
+        QUALIFIES: second.build_id,
+        DOES_NOT_QUALIFY: rescue.build_id,
+        ALSO_QUALIFIES: also.build_id,
+    }
+
+    collection_id = collect(home, construction_id)["facts"]["collection_id"]
+    accepted = CliRunner().invoke(
+        create_app(),
+        ["--home", str(home), "forge", "accept", collection_id],
+        input="y\n",
+    )
+
+    assert accepted.exit_code == 0, accepted.output
+    words = " ".join(accepted.output.split())
+    assert f"{QUALIFIES}: qualified; corrected by a person 2 times, last on" in words
+    assert (
+        f"{ALSO_QUALIFIES}: qualified, checked as build {also.build_id}; not "
+        "corrected by a person"
+    ) in words
+    assert f"{FAILS}: failed" in words and "; not corrected by a person" in words
+    assert (
+        "The automatic checks show that each task's grader agrees with its own "
+        "sample solutions, not that it accepts every correct answer, so read "
+        "each task, and correct any with forge correct-task and collect again, "
+        "before accepting."
+    ) in words
+    # A correction made after acceptance leaves the accepted collection as it was.
+    third_dir = copy_out(home, second.build_id, tmp_path / "third")
+    append(third_dir / "instruction.md", "Nothing else.\n")
+    correct(home, construction_id, QUALIFIES, third_dir, qualifies=True)
+    assert invoke(home, "verify", collection_id)[0] == 0
+
+    export = tmp_path / "export"
+    assert invoke(home, "export", collection_id, "--to", str(export))[0] == 0
+
+    exported = ForgeExport.model_validate_json((export / "export.json").read_bytes())
+    exported_tasks = {task.task_name: task for task in exported.collection.review.tasks}
+    assert [c.build_id for c in exported_tasks[QUALIFIES].corrections] == [
+        first.build_id,
+        second.build_id,
+    ]
+    readme = (export / "README.md").read_text(encoding="utf-8").splitlines()
+    [corrected_line] = [line for line in readme if f"the task {QUALIFIES}" in line]
+    [plain_line] = [line for line in readme if f"the task {ALSO_QUALIFIES}" in line]
+    assert "(corrected by a person)" in corrected_line
+    assert "(corrected by a person)" not in plain_line
+
+
+def test_a_task_the_creator_wrote_nothing_for_can_be_rescued(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    construction_id = construct(home, proposal_id, profiles, ae5_creator())
+    failed = task_status(home, construction_id, FAILS)
+    assert failed.state == "failed" and failed.package is None
+    created = task_status(home, construction_id, QUALIFIES).package
+    assert created is not None
+    # The person writes the task from another one, under its own package name.
+    copied = copy_out(home, created.build_id, tmp_path / "rescue")
+    folder = copied.rename(copied.parent / failed.package_name)
+    toml = folder / "task.toml"
+    toml.write_text(
+        toml.read_text(encoding="utf-8").replace(copied.name, failed.package_name),
+        encoding="utf-8",
+    )
+    (folder / "instruction.md").write_text(
+        f"For {FAILS}, sum /app/amounts.txt and write the integer to "
+        "/app/result.txt.\n",
+        encoding="utf-8",
+    )
+
+    status = correct(home, construction_id, FAILS, folder, qualifies=True)
+
+    [task] = [task for task in status.tasks if task.task_name == FAILS]
+    [correction] = task.corrections
+    assert correction.replaces is None and correction.replaced_digest is None
+    assert {change.change for change in correction.changes} == {"added"}
+    assert "task.toml" in [change.path for change in correction.changes]
+    review = collect(home, construction_id)["facts"]["record"]["review"]
+    [rescued] = [task for task in review["tasks"] if task["task_name"] == FAILS]
+    assert rescued["usable"] is True and rescued["why"] is not None
+    assert FAILS in [member["task_name"] for member in review["members"]]
+    # A retry builds only the tasks still without a usable package.
+    code, retry = invoke(
+        home,
+        "construct",
+        proposal_id,
+        "--provider",
+        "openai-codex",
+        "--model",
+        "gpt-5.6-sol",
+        "--retry-of",
+        construction_id,
+    )
+    assert code == 0, retry
+    calls = retry["facts"]["record"]["review"]["disclosure"]["calls"]
+    assert [call["task_name"] for call in calls] == [
+        REJECTED,
+        TIMES_OUT,
+        DOES_NOT_QUALIFY,
+    ]
+    # A task that retry builds again is corrected there, not here.
+    with pytest.raises(ValidationError) as retried:
+        correct(home, construction_id, REJECTED, folder, qualifies=True)
+    assert retried.value.code == "forge_correction_retried"
+
+
+def test_a_correction_that_cannot_be_used_is_refused_and_records_nothing(
+    home: Path, proposal_id: str, profiles: Path, tmp_path: Path
+) -> None:
+    paths = paths_from_root(home)
+    construction_id = construct(home, proposal_id, profiles, ae5_creator())
+    created = task_status(home, construction_id, QUALIFIES).package
+    assert created is not None
+    folder = copy_out(home, created.build_id, tmp_path / "edit")
+    builds = sorted(paths.forge_builds_dir.iterdir())
+
+    with pytest.raises(ValidationError) as unchanged:
+        correct(home, construction_id, QUALIFIES, folder, qualifies=True)
+    misnamed = Path(shutil.copytree(folder, tmp_path / "other" / "task_other_12345678"))
+    _, wrong_name = invoke(
+        home, "correct-task", construction_id, QUALIFIES, str(misnamed)
+    )
+    with pytest.raises(NotFoundError) as no_task:
+        correct(home, construction_id, "branch-code-missing", folder, qualifies=True)
+    _, prepared = invoke(
+        home,
+        "construct",
+        proposal_id,
+        "--provider",
+        "openai-codex",
+        "--model",
+        "gpt-5.6-sol",
+    )
+    with pytest.raises(ValidationError) as not_ready:
+        correct(
+            home,
+            prepared["facts"]["construction_id"],
+            QUALIFIES,
+            folder,
+            qualifies=True,
+        )
+
+    assert unchanged.value.code == "forge_correction_unchanged"
+    assert "a correction has to change something" in unchanged.value.message
+    assert wrong_name["error"]["code"] == "forge_correction_wrong_name"
+    assert no_task.value.code == "forge_correction_no_task"
+    assert not_ready.value.code == "forge_correction_not_ready"
+    assert sorted(paths.forge_builds_dir.iterdir()) == builds
+
+    (folder / "tests" / ".notes").write_text("remember\n", encoding="utf-8")
+    with pytest.raises(RunError) as hidden:
+        correct(home, construction_id, QUALIFIES, folder, qualifies=True)
+    (folder / "tests" / ".notes").unlink()
+    append(folder / "tests" / "test.sh", "# edited\n")
+    with pytest.raises(RunError) as unqualified:
+        correct(home, construction_id, QUALIFIES, folder, qualifies=False)
+
+    assert hidden.value.code == "forge_task_content_invalid"
+    assert "hidden" in hidden.value.message
+    assert unqualified.value.code == "forge_no_usable_tasks"
+    for refused in (hidden.value, unqualified.value):
+        assert "nothing was recorded" in refused.message
+        assert refused.details["task_name"] == QUALIFIES
+    assert task_status(home, construction_id, QUALIFIES).corrections == []
+    assert not (paths.forge_construction_dir(construction_id) / "corrections").exists()
 
 
 # ---------------------------------------------------------------------------

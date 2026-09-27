@@ -282,6 +282,7 @@ forge plan-start
 forge correct-proposal
 forge construct
 forge construct-start
+forge correct-task
 forge collect
 forge accept
 forge verify

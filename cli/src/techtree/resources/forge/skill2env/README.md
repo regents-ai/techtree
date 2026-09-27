@@ -113,3 +113,11 @@ started. Every check and what it saw is written to `qualification.json`
 beside the build; a rejected task keeps its image build log and every
 container's transcript. The repository runner does not yet
 execute Skill tasks.
+
+`forge correct-task` admits a person's corrected copy of a built package the
+same way: the edited folder, under the package's own name, goes through this
+admission and qualification unchanged, offline, as a new build, and nothing
+is relaxed for it. The build the package came from is left as it was. The
+automatic checks show that each task's grader agrees with its own sample
+solutions, not that it accepts every correct answer, so read each task, and
+correct any this way, before accepting a collection.

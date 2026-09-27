@@ -145,6 +145,8 @@ RECORDED_ONLY: Final = (
     "the Skill the tasks were written from: its name and fingerprint are "
     "recorded, its text is not included",
     "the proposal and the building of the tasks",
+    "a person's corrections of tasks: when each was made and which files it "
+    "changed are recorded, the tasks before them are not included",
     "the qualification runs: their results are recorded, not run again",
     "the images the tasks were built and checked with",
     "the acceptance itself: when it was given and how it was answered",
@@ -561,6 +563,7 @@ def export_readme(
     holds and its tasks' ``task.toml`` time limits, read from ``tasks_dir``."""
     review = record.review
     members = review.members
+    corrected = {task.task_name for task in review.tasks if task.corrections}
     platforms = " and ".join(_platforms(tasks))
     lines = [
         f"# Collection {record.collection_id}, version {review.version}",
@@ -581,6 +584,7 @@ def export_readme(
         *(
             f"- `{TASKS_DIRNAME}/{member.task_id}/`: the task {member.task_name}"
             + (" (held out)" if member.part == "held_out" else "")
+            + (" (corrected by a person)" if member.task_name in corrected else "")
             + f", a {TASK_KIND_WORDS[member.kind]} for claim {member.claim}, with its "
             "instruction, the files it starts from, its tests and its reference "
             "solutions."
@@ -600,6 +604,17 @@ def export_readme(
         "that was ever studied is never held out. Tasks whose files differ only "
         "slightly are not recognised as the same task.",
         "",
+        *(
+            [
+                "A task marked corrected by a person was edited by hand after "
+                "it was written and checked again the same way before it was "
+                f"accepted; `{EXPORT_FILENAME}` records when, and which files "
+                "changed.",
+                "",
+            ]
+            if corrected
+            else []
+        ),
         "## What the tasks test",
         "",
         *(

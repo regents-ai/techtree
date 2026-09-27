@@ -5,9 +5,10 @@
 Qualification says which built tasks work; it accepts nothing. A collection
 is prepared from a construction and the constructions it retried: its review
 lists every task of the proposal with how it went last time it was tried,
-failures included, and the exact members, the qualified tasks being accepted
-(all of them unless a person names fewer), each by the digest of its files
-and of its qualification. Preparing refuses when nothing qualified.
+failures included, and a person's corrections of it there, the newest of
+which is the task's package; and the exact members, the qualified tasks
+being accepted (all of them unless a person names fewer), each by the digest
+of its files and of its qualification. Preparing refuses when nothing qualified.
 
 Accepting records a person's decision on exactly that review, by its digest,
 and freezes the collection: an accepted collection is never accepted again or
@@ -177,7 +178,10 @@ def already_collected(paths: TechtreePaths, construction_id: str) -> bool:
     proposal = read_proposal_status(paths, chain[0].record.review.proposal_id).record
     taken = {
         (candidate.task_name, candidate.build_id)
-        for candidate in (_candidate(task.name, chain) for task in proposal.tasks)
+        for candidate in (
+            _candidate(task.name, chain, accepted_before=None)
+            for task in proposal.tasks
+        )
         if candidate.usable
     }
     return taken == {
@@ -600,7 +604,8 @@ def _review(
     newest = chain[0].record.review
     proposal = read_proposal_status(paths, newest.proposal_id).record
     candidates = [
-        _candidate(name, chain) for name in (task.name for task in proposal.tasks)
+        _candidate(task.name, chain, accepted_before=accepted_before)
+        for task in proposal.tasks
     ]
     by_name = {candidate.task_name: candidate for candidate in candidates}
     names = (
@@ -658,7 +663,7 @@ def _review(
     assert source.declaration is not None
     line_digest = source.line_digest
     parent = None if previous is None else _parent(paths, previous, line_digest)
-    committed = [_commit(paths, _last_try(name, chain)[1]) for name in names]
+    committed = [_commit(paths, by_name[name], chain) for name in names]
     for index, task in enumerate(committed):
         if same := next(
             (
@@ -756,7 +761,11 @@ def qualified_tasks(paths: TechtreePaths, construction_id: str) -> list[str]:
     retried, qualified."""
     chain = _chain(paths, construction_id)
     proposal = read_proposal_status(paths, chain[0].record.review.proposal_id).record
-    return [task.name for task in proposal.tasks if _candidate(task.name, chain).usable]
+    return [
+        task.name
+        for task in proposal.tasks
+        if _candidate(task.name, chain, accepted_before=None).usable
+    ]
 
 
 def _chain(paths: TechtreePaths, construction_id: str) -> list[ForgeConstructionStatus]:
@@ -776,17 +785,37 @@ def _chain(paths: TechtreePaths, construction_id: str) -> list[ForgeConstruction
 
 
 def _candidate(
-    name: str, chain: list[ForgeConstructionStatus]
+    name: str,
+    chain: list[ForgeConstructionStatus],
+    *,
+    accepted_before: datetime | None,
 ) -> ForgeCollectionCandidate:
-    """How a task went the last time a construction in the chain tried it."""
+    """How a task went the last time a construction in the chain tried it,
+    with a person's corrections of it there; the newest correction wins.
+
+    ``accepted_before`` leaves out the corrections made at or after it, so a
+    collection verified later is made again from the package it accepted.
+    """
     construction, task = _last_try(name, chain)
     package = task.package
+    corrections = [
+        correction
+        for correction in task.corrections
+        if accepted_before is None or correction.corrected_at < accepted_before
+    ]
+    build_id: str | None
+    if corrections:
+        build_id, usable = corrections[-1].build_id, True
+    else:
+        build_id = None if package is None else package.build_id
+        usable = package is not None and package.usable_tasks > 0
     return ForgeCollectionCandidate(
         task_name=name,
         construction_id=construction.construction_id,
         state=task.state,
-        build_id=None if package is None else package.build_id,
-        usable=package is not None and package.usable_tasks > 0,
+        corrections=corrections,
+        build_id=build_id,
+        usable=usable,
         why=_why(task),
     )
 
@@ -823,12 +852,21 @@ class _Committed(NamedTuple):
     qualification_digest: str
 
 
-def _commit(paths: TechtreePaths, task: ForgeConstructionTaskStatus) -> _Committed:
-    """Commit one qualified task by its package's claim, its files, checked on
-    disk, and its qualification."""
-    package = task.package
-    assert package is not None  # a qualified task's last try wrote a package
-    status = read_build_status(paths, package.build_id)
+def _commit(
+    paths: TechtreePaths,
+    candidate: ForgeCollectionCandidate,
+    chain: list[ForgeConstructionStatus],
+) -> _Committed:
+    """Commit one qualified task by the claim its construction built it for,
+    its files, checked on disk, and its qualification."""
+    assert candidate.build_id is not None  # a qualified task names its build
+    construction, _ = _last_try(candidate.task_name, chain)
+    call = next(
+        call
+        for call in construction.record.review.disclosure.calls
+        if call.task_name == candidate.task_name
+    )
+    status = read_build_status(paths, candidate.build_id)
     build, qualification = status.build, status.qualification
     assert build is not None and qualification is not None  # it qualified
     verify_task_set(Path(status.tasks_path), build.task_set)
@@ -838,10 +876,10 @@ def _commit(paths: TechtreePaths, task: ForgeConstructionTaskStatus) -> _Committ
         task for task in qualification.tasks if task.task_id == manifest.task_id
     )
     return _Committed(
-        task_name=package.task_name,
-        claim=package.claim,
-        kind=package.kind,
-        build_id=package.build_id,
+        task_name=candidate.task_name,
+        claim=call.claim,
+        kind=call.kind,
+        build_id=candidate.build_id,
         task_id=manifest.task_id,
         content_digest=manifest.content_digest,
         fingerprint=task_fingerprint(manifest),

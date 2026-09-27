@@ -27,6 +27,13 @@ is rejected or is stopped at its time limit is kept and the pass goes on to
 the next task; Ctrl-C ends the pass. Nothing is retried: trying again is a
 new construction naming the old one, covering only its tasks that have no
 usable package.
+
+A person may correct a task of an ended construction: a copy of its package,
+edited, goes through the same admission and qualification as a created
+package, into a new build, and is recorded beside the construction with the
+build it replaces, both content digests and what changed. The original build
+is left as it was. Correcting again replaces the newest correction, and the
+newest correction is the task's package from then on.
 """
 
 from __future__ import annotations
@@ -69,6 +76,7 @@ from techtree.forge.authoring import (
     skill_text,
 )
 from techtree.forge.bundle import embedded_forge_root
+from techtree.forge.content import commit_task_set
 from techtree.forge.docker import Docker
 from techtree.forge.hermes import read_usage
 from techtree.forge.models import (
@@ -77,6 +85,7 @@ from techtree.forge.models import (
     FORGE_CONSTRUCTION_PACKAGE_SCHEMA_VERSION,
     FORGE_CONSTRUCTION_RUN_SCHEMA_VERSION,
     FORGE_CONSTRUCTION_SCHEMA_VERSION,
+    FORGE_TASK_CORRECTION_SCHEMA_VERSION,
     ForgeAuthoringCapabilities,
     ForgeBuildFailure,
     ForgeBuildStatus,
@@ -99,11 +108,14 @@ from techtree.forge.models import (
     ForgeProposalRecord,
     ForgeProposedTask,
     ForgeSkillClaim,
+    ForgeTaskCorrection,
+    ForgeTaskCorrectionChange,
+    TaskContentManifest,
 )
 from techtree.forge.planning import read_proposal_status
 from techtree.forge.process import CommandRunner
 from techtree.forge.profile import hold_profile, profile_dir, require_signed_in
-from techtree.forge.service import host_docker_platform
+from techtree.forge.service import host_docker_platform, read_build_status
 from techtree.forge.skill2env import local_source_skill
 from techtree.forge.source import read_source_status
 from techtree.fs import atomic_write_bytes, atomic_write_json
@@ -116,6 +128,7 @@ __all__ = [
     "CALL_WALL_SECONDS",
     "Qualifier",
     "check_construction",
+    "correct_task",
     "prepare_construction",
     "read_construction_status",
     "start_construction",
@@ -129,6 +142,7 @@ PACKAGE_FILENAME: Final = "package.json"
 ANSWER_FILENAME: Final = "answer.txt"
 PROMPTS_DIR: Final = "prompts"
 CALLS_DIR: Final = "calls"
+CORRECTIONS_DIR: Final = "corrections"
 
 #: How long one creator call may take, from launch to answer.
 CALL_WALL_SECONDS: Final = 900
@@ -413,7 +427,8 @@ def _unfinished_tasks(
     names = [
         task.task_name
         for task in earlier.tasks
-        if task.package is None or task.package.usable_tasks == 0
+        if not task.corrections
+        and (task.package is None or task.package.usable_tasks == 0)
     ]
     if not names:
         raise ValidationError(
@@ -731,6 +746,159 @@ def _qualify(
 
 
 # ---------------------------------------------------------------------------
+# A person's correction of one task
+# ---------------------------------------------------------------------------
+
+
+def correct_task(
+    paths: TechtreePaths,
+    construction_id: str,
+    task_name: str,
+    task_dir: Path,
+    *,
+    qualify: Qualifier,
+) -> ForgeConstructionStatus:
+    """Admit and qualify a person's edited package of one task, and record it
+    as their correction of that task; nothing is recorded when it is refused."""
+    status = read_construction_status(paths, construction_id)
+    details = {"construction_id": construction_id, "task_name": task_name}
+    if status.state not in {"finished", "stopped"}:
+        raise ValidationError(
+            f"construction {construction_id} is {_STATE_WORDS[status.state]}, "
+            "so its tasks cannot be corrected yet",
+            code="forge_correction_not_ready",
+            details={**details, "state": status.state},
+        )
+    task = next((task for task in status.tasks if task.task_name == task_name), None)
+    if task is None:
+        raise NotFoundError(
+            f"construction {construction_id} did not build a task {task_name}; "
+            "its tasks are " + ", ".join(task.task_name for task in status.tasks),
+            code="forge_correction_no_task",
+            details=details,
+        )
+    retry = _retried_by(paths, construction_id, task_name)
+    if retry is not None:
+        raise ValidationError(
+            f"construction {retry} builds {task_name} again, so a correction of "
+            f"it in {construction_id} would not be used. Correct it in {retry} "
+            "once that has ended",
+            code="forge_correction_retried",
+            details={**details, "retried_by": retry},
+        )
+    task_dir = task_dir.expanduser().resolve()
+    if not task_dir.is_dir():
+        raise NotFoundError(
+            f"there is no folder {task_dir}",
+            code="forge_correction_no_folder",
+            details={**details, "path": str(task_dir)},
+        )
+    if task_dir.name != task.package_name:
+        raise ValidationError(
+            f"the corrected task's folder is named {task_dir.name}, and it keeps "
+            f"the name of the package it corrects, {task.package_name}, which "
+            "its task.toml names too. Rename the folder",
+            code="forge_correction_wrong_name",
+            details={**details, "path": str(task_dir)},
+        )
+    replaces, before = _replaced(paths, task)
+    if (
+        before is not None
+        and commit_task_set(task_dir.parent, [task_dir.name]).tasks[0].content_digest
+        == before.content_digest
+    ):
+        raise ValidationError(
+            f"{task_dir} holds exactly the files of the package it would "
+            f"correct (build {replaces}); a correction has to change something",
+            code="forge_correction_unchanged",
+            details={**details, "path": str(task_dir)},
+        )
+    review = status.record.review
+    try:
+        built = qualify(task_dir, review.source_skill, review.source_digest)
+    except RunError as error:
+        raise RunError(
+            f"the correction of {task_name} was refused and nothing was "
+            f"recorded: {error.message}",
+            code=error.code,
+            details={**error.details, **details},
+        ) from error
+    # A returned build admitted the package and qualified it.
+    assert built.build is not None
+    [after] = built.build.task_set.tasks
+    correction = ForgeTaskCorrection(
+        schema_version=FORGE_TASK_CORRECTION_SCHEMA_VERSION,
+        construction_id=construction_id,
+        task_name=task_name,
+        corrected_at=datetime.now(UTC),
+        replaces=replaces,
+        replaced_digest=None if before is None else before.content_digest,
+        build_id=built.build_id,
+        content_digest=after.content_digest,
+        changes=_changes(before, after),
+    )
+    directory = Path(status.path) / CORRECTIONS_DIR / task_name
+    directory.mkdir(parents=True, mode=0o700, exist_ok=True)
+    atomic_write_json(
+        directory / f"{built.build_id}.json", correction.model_dump(mode="json")
+    )
+    return read_construction_status(paths, construction_id)
+
+
+def _retried_by(
+    paths: TechtreePaths, construction_id: str, task_name: str
+) -> str | None:
+    """Return a construction that retries this one and builds the task again."""
+    return next(
+        (
+            child.name
+            for child in sorted(paths.forge_constructions_dir.iterdir())
+            if (
+                review := read_construction_status(paths, child.name).record.review
+            ).retry_of
+            == construction_id
+            and any(call.task_name == task_name for call in review.disclosure.calls)
+        ),
+        None,
+    )
+
+
+def _replaced(
+    paths: TechtreePaths, task: ForgeConstructionTaskStatus
+) -> tuple[str | None, TaskContentManifest | None]:
+    """Return the build of the package a correction replaces, and that
+    package's files if it was admitted."""
+    if task.corrections:
+        build_id = task.corrections[-1].build_id
+    elif task.package is not None:
+        build_id = task.package.build_id
+    else:
+        return None, None
+    build = read_build_status(paths, build_id).build
+    return build_id, None if build is None else build.task_set.tasks[0]
+
+
+def _changes(
+    before: TaskContentManifest | None, after: TaskContentManifest
+) -> list[ForgeTaskCorrectionChange]:
+    """Name every entry added, removed or modified, in path order."""
+    old = {} if before is None else {entry.path: entry for entry in before.entries}
+    new = {entry.path: entry for entry in after.entries}
+    return [
+        ForgeTaskCorrectionChange(
+            path=path,
+            change="added"
+            if path not in old
+            else "removed"
+            if path not in new
+            else "modified",
+        )
+        for path in sorted(old.keys() | new.keys())
+        if old.get(path) != new.get(path)
+    ]
+
+
+# ---------------------------------------------------------------------------
 # The creator's answer and the package written from it
 # ---------------------------------------------------------------------------
 
@@ -918,8 +1086,7 @@ def read_construction_status(
         approval = _optional(directory / APPROVAL_FILENAME, ForgeConstructionApproval)
         run = _optional(directory / RUN_FILENAME, ForgeConstructionRun)
         tasks = [
-            _task_status(directory / CALLS_DIR / call.task_name, call)
-            for call in record.review.disclosure.calls
+            _task_status(directory, call) for call in record.review.disclosure.calls
         ]
     except ModelValidationError as error:
         issue = error.errors(include_input=False, include_url=False)[0]
@@ -947,8 +1114,10 @@ def read_construction_status(
 
 
 def _task_status(
-    call_dir: Path, call_review: ForgeConstructionCallReview
+    directory: Path, call_review: ForgeConstructionCallReview
 ) -> ForgeConstructionTaskStatus:
+    call_dir = directory / CALLS_DIR / call_review.task_name
+    corrections_dir = directory / CORRECTIONS_DIR / call_review.task_name
     call = _optional(call_dir / CALL_FILENAME, ForgeConstructionCall)
     state: ForgeConstructionCallState
     if call is None:
@@ -963,6 +1132,15 @@ def _task_status(
         state=state,
         call=call,
         package=_optional(call_dir / PACKAGE_FILENAME, ForgeConstructionPackage),
+        corrections=sorted(
+            (
+                ForgeTaskCorrection.model_validate_json(file.read_bytes())
+                for file in (
+                    corrections_dir.iterdir() if corrections_dir.is_dir() else []
+                )
+            ),
+            key=lambda correction: correction.corrected_at,
+        ),
     )
 
 
