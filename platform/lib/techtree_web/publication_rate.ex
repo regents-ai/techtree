@@ -9,12 +9,14 @@ defmodule TechtreeWeb.PublicationRate do
   say when is a refusal that invites a retry loop.
 
   This is the only refusal on the site that says retrying could help, and it is
-  true here: the window turns over.
+  true here: the window turns over. `TechtreeWeb.ClientAddress` says who the
+  caller is.
   """
 
   @behaviour Plug
 
   alias Techtree.Network.RateLimit
+  alias TechtreeWeb.ClientAddress
   alias TechtreeWeb.ExactResponse
 
   @impl Plug
@@ -22,7 +24,7 @@ defmodule TechtreeWeb.PublicationRate do
 
   @impl Plug
   def call(conn, _options) do
-    case RateLimit.allow(conn.remote_ip) do
+    case RateLimit.allow(ClientAddress.key(conn)) do
       :ok ->
         conn
 

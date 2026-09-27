@@ -15,11 +15,8 @@ defmodule Techtree.Network.RateLimit do
   rather than copying the table out to look at it, so its cost does not grow
   with this process's memory however many callers there have been.
 
-  The caller is identified by the address the connection came from, which is
-  what this application can actually see. It does not read a forwarding header,
-  because a header is written by whoever is upstream and trusting one that has
-  not been proven to come from a proxy this deployment controls is how a per-
-  caller limit becomes no limit at all.
+  Who the caller is is decided before the count, by
+  `TechtreeWeb.ClientAddress`; this module counts whatever key it is handed.
   """
 
   use GenServer

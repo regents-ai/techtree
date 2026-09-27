@@ -38,6 +38,10 @@ defmodule TechtreeWeb.PublicationControllerTest do
   alias Techtree.NetworkFixture
   alias TechtreeWeb.Endpoint
 
+  # The peer every public request has in production: Fly's proxy, IPv4-mapped
+  # because the release listens on `::`.
+  @fly_proxy {0, 0, 0, 0, 0, 0xFFFF, 0xAC10, 0x0602}
+
   @address "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
 
   setup %{conn: conn} do
@@ -221,6 +225,46 @@ defmodule TechtreeWeb.PublicationControllerTest do
              |> from_own_address()
              |> publish(NetworkFixture.submission())
              |> Map.fetch!(:status) == 201
+    end
+
+    test "behind Fly's proxy each visitor has their own limit, which no header they write escapes",
+         %{conn: conn} do
+      flooder = own_address() |> :inet.ntoa() |> to_string()
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
+
+      statuses =
+        for attempt <- 1..12 do
+          Phoenix.ConnTest.build_conn()
+          |> Map.put(:remote_ip, @fly_proxy)
+          |> put_req_header("fly-client-ip", flooder)
+          |> put_req_header("x-forwarded-for", "203.0.113.#{attempt}")
+          |> publish(body)
+          |> Map.fetch!(:status)
+        end
+
+      assert Enum.count(statuses, &(&1 == 429)) == 2
+
+      assert conn
+             |> Map.put(:remote_ip, @fly_proxy)
+             |> put_req_header("fly-client-ip", own_address() |> :inet.ntoa() |> to_string())
+             |> publish(NetworkFixture.submission())
+             |> Map.fetch!(:status) == 201
+    end
+
+    test "a caller not behind Fly's proxy cannot name itself with the proxy's header" do
+      caller = own_address()
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
+
+      statuses =
+        for attempt <- 1..12 do
+          Phoenix.ConnTest.build_conn()
+          |> Map.put(:remote_ip, caller)
+          |> put_req_header("fly-client-ip", "203.0.113.#{attempt}")
+          |> publish(body)
+          |> Map.fetch!(:status)
+        end
+
+      assert Enum.count(statuses, &(&1 == 429)) == 2
     end
   end
 
