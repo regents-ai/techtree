@@ -38,7 +38,9 @@ defmodule TechtreeWeb.PublicationRate do
   end
 
   defp count(conn) do
-    case RateLimit.allow(ClientAddress.key(conn)) do
+    {key, _source} = ClientAddress.key(conn)
+
+    case RateLimit.allow(key) do
       :ok ->
         conn
 

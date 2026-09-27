@@ -102,6 +102,9 @@ config :techtree, TechtreeWeb.Endpoint,
   pubsub_server: Techtree.PubSub,
   live_view: [signing_salt: "TLsHrJnt"]
 
+# Rate limits key on the direct peer. Production turns on Fly's client header.
+config :techtree, :behind_fly_proxy, false
+
 # Metrics listen on loopback, on a port the system picks, so this site runs
 # beside the other sites' local servers without taking the one port they share.
 config :techtree, :metrics_listener, ip: {127, 0, 0, 1}, port: 0
