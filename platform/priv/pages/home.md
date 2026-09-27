@@ -2,7 +2,7 @@
 
 Improve a Skill. Prove it worked.
 
-Same agent. Same tasks. One Skill upgraded. Built on [Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) and [Nous Research's Hermes](https://github.com/NousResearch/hermes-agent).
+Run the same tasks with and without your Skill. See what improved, what regressed, and keep a report anyone can check.
 
 ## Test your Skill (experimental)
 

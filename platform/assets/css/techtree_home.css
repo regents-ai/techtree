@@ -31,50 +31,42 @@
   line-height: 1.55;
   color: var(--ink);
 }
-.hero--landing .hero__mechanism > span { display: block; }
-.hero--landing .hero__source-link {
-  position: relative;
-  white-space: nowrap;
-  text-decoration: none;
-}
-.hero--landing .hero__source-link:is(:hover, :focus-visible) {
-  text-decoration: underline dotted;
-  text-decoration-thickness: 1px;
-  text-underline-offset: .2em;
-}
-.hero--landing .hero__source-link::after {
-  content: "";
-  position: absolute;
-  inset-inline-start: 100%;
-  top: .05em;
-  width: .5em;
-  height: .5em;
-  background: currentColor;
-  mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M7%2017%2017%207M7%207h10v10%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.75%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E") center / contain no-repeat;
-  opacity: 0;
-  pointer-events: none;
-}
-.hero--landing .hero__source-link:is(:hover, :focus-visible)::after { opacity: 1; }
 .hero--landing .hero__optics {
   inset: 0;
   height: auto;
   mask-image: linear-gradient(to right, transparent 28%, rgb(0 0 0 / .25) 48%, #000 68%);
 }
 .hero--landing .installer { margin-top: var(--space-4); }
-.hero--landing .command__head { padding: var(--space-1) var(--space-2); }
+.hero--landing .command__head { flex-wrap: nowrap; padding: var(--space-1) var(--space-2); }
+.hero--landing .command__label { min-width: 0; }
+.hero--landing .command__copy { flex-shrink: 0; }
 .hero--landing .command__block { padding: var(--space-2); }
-.hero--landing .installer__divider {
-  margin-block: var(--space-2);
+.hero--landing .installer__manual { margin-top: var(--space-2); }
+.hero--landing .installer__manual > summary {
+  width: fit-content;
   color: var(--ink-quiet);
-  letter-spacing: .1em;
-  text-transform: uppercase;
+  font-family: var(--font-family-ui);
+  font-size: .875rem;
+  cursor: pointer;
+}
+.hero--landing .installer__manual[open] > summary { margin-bottom: var(--space-2); }
+.hero--landing .installer__manual > .text-link {
+  display: inline-block;
+  margin-top: var(--space-2);
+  font-size: .875rem;
 }
 .hero--landing .hero__actions {
-  margin-top: var(--space-4);
+  margin-top: var(--space-2);
   gap: var(--space-3);
 }
 .hero--landing .hero__actions .text-link { font-weight: 600; }
 .hero--landing .hero__actions .text-link span { color: var(--accent-deep); }
+.hero--landing .hero__terms {
+  margin-top: var(--space-3);
+  color: var(--ink-quiet);
+  font-family: var(--font-family-ui);
+  font-size: .8125rem;
+}
 
 
 @media (max-width: 47.99rem) {

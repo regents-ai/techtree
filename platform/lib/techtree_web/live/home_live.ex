@@ -11,9 +11,7 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.ClimbCopy
-  alias TechtreeWeb.Providers
   alias TechtreeWeb.ReleaseInfo
-  alias TechtreeWeb.StartLive
 
   # Install coordinates come from the published release, never marketing copy.
   @preview_label "Controlled agent evaluations"
@@ -25,7 +23,7 @@ defmodule TechtreeWeb.HomeLive do
     {:ok,
      assign(socket,
        page_title: "Improve a Skill. Prove it worked.",
-       agent_line: StartLive.instruction(),
+       agent_line: agent_line(),
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
@@ -61,32 +59,19 @@ defmodule TechtreeWeb.HomeLive do
               <span class="hero-title__line">Prove it worked.</span>
             </h1>
             <p class="hero__mechanism">
-              <span>Same agent. Same tasks. One Skill upgraded.</span>
-              <span>
-                Built on
-                <a class="hero__source-link" href="https://github.com/PrimeIntellect-ai/verifiers">{Providers.name!(
-                  "prime"
-                )}</a>
-                and
-                <a class="hero__source-link" href="https://github.com/NousResearch/hermes-agent">Nous&nbsp;Research</a>
-              </span>
+              Run the same tasks with and without your Skill. See what improved, what regressed,
+              and keep a report anyone can check.
             </p>
             <.installer release={@release} agent_line={@agent_line} />
             <div class="hero__actions">
-              <.link
-                id="hero-start"
-                class="rg-button rg-button--primary button--primary"
-                navigate={~p"/start#skill"}
-              >
-                <span class="rg-button__label">Test your Skill</span>
-              </.link>
               <a class="text-link" href={~p"/examples/tdd"}>
                 See a real comparison <span aria-hidden="true">→</span>
               </a>
-              <a class="text-link" href={~p"/start"}>
-                Other ways to start <span aria-hidden="true">→</span>
-              </a>
             </div>
+            <p class="hero__terms">
+              Runs on your computer · Model calls go to the provider you choose · You approve
+              each run first · Publishing is optional
+            </p>
           </div>
         </div>
 
@@ -273,17 +258,30 @@ defmodule TechtreeWeb.HomeLive do
     """
   end
 
+  @doc """
+  The home page's one short line for an agent. The agent guide it points at
+  carries the steps and the stops; /start keeps the longer instruction.
+  """
+  def agent_line do
+    "Read #{url(~p"/skill.md")} and help me test one of my Skills with Techtree. " <>
+      "Ask me before any paid model call or before publishing anything."
+  end
+
   attr :release, :map, default: nil
   attr :agent_line, :string, required: true
 
   defp installer(assigns) do
     ~H"""
     <div class="installer">
-      <.prompt_block id="copy-home-agent-line" label="Give this to your agent" text={@agent_line} />
+      <.prompt_block
+        id="copy-home-agent-line"
+        label="Paste into your agent’s chat"
+        text={@agent_line}
+        copy_variant="primary"
+      />
 
-      <p class="installer__divider"><span>Or use the CLI directly</span></p>
-
-      <div class="installer__manual">
+      <details class="installer__manual">
+        <summary>Use the command line instead</summary>
         <%= cond do %>
           <% is_nil(@release) -> %>
             <p class="release-state">No release is published on this channel yet.</p>
@@ -301,7 +299,10 @@ defmodule TechtreeWeb.HomeLive do
               label="Install, then look at your Skill"
             />
         <% end %>
-      </div>
+        <.link navigate={~p"/start"} class="text-link">
+          Every way to start <span aria-hidden="true">→</span>
+        </.link>
+      </details>
     </div>
     """
   end

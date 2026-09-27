@@ -121,6 +121,7 @@ defmodule TechtreeWeb.CoreComponents do
   attr :text, :string, required: true
   attr :label, :string, required: true
   attr :id, :string, required: true
+  attr :copy_variant, :string, default: "secondary"
 
   def prompt_block(assigns) do
     ~H"""
@@ -128,7 +129,7 @@ defmodule TechtreeWeb.CoreComponents do
       <div class="command__head">
         <p class="command__label">{@label}</p>
         <Regent.Primitives.button
-          variant="secondary"
+          variant={@copy_variant}
           id={@id}
           class="command__copy"
           type="button"

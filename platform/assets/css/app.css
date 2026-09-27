@@ -197,8 +197,6 @@ code { font-size: .9em; }
 .hero__more { grid-column: 1 / -1; display: grid; place-items: center; min-height: 4rem; border-top: 1px solid var(--rg-page-rule); }
 .hero__more svg { width: 1.5rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .installer { margin-top: var(--space-4); }
-.installer__divider { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); font-size: .75rem; }
-.installer__divider::before, .installer__divider::after { content: ""; flex: 1; border-top: 1px solid var(--rule); }
 .release-state, .compatibility, .release-coordinate, .installer__doctor-note { margin-top: var(--space-2); font-size: .875rem; }
 .home-section { margin-inline: calc(-1 * var(--rg-panel-padding)); padding: var(--space-6) var(--rg-panel-padding); border-top: 1px solid var(--rg-page-rule); }
 .section-heading { max-width: 100%; }

@@ -9,7 +9,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
-  alias TechtreeWeb.StartLive
+  alias TechtreeWeb.HomeLive
 
   describe "with a release published" do
     setup do
@@ -24,20 +24,11 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               ".hero__mechanism > span",
-               "Same agent. Same tasks. One Skill upgraded."
+               ".hero__mechanism",
+               "Run the same tasks with and without your Skill."
              )
 
-      assert has_element?(
-               live,
-               ".hero__source-link[href='https://github.com/PrimeIntellect-ai/verifiers']",
-               "Prime Intellect"
-             )
-
-      assert has_element?(
-               live,
-               ".hero__source-link[href='https://github.com/NousResearch/hermes-agent']"
-             )
+      assert has_element?(live, ".hero__terms", "Publishing is optional")
 
       assert has_element?(
                live,
@@ -83,7 +74,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       text = visible_text(html)
 
       assert has_element?(live, "#copy-home-agent-line")
-      assert text =~ "Or use the CLI directly"
+      assert has_element?(live, ".installer__manual > summary", "Use the command line instead")
       refute text =~ "Release integrity"
       assert has_element?(live, ~s|a[href="/verify"]|, "What verification establishes")
     end
@@ -134,16 +125,14 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert live
-             |> element(~s|a.button--primary[href="/start#skill"]|, "Test your Skill")
-             |> has_element?()
+      assert has_element?(live, "#copy-home-agent-line.rg-button--primary", "Copy")
 
       assert live
              |> element(~s|.hero__actions a[href="/examples/tdd"]|, "See a real comparison")
              |> has_element?()
 
       assert live
-             |> element(~s|.hero__actions a[href="/start"]|, "Other ways to start")
+             |> element(~s|.installer__manual a[href="/start"]|, "Every way to start")
              |> has_element?()
 
       assert live |> element(~s|a[href="/results"]|, "Published Results") |> has_element?()
@@ -178,13 +167,12 @@ defmodule TechtreeWeb.HomeLiveTest do
                ~s|#hero-crown canvas#hero-crown-canvas|
              )
 
-      assert text =~ "Give this to your agent"
-
-      assert text =~ StartLive.instruction()
+      assert text =~ "Paste into your agent’s chat"
+      assert text =~ HomeLive.agent_line()
 
       assert has_element?(
                live,
-               ~s|#copy-home-agent-line[data-copy-value="#{StartLive.instruction()}"]|
+               ~s|#copy-home-agent-line[data-copy-value="#{HomeLive.agent_line()}"]|
              )
 
       refute text =~ "One concrete Result"
@@ -217,7 +205,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert text =~ "Improve a Skill."
     refute text =~ "Evidence graph"
-    assert text =~ StartLive.instruction()
+    assert text =~ HomeLive.agent_line()
     refute html =~ "copy-home-cli"
   end
 
