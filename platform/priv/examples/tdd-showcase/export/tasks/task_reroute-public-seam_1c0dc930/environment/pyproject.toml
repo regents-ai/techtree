@@ -1,0 +1,7 @@
+[project]
+name = "parcelbox"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+[tool.parcelbox]
+test-command = "python -m unittest discover -s tests -p 'test*.py'"

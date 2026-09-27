@@ -1,0 +1,7 @@
+{
+  "tiers": [
+    {"minimum": "0", "maximum": "99.99", "rate": "0.02"},
+    {"minimum": "100", "maximum": "999.99", "rate": "0.015"},
+    {"minimum": "1000", "maximum": null, "rate": "0.01"}
+  ]
+}

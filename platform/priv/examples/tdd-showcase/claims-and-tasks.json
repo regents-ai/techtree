@@ -1,0 +1,123 @@
+{
+  "claims": [
+    {
+      "claim_id": "C1",
+      "observable": "The submitted tests exercise and observe the feature only through exported interfaces and still pass when the implementation is replaced by an equivalent version with different private structure and storage.",
+      "statement": "Tests target public behavioral seams rather than private methods, internal collaborators, or side channels, so they remain valid across behavior-preserving refactors."
+    },
+    {
+      "claim_id": "C2",
+      "observable": "The submitted tests pass against the correct implementation and fail against plausible algorithm mutants, including mutants that would also affect expectations obtained by calling production code twice.",
+      "statement": "Tests use an independent source of truth for expected results instead of recomputing expectations with the production algorithm."
+    },
+    {
+      "claim_id": "C3",
+      "observable": "The tests control the external boundary deterministically, contain no doubles for project-owned collaborators, and continue to pass after those collaborators are reorganized without changing public behavior.",
+      "statement": "Tests substitute dependencies at system boundaries such as time or external services while using real internal collaborators."
+    },
+    {
+      "claim_id": "C4",
+      "observable": "The resulting public API, test descriptions, values, and persisted representations use the terms and constraints defined by the repository guidance rather than generic alternatives.",
+      "statement": "Code and tests follow the repository's established domain vocabulary and applicable architectural decisions."
+    },
+    {
+      "claim_id": "C5",
+      "observable": "The result satisfies the requested case while leaving unrequested roadmap cases unsupported and adding no public API dedicated to them.",
+      "statement": "Each TDD slice implements only the requested behavior and avoids speculative support for future features."
+    }
+  ],
+  "tasks": [
+    {
+      "claim": "C1",
+      "kind": "positive",
+      "name": "reroute-public-seam",
+      "scenario": "The repository contains pyproject.toml, a parcelbox package whose public functions include open(path), create_parcel, dispatch, a query for a parcel's destination, and reroute(parcel_id, destination) as an unfinished stub, private routing and persistence modules, an existing test suite whose older tests check results by calling the private routing module and reading its tables, and FEATURE.md defining rerouting outcomes for undispatched, dispatched and unknown parcels and naming the errors reroute raises; all dependencies are local.",
+      "success_criteria": [
+        "The exported service reports the rerouting outcomes FEATURE.md specifies for every verifier case.",
+        "The submitted tests, meaning those whose ids are not in the original suite, fail against a verifier reroute that does nothing and against one that also reroutes dispatched parcels.",
+        "The submitted tests pass unchanged against a verifier-supplied behavior-equivalent parcelbox that provides the same public functions, including open, create_parcel and dispatch, but has different private modules, helper names and storage representation."
+      ],
+      "summary": "Implement and test rerouting an undispatched parcel to a new destination in a small Python parcel service.",
+      "verifier_strategy": "Identify the submitted tests by comparing test ids with the original suite and do not judge the older tests; run them against the submission, against the two mutants, and against the alternate implementation, where a test that imports the private routing or persistence modules or reads their storage fails while a test using only the public functions passes."
+    },
+    {
+      "claim": "C2",
+      "kind": "positive",
+      "name": "shipping-oracle",
+      "scenario": "The repository contains a Python fulfillment package whose quote function is an unfinished stub, a project-owned rates-table module that quote reads for weight bands, zone multipliers and the fragile surcharge, and SPEC.txt giving the same rules and values in words and worked examples; no network services are used.",
+      "success_criteria": [
+        "The implementation returns the specified quote for every verifier case.",
+        "The submitted tests pass against the correct implementation.",
+        "The submitted tests fail against a verifier mutant in which every value in the rates-table module is changed."
+      ],
+      "summary": "Implement and test the shipping quote rules described for a local command-line fulfillment package.",
+      "verifier_strategy": "Compare implementation outputs with the specification's values, then run the submitted tests with every value in the rates-table module changed; a test whose expected values come from the specification fails against that mutant, while one that builds its expected values from the rates table or by calling quote passes it and so fails this criterion."
+    },
+    {
+      "claim": "C5",
+      "kind": "positive",
+      "name": "percentage-only",
+      "scenario": "The repository contains a checkout package with total(cart, coupon=None), which already raises UnsupportedCoupon for any coupon, tests for undiscounted totals, ISSUE.md asking for one percentage coupon per checkout given as a code PCT1 through PCT100 with its rounding rule, and ROADMAP.md discussing future fixed-amount coupons, coupon stacking, expiration and customer eligibility; only the percentage-coupon issue is assigned.",
+      "success_criteria": [
+        "total returns the correct amount for every percentage code from PCT1 through PCT100 on the verifier carts, with the rounding ISSUE.md specifies.",
+        "Codes for fixed-amount coupons, several coupons at once and expired coupons, in the forms ROADMAP.md sketches, raise UnsupportedCoupon."
+      ],
+      "summary": "Implement and test percentage coupons for a local checkout library whose repository also contains later discount plans.",
+      "verifier_strategy": "Call total with every percentage code on several carts and compare with values computed from ISSUE.md, then call it with each roadmap-style code and require UnsupportedCoupon; how the package is organized inside is not judged."
+    },
+    {
+      "claim": "C3",
+      "kind": "positive",
+      "name": "exchange-rate-boundary",
+      "scenario": "The repository contains a pricing package whose rates module fetches exchange rates from a remote rates service over HTTP with urllib through a public get_rate function, a project-owned fee schedule module that loads its tiers from a local JSON file, a money rounding module, an existing test suite for the fee schedule, and REQUEST.md asking for quote_in(amount, from_currency, to_currency), taking exactly these three arguments, that converts at the current rate from the rates module and then applies the fee schedule, with worked examples; the container has no network, so the rates service cannot be reached.",
+      "success_criteria": [
+        "quote_in returns the specified amount for every verifier case when the verifier stands in for the remote rates service at the HTTP call the rates module makes.",
+        "The submitted tests pass with outbound network access blocked and contact no real host.",
+        "The submitted tests fail against each verifier mutant, made by wrapping the submission's own quote_in: one that adds one cent to its result and one that multiplies its result by 1.01.",
+        "The submitted tests pass unchanged when the verifier replaces the fee schedule and rounding modules with behavior-equivalent implementations that keep their public names but have different internals, and they replace neither of those modules."
+      ],
+      "summary": "Add a converted price quote with a conversion fee to a small Python pricing package whose exchange rates come from a remote rates service, with tests.",
+      "verifier_strategy": "Patch the HTTP call inside the rates module for the hidden correctness cases, run the submitted tests with sockets to other hosts blocked, then with quote_in wrapped by each mutant wherever the tests reach it, then against the alternate fee schedule and rounding modules; a fake is detected by the object it replaces, so replacing any function or class defined in the fee schedule or rounding modules, under any imported name, counts as replacing them, while replacing get_rate, the urllib call, or serving rates locally counts as controlling the service."
+    },
+    {
+      "claim": "C1",
+      "kind": "boundary",
+      "name": "deactivate-account-interface",
+      "scenario": "The repository contains an accounts package with public functions open(path), create, fetch, list_accounts and sign_in, backed by a SQLite file through a private storage module, an existing test suite in which several older tests check results by querying the SQLite tables directly, and TICKET.md asking for deactivate(account_id) and reactivate(account_id), with a deactivated account left out of list_accounts and refused by sign_in with the AccountDeactivated error it names.",
+      "success_criteria": [
+        "The package behaves as TICKET.md specifies for every verifier case.",
+        "The submitted deactivation tests fail against each verifier mutant: deactivation that leaves the account in listings, sign-in that still succeeds after deactivation, and reactivation that has no effect.",
+        "The submitted deactivation tests pass unchanged against a verifier-supplied behavior-equivalent accounts package that keeps its data in a different storage layout, with different table and column names and a status history instead of a flag."
+      ],
+      "summary": "Add account deactivation to a small Python accounts package backed by SQLite, with tests.",
+      "verifier_strategy": "Treat as submitted tests those whose test ids are not in the original suite and do not judge the older tests; run the submitted tests against the submission, against the three mutants, and against the alternate implementation, which provides the same public functions including open(path); a test that reads the SQLite file or imports the private storage module fails there, while a test that uses only the public functions passes."
+    },
+    {
+      "claim": "C4",
+      "kind": "positive",
+      "name": "theater-cents-adr",
+      "scenario": "The repository contains a theater-sales package with an existing availability module that handles no money, CONTEXT.md describing its domain, an adr folder whose accepted record requires money amounts crossing the package's public boundary to be integer cents, a price list with seat prices such as 19.99 and 7.10, and WORK_ITEM.md asking for hold_seats(show_id, seat_ids), which raises the SeatsUnavailable error it names for seats already held, and amount_owed(hold_id), without saying how amounts are represented.",
+      "success_criteria": [
+        "hold_seats holds available seats and refuses seats that are already held, as WORK_ITEM.md specifies.",
+        "amount_owed returns an int equal to the held seats' total price in cents for every verifier case, including totals such as three seats at 19.99 that expose binary floating-point error.",
+        "The submitted tests pass against the correct implementation and fail against a verifier mutant whose amount_owed returns the total as a float number of dollars."
+      ],
+      "summary": "Add seat holds and the amount owed for them to a small Python theater-sales package, with tests.",
+      "verifier_strategy": "Call hold_seats and amount_owed on verifier cases, requiring int results equal to the cent totals, then run the submitted tests against the correct implementation and against the float-dollar mutant; names, layout and style of the tests are not judged."
+    },
+    {
+      "claim": "C3",
+      "kind": "positive",
+      "name": "retry-backoff-boundary",
+      "scenario": "The repository contains a notifier package whose send(message, client) passes a message to a mail service client object and already pauses with time.sleep for rate limiting, a project-owned backoff policy module that gives the wait before each retry, and ISSUE.md asking that send retry a temporary failure up to four times, waiting between tries as the backoff policy says, and give up at once on a permanent failure; the real waits add up to about thirty seconds and there is no mail service in the container.",
+      "success_criteria": [
+        "send behaves as ISSUE.md specifies for every verifier case, with the verifier standing in for the mail client and for time.sleep.",
+        "The submitted test suite finishes in under five seconds and contacts no network host.",
+        "The submitted tests fail against each verifier mutant: one retry too many, waits that do not follow the backoff policy, and retrying a permanent failure.",
+        "The submitted tests pass unchanged when the verifier replaces the backoff policy module with a behavior-equivalent one that keeps its public functions but has different internals, and they do not replace the backoff policy module."
+      ],
+      "summary": "Add retries with growing waits to a small Python notifier that sends messages through a mail service client, with tests.",
+      "verifier_strategy": "Run hidden cases with a fake client and a patched sleep that records waits, run the submitted tests with a five-second limit and sockets blocked, then against the three mutants, each installed as the send function of the submission's notifier module and reaching sleep and the backoff policy through the same names that module uses, and against the alternate backoff policy module; a fake is detected by the object it replaces, so replacing any function or class defined in the backoff policy module, under any imported name, counts as replacing it, while replacing the client, sleep or the clock in any way is accepted."
+    }
+  ]
+}

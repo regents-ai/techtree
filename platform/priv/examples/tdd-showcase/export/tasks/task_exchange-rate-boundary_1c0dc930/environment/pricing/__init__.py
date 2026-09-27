@@ -1,0 +1,1 @@
+"""Small pricing package."""

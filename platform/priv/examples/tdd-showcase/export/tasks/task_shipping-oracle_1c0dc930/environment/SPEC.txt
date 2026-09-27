@@ -1,0 +1,30 @@
+FULFILLMENT SHIPPING QUOTES
+
+The public API is:
+
+    fulfillment.quote.quote(weight_kg, zone, fragile=False)
+
+It returns the shipping charge as an integer number of cents.
+
+Choose the first weight band whose maximum includes the package weight:
+
+- A package weighing up to and including 1 kilogram has a base charge of six hundred cents.
+- A package weighing more than 1 kilogram and up to and including 5 kilograms has a base charge of one thousand cents.
+- A package weighing more than 5 kilograms and up to and including 20 kilograms has a base charge of eighteen hundred cents.
+
+Apply the multiplier for the destination zone:
+
+- local: one hundred percent
+- regional: one hundred twenty-five percent
+- remote: one hundred sixty percent
+
+Round the multiplied charge to the nearest cent, with a half cent rounded upward. If the package is fragile, add a surcharge of three hundred fifty cents after applying the zone multiplier.
+
+Worked examples:
+
+- A 1 kilogram local package costs 600 cents.
+- A 2 kilogram regional package costs 1250 cents.
+- A 5 kilogram remote fragile package costs 1950 cents.
+- A 12 kilogram regional fragile package costs 2600 cents.
+
+Callers provide a positive weight no greater than 20 kilograms and one of the three listed zone names.
