@@ -1,16 +1,16 @@
 {
   "acceptance": {
-    "accepted_at": "2026-09-25T18:48:08.681759Z",
+    "accepted_at": "2026-09-27T07:00:00.663357Z",
     "answered_with": "yes-flag",
-    "collection_digest": "sha256:c4bba332549a39cb6d208a24a64f946010178561b5cf4952d23895cd5459f6d1",
-    "collection_id": "forgecol_78d715e07d1f435c90dd22ebffd77593",
+    "collection_digest": "sha256:d5c38ea0f542023f0dd24c8f19d62806b162cf951e4a14e725c61b6722a4045c",
+    "collection_id": "forgecol_ed65fc14bb8949678812c1eab5fe3a56",
     "reviewed_on": "cli",
     "schema_version": "techtree.forge-collection-acceptance.v1alpha1"
   },
   "collection": {
-    "collection_digest": "sha256:c4bba332549a39cb6d208a24a64f946010178561b5cf4952d23895cd5459f6d1",
-    "collection_id": "forgecol_78d715e07d1f435c90dd22ebffd77593",
-    "created_at": "2026-09-25T18:48:08.643963Z",
+    "collection_digest": "sha256:d5c38ea0f542023f0dd24c8f19d62806b162cf951e4a14e725c61b6722a4045c",
+    "collection_id": "forgecol_ed65fc14bb8949678812c1eab5fe3a56",
+    "created_at": "2026-09-27T07:00:00.623978Z",
     "review": {
       "claims": [
         {
@@ -30,167 +30,175 @@
         }
       ],
       "constructions": [
-        "forgecon_8b53544a8016436191f9cbf06f48d58a"
+        "forgecon_f844b506e1f64d7999a345cea326f496"
       ],
       "inherited": [],
       "line_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
       "members": [
         {
-          "build_id": "build_a7e9afb628b34fb0ba9040f2a9cfaa66",
+          "build_id": "build_a6cc6c1267d64de08983bf4105dc1de8",
           "claim": "C1",
-          "content_digest": "sha256:e2691bc3f48e10b7a203273ee0c9ce9ce250d9fbc6be84b6771753b73c6a526f",
+          "content_digest": "sha256:b98396de3eb9499b868dac8583fe5d2d05d712dbc803673ca59cfc0e513d51e9",
           "fingerprint": "sha256:697f2175e02f431ab54fea550af9584d9db7e0bc019563d44e0226e9301adf7c",
           "kind": "positive",
           "part": "study",
-          "qualification_digest": "sha256:9121f3737c99eea52402511318de4a5d8d3f595d56268c4cc0008072df4dd3cf",
-          "task_id": "task_tdd-cart-total_8b53544a",
+          "qualification_digest": "sha256:d8612273d75db3c75716a6d2d9e62e64a5d5e5c94c02b766245d503f8ddfc8b7",
+          "task_id": "task_tdd-cart-total_f844b506",
           "task_name": "tdd-cart-total"
         },
         {
-          "build_id": "build_7cbe511be51a42749c788d54f9f2974d",
+          "build_id": "build_4833e25d9d3346cfacdb4ec8f12e2ff7",
           "claim": "C1",
-          "content_digest": "sha256:fe7818b422b71e3500d4bdf7dc6dd9a9089774e854298c8785a5f133906381d6",
+          "content_digest": "sha256:c16432f50c1977d9126a076fcb7152b83b303ab6560682f4565176c99ff07724",
           "fingerprint": "sha256:3d5ad19a8a9f88bf85234ddcf4729bccaa0dc27239fcdac49f995a898d867187",
           "kind": "boundary",
           "part": "held_out",
-          "qualification_digest": "sha256:9c8cc5c43d1f3f397f425ae53801a2ace68f30c47d3f14dcccde6426f09f8762",
-          "task_id": "task_tdd-date-ranges_8b53544a",
+          "qualification_digest": "sha256:c2f550cd3c646819e6f6f036afd25a5ed64c27408faf7e1320c73fa5dc7dad53",
+          "task_id": "task_tdd-date-ranges_f844b506",
           "task_name": "tdd-date-ranges"
         },
         {
-          "build_id": "build_cc480b309f3d49d0bbe97ad6063f6099",
+          "build_id": "build_d14e5fee7a7d45bebfd2d879affdf2cf",
           "claim": "C1",
-          "content_digest": "sha256:487e6dd2d2389041dda3b909fe146f8d72c50527c1aadd9aca0595c758a8c7d3",
+          "content_digest": "sha256:f6a56fc9465fba5c353487021feca12a44a667457bad20d4d3050337d00628b3",
           "fingerprint": "sha256:545167becba45cdf7a1ecac88779354019de3e7b71bd4d6c3840e311301acf67",
           "kind": "counterexample",
           "part": "held_out",
-          "qualification_digest": "sha256:c1ae0d7a01b0bb8158017f2ec0d6dcbef70d0d4248fdb35ec17d5d7231d3deed",
-          "task_id": "task_tdd-cache-rewrite_8b53544a",
+          "qualification_digest": "sha256:9557b2866472e708eb260810024b9bc4abaab0f36083916e566a13ba0cf46be0",
+          "task_id": "task_tdd-cache-rewrite_f844b506",
           "task_name": "tdd-cache-rewrite"
         },
         {
-          "build_id": "build_4c6e082b20ab4254b56bed075bf7cb49",
+          "build_id": "build_7a0ca082276e44c8aa806f31c0835c36",
           "claim": "C2",
-          "content_digest": "sha256:d79334ccd705a76398071d871920f4d98de5e1b8ce97c889d3fb1dc81f587415",
+          "content_digest": "sha256:9f6204596590627b12fb40aafd84579b99431bda13caf14c1a7aeea3d39d1f7b",
           "fingerprint": "sha256:d99c04973b74085b4e8f4092f805ffe349adff003687da13f1307380dc5ec5fb",
           "kind": "positive",
           "part": "held_out",
-          "qualification_digest": "sha256:e3c055ded3b53daedc5faae34e72a127ce082c11c8f4b873741523f301c25cc3",
-          "task_id": "task_tdd-slugify_8b53544a",
+          "qualification_digest": "sha256:da957f57d3741dcadb7c50112ffd91882ef95a0d6b970a35f67759f9a9c032c0",
+          "task_id": "task_tdd-slugify_f844b506",
           "task_name": "tdd-slugify"
         },
         {
-          "build_id": "build_f0ed98ca4f764c74b3cbc3ca48ecb2e9",
+          "build_id": "build_78b120cfab064338a1947a92fb5ebb93",
           "claim": "C2",
-          "content_digest": "sha256:4f2344c6dcd549b94852a0d05f38153b60feb94d8b755e450eab13f04d78a704",
+          "content_digest": "sha256:9df3b39d69d31f0e20a0ecd0dd605ee92624fd6f9b02b1fb758b6295a1f7df04",
           "fingerprint": "sha256:089b34c835930274aa6207001882f105a3563f67bf591e90d5e84ef7523067b7",
           "kind": "boundary",
           "part": "study",
-          "qualification_digest": "sha256:3ee4164dd0e394dcdd2d273bc18571b80025635426d6943aed725d921250ec98",
-          "task_id": "task_tdd-roman-numerals_8b53544a",
+          "qualification_digest": "sha256:8d44ad39bf8c9d9247c1d89603166b15553fc4ae0b9877e630886b866090a0e3",
+          "task_id": "task_tdd-roman-numerals_f844b506",
           "task_name": "tdd-roman-numerals"
         },
         {
-          "build_id": "build_6ae14539b23746419d57e9530184014c",
+          "build_id": "build_786f53a47c6e4eea92bddf7907a7306f",
           "claim": "C2",
-          "content_digest": "sha256:ee09fcb1d5a009524406907fb07bece0e45b1d01ed0d684d4034e53170814c4f",
+          "content_digest": "sha256:b9648dcb2d42794cb43e464cec9909014d5986fff7aaa57214e7714952b437a9",
           "fingerprint": "sha256:745365772502b5fcb59b63039a5af38a862c95191effc9431b34f867675eb5d7",
           "kind": "counterexample",
           "part": "held_out",
-          "qualification_digest": "sha256:d7f040c3dbf3595a31fd80e7ac048f03a17755a9ab41537b450807468e18afaa",
-          "task_id": "task_tdd-parser-kept_8b53544a",
+          "qualification_digest": "sha256:d931fdfcca00bbf507b288892313ffd3387e271e5fc4c8fe25520488719a83f5",
+          "task_id": "task_tdd-parser-kept_f844b506",
           "task_name": "tdd-parser-kept"
         },
         {
-          "build_id": "build_af88036e1b764f9ab39acf4768042ce1",
+          "build_id": "build_c3f974fecb71478b9aeec916ec476cbc",
           "claim": "C3",
-          "content_digest": "sha256:96ba2972fcd49e4a33a211071b1eb4e655159bc39f727c455e7b5947f864a58c",
+          "content_digest": "sha256:bbd3ed6a0688d5b91be90215c9f4b46d5a8dc21f5943d687d6933f0213c97a21",
           "fingerprint": "sha256:32263f9b1c8721e2af2a2b651ca91575102bd4a6bc0440c9f04fa848b8293545",
           "kind": "positive",
           "part": "study",
-          "qualification_digest": "sha256:47c95bcda4712d966750da56030119578ff6384b9e0ae8933e9f7351abb3b475",
-          "task_id": "task_tdd-rate-limiter_8b53544a",
+          "qualification_digest": "sha256:3194dcb2b194f0163d437061fbeed7396855fa88b2e0e01da28a02d4025b6daa",
+          "task_id": "task_tdd-rate-limiter_f844b506",
           "task_name": "tdd-rate-limiter"
         },
         {
-          "build_id": "build_d221401117174fb18751b7dc92041f8f",
+          "build_id": "build_8a4c1da9059444c28df5dbf021c324c5",
           "claim": "C3",
-          "content_digest": "sha256:da423827992f27476790a4658dd5fecdfc1e52dc78f1002c7bb5453ab2390785",
+          "content_digest": "sha256:0a73b55dddcd986717740742db56042cf77ee030e692ef34cb5ae66c101e6862",
           "fingerprint": "sha256:140150b18a1f4ed10d0976721a43726a26f4f47cd42361eb505f0b6f23b2260b",
           "kind": "counterexample",
           "part": "study",
-          "qualification_digest": "sha256:92fdedc17c4fd43eee62e36bda0e0aa4c3773f72ce4a045fb034d9e3e07893ce",
-          "task_id": "task_tdd-csv-report_8b53544a",
+          "qualification_digest": "sha256:41c72b03ca5a6a7fe7a67db2844ea62210849d7171f8352b2982f7e3767dd059",
+          "task_id": "task_tdd-csv-report_f844b506",
           "task_name": "tdd-csv-report"
         }
       ],
-      "membership_digest": "sha256:3ba01d6af6a9e24f596eb191a6a9b263217e34d7ba8e98b5a0720ee1f2308cc1",
+      "membership_digest": "sha256:319d1427bd1b04d906b3dc692051506de4a82174231c4afe1749227723080d1d",
       "previous": null,
       "proposal_digest": "sha256:c5102076e06e8848f084911863f7dcfbf3ef9c58249934f6c15e7b17b87d83b7",
-      "proposal_id": "forgeprop_411ea114977042088ad8d02b6f4d2740",
+      "proposal_id": "forgeprop_95486e42d3cc4b0d827ee59744831a1e",
       "source_digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
-      "source_id": "forgesrc_e828511adc5442988758687afd0102c0",
+      "source_id": "forgesrc_ff1163b5f38942bab253d5f7ff2d54a7",
       "source_name": "tdd",
       "tasks": [
         {
-          "build_id": "build_a7e9afb628b34fb0ba9040f2a9cfaa66",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_a6cc6c1267d64de08983bf4105dc1de8",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-cart-total",
           "usable": true,
           "why": null
         },
         {
-          "build_id": "build_7cbe511be51a42749c788d54f9f2974d",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_4833e25d9d3346cfacdb4ec8f12e2ff7",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-date-ranges",
           "usable": true,
           "why": null
         },
         {
-          "build_id": "build_cc480b309f3d49d0bbe97ad6063f6099",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_d14e5fee7a7d45bebfd2d879affdf2cf",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-cache-rewrite",
           "usable": true,
           "why": null
         },
         {
-          "build_id": "build_4c6e082b20ab4254b56bed075bf7cb49",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_7a0ca082276e44c8aa806f31c0835c36",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-slugify",
           "usable": true,
           "why": null
         },
         {
-          "build_id": "build_f0ed98ca4f764c74b3cbc3ca48ecb2e9",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_78b120cfab064338a1947a92fb5ebb93",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-roman-numerals",
           "usable": true,
           "why": null
         },
         {
-          "build_id": "build_6ae14539b23746419d57e9530184014c",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_786f53a47c6e4eea92bddf7907a7306f",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-parser-kept",
           "usable": true,
           "why": null
         },
         {
-          "build_id": "build_af88036e1b764f9ab39acf4768042ce1",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_c3f974fecb71478b9aeec916ec476cbc",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-rate-limiter",
           "usable": true,
           "why": null
         },
         {
-          "build_id": "build_d221401117174fb18751b7dc92041f8f",
-          "construction_id": "forgecon_8b53544a8016436191f9cbf06f48d58a",
+          "build_id": "build_8a4c1da9059444c28df5dbf021c324c5",
+          "construction_id": "forgecon_f844b506e1f64d7999a345cea326f496",
+          "corrections": [],
           "state": "succeeded",
           "task_name": "tdd-csv-report",
           "usable": true,
@@ -199,16 +207,16 @@
       ],
       "version": 1
     },
-    "schema_version": "techtree.forge-collection.v1alpha3"
+    "schema_version": "techtree.forge-collection.v1alpha4"
   },
-  "exported_at": "2026-09-25T18:48:09.383346Z",
-  "readme_digest": "sha256:bb9a7fe13b9c3b59b838c625d7e9a03edd81ae49fb1b45d91ebfb0181c9191df",
-  "schema_version": "techtree.forge-export.v1alpha3",
+  "exported_at": "2026-09-27T07:00:01.386612Z",
+  "readme_digest": "sha256:ed4336a504f1d9759aac9342d18c38dcc0a7474ef862c4c2e513cceadfc1a78f",
+  "schema_version": "techtree.forge-export.v1alpha4",
   "tasks": [
     {
       "build": {
-        "build_id": "build_a7e9afb628b34fb0ba9040f2a9cfaa66",
-        "created_at": "2026-09-25T18:48:08.514721Z",
+        "build_id": "build_a6cc6c1267d64de08983bf4105dc1de8",
+        "created_at": "2026-09-27T07:00:00.491957Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -229,11 +237,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:c5498e295d34cd9f97fef65d5240c55f86f1268116d2382f15d8f7cb6cb5c7d8",
+          "membership_digest": "sha256:aa2e28febae03f814b0551f0e53d8c5f0a605debfa1af6a68e4af975fa376f56",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:e2691bc3f48e10b7a203273ee0c9ce9ce250d9fbc6be84b6771753b73c6a526f",
+              "content_digest": "sha256:b98396de3eb9499b868dac8583fe5d2d05d712dbc803673ca59cfc0e513d51e9",
               "entries": [
                 {
                   "digest": null,
@@ -292,7 +300,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:2c5b82bb405fd769bf012035af6773d0097c79d283e5d2132052bea2b5d840e3",
+                  "digest": "sha256:1ae7d74299b2e3eea3f78932f033c35bbb299f4e58a6df66e584d46c2fa7144d",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -321,7 +329,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-cart-total_8b53544a"
+              "task_id": "task_tdd-cart-total_f844b506"
             }
           ]
         }
@@ -372,19 +380,19 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-cart-total_8b53544a:40f2a9cfaa66",
+        "image_tag": "techtree-forge/skill2env/task_tdd-cart-total_f844b506:bf4105dc1de8",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:e2691bc3f48e10b7a203273ee0c9ce9ce250d9fbc6be84b6771753b73c6a526f",
-        "task_id": "task_tdd-cart-total_8b53544a",
+        "task_content_digest": "sha256:b98396de3eb9499b868dac8583fe5d2d05d712dbc803673ca59cfc0e513d51e9",
+        "task_id": "task_tdd-cart-total_f844b506",
         "wrong_reward": 0.0
       }
     },
     {
       "build": {
-        "build_id": "build_7cbe511be51a42749c788d54f9f2974d",
-        "created_at": "2026-09-25T18:48:08.529065Z",
+        "build_id": "build_4833e25d9d3346cfacdb4ec8f12e2ff7",
+        "created_at": "2026-09-27T07:00:00.506902Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -405,11 +413,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:50c2319466d8f5bb612a4dad4084a2294326406ec5cc945dee604079175c8737",
+          "membership_digest": "sha256:0a0e57c23ef235e08adb3d043a5ec2d7f82948bba57874e6026fcc9d3b2ed4cc",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:fe7818b422b71e3500d4bdf7dc6dd9a9089774e854298c8785a5f133906381d6",
+              "content_digest": "sha256:c16432f50c1977d9126a076fcb7152b83b303ab6560682f4565176c99ff07724",
               "entries": [
                 {
                   "digest": null,
@@ -468,7 +476,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:6cf38e9a1ef0f6fe279423d9d40c59b12545c95d50491f5696820b4130019a1e",
+                  "digest": "sha256:4f4843c354c18a86b11caa03491b60435632dda92518747597201268b39b6bad",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -497,7 +505,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-date-ranges_8b53544a"
+              "task_id": "task_tdd-date-ranges_f844b506"
             }
           ]
         }
@@ -548,19 +556,19 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-date-ranges_8b53544a:8d54f9f2974d",
+        "image_tag": "techtree-forge/skill2env/task_tdd-date-ranges_f844b506:4ec8f12e2ff7",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:fe7818b422b71e3500d4bdf7dc6dd9a9089774e854298c8785a5f133906381d6",
-        "task_id": "task_tdd-date-ranges_8b53544a",
+        "task_content_digest": "sha256:c16432f50c1977d9126a076fcb7152b83b303ab6560682f4565176c99ff07724",
+        "task_id": "task_tdd-date-ranges_f844b506",
         "wrong_reward": 0.0
       }
     },
     {
       "build": {
-        "build_id": "build_cc480b309f3d49d0bbe97ad6063f6099",
-        "created_at": "2026-09-25T18:48:08.545661Z",
+        "build_id": "build_d14e5fee7a7d45bebfd2d879affdf2cf",
+        "created_at": "2026-09-27T07:00:00.521030Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -581,11 +589,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:2aa171e9e24022733c93f0ffdba5148cdd3762bd0f57c03aafd18db2b151d706",
+          "membership_digest": "sha256:b09a9843e31346b8db88e95d84afc31d5ab1afddac3944c54bb5d4a6c96d4921",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:487e6dd2d2389041dda3b909fe146f8d72c50527c1aadd9aca0595c758a8c7d3",
+              "content_digest": "sha256:f6a56fc9465fba5c353487021feca12a44a667457bad20d4d3050337d00628b3",
               "entries": [
                 {
                   "digest": null,
@@ -644,7 +652,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:06925062bdb68d8e7fbacbc03b3c8a14a582e1afbbee791d14c3fbd00e164d5a",
+                  "digest": "sha256:38c0729ab4090d77e8894661765a8d01ceb2bbf0b5572be9a9c06822febd1edb",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -673,7 +681,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-cache-rewrite_8b53544a"
+              "task_id": "task_tdd-cache-rewrite_f844b506"
             }
           ]
         }
@@ -724,19 +732,19 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-cache-rewrite_8b53544a:7ad6063f6099",
+        "image_tag": "techtree-forge/skill2env/task_tdd-cache-rewrite_f844b506:d879affdf2cf",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:487e6dd2d2389041dda3b909fe146f8d72c50527c1aadd9aca0595c758a8c7d3",
-        "task_id": "task_tdd-cache-rewrite_8b53544a",
+        "task_content_digest": "sha256:f6a56fc9465fba5c353487021feca12a44a667457bad20d4d3050337d00628b3",
+        "task_id": "task_tdd-cache-rewrite_f844b506",
         "wrong_reward": 0.0
       }
     },
     {
       "build": {
-        "build_id": "build_4c6e082b20ab4254b56bed075bf7cb49",
-        "created_at": "2026-09-25T18:48:08.558933Z",
+        "build_id": "build_7a0ca082276e44c8aa806f31c0835c36",
+        "created_at": "2026-09-27T07:00:00.534061Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -757,11 +765,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:809ec1170e0fb35f75a87a769adb44084552ae16a96833bfbe0d4805dd3e178d",
+          "membership_digest": "sha256:4c32d9d62394a856fe5e6c40a2a1fc8a55995b180cac1d34803a5c9afb550be0",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:d79334ccd705a76398071d871920f4d98de5e1b8ce97c889d3fb1dc81f587415",
+              "content_digest": "sha256:9f6204596590627b12fb40aafd84579b99431bda13caf14c1a7aeea3d39d1f7b",
               "entries": [
                 {
                   "digest": null,
@@ -820,7 +828,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:3803733c9f5dee2b03eba2188701fa0c9985372d9a51b8b17f2258a819316266",
+                  "digest": "sha256:3a90a33bc19c7a1caf25414876d1c97197977ccc27a6fb16a4f9fbb053de702b",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -849,7 +857,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-slugify_8b53544a"
+              "task_id": "task_tdd-slugify_f844b506"
             }
           ]
         }
@@ -900,19 +908,19 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-slugify_8b53544a:ed075bf7cb49",
+        "image_tag": "techtree-forge/skill2env/task_tdd-slugify_f844b506:6f31c0835c36",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:d79334ccd705a76398071d871920f4d98de5e1b8ce97c889d3fb1dc81f587415",
-        "task_id": "task_tdd-slugify_8b53544a",
+        "task_content_digest": "sha256:9f6204596590627b12fb40aafd84579b99431bda13caf14c1a7aeea3d39d1f7b",
+        "task_id": "task_tdd-slugify_f844b506",
         "wrong_reward": 0.0
       }
     },
     {
       "build": {
-        "build_id": "build_f0ed98ca4f764c74b3cbc3ca48ecb2e9",
-        "created_at": "2026-09-25T18:48:08.572550Z",
+        "build_id": "build_78b120cfab064338a1947a92fb5ebb93",
+        "created_at": "2026-09-27T07:00:00.548343Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -933,11 +941,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:c3f864b5ba09882b01e20f9bd379496e0a94223d5d54263e72f7cbbb83ad8ee6",
+          "membership_digest": "sha256:da59c0f16b22d7a56777959bdd514f184843e62bfca4d6b33669aa5dbd7d61bb",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:4f2344c6dcd549b94852a0d05f38153b60feb94d8b755e450eab13f04d78a704",
+              "content_digest": "sha256:9df3b39d69d31f0e20a0ecd0dd605ee92624fd6f9b02b1fb758b6295a1f7df04",
               "entries": [
                 {
                   "digest": null,
@@ -996,7 +1004,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:ebc627fd747c34a2990937c3850837079ae25ee7c95599ebfebfbdee5bf007f4",
+                  "digest": "sha256:91bbb34f6620db9223354fd4ce717d9c0557ddc2b1460d9419afe5ed65cd6529",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -1025,7 +1033,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-roman-numerals_8b53544a"
+              "task_id": "task_tdd-roman-numerals_f844b506"
             }
           ]
         }
@@ -1076,19 +1084,19 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-roman-numerals_8b53544a:c3ca48ecb2e9",
+        "image_tag": "techtree-forge/skill2env/task_tdd-roman-numerals_f844b506:7a92fb5ebb93",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:4f2344c6dcd549b94852a0d05f38153b60feb94d8b755e450eab13f04d78a704",
-        "task_id": "task_tdd-roman-numerals_8b53544a",
+        "task_content_digest": "sha256:9df3b39d69d31f0e20a0ecd0dd605ee92624fd6f9b02b1fb758b6295a1f7df04",
+        "task_id": "task_tdd-roman-numerals_f844b506",
         "wrong_reward": 0.0
       }
     },
     {
       "build": {
-        "build_id": "build_6ae14539b23746419d57e9530184014c",
-        "created_at": "2026-09-25T18:48:08.585102Z",
+        "build_id": "build_786f53a47c6e4eea92bddf7907a7306f",
+        "created_at": "2026-09-27T07:00:00.563031Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -1109,11 +1117,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:95bdc8727b1ff784440167261457c7f575d0a16c488e401a623ed8d9d8df3184",
+          "membership_digest": "sha256:54d0ad5efdbe6ee56438b28443d0aef640427fa3df312dc3ef0941c614f3aa05",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:ee09fcb1d5a009524406907fb07bece0e45b1d01ed0d684d4034e53170814c4f",
+              "content_digest": "sha256:b9648dcb2d42794cb43e464cec9909014d5986fff7aaa57214e7714952b437a9",
               "entries": [
                 {
                   "digest": null,
@@ -1172,7 +1180,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:d1fcaf59ba9a43dae3e9353b6a15c591a188e8373d03cd0351723be0cac3eb91",
+                  "digest": "sha256:2ce3a06e440c0965eca9d01d7e8f4fce5931625c711e8291142ef19499327ee7",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -1201,7 +1209,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-parser-kept_8b53544a"
+              "task_id": "task_tdd-parser-kept_f844b506"
             }
           ]
         }
@@ -1252,19 +1260,19 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-parser-kept_8b53544a:e9530184014c",
+        "image_tag": "techtree-forge/skill2env/task_tdd-parser-kept_f844b506:df7907a7306f",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:ee09fcb1d5a009524406907fb07bece0e45b1d01ed0d684d4034e53170814c4f",
-        "task_id": "task_tdd-parser-kept_8b53544a",
+        "task_content_digest": "sha256:b9648dcb2d42794cb43e464cec9909014d5986fff7aaa57214e7714952b437a9",
+        "task_id": "task_tdd-parser-kept_f844b506",
         "wrong_reward": 0.0
       }
     },
     {
       "build": {
-        "build_id": "build_af88036e1b764f9ab39acf4768042ce1",
-        "created_at": "2026-09-25T18:48:08.599367Z",
+        "build_id": "build_c3f974fecb71478b9aeec916ec476cbc",
+        "created_at": "2026-09-27T07:00:00.577065Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -1285,11 +1293,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:3d6fb683b85dd031239a19b9ca11023377bb445edd185647e3d7b03f434b79ec",
+          "membership_digest": "sha256:bf0129014911731e98a147d48fdb5b276ef6bf69e41b851f9a13fbb9a8d4a2f8",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:96ba2972fcd49e4a33a211071b1eb4e655159bc39f727c455e7b5947f864a58c",
+              "content_digest": "sha256:bbd3ed6a0688d5b91be90215c9f4b46d5a8dc21f5943d687d6933f0213c97a21",
               "entries": [
                 {
                   "digest": null,
@@ -1348,7 +1356,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:848843863651e3496be28fe3cb8c53134c916dc7d853a14bf903346d9c725c4e",
+                  "digest": "sha256:7ea3b0177c68d20888004050a5c11cc0638e13014e6a768e57330c73f374594a",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -1377,7 +1385,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-rate-limiter_8b53544a"
+              "task_id": "task_tdd-rate-limiter_f844b506"
             }
           ]
         }
@@ -1428,19 +1436,19 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-rate-limiter_8b53544a:cf4768042ce1",
+        "image_tag": "techtree-forge/skill2env/task_tdd-rate-limiter_f844b506:c916ec476cbc",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:96ba2972fcd49e4a33a211071b1eb4e655159bc39f727c455e7b5947f864a58c",
-        "task_id": "task_tdd-rate-limiter_8b53544a",
+        "task_content_digest": "sha256:bbd3ed6a0688d5b91be90215c9f4b46d5a8dc21f5943d687d6933f0213c97a21",
+        "task_id": "task_tdd-rate-limiter_f844b506",
         "wrong_reward": 0.0
       }
     },
     {
       "build": {
-        "build_id": "build_d221401117174fb18751b7dc92041f8f",
-        "created_at": "2026-09-25T18:48:08.613617Z",
+        "build_id": "build_8a4c1da9059444c28df5dbf021c324c5",
+        "created_at": "2026-09-27T07:00:00.591117Z",
         "platform": "linux/arm64",
         "schema_version": "techtree.forge-build.v1alpha3",
         "source": {
@@ -1461,11 +1469,11 @@
           "upstream_url": "https://github.com/NVlabs/Skill2Env.git"
         },
         "task_set": {
-          "membership_digest": "sha256:7e76ccdaf016094014041e14f8dd2a385621aaa36e3591b46628a3fcf9b93951",
+          "membership_digest": "sha256:a096cbe5484ae3693e3a9d5ac9a517fd2c0854ad9db6d5e3802fde354f71ca09",
           "schema_version": "techtree.forge-task-set.v1alpha1",
           "tasks": [
             {
-              "content_digest": "sha256:da423827992f27476790a4658dd5fecdfc1e52dc78f1002c7bb5453ab2390785",
+              "content_digest": "sha256:0a73b55dddcd986717740742db56042cf77ee030e692ef34cb5ae66c101e6862",
               "entries": [
                 {
                   "digest": null,
@@ -1524,7 +1532,7 @@
                   "size": 53
                 },
                 {
-                  "digest": "sha256:b7e8a371c9f3fba1293df5f50f1432adeaafe88abbc153cfd7b2e95a5feaec39",
+                  "digest": "sha256:535252bb845117f879733329abe10422adffa7e7491094aa26af9b9c1776064a",
                   "executable": false,
                   "kind": "file",
                   "path": "task.toml",
@@ -1553,7 +1561,7 @@
                 }
               ],
               "schema_version": "techtree.forge-task-content.v1alpha1",
-              "task_id": "task_tdd-csv-report_8b53544a"
+              "task_id": "task_tdd-csv-report_f844b506"
             }
           ]
         }
@@ -1604,12 +1612,12 @@
         ],
         "control_reward": 0.0,
         "image_id": "sha256:74656368747265652d666f7267652f736b696c6c32656e762f7461736b5f7464",
-        "image_tag": "techtree-forge/skill2env/task_tdd-csv-report_8b53544a:b7dc92041f8f",
+        "image_tag": "techtree-forge/skill2env/task_tdd-csv-report_f844b506:dbf021c324c5",
         "kind": "skill",
         "qualified": true,
         "reference_reward": 1.0,
-        "task_content_digest": "sha256:da423827992f27476790a4658dd5fecdfc1e52dc78f1002c7bb5453ab2390785",
-        "task_id": "task_tdd-csv-report_8b53544a",
+        "task_content_digest": "sha256:0a73b55dddcd986717740742db56042cf77ee030e692ef34cb5ae66c101e6862",
+        "task_id": "task_tdd-csv-report_f844b506",
         "wrong_reward": 0.0
       }
     }

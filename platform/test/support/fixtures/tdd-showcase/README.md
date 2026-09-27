@@ -5,7 +5,7 @@ Test data only. These are not real results and must never be copied into
 
 The folder has the layout `TechtreeWeb.TddShowcase` reads. Every record was
 written by the Techtree CLI's own code, driven by the scripted stand-ins of
-its forge tests (planner, creator, Docker and Hermes), on 2026-09-25. No model
+its forge tests (planner, creator, Docker and Hermes), on 2026-09-27. No model
 was called and no task was run. The claims and the eight task summaries were
 written for the stand-in planner, and the scores were set per task so that
 the held-out part is mixed and the study part improved.

@@ -10,11 +10,11 @@
     ],
     "cost_usd": null,
     "mean_reward": 0.375,
-    "run_id": "forgerun_961d71bd50434ec7bca6bd654ededb36",
+    "run_id": "forgerun_4e72fc5649e148ad925554ab80914bc6",
     "state": "completed",
     "total_tokens": 960
   },
-  "baseline_run_id": "forgerun_961d71bd50434ec7bca6bd654ededb36",
+  "baseline_run_id": "forgerun_4e72fc5649e148ad925554ab80914bc6",
   "baseline_skill": null,
   "candidate": {
     "agent_seconds": 12.0,
@@ -27,11 +27,11 @@
     ],
     "cost_usd": null,
     "mean_reward": 0.7142857142857143,
-    "run_id": "forgerun_91d6ee0b04ef450990b876be5274502f",
+    "run_id": "forgerun_b80d5aa2abc042ddb8f8f85e3054faa4",
     "state": "completed",
     "total_tokens": 960
   },
-  "candidate_run_id": "forgerun_91d6ee0b04ef450990b876be5274502f",
+  "candidate_run_id": "forgerun_b80d5aa2abc042ddb8f8f85e3054faa4",
   "candidate_skill": {
     "digest": "sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099",
     "name": "tdd"
@@ -41,8 +41,8 @@
       "/arm",
       "/skill"
     ],
-    "baseline_configuration_digest": "sha256:ed8505a1cc15515873cc9a34e60db9746cb354d5e3f5ddd89a77d1c52a24ba4c",
-    "candidate_configuration_digest": "sha256:74f6a861eab78448958e071d4b981124d98d681fd26ded161b9cb578cbce7c4f",
+    "baseline_configuration_digest": "sha256:e78eea9dffb3155e0065b0da3e4607c7e74ad0a176f8e84aff664e79c80cd812",
+    "candidate_configuration_digest": "sha256:26aa70fb28cbfe0cb7251188399f0b10096e8c76b5d0c31f4fdcf29cbbb0d3fa",
     "controlled": true,
     "differences": [
       {
@@ -94,12 +94,12 @@
     ],
     "violations": []
   },
-  "comparison_id": "forgecmp_8bab7f5d79694733b80309381a8c3288",
+  "comparison_id": "forgecmp_872562cbee734936b7af97849aabf355",
   "complete": false,
   "consistency": [
     {
       "losses": 0,
-      "task_id": "task_tdd-cart-total_8b53544a",
+      "task_id": "task_tdd-cart-total_f844b506",
       "ties": 0,
       "unresolved": 0,
       "went_both_ways": false,
@@ -107,7 +107,7 @@
     },
     {
       "losses": 0,
-      "task_id": "task_tdd-date-ranges_8b53544a",
+      "task_id": "task_tdd-date-ranges_f844b506",
       "ties": 0,
       "unresolved": 0,
       "went_both_ways": false,
@@ -115,7 +115,7 @@
     },
     {
       "losses": 0,
-      "task_id": "task_tdd-cache-rewrite_8b53544a",
+      "task_id": "task_tdd-cache-rewrite_f844b506",
       "ties": 0,
       "unresolved": 0,
       "went_both_ways": false,
@@ -123,7 +123,7 @@
     },
     {
       "losses": 1,
-      "task_id": "task_tdd-slugify_8b53544a",
+      "task_id": "task_tdd-slugify_f844b506",
       "ties": 0,
       "unresolved": 0,
       "went_both_ways": false,
@@ -131,7 +131,7 @@
     },
     {
       "losses": 0,
-      "task_id": "task_tdd-roman-numerals_8b53544a",
+      "task_id": "task_tdd-roman-numerals_f844b506",
       "ties": 0,
       "unresolved": 0,
       "went_both_ways": false,
@@ -139,7 +139,7 @@
     },
     {
       "losses": 0,
-      "task_id": "task_tdd-parser-kept_8b53544a",
+      "task_id": "task_tdd-parser-kept_f844b506",
       "ties": 0,
       "unresolved": 1,
       "went_both_ways": false,
@@ -147,7 +147,7 @@
     },
     {
       "losses": 0,
-      "task_id": "task_tdd-rate-limiter_8b53544a",
+      "task_id": "task_tdd-rate-limiter_f844b506",
       "ties": 1,
       "unresolved": 0,
       "went_both_ways": false,
@@ -155,14 +155,14 @@
     },
     {
       "losses": 0,
-      "task_id": "task_tdd-csv-report_8b53544a",
+      "task_id": "task_tdd-csv-report_f844b506",
       "ties": 1,
       "unresolved": 0,
       "went_both_ways": false,
       "wins": 0
     }
   ],
-  "created_at": "2026-09-25T18:48:09.211081Z",
+  "created_at": "2026-09-27T07:00:01.212322Z",
   "held_out": {
     "baseline_mean_reward": 0.3333333333333333,
     "candidate_mean_reward": 0.6666666666666666,
@@ -172,10 +172,10 @@
     "pairs_graded": 3,
     "pairs_planned": 4,
     "task_ids": [
-      "task_tdd-date-ranges_8b53544a",
-      "task_tdd-cache-rewrite_8b53544a",
-      "task_tdd-slugify_8b53544a",
-      "task_tdd-parser-kept_8b53544a"
+      "task_tdd-date-ranges_f844b506",
+      "task_tdd-cache-rewrite_f844b506",
+      "task_tdd-slugify_f844b506",
+      "task_tdd-parser-kept_f844b506"
     ],
     "ties": 0,
     "unresolved": 1,
@@ -198,7 +198,7 @@
       "candidate_reward": 1.0,
       "delta": 1.0,
       "result": "win",
-      "task_id": "task_tdd-cart-total_8b53544a"
+      "task_id": "task_tdd-cart-total_f844b506"
     },
     {
       "attempt": 1,
@@ -208,7 +208,7 @@
       "candidate_reward": 1.0,
       "delta": 1.0,
       "result": "win",
-      "task_id": "task_tdd-date-ranges_8b53544a"
+      "task_id": "task_tdd-date-ranges_f844b506"
     },
     {
       "attempt": 1,
@@ -218,7 +218,7 @@
       "candidate_reward": 1.0,
       "delta": 1.0,
       "result": "win",
-      "task_id": "task_tdd-cache-rewrite_8b53544a"
+      "task_id": "task_tdd-cache-rewrite_f844b506"
     },
     {
       "attempt": 1,
@@ -228,7 +228,7 @@
       "candidate_reward": 0.0,
       "delta": -1.0,
       "result": "loss",
-      "task_id": "task_tdd-slugify_8b53544a"
+      "task_id": "task_tdd-slugify_f844b506"
     },
     {
       "attempt": 1,
@@ -238,7 +238,7 @@
       "candidate_reward": 1.0,
       "delta": 1.0,
       "result": "win",
-      "task_id": "task_tdd-roman-numerals_8b53544a"
+      "task_id": "task_tdd-roman-numerals_f844b506"
     },
     {
       "attempt": 1,
@@ -248,7 +248,7 @@
       "candidate_reward": null,
       "delta": null,
       "result": "unresolved",
-      "task_id": "task_tdd-parser-kept_8b53544a"
+      "task_id": "task_tdd-parser-kept_f844b506"
     },
     {
       "attempt": 1,
@@ -258,7 +258,7 @@
       "candidate_reward": 1.0,
       "delta": 0.0,
       "result": "tie",
-      "task_id": "task_tdd-rate-limiter_8b53544a"
+      "task_id": "task_tdd-rate-limiter_f844b506"
     },
     {
       "attempt": 1,
@@ -268,7 +268,7 @@
       "candidate_reward": 0.0,
       "delta": 0.0,
       "result": "tie",
-      "task_id": "task_tdd-csv-report_8b53544a"
+      "task_id": "task_tdd-csv-report_f844b506"
     }
   ],
   "pairs_graded": 7,
@@ -279,7 +279,7 @@
         1
       ],
       "attempts_won": [],
-      "task_id": "task_tdd-slugify_8b53544a"
+      "task_id": "task_tdd-slugify_f844b506"
     }
   ],
   "repetitions": 1,
@@ -297,22 +297,22 @@
     "pairs_graded": 4,
     "pairs_planned": 4,
     "task_ids": [
-      "task_tdd-cart-total_8b53544a",
-      "task_tdd-roman-numerals_8b53544a",
-      "task_tdd-rate-limiter_8b53544a",
-      "task_tdd-csv-report_8b53544a"
+      "task_tdd-cart-total_f844b506",
+      "task_tdd-roman-numerals_f844b506",
+      "task_tdd-rate-limiter_f844b506",
+      "task_tdd-csv-report_f844b506"
     ],
     "ties": 2,
     "unresolved": 0,
     "verdict": "improved",
     "wins": 2
   },
-  "summary": "Inconclusive: 7 of 8 planned pairs have a verdict on both arms, so this is not a complete result. Over 7 graded pairs, tdd won 4, lost 1 and tied 2; mean reward 0.29 without it and 0.71 with it (+0.43). The Skill lost on 1 task: task_tdd-slugify_8b53544a. One attempt per task; consistency across attempts was not measured. On the held-out tasks alone: inconclusive, 2 won, 1 lost and 0 tied of 4 planned pairs.",
+  "summary": "Inconclusive: 7 of 8 planned pairs have a verdict on both arms, so this is not a complete result. Over 7 graded pairs, tdd won 4, lost 1 and tied 2; mean reward 0.29 without it and 0.71 with it (+0.43). The Skill lost on 1 task: task_tdd-slugify_f844b506. One attempt per task; consistency across attempts was not measured. On the held-out tasks alone: inconclusive, 2 won, 1 lost and 0 tied of 4 planned pairs.",
   "tasks_from": {
-    "collection_digest": "sha256:c4bba332549a39cb6d208a24a64f946010178561b5cf4952d23895cd5459f6d1",
-    "collection_id": "forgecol_78d715e07d1f435c90dd22ebffd77593",
+    "collection_digest": "sha256:d5c38ea0f542023f0dd24c8f19d62806b162cf951e4a14e725c61b6722a4045c",
+    "collection_id": "forgecol_ed65fc14bb8949678812c1eab5fe3a56",
     "kind": "collection",
-    "membership_digest": "sha256:3ba01d6af6a9e24f596eb191a6a9b263217e34d7ba8e98b5a0720ee1f2308cc1",
+    "membership_digest": "sha256:319d1427bd1b04d906b3dc692051506de4a82174231c4afe1749227723080d1d",
     "version": 1
   },
   "ties": 2,

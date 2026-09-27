@@ -236,7 +236,7 @@ defmodule TechtreeWeb.TddShowcase do
     true = Map.drop(baseline_spec, ["arm", "skill"]) == Map.drop(candidate_spec, ["arm", "skill"])
 
     %{
-      "schema_version" => "techtree.forge-export.v1alpha3",
+      "schema_version" => "techtree.forge-export.v1alpha4",
       "readme_digest" => readme_digest,
       "collection" => %{
         "collection_id" => ^collection_id,

@@ -1,22 +1,22 @@
-# Collection forgecol_78d715e07d1f435c90dd22ebffd77593, version 1
+# Collection forgecol_ed65fc14bb8949678812c1eab5fe3a56, version 1
 
-This folder is a private copy of one accepted collection of tasks, made by Techtree on 2026-09-25 at 18:48 UTC. Nothing in it has been published.
+This folder is a private copy of one accepted collection of tasks, made by Techtree on 2026-09-27 at 07:00 UTC. Nothing in it has been published.
 
-The collection's fingerprint is `sha256:c4bba332549a39cb6d208a24a64f946010178561b5cf4952d23895cd5459f6d1`. This is the same collection only if this fingerprint matches the one the sender gave you. Checking this folder shows only that it agrees with its own records, not where it came from.
+The collection's fingerprint is `sha256:d5c38ea0f542023f0dd24c8f19d62806b162cf951e4a14e725c61b6722a4045c`. This is the same collection only if this fingerprint matches the one the sender gave you. Checking this folder shows only that it agrees with its own records, not where it came from.
 
 The tasks were written from the Skill tdd, whose fingerprint is `sha256:7dc0ee968fc1f3717b653a11b172f4c89b080edb0d4290d61b21135ffad14099`.
 
 ## What it holds
 
-- `tasks/task_tdd-cart-total_8b53544a/`: the task tdd-cart-total, a positive case for claim C1, with its instruction, the files it starts from, its tests and its reference solutions.
-- `tasks/task_tdd-date-ranges_8b53544a/`: the task tdd-date-ranges (held out), a boundary case for claim C1, with its instruction, the files it starts from, its tests and its reference solutions.
-- `tasks/task_tdd-cache-rewrite_8b53544a/`: the task tdd-cache-rewrite (held out), a counterexample for claim C1, with its instruction, the files it starts from, its tests and its reference solutions.
-- `tasks/task_tdd-slugify_8b53544a/`: the task tdd-slugify (held out), a positive case for claim C2, with its instruction, the files it starts from, its tests and its reference solutions.
-- `tasks/task_tdd-roman-numerals_8b53544a/`: the task tdd-roman-numerals, a boundary case for claim C2, with its instruction, the files it starts from, its tests and its reference solutions.
-- `tasks/task_tdd-parser-kept_8b53544a/`: the task tdd-parser-kept (held out), a counterexample for claim C2, with its instruction, the files it starts from, its tests and its reference solutions.
-- `tasks/task_tdd-rate-limiter_8b53544a/`: the task tdd-rate-limiter, a positive case for claim C3, with its instruction, the files it starts from, its tests and its reference solutions.
-- `tasks/task_tdd-csv-report_8b53544a/`: the task tdd-csv-report, a counterexample for claim C3, with its instruction, the files it starts from, its tests and its reference solutions.
-- `export.json`: the collection's records and its acceptance, dated 2026-09-25 at 18:48 UTC, each task's qualification record, and where each task came from.
+- `tasks/task_tdd-cart-total_f844b506/`: the task tdd-cart-total, a positive case for claim C1, with its instruction, the files it starts from, its tests and its reference solutions.
+- `tasks/task_tdd-date-ranges_f844b506/`: the task tdd-date-ranges (held out), a boundary case for claim C1, with its instruction, the files it starts from, its tests and its reference solutions.
+- `tasks/task_tdd-cache-rewrite_f844b506/`: the task tdd-cache-rewrite (held out), a counterexample for claim C1, with its instruction, the files it starts from, its tests and its reference solutions.
+- `tasks/task_tdd-slugify_f844b506/`: the task tdd-slugify (held out), a positive case for claim C2, with its instruction, the files it starts from, its tests and its reference solutions.
+- `tasks/task_tdd-roman-numerals_f844b506/`: the task tdd-roman-numerals, a boundary case for claim C2, with its instruction, the files it starts from, its tests and its reference solutions.
+- `tasks/task_tdd-parser-kept_f844b506/`: the task tdd-parser-kept (held out), a counterexample for claim C2, with its instruction, the files it starts from, its tests and its reference solutions.
+- `tasks/task_tdd-rate-limiter_f844b506/`: the task tdd-rate-limiter, a positive case for claim C3, with its instruction, the files it starts from, its tests and its reference solutions.
+- `tasks/task_tdd-csv-report_f844b506/`: the task tdd-csv-report, a counterexample for claim C3, with its instruction, the files it starts from, its tests and its reference solutions.
+- `export.json`: the collection's records and its acceptance, dated 2026-09-27 at 07:00 UTC, each task's qualification record, and where each task came from.
 
 The tasks marked held out are kept from any agent that improves a Skill on this collection, and a revised Skill's verdict is worked out on them alone. Which tasks are held out follows from a fixed rule; nobody chose it. A task keeps its part in every collection accepted after this one in the same Techtree home, whichever Skill it is for, even when it is built again or appears under another name with the same files; one that was ever studied is never held out. Tasks whose files differ only slightly are not recognised as the same task.
 
@@ -56,6 +56,7 @@ It can only report what is recorded about:
 
 - the Skill the tasks were written from: its name and fingerprint are recorded, its text is not included
 - the proposal and the building of the tasks
+- a person's corrections of tasks: when each was made and which files it changed are recorded, the tasks before them are not included
 - the qualification runs: their results are recorded, not run again
 - the images the tasks were built and checked with
 - the acceptance itself: when it was given and how it was answered
@@ -96,8 +97,8 @@ Only time limits them. Each try gives the agent its task's own time limit, below
 techtree forge verify-export EXPORT_FOLDER
 techtree forge import EXPORT_FOLDER
 techtree forge inspect-skill SKILL_FOLDER
-techtree forge run --arm baseline --collection forgecol_78d715e07d1f435c90dd22ebffd77593 --provider PROVIDER --model MODEL
-techtree forge run --arm candidate --collection forgecol_78d715e07d1f435c90dd22ebffd77593 --provider PROVIDER --model MODEL --skill SKILL_FOLDER
+techtree forge run --arm baseline --collection forgecol_ed65fc14bb8949678812c1eab5fe3a56 --provider PROVIDER --model MODEL
+techtree forge run --arm candidate --collection forgecol_ed65fc14bb8949678812c1eab5fe3a56 --provider PROVIDER --model MODEL --skill SKILL_FOLDER
 techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID
 ```
 
