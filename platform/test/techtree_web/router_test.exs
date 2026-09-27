@@ -46,6 +46,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /contact",
              "get /docs",
              "get /healthz",
+             "get /llms.txt",
              "get /openapi.json",
              "get /privacy",
              "get /proofs",

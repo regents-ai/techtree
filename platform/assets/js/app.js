@@ -15,8 +15,10 @@ import {mountMotion} from "./motion.js"
 import {deny} from "./hooks/motion/press.js"
 import {MotionList} from "./hooks/motion/moments.js"
 import {MotionMenu} from "./hooks/motion/slides.js"
+import {installPublicTools} from "./public_tools.js"
 
 mountMotion()
+installPublicTools()
 
 const GITHUB_STAR_CACHE = "techtree-github-stars"
 const GITHUB_STAR_REFRESH_MS = 2 * 60 * 1000
