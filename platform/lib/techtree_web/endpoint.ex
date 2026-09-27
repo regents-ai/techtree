@@ -83,20 +83,6 @@ defmodule TechtreeWeb.Endpoint do
   # Before the parser, so a caller over the publication limit costs no read.
   plug TechtreeWeb.PublicationRate
 
-  # One route reads a request body, and nothing here needs to accept a file. A
-  # body in a content type this does not parse is passed along untouched and
-  # meets the same refusal it would have met anyway. No address accepts more
-  # than the publication cap (`Techtree.Network.maximum_body_bytes/0`).
-  plug Plug.Parsers,
-    parsers: [:urlencoded, :json],
-    pass: ["*/*"],
-    length: Application.compile_env!(:techtree, [Techtree.Network, :maximum_body_bytes]),
-    body_reader: {TechtreeWeb.PublicationBody, :read_body, []},
-    json_decoder: Phoenix.json_library()
-
-  plug Plug.Head
-  plug Plug.Session, @session_options
-
   # Every page, and every Markdown or refusal the next plug answers before the
   # router, carries these. Browser agents may use the tools every page
   # registers, from this site only. API responses replace them with their own.
@@ -110,9 +96,25 @@ defmodule TechtreeWeb.Endpoint do
     "permissions-policy" => "tools=(self)"
   }
 
+  # Before the parser, so a body it refuses on an `/api` path is answered
+  # in JSON (`TechtreeWeb.Parsers`).
   plug RegentAgentAccess.Plug,
     documents: &TechtreeWeb.PublicDocuments.document/1,
     guide: "/llms.txt"
+
+  # One route reads a request body, and nothing here needs to accept a file. A
+  # body in a content type this does not parse is passed along untouched and
+  # meets the same refusal it would have met anyway. No address accepts more
+  # than the publication cap (`Techtree.Network.maximum_body_bytes/0`).
+  plug TechtreeWeb.Parsers,
+    parsers: [:urlencoded, :json],
+    pass: ["*/*"],
+    length: Application.compile_env!(:techtree, [Techtree.Network, :maximum_body_bytes]),
+    body_reader: {TechtreeWeb.PublicationBody, :read_body, []},
+    json_decoder: Phoenix.json_library()
+
+  plug Plug.Head
+  plug Plug.Session, @session_options
 
   plug TechtreeWeb.MethodSurface
   plug TechtreeWeb.Router

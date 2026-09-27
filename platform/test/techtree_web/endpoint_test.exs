@@ -84,15 +84,16 @@ defmodule TechtreeWeb.EndpointTest do
       assert refused.body_params == %Plug.Conn.Unfetched{aspect: :body_params}
     end
 
-    test "a malformed body under the limit is a refusal, not a crash", %{conn: conn} do
-      refused =
-        assert_raise Plug.Parsers.ParseError, fn ->
+    test "a malformed body under the limit is a JSON refusal, not a crash", %{conn: conn} do
+      {400, _headers, body} =
+        assert_error_sent 400, fn ->
           conn
           |> put_req_header("content-type", "application/json")
+          |> put_req_header("accept", "text/html")
           |> post("/api/v1/catalog", "{not json")
         end
 
-      assert Plug.Exception.status(refused) == 400
+      assert %{"error" => %{"code" => "bad_request"}} = Jason.decode!(body)
     end
   end
 
