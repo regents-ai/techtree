@@ -104,7 +104,7 @@
 .runs-index #agent-version-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); margin-top: var(--space-2); font-size: .75rem; }
 .results-context > span { font-size: .75rem; }
 
-/* Semantic table: chart-like scanning, one stable column rhythm, real score bars. */
+/* Semantic table: chart-like scanning, one stable column rhythm, scores as recorded. */
 .runs-index .runs-index__table-frame { margin-top: var(--space-2); padding: 0; border-color: var(--rule-strong); }
 .results-ledger { width: 100%; min-width: 52rem; border-collapse: collapse; font-size: .8125rem; }
 .results-ledger caption { caption-side: bottom; text-align: left; padding: var(--space-2); font-size: .75rem; color: var(--ink-quiet); border-top: 1px solid var(--rule); }
@@ -115,8 +115,6 @@
 .results-ledger small { display: block; font-size: .6875rem; font-weight: 400; color: var(--ink-quiet); }
 .results-ledger .results-ledger__numeric { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .results-ledger td.results-ledger__numeric { min-width: 6.25rem; font-family: var(--font-family-mono); font-size: .8125rem; }
-.score-strip { width: 100%; height: 4px; margin-top: 5px; color: var(--ink-quiet); }
-.score-strip--candidate { color: var(--accent-deep); }
 .results-ledger__tasks, .results-ledger__date { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .results-ledger .results-ledger__evidence a { display: inline-flex; align-items: center; min-height: 2.75rem; white-space: nowrap; }
 .results-ledger .is-withdrawn .results-ledger__skill > a { text-decoration: line-through; }
@@ -188,6 +186,4 @@
 }
 @media (forced-colors: active) {
   .results-filter-choices .result-choice[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -3px; }
-  .score-strip { color: CanvasText; }
-  .score-strip--candidate { color: Highlight; }
 }

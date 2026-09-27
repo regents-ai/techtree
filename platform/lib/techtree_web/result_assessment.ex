@@ -15,6 +15,11 @@ defmodule TechtreeWeb.ResultAssessment do
 
   Every number is shown from its exact decimal value, so a change that is zero
   reads as zero and a change that is not never rounds into the wrong sign.
+
+  Scores are shown as the Climb's checker recorded them. A Campaign names its
+  score and the rule that decides between the two runs, and states no unit or
+  range, so a mean that happens to fall between 0 and 1 is not taken for a
+  share and is never turned into a percentage.
   """
 
   alias Techtree.Network.Assessment
@@ -64,27 +69,27 @@ defmodule TechtreeWeb.ResultAssessment do
       "before either run."
   end
 
-  def reason(%Assessment{reason: :fell_past_rule, minimum: minimum} = assessment) do
+  def reason(%Assessment{reason: :fell_past_rule, minimum: minimum}) do
     if Decimal.eq?(minimum, 0) do
       "With the Skill, the agent scored lower overall."
     else
-      "With the Skill, the agent scored lower overall, by at least the " <>
-        amount(assessment, minimum) <> " this Climb asks of an improvement."
+      "With the Skill, the agent scored lower overall, by at least the change of " <>
+        plain(minimum) <> " this Climb asks of an improvement."
     end
   end
 
-  def reason(%Assessment{reason: :rose_short_of_rule, minimum: minimum} = assessment) do
-    "With the Skill, the agent scored higher, but by less than the " <>
-      amount(assessment, minimum) <> " this Climb set before either run."
+  def reason(%Assessment{reason: :rose_short_of_rule, minimum: minimum}) do
+    "With the Skill, the agent scored higher, but by less than the change of " <>
+      plain(minimum) <> " this Climb set before either run."
   end
 
   def reason(%Assessment{reason: :unchanged}) do
     "With and without the Skill, the agent scored exactly the same overall."
   end
 
-  def reason(%Assessment{reason: :fell_short_of_rule, minimum: minimum} = assessment) do
-    "With the Skill, the agent scored lower, but by less than the " <>
-      amount(assessment, minimum) <>
+  def reason(%Assessment{reason: :fell_short_of_rule, minimum: minimum}) do
+    "With the Skill, the agent scored lower, but by less than the change of " <>
+      plain(minimum) <>
       " this Climb set before either run, so it is not shown to be worse either."
   end
 
@@ -93,24 +98,21 @@ defmodule TechtreeWeb.ResultAssessment do
   end
 
   @doc """
-  The change in the mean score: in percentage points when both means are
-  shares between 0 and 1, and as a plain signed number otherwise.
+  The change in the mean score, as a signed number on the score's own scale.
   """
   @spec mean_change(Assessment.t()) :: String.t()
   def mean_change(%Assessment{} = assessment) do
-    delta =
-      assessment.candidate_total
-      |> Decimal.sub(assessment.baseline_total)
-      |> Decimal.div(assessment.task_count)
-
-    if shares?(assessment), do: points(delta) <> " percentage points", else: signed(delta)
+    assessment.candidate_total
+    |> Decimal.sub(assessment.baseline_total)
+    |> Decimal.div(assessment.task_count)
+    |> signed()
   end
 
   @doc """
   One mean score as a reader reads it.
   """
   @spec mean(Assessment.t(), :baseline | :candidate) :: String.t()
-  def mean(%Assessment{} = assessment, side), do: score(exact_mean(assessment, side))
+  def mean(%Assessment{} = assessment, side), do: plain(exact_mean(assessment, side))
 
   @doc """
   Every task in the Campaign's committed order, with both scores and the change.
@@ -157,7 +159,7 @@ defmodule TechtreeWeb.ResultAssessment do
   page.
   """
   @spec reward(number()) :: String.t()
-  def reward(number), do: number |> exact() |> score()
+  def reward(number), do: number |> exact() |> plain()
 
   @doc """
   The change from one reward to another, the way a task's change reads on a
@@ -165,6 +167,13 @@ defmodule TechtreeWeb.ResultAssessment do
   """
   @spec reward_change(number(), number()) :: String.t()
   def reward_change(baseline, candidate), do: task_change(exact(baseline), exact(candidate))
+
+  @doc """
+  A change already worked out, such as a Result's change in the mean, the way
+  the list of Results shows it.
+  """
+  @spec change(number()) :: String.t()
+  def change(number), do: number |> exact() |> signed()
 
   @doc """
   A digest cut to a length a reader can compare by eye.
@@ -183,8 +192,8 @@ defmodule TechtreeWeb.ResultAssessment do
       hash: delta["task_hash"],
       label: "Task " <> String.pad_leading(Integer.to_string(index), 2, "0"),
       short_hash: short_digest(delta["task_hash"]),
-      baseline: score(baseline),
-      candidate: score(candidate),
+      baseline: plain(baseline),
+      candidate: plain(candidate),
       delta: task_change(baseline, candidate),
       outcome: outcome(Decimal.compare(candidate, baseline))
     }
@@ -194,19 +203,7 @@ defmodule TechtreeWeb.ResultAssessment do
   defp outcome(:lt), do: :worse
   defp outcome(:eq), do: :same
 
-  defp task_change(baseline, candidate) do
-    change = Decimal.sub(candidate, baseline)
-    if share?(baseline) and share?(candidate), do: points(change) <> " pts", else: signed(change)
-  end
-
-  defp amount(assessment, minimum) do
-    if shares?(assessment),
-      do: plain_points(minimum) <> " percentage points",
-      else: plain(minimum)
-  end
-
-  defp shares?(assessment),
-    do: share?(exact_mean(assessment, :baseline)) and share?(exact_mean(assessment, :candidate))
+  defp task_change(baseline, candidate), do: candidate |> Decimal.sub(baseline) |> signed()
 
   defp exact_mean(assessment, :baseline),
     do: Decimal.div(assessment.baseline_total, assessment.task_count)
@@ -214,38 +211,15 @@ defmodule TechtreeWeb.ResultAssessment do
   defp exact_mean(assessment, :candidate),
     do: Decimal.div(assessment.candidate_total, assessment.task_count)
 
-  defp share?(value), do: not Decimal.lt?(value, 0) and not Decimal.gt?(value, 1)
-
-  defp score(value) do
-    if share?(value),
-      do: plain_points(value) <> "%",
-      else: plain(value)
-  end
-
-  # A change in percentage points, to one place, with its sign. A change too
-  # small to show at one place says so rather than rounding to zero.
-  defp points(delta) do
-    scaled = Decimal.mult(delta, 100)
-    rounded = Decimal.round(scaled, 1)
-
-    cond do
-      Decimal.eq?(scaled, 0) -> "0.0"
-      Decimal.eq?(rounded, 0) and Decimal.gt?(scaled, 0) -> "between 0 and +0.1"
-      Decimal.eq?(rounded, 0) -> "between 0 and -0.1"
-      Decimal.gt?(rounded, 0) -> "+" <> Decimal.to_string(rounded, :normal)
-      true -> Decimal.to_string(rounded, :normal)
-    end
-  end
-
-  # A share in percent, always to one place, so "25.0" sits beside "47.2".
-  defp plain_points(value),
-    do: value |> Decimal.mult(100) |> Decimal.round(1) |> Decimal.to_string(:normal)
-
+  # A change to three places, with its sign. A change too small to show at
+  # three places says so rather than rounding to zero.
   defp signed(value) do
     rounded = Decimal.round(value, 3)
 
     cond do
       Decimal.eq?(value, 0) -> "0"
+      Decimal.eq?(rounded, 0) and Decimal.gt?(value, 0) -> "between 0 and +0.001"
+      Decimal.eq?(rounded, 0) -> "between 0 and -0.001"
       Decimal.gt?(value, 0) -> "+" <> text(rounded)
       true -> text(rounded)
     end
