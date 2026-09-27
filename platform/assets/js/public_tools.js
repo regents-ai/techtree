@@ -83,7 +83,7 @@ function valueProblem(key, value, property) {
   return null
 }
 
-const tools = manifest.tools.map(entry => ({
+const tools = manifest.tools.filter(entry => entry.scope === "site").map(entry => ({
   name: entry.name,
   title: entry.title,
   description: entry.description,
@@ -103,19 +103,34 @@ const tools = manifest.tools.map(entry => ({
 }))
 
 // One registration per shown page: register on pageshow, remove on pagehide,
-// so a page restored from the back/forward cache never holds two sets.
+// so a page restored from the back/forward cache never holds two sets. The
+// html element's data-webmcp-status says whether the browser holds them all;
+// only the latest registration writes it.
 export function installPublicTools() {
-  if (!("modelContext" in document)) return
+  const status = document.documentElement.dataset
+  if (!("modelContext" in document)) {
+    status.webmcpStatus = "unsupported"
+    return
+  }
   let registration
 
   window.addEventListener("pageshow", () => {
     const current = new AbortController()
     registration = current
     const {signal} = current
-    Promise.all(tools.map(tool => document.modelContext.registerTool(tool, {signal}))).catch(error => {
-      current.abort()
-      console.warn("Techtree's browser tools could not be offered.", error)
-    })
+    Promise.all(tools.map(tool => document.modelContext.registerTool(tool, {signal})))
+      .then(() => document.modelContext.getTools())
+      .then(held => {
+        if (registration !== current) return
+        const names = new Set(held.map(tool => tool.name))
+        status.webmcpStatus = tools.every(tool => names.has(tool.name)) ? "connected" : "error"
+      })
+      .catch(error => {
+        current.abort()
+        if (registration !== current) return
+        status.webmcpStatus = "error"
+        console.warn("Techtree's browser tools could not be offered.", error)
+      })
   })
   window.addEventListener("pagehide", () => registration.abort())
 }
