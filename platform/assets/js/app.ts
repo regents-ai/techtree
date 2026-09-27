@@ -9,13 +9,13 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
-import {mountCommandCopyButton, mountPageCopyButton} from "./copy_feedback.mjs"
-import {Optics} from "./optics_controller"
-import {mountMotion} from "./motion.js"
-import {deny} from "./hooks/motion/press.js"
-import {MotionList} from "./hooks/motion/moments.js"
-import {MotionMenu} from "./hooks/motion/slides.js"
-import {installPublicTools} from "./public_tools.js"
+import {mountCommandCopyButton, mountPageCopyButton, type CopyHook} from "./copy_feedback"
+import {Optics, type OpticsHook} from "./optics_controller"
+import {mountMotion} from "./motion"
+import {deny} from "./hooks/motion/press"
+import {MotionList} from "./hooks/motion/moments"
+import {MotionMenu} from "./hooks/motion/slides"
+import {installPublicTools} from "./public_tools"
 
 mountMotion()
 installPublicTools()
@@ -28,7 +28,10 @@ const githubStarFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 })
 
-function formatGitHubStars(count) {
+// A star count is a whole number; anything else read back is ignored.
+const isCount = (value: unknown): value is number => Number.isInteger(value)
+
+function formatGitHubStars(count: number) {
   if (count < 1000) return count.toLocaleString("en-US")
 
   return githubStarFormatter
@@ -36,11 +39,11 @@ function formatGitHubStars(count) {
     .replace(/[KMBT]$/, suffix => suffix.toLowerCase())
 }
 
-function showGitHubStars(count) {
+function showGitHubStars(count: number) {
   if (!Number.isInteger(count) || count < 0) return
 
-  document.querySelectorAll("[data-github-stars]").forEach(node => {
-    node.querySelector("[data-github-stars-value]").textContent = formatGitHubStars(count)
+  document.querySelectorAll<HTMLElement>("[data-github-stars]").forEach(node => {
+    node.querySelector("[data-github-stars-value]")!.textContent = formatGitHubStars(count)
     node.hidden = false
   })
 
@@ -52,19 +55,19 @@ function showGitHubStars(count) {
 }
 
 async function syncGitHubStars() {
-  let cached
+  let cached: unknown
 
   try {
-    cached = JSON.parse(window.sessionStorage.getItem(GITHUB_STAR_CACHE))
+    cached = JSON.parse(window.sessionStorage.getItem(GITHUB_STAR_CACHE) ?? "null")
   } catch (_error) {
     cached = null
   }
 
-  if (Number.isInteger(cached)) {
+  if (isCount(cached)) {
     showGitHubStars(cached)
   }
 
-  const link = document.querySelector("[data-github-stars-link]")
+  const link = document.querySelector<HTMLElement>("[data-github-stars-link]")
   const repository = link?.dataset.githubRepository
   if (!repository) return
 
@@ -75,9 +78,9 @@ async function syncGitHubStars() {
     })
 
     if (!response.ok) return
-    const payload = await response.json()
+    const payload: {stargazers_count?: unknown} = await response.json()
     const count = payload.stargazers_count
-    if (!Number.isInteger(count)) return
+    if (!isCount(count)) return
 
     try {
       window.sessionStorage.setItem(GITHUB_STAR_CACHE, JSON.stringify(count))
@@ -111,6 +114,11 @@ const THEMES = {
     browserColor: "#161616",
   },
 }
+type Theme = keyof typeof THEMES
+
+const isTheme = (value: string | undefined): value is Theme =>
+  value !== undefined && Object.hasOwn(THEMES, value)
+
 function readThemeCookie() {
   const prefix = `${THEME_COOKIE}=`
   const value = document.cookie
@@ -118,10 +126,10 @@ function readThemeCookie() {
     .find(cookie => cookie.startsWith(prefix))
     ?.slice(prefix.length)
 
-  return Object.hasOwn(THEMES, value) ? value : undefined
+  return isTheme(value) ? value : undefined
 }
 
-function writeThemeCookie(theme) {
+function writeThemeCookie(theme: Theme) {
   const secure = window.location.protocol === "https:" ? "; Secure" : ""
   document.cookie =
     `${THEME_COOKIE}=${theme}; Path=/; Max-Age=${THEME_MAX_AGE}; SameSite=Lax${secure}`
@@ -129,13 +137,13 @@ function writeThemeCookie(theme) {
 
 let savedTheme = readThemeCookie()
 
-const pageTheme = () => savedTheme || "light"
+const pageTheme = (): Theme => savedTheme || "light"
 
-function syncThemeControl(theme) {
+function syncThemeControl(theme: Theme) {
   const selected = THEMES[theme]
   const orangeActive = theme === "light"
 
-  document.querySelectorAll("[data-theme-toggle]").forEach(toggle => {
+  document.querySelectorAll<HTMLElement>("[data-theme-toggle]").forEach(toggle => {
     toggle.dataset.theme = theme
     toggle.setAttribute("aria-pressed", String(orangeActive))
     toggle.setAttribute(
@@ -148,15 +156,15 @@ function syncThemeControl(theme) {
   })
 }
 
-function syncCrownTheme(theme) {
+function syncCrownTheme(theme: Theme) {
   const variant = THEMES[theme].crownVariant
 
-  document.querySelectorAll('[data-optics-kind="crown"] [data-optics-canvas]').forEach(canvas => {
+  document.querySelectorAll<HTMLElement>('[data-optics-kind="crown"] [data-optics-canvas]').forEach(canvas => {
     canvas.dataset.crownVariant = variant
   })
 }
 
-function applyTheme(theme) {
+function applyTheme(theme: Theme) {
   const selected = THEMES[theme]
   document.documentElement.dataset.theme = theme
   document.querySelector("meta[name='theme-color']")?.setAttribute("content", selected.browserColor)
@@ -181,12 +189,12 @@ window.addEventListener("phx:page-loading-stop", () => applyTheme(pageTheme()))
 applyTheme(pageTheme())
 
 
-const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+const csrfToken = document.querySelector("meta[name='csrf-token']")!.getAttribute("content")
 
-const Hooks = {
+const Hooks: Record<string, object> = {
   Optics: {
     ...Optics,
-    mounted() {
+    mounted(this: OpticsHook) {
       // A connected render can restore server attributes after initial theme sync.
       // Resolve them before the existing controller creates its first renderer.
       syncCrownTheme(pageTheme())
@@ -197,14 +205,20 @@ const Hooks = {
   MotionMenu,
 }
 
+type AgentVersionsHook = {
+  el: HTMLElement
+  hadFocus?: boolean
+  revealSelection(this: AgentVersionsHook): void
+}
+
 Hooks.AgentVersions = {
-  mounted() { this.revealSelection() },
-  beforeUpdate() { this.hadFocus = this.el.contains(document.activeElement) },
-  updated() { this.revealSelection() },
-  revealSelection() {
+  mounted(this: AgentVersionsHook) { this.revealSelection() },
+  beforeUpdate(this: AgentVersionsHook) { this.hadFocus = this.el.contains(document.activeElement) },
+  updated(this: AgentVersionsHook) { this.revealSelection() },
+  revealSelection(this: AgentVersionsHook) {
     const strip = this.el.querySelector(".agent-versions__list")
-    const selected = strip?.querySelector('[aria-current="page"]')
-    if (!selected) return
+    const selected = strip?.querySelector<HTMLElement>('[aria-current="page"]')
+    if (!strip || !selected) return
     if (this.hadFocus && !this.el.contains(document.activeElement)) {
       selected.focus({preventScroll: true})
     }
@@ -217,12 +231,12 @@ Hooks.AgentVersions = {
 }
 
 Hooks.CopyCommand = {
-  mounted() {
+  mounted(this: CopyHook) {
     mountCommandCopyButton(
       this,
       () => {
         const visibleCopy = this.el.closest(".command")?.querySelector(".command__block")
-        return visibleCopy?.textContent ?? this.el.dataset.copyValue
+        return visibleCopy?.textContent ?? this.el.dataset.copyValue!
       },
       {refuse: deny},
     )
@@ -235,17 +249,19 @@ Hooks.CopyCommand = {
 // can never drift from the page, release values included. Nothing is sent
 // anywhere: the result goes to the clipboard, or into a new tab the reader
 // opened themselves.
-function pageAsMarkdown(root) {
-  const lines = []
+const isElement = (node: Node): node is Element => node.nodeType === Node.ELEMENT_NODE
 
-  const text = (node) => node.textContent.replace(/\s+/g, " ").trim()
+function pageAsMarkdown(root: Element) {
+  const lines: string[] = []
 
-  const inline = (node) => {
+  const text = (node: Element) => node.textContent.replace(/\s+/g, " ").trim()
+
+  const inline = (node: Element): string => {
     let out = ""
     for (const child of node.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) {
-        out += child.textContent.replace(/\s+/g, " ")
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        out += child.textContent!.replace(/\s+/g, " ")
+      } else if (isElement(child)) {
         const tag = child.tagName.toLowerCase()
         if (tag === "code" || child.classList.contains("digest")) {
           out += "`" + text(child) + "`"
@@ -263,7 +279,7 @@ function pageAsMarkdown(root) {
     return out
   }
 
-  const walk = (node) => {
+  const walk = (node: Element) => {
     for (const child of node.children) {
       if (child.closest("[data-markdown-skip]")) continue
       const tag = child.tagName.toLowerCase()
@@ -282,7 +298,7 @@ function pageAsMarkdown(root) {
         })
         lines.push("")
       } else if (tag === "dl") {
-        let term = null
+        let term: string | null = null
         for (const part of child.children) {
           if (part.tagName === "DT") term = text(part)
           if (part.tagName === "DD" && term !== null) {
@@ -301,16 +317,16 @@ function pageAsMarkdown(root) {
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n"
 }
 
-const docsRoot = () => document.querySelector("[data-markdown-root]") ?? document.querySelector("main")
+const docsRoot = () => document.querySelector("[data-markdown-root]") ?? document.querySelector("main")!
 
 Hooks.CopyCommandPage = {
-  mounted() {
+  mounted(this: CopyHook) {
     mountPageCopyButton(this, () => pageAsMarkdown(docsRoot()), {refuse: deny})
   },
 }
 
 Hooks.CopyCommandPageView = {
-  mounted() {
+  mounted(this: {el: HTMLElement}) {
     this.el.addEventListener("click", () => {
       const markdown = pageAsMarkdown(docsRoot())
       const tab = window.open("", "_blank")

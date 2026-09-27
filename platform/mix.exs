@@ -100,7 +100,12 @@ defmodule Techtree.MixProject do
       test: ["ash.setup --quiet", "test"],
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
-      check: ["format --check-formatted", "compile --warnings-as-errors", "test"],
+      check: [
+        "format --check-formatted",
+        "compile --warnings-as-errors",
+        "cmd --cd assets npm run typecheck",
+        "test"
+      ],
       "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
       "assets.build": [
         "compile",

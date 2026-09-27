@@ -4,7 +4,7 @@ import test from "node:test"
 import {
   mountCommandCopyButton,
   mountPageCopyButton,
-} from "../../assets/js/copy_feedback.mjs"
+} from "../../assets/js/copy_feedback.ts"
 
 class TestClassList {
   constructor() {

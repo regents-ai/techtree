@@ -25,7 +25,7 @@ custom classes must fully style the input
 - Do not introduce a CSS framework as part of a local visual change.
 - Keep the ordinary page bundle small.
   - You cannot reference an external vendor'd script `src` or link `href` in the layouts
-  - You must import the vendor deps into app.js and app.css to use them
+  - You must import the vendor deps into app.ts and app.css to use them
   - **Never write inline <script>custom js</script> tags within templates**
 
 ### UI/UX & design guidelines
@@ -299,7 +299,7 @@ when writing scripts inside the template**:
       }
     </script>
 
-- colocated hooks are automatically integrated into the app.js bundle
+- colocated hooks are automatically integrated into the app.ts bundle
 - colocated hooks names **MUST ALWAYS** start with a `.` prefix, i.e. `.PhoneNumber`
 
 #### External phx-hook

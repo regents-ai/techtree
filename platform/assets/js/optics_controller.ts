@@ -5,10 +5,10 @@
 const MAX_DEVICE_PIXEL_RATIO = 1.5
 const MAX_DRAWING_BUFFER_PIXELS = 1_500_000
 const EASING_FRAME_LIMIT = 24
-const scriptLoads = new Map()
-const clampUnit = value => Math.min(1, Math.max(0, value))
+const scriptLoads = new Map<string, Promise<OpticsRendererFactory>>()
+const clampUnit = (value: number) => Math.min(1, Math.max(0, value))
 
-function drawingBufferSize(width, height) {
+function drawingBufferSize(width: number, height: number): [number, number] {
   const ratio = Math.min(MAX_DEVICE_PIXEL_RATIO, Math.max(1, window.devicePixelRatio || 1))
   const requested = width * height * ratio * ratio
   const fit = requested > MAX_DRAWING_BUFFER_PIXELS
@@ -21,14 +21,14 @@ function drawingBufferSize(width, height) {
   ]
 }
 
-function loadRenderer(kind, source, module) {
+function loadRenderer(kind: string, source: string, module: boolean): Promise<OpticsRendererFactory> {
   const loaded = window.TechtreeOptics && window.TechtreeOptics[kind]
   if (loaded) return Promise.resolve(loaded)
 
   const key = `${kind}:${source}:${module ? "module" : "script"}`
-  if (scriptLoads.has(key)) return scriptLoads.get(key)
+  if (scriptLoads.has(key)) return scriptLoads.get(key)!
 
-  const pending = new Promise((resolve, reject) => {
+  const pending = new Promise<OpticsRendererFactory>((resolve, reject) => {
     const script = document.createElement("script")
     script.async = true
     script.src = source
@@ -49,16 +49,17 @@ function loadRenderer(kind, source, module) {
   return pending
 }
 
-function opticsVariant(canvas) {
+function opticsVariant(canvas: HTMLCanvasElement) {
   return canvas.dataset.crownVariant
 }
 
-export function createOpticsController(root) {
-  const canvas = root.querySelector("[data-optics-canvas]")
+export function createOpticsController(root: HTMLElement) {
+  // mount() does nothing without a canvas, so everything that runs after it has one.
+  const canvas = root.querySelector<HTMLCanvasElement>("[data-optics-canvas]")!
   const viewportPointer = root.dataset.opticsPointer === "viewport"
-  const pointerHost = viewportPointer
+  const pointerHost: GlobalEventHandlers = viewportPointer
     ? window
-    : root.dataset.opticsPointer === "parent" ? root.parentElement : root
+    : root.dataset.opticsPointer === "parent" ? root.parentElement! : root
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)")
   const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)")
 
@@ -68,15 +69,15 @@ export function createOpticsController(root) {
   let visible = !document.hidden
   let retired = false
   let generation = 0
-  let renderer
-  let rendererVariant
+  let renderer: OpticsRenderer | undefined
+  let rendererVariant: string | undefined
   let starting = false
-  let frameHandle
-  let pendingSize
+  let frameHandle: number | undefined
+  let pendingSize: [number, number] | undefined
   let pendingPresent = false
   let easingFrames = 0
   let confirming = false
-  let release
+  let release: (() => void) | undefined
   let mobileAimX = 0.5
 
   const active = () => mounted && awake && onscreen && visible && !retired
@@ -123,7 +124,7 @@ export function createOpticsController(root) {
   const confirmFirstFrame = () => {
     confirming = true
     const drawn = generation
-    void renderer.settled().then(
+    void renderer!.settled().then(
       () => {
         if (drawn === generation) root.dataset.opticsReady = "true"
       },
@@ -186,8 +187,8 @@ export function createOpticsController(root) {
       }
 
       const createRenderer = await loadRenderer(
-        root.dataset.opticsKind,
-        root.dataset.opticsSource,
+        root.dataset.opticsKind!,
+        root.dataset.opticsSource!,
         root.hasAttribute("data-optics-module"),
       )
       if (started !== generation || !active()) {
@@ -235,7 +236,7 @@ export function createOpticsController(root) {
       visible = !document.hidden
       sync()
     }
-    const onPointerMove = event => {
+    const onPointerMove = (event: PointerEvent) => {
       if (!renderer || event.isPrimary === false || motion.matches) return
 
       const touchDriven = event.pointerType === "touch" || !finePointer.matches
@@ -264,7 +265,7 @@ export function createOpticsController(root) {
       easingFrames = 0
       invalidate()
     }
-    const onThemeChange = event => {
+    const onThemeChange = (event: DocumentEventMap["techtree:themechange"]) => {
       const crownVariant = event.detail?.crownVariant
       if (root.dataset.opticsKind !== "crown" || !crownVariant) return
       canvas.dataset.crownVariant = crownVariant
@@ -327,18 +328,23 @@ export function createOpticsController(root) {
   }
 }
 
+export type OpticsHook = {
+  el: HTMLElement
+  controller?: ReturnType<typeof createOpticsController>
+}
+
 export const Optics = {
-  mounted() {
+  mounted(this: OpticsHook) {
     this.controller = createOpticsController(this.el)
     this.controller.mount()
   },
-  disconnected() {
+  disconnected(this: OpticsHook) {
     this.controller?.pause()
   },
-  reconnected() {
+  reconnected(this: OpticsHook) {
     this.controller?.resume()
   },
-  destroyed() {
+  destroyed(this: OpticsHook) {
     this.controller?.destroy()
     this.controller = undefined
   },

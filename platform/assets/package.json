@@ -2,10 +2,18 @@
   "name": "techtree-assets",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "description": "Vendored browser dependencies for the Techtree site. esbuild bundles them from here into priv/static/assets, so the strict script-src 'self' policy holds and nothing is fetched at runtime.",
   "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json --noEmit"
+  },
   "dependencies": {
     "animejs": "4.5.0",
     "vgpu": "0.4.0"
+  },
+  "devDependencies": {
+    "@webgpu/types": "0.1.72",
+    "typescript": "7.0.2"
   }
 }

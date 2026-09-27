@@ -6,7 +6,7 @@ defmodule TechtreeWeb.PageCopy do
   action copies the page as Markdown for an agent's context window, and a
   small menu repeats it beside "View as Markdown". Everything happens in the
   reader's browser — the Markdown is serialized from the rendered page itself
-  (assets/js/app.js), so it can never drift from what the page says, and
+  (assets/js/app.ts), so it can never drift from what the page says, and
   nothing is requested from or sent to the server.
   """
 
