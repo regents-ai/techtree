@@ -14,6 +14,12 @@ defmodule Techtree.Repo.Migrations.StoreWithdrawalReceipts do
       add :withdrawal_network_key_id, :text
     end
 
+    create constraint(:network_publication_entries, :withdrawn_with_receipt,
+             check: """
+               withdrawn_at IS NULL OR (withdrawal_receipt_bytes IS NOT NULL AND withdrawal_receipt_digest IS NOT NULL AND withdrawal_network_key_id IS NOT NULL)
+             """
+           )
+
     create unique_index(:network_publication_events, [:publication_entry_id, :kind],
              name: "network_publication_events_one_event_of_each_kind_index"
            )
@@ -23,6 +29,8 @@ defmodule Techtree.Repo.Migrations.StoreWithdrawalReceipts do
     drop_if_exists unique_index(:network_publication_events, [:publication_entry_id, :kind],
                      name: "network_publication_events_one_event_of_each_kind_index"
                    )
+
+    drop_if_exists constraint(:network_publication_entries, :withdrawn_with_receipt)
 
     alter table(:network_publication_entries) do
       remove :withdrawal_network_key_id

@@ -110,17 +110,7 @@ step below is deliberate.
 
        bin/techtree eval 'Techtree.Release.assess_publications()'
 
-6. **Receipt** every withdrawn Result that has no stored withdrawal receipt yet.
-   A withdrawal's receipt is stored when the withdrawal is recorded, and every
-   repeat of that withdrawal is answered with it; this signs and stores one for
-   Results withdrawn before that, dated with the time each was withdrawn and
-   signed with the key the release holds. Run it straight after the migration.
-   It needs the signing key, and running it again does nothing to a Result
-   already receipted.
-
-       bin/techtree eval 'Techtree.Release.receipt_withdrawals()'
-
-7. **Verify** (below).
+6. **Verify** (below).
 
 ### What the import refuses
 

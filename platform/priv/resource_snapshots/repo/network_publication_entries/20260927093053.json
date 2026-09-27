@@ -509,7 +509,16 @@
     }
   ],
   "base_filter": null,
-  "check_constraints": [],
+  "check_constraints": [
+    {
+      "attribute": [
+        "withdrawn_at"
+      ],
+      "base_filter": null,
+      "check": "withdrawn_at IS NULL OR (withdrawal_receipt_bytes IS NOT NULL AND withdrawal_receipt_digest IS NOT NULL AND withdrawal_network_key_id IS NOT NULL)",
+      "name": "withdrawn_with_receipt"
+    }
+  ],
   "create_table_options": null,
   "custom_indexes": [],
   "custom_statements": [
@@ -523,7 +532,7 @@
     }
   ],
   "has_create_action": true,
-  "hash": "DA0E0710F0F76799C48FF26C57567B37ACCE79EB1929E2F69EE44C19E8175378",
+  "hash": "8CD9BB5EAA5C7FA84C076116749E814A68E8BC5F5DC801543351278085B56A60",
   "identities": [
     {
       "all_tenants?": false,

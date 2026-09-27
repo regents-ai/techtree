@@ -52,8 +52,6 @@ defmodule Techtree.Network do
       define :mark_publication_entry_withdrawn, action: :mark_withdrawn
       define :list_unassessed_publication_entries, action: :unassessed
       define :record_publication_entry_assessment, action: :record_assessment
-      define :list_withdrawn_entries_without_receipt, action: :withdrawn_without_receipt
-      define :record_publication_entry_withdrawal_receipt, action: :record_withdrawal_receipt
     end
 
     resource Techtree.Network.PublicationEvent do

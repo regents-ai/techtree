@@ -74,10 +74,11 @@ defmodule Techtree.Network.Ingest do
 
   A withdrawal is idempotent the same way a publication is, by the database
   rather than by looking first. Everything goes in one transaction: the event,
-  which a unique index allows once per entry, and the transition of the entry,
-  which only an entry that is not yet withdrawn makes. The loser of two racing
-  withdrawals is refused by one of those, reads the entry back, and hands back
-  the receipt the winner stored — the same code as a retry after a lost response.
+  which a unique index allows once per entry, and then the transition of the
+  entry, which only the attempt whose event went in reaches. The loser of two
+  racing withdrawals is refused by that index, reads the entry back, and hands
+  back the receipt the winner stored — the same code as a retry after a lost
+  response.
 
   *A stored receipt does not need the key.* Every receipt this module hands
   back is one it stored, so a retry of a publication or a withdrawal that is
@@ -224,22 +225,6 @@ defmodule Techtree.Network.Ingest do
     with {:ok, entry, _request} <- verified_withdrawal(raw) do
       if is_nil(entry.withdrawn_at), do: :unrecorded, else: {:ok, entry, :existing}
     end
-  end
-
-  @doc """
-  Sign and store a withdrawal receipt for every entry withdrawn before
-  withdrawal receipts were stored, dated with the time it was withdrawn and
-  signed with `key`, which the entry records.
-  """
-  @spec record_withdrawal_receipts(Key.t(), String.t()) :: [PublicationEntry.t()]
-  def record_withdrawal_receipts(%Key{} = key, origin) when is_binary(origin) do
-    Enum.map(Network.list_withdrawn_entries_without_receipt!(@internal), fn entry ->
-      Network.record_publication_entry_withdrawal_receipt!(
-        entry,
-        withdrawal_receipt(entry, key, origin),
-        @internal
-      )
-    end)
   end
 
   @doc """
@@ -621,10 +606,10 @@ defmodule Techtree.Network.Ingest do
   end
 
   # The event goes first, so the unique index on an entry's events is what the
-  # loser of a race meets; the entry's transition only happens where it is not
-  # already withdrawn. Whichever refuses it, the refused attempt reads back the
-  # entry the winner wrote and hands back its receipt. Anything else is a
-  # defect, and a defect is raised rather than dressed up as an outcome.
+  # loser of a race meets, and the entry is only marked by the attempt whose
+  # event went in. The refused attempt reads back the entry the winner wrote
+  # and hands back its receipt. Anything else is a defect, and a defect is
+  # raised rather than dressed up as an outcome.
   defp append_withdrawal(entry, %WithdrawalRequest{} = request, key, origin) do
     appended =
       Ash.transact([PublicationEntry, PublicationEvent], fn ->
