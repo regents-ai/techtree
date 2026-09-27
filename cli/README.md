@@ -77,8 +77,8 @@ containerized subject runs, append-only run records, signed receipts and
 reports, local proof verification, and one guided single-`SKILL.md` revision
 flow. It also contains `techtree forge`: building tasks from a local
 repository and running experiments on them (Experimental, released in 0.2.0
-and 0.2.1), and creating an environment from a Skill (Experimental, in
-preparation for 0.3.0). The live release is 0.2.1; which build is installable
+and 0.2.1), and creating an environment from a Skill (Experimental, released
+in 0.3.0). The live release is 0.3.0; which build is installable
 is decided by the active release at [techtree.sh/start](https://techtree.sh/start).
 
 > [!NOTE]
@@ -180,7 +180,7 @@ NeMo Relay.
 | Proof | `techtree proof verify <run-id>` | Checks a local proof offline, from the bytes the run stored. |
 | Improving a Skill | `techtree uplift context <run-id>`<br>`techtree uplift prepare --from-run <run-id> --candidate-skill <path>`<br>`techtree uplift start <draft-id>` | Exports the sanitized improvement context for a finished run, prepares a comparison between that run’s Skill and a revision of it, and starts the prepared comparison. |
 | Tasks from a repository | `techtree forge build`<br>`techtree forge run`<br>`techtree forge compare`<br>`techtree forge status` | Builds and qualifies repair tasks from a local repository, runs one arm of an experiment on them with your own Hermes, compares a baseline run with a candidate run, and shows what any forge record holds. |
-| An environment from a Skill (in preparation for 0.3.0) | `techtree forge inspect-skill`<br>`techtree forge plan` / `plan-start`<br>`techtree forge correct-proposal`<br>`techtree forge construct` / `construct-start`<br>`techtree forge correct-task`<br>`techtree forge collect` / `accept`<br>`techtree forge verify`<br>`techtree forge export` / `verify-export`<br>`techtree forge import` | Looks at a Skill without running any of it; prepares and, after your approval, runs the planning of tasks; records your corrections; prepares and, after your approval, builds the tasks; checks and records a task you corrected by hand; accepts the qualified tasks as one frozen collection (the automatic checks show that each task's grader agrees with its own sample solutions, not that it accepts every correct answer, so read each task and correct any before accepting); checks it is unchanged; writes and checks a private copy for someone else; and brings that copy into another Techtree so its tasks can be run there. `techtree forge run` runs an accepted collection. |
+| An environment from a Skill | `techtree forge inspect-skill`<br>`techtree forge plan` / `plan-start`<br>`techtree forge correct-proposal`<br>`techtree forge construct` / `construct-start`<br>`techtree forge correct-task`<br>`techtree forge collect` / `accept`<br>`techtree forge verify`<br>`techtree forge export` / `verify-export`<br>`techtree forge import` | Looks at a Skill without running any of it; prepares and, after your approval, runs the planning of tasks; records your corrections; prepares and, after your approval, builds the tasks; checks and records a task you corrected by hand; accepts the qualified tasks as one frozen collection (the automatic checks show that each task's grader agrees with its own sample solutions, not that it accepts every correct answer, so read each task and correct any before accepting); checks it is unchanged; writes and checks a private copy for someone else; and brings that copy into another Techtree so its tasks can be run there. `techtree forge run` runs an accepted collection. |
 
 The detached worker is started by the CLI and is not a user-facing command.
 Every command has rendered output for a person and, with `--json`, exactly one

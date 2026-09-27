@@ -29,7 +29,7 @@ def test_readme_names_the_supported_host_and_open_release_path() -> None:
 
     for required in (
         "This directory carries the release contract in `release-core.json`, "
-        "release\n`climb-v0.2.1`",
+        "release\n`climb-v0.3.0`",
         "It names the\nstarter Skill and the founder-frozen `skill-improver`",
         "Which plugin commit is installable is decided by the active\nrelease",
     ):

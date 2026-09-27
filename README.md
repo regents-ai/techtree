@@ -10,7 +10,8 @@ packages the results into a signed bundle that others can check offline.
 The goal is a public forum where people and agents publish Skills, evals, and
 environments, reproduce each other’s results, fork useful work, collaborate,
 and earn USDC for accepted contributions. That forum and its payment flows
-are planned; the working entry point today is the Hello World Climb.
+are planned; the working entry point today is testing one of your own Skills,
+with the Hello World Climb as the quick look.
 
 [Start](https://techtree.sh/start) · [Results](https://techtree.sh/results) ·
 [Docs](https://techtree.sh/docs) · [Agent guide](https://techtree.sh/skill.md) ·
@@ -49,7 +50,7 @@ and its [task set](docs/plan/v0.3.0-task-set.md).
 | Structured machine responses (`techtree.cli.v2`) for agents and scripts | Available now | [`cli/`](cli/) ([contract](cli/docs/cli-json-contract.md)) |
 | Guided revision of a Skill after a comparison | Experimental | [`cli/`](cli/) (`techtree uplift`), [`plugin/`](plugin/) (`/techtree improve`) |
 | Build tasks from a repository; run, compare and revise a Skill on them in your own signed-in Hermes | Experimental | [`cli/`](cli/) (`techtree forge build`, `status`, `run`, `compare`) |
-| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export, import | Experimental, in preparation for 0.3.0 | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge import`) |
+| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export, import | Experimental | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge import`) |
 | Agent connectors (MCP, WebMCP) | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
 | NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
@@ -72,27 +73,21 @@ are read from those records (`bootstrap.json`, `release-core.json`,
 | [`climb-v0.1.0`](platform/priv/releases/climb-v0.1.0/) | 0.1.1 | `614daff` (former `regents-ai/techtree-python`) | `ca22ee7` | `614daff` | `sha256:10a7fcc5…` | 0.20.1 | 2026-08-20 |
 | [`climb-v0.2.0`](platform/priv/releases/climb-v0.2.0/) | 0.2.0 | `70e75c7` (tag `v0.2.0`) | `4567937` | `70e75c7` | `sha256:4d216571…` | 0.20.1 | 2026-09-18 |
 | [`climb-v0.2.1`](platform/priv/releases/climb-v0.2.1/) | 0.2.1 | `a1b9c05` (tag `v0.2.1`) | `d891b3b` | `a1b9c05` | `sha256:4d216571…` | 0.20.1 | 2026-09-21 |
-| 0.3.0 | In preparation: no release record, package or plugin commit yet | | | | | | |
 
-The evaluated subject in all three records is Hermes 0.19.0, and each names
+The evaluated subject in every record is Hermes 0.19.0, and each names
 the Hello World Climb (`hello-world-climb@1`) as its introduction. The full
 40-character revisions and digests are in the records themselves.
 
 Host Hermes is the minimum Hermes version each published record accepts, and
-that published value is the one that applies. `plugin/release-core.json` in
-this repository names 0.21.3 instead; that is an unreleased change and applies
-to no published release.
+that published value is the one that applies.
 
 The site at techtree.sh serves one active release per channel; the live answer
 is always [`/api/v1/bootstrap`](https://techtree.sh/api/v1/bootstrap). Which
 revision of the site itself is deployed is known only from
-`deployed_source_revision` on [`/healthz`](https://techtree.sh/healthz). On
-2026-09-25 it reported site revision `7e713d7` serving `climb-v0.2.1` on the
-stable channel.
+`deployed_source_revision` on [`/healthz`](https://techtree.sh/healthz).
 
-The top of the [changelog](CHANGELOG.md) lists changes accepted for 0.2.2,
-which is not released. The 0.3.0 changes will be listed there when 0.3.0 is
-released.
+The [changelog](CHANGELOG.md) lists what each release changed, and what the
+0.3.0 release does not yet show.
 
 ## Start with Hello World
 
@@ -182,7 +177,7 @@ harness runtime, trajectory format, or trainer.
 | --- | --- | --- |
 | [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. The Hello World Climb runs through a pinned Verifiers engine. | Available now |
 | Repo2RLEnv | Turns a repository's history into repair tasks, pinned to version 0.8.8. | Experimental |
-| [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental, in preparation for 0.3.0 |
+| [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental |
 | [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs, so other agents can be evaluated. | Planned |
 | [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional and observe-only. | Planned |
 | Techtree | Frozen comparisons, evidence reconciliation, signed results, publication, and later collaboration and payment records. | — |
@@ -209,7 +204,7 @@ machine; hosted execution is planned.
 
 | Stage | User outcome |
 | --- | --- |
-| **0.3.0 — create an environment from a Skill** (in preparation) | Inspect a supported Skill without running it; review and approve a plan; build and check tasks offline; accept a frozen collection; run one agent on it without any comparison; verify it and export a private copy for someone else. Comparing Skills on the collection stays optional. |
+| **0.3.0 — create an environment from a Skill** (released) | Inspect a supported Skill without running it; review and approve a plan; build and check tasks offline; accept a frozen collection; run one agent on it without any comparison; verify it and export a private copy for someone else. Comparing Skills on the collection stays optional. |
 | **Later** (planned) | Agent connectors (MCP, WebMCP), hosted environment building and execution, private hosting, NeMo Fabric and Relay, public collaboration, and USDC bounties. |
 
 The [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its

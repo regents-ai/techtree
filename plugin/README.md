@@ -78,7 +78,7 @@ Climb measures, prepare a run, start it, follow it, and read the result.
 ## Repository experiments and Skill environments
 
 The plugin has no tools for building tasks from a repository or for creating
-an environment from a Skill (in preparation for 0.3.0). Both run through the
+an environment from a Skill. Both run through the
 Techtree CLI in a terminal, as `techtree forge` commands. The bundled operator
 Skill tells Hermes how to walk a person through creating an environment: ask
 where the Skill is and never pick one, run one step at a time, show each
@@ -412,12 +412,11 @@ not the plugin's to delete:
 ## Release status
 
 This directory carries the release contract in `release-core.json`, release
-`climb-v0.2.1`, with host Hermes 0.21.3 as its minimum. It names the
+`climb-v0.3.0`, with host Hermes 0.21.3 as its minimum. It names the
 starter Skill and the founder-frozen `skill-improver`, so the installed plugin
 can prepare Techtree Hello World and offer one guided revision after a finished
-comparison. The 0.21.3 minimum is an unreleased change, listed under 0.2.2 in
-the changelog; the published `climb-v0.2.1` record requires Hermes 0.20.1, and
-that is what applies to the plugin commit it installs.
+comparison. Earlier records required Hermes 0.20.1, and each record's own
+minimum applies to the plugin commit it installs.
 Which plugin commit is installable is decided by the active
 release that [techtree.sh/start](https://techtree.sh/start) publishes;
 repository presence alone is not a public release signal. The monorepo
