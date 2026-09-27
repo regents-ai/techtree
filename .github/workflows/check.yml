@@ -61,11 +61,11 @@ jobs:
           ref: 502d10b38fb91cdfd05b223909b7df7374d3a2c2
           path: .shared-deps/design-system
           persist-credentials: false
-      - name: Checkout pinned Privy verifier
+      - name: Checkout pinned shared Elixir packages
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: regents-ai/elixir-utils
-          ref: a12f8c888b63139b69ac96434b98f1afea976b5b
+          ref: b8691b1ae91797f9acd5b2c9f6aa392d111cbd54
           path: .shared-deps/elixir-utils
           persist-credentials: false
       - name: Checkout pinned shared identity

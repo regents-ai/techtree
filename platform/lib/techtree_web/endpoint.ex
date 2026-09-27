@@ -88,7 +88,11 @@ defmodule TechtreeWeb.Endpoint do
 
   plug Plug.Head
   plug Plug.Session, @session_options
-  plug TechtreeWeb.AgentFormats
+
+  plug RegentAgentAccess.Plug,
+    documents: &TechtreeWeb.PublicDocuments.document/1,
+    guide: "/llms.txt"
+
   plug TechtreeWeb.MethodSurface
   plug TechtreeWeb.Router
 end

@@ -17,10 +17,11 @@ if [[ "$source_revision" != "$upstream_revision" ]]; then
   exit 1
 fi
 
-# Stage the resolved shared package into this application-only build context.
+# Stage the resolved shared packages into this application-only build context.
 mix regent_ui.stage
 mix regent_identity.stage
 mix regent_blog.stage
+mix techtree.agent_access.stage
 
 exec flyctl deploy \
   --app techtree-sh \

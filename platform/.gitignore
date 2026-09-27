@@ -65,3 +65,5 @@ npm-debug.log
 /vendor/regent_privy_shared/
 /vendor/.regent-identity-history/
 /vendor/.regent-identity-stage-*/
+/vendor/regent_agent_access/
+/vendor/.regent-agent-access-stage/

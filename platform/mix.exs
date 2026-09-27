@@ -62,6 +62,12 @@ defmodule Techtree.MixProject do
        path: System.get_env("REGENT_BLOG_PATH", Path.join(shared, "elixir-utils/blog"))},
       {:regent_privy,
        path: System.get_env("REGENT_PRIVY_PATH", Path.join(shared, "elixir-utils/privy"))},
+      {:regent_agent_access,
+       path:
+         System.get_env(
+           "REGENT_AGENT_ACCESS_PATH",
+           Path.join(shared, "elixir-utils/agent_access")
+         )},
       {:regent_identity,
        path: System.get_env("REGENT_IDENTITY_PATH", Path.join(shared, "regents/identity"))},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
