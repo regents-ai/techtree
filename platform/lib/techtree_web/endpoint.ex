@@ -87,15 +87,7 @@ defmodule TechtreeWeb.Endpoint do
   # Every page, and every Markdown or refusal the next plug answers before the
   # router, carries these. Browser agents may use the tools every page
   # registers, from this site only. API responses replace them with their own.
-  plug :put_secure_browser_headers, %{
-    "content-security-policy" =>
-      "default-src 'none'; script-src 'self'; style-src 'self'; " <>
-        "img-src 'self' data:; font-src 'self'; " <>
-        "connect-src 'self' https://api.github.com; " <>
-        "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-    "referrer-policy" => "no-referrer",
-    "permissions-policy" => "tools=(self)"
-  }
+  plug :secure_browser_headers
 
   # Before the parser, so a body it refuses on an `/api` path is answered
   # in JSON (`TechtreeWeb.Parsers`).
@@ -119,4 +111,12 @@ defmodule TechtreeWeb.Endpoint do
 
   plug TechtreeWeb.MethodSurface
   plug TechtreeWeb.Router
+
+  defp secure_browser_headers(conn, _opts) do
+    put_secure_browser_headers(conn, %{
+      "content-security-policy" => TechtreeWeb.ContentSecurityPolicy.reading(),
+      "referrer-policy" => "no-referrer",
+      "permissions-policy" => "tools=(self)"
+    })
+  end
 end
