@@ -1,11 +1,11 @@
 {
- "commit": "d891b3bfe9371e389711f6c5c05ceb19bdd531aa",
+ "commit": "e0765e65e870ab56f201bd21d81ae2b002fa9287",
  "plugin_doctor": "passed",
- "plugin_doctor_detail": "Native Hermes plugin doctor, run against the exported plugin checkout with a fresh Hermes home: runtime discovery, manifest parsing, import and registration passed. It registered 17 tools and 2 hooks. The plugin's release-core.json is byte-identical to the CLI's copy, sha256:80824bb3314181858256b5e76e1d58f8de264dccb598c8f6ea031d80a4b1adf5.",
- "release_core_digest": "sha256:80824bb3314181858256b5e76e1d58f8de264dccb598c8f6ea031d80a4b1adf5",
+ "plugin_doctor_detail": "Native Hermes plugin doctor, run against the exported plugin checkout with a fresh Hermes home: runtime discovery, manifest parsing, import and registration succeeded. It registered 17 tools and 2 hooks. The plugin's release-core.json is byte-identical to the CLI's copy, sha256:1cd72b9f32e4de2253192a58e389930958622afb1030ddbf863b36caf86d3d58.",
+ "release_core_digest": "sha256:1cd72b9f32e4de2253192a58e389930958622afb1030ddbf863b36caf86d3d58",
  "release_core_is_byte_identical_to_python": true,
  "repository": "github.com/regents-ai/techtree-hermes",
- "version": "0.2.1",
- "wheel_sha256": "b25682472b76ec28d9cd25d05c4699e8ae458b728ef43b470c01f9f663fa3d76",
+ "version": "0.3.0",
+ "wheel_sha256": "2ffc901212ce4e231518b39f464868af77e57c1d3f008352ed7b62b620065f9c",
  "worktree": "candidate commit verified; the plugin checkout is clean"
 }

@@ -51,7 +51,8 @@ and its [task set](docs/plan/v0.3.0-task-set.md).
 | Guided revision of a Skill after a comparison | Experimental | [`cli/`](cli/) (`techtree uplift`), [`plugin/`](plugin/) (`/techtree improve`) |
 | Build tasks from a repository; run, compare and revise a Skill on them in your own signed-in Hermes | Experimental | [`cli/`](cli/) (`techtree forge build`, `status`, `run`, `compare`) |
 | Create an environment from a Skill: inspect, plan, build, accept, run, verify, export, import | Experimental | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge import`) |
-| Agent connectors (MCP, WebMCP) | Planned | — |
+| Read-only browser tools for agents (WebMCP): the Start guide, the Climbs and the Results | Available now | [`platform/`](platform/) |
+| An MCP connector for other agents | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
 | NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
 | Public collaboration, forks, agent messages, and USDC bounties | Planned | — |
@@ -73,6 +74,7 @@ are read from those records (`bootstrap.json`, `release-core.json`,
 | [`climb-v0.1.0`](platform/priv/releases/climb-v0.1.0/) | 0.1.1 | `614daff` (former `regents-ai/techtree-python`) | `ca22ee7` | `614daff` | `sha256:10a7fcc5…` | 0.20.1 | 2026-08-20 |
 | [`climb-v0.2.0`](platform/priv/releases/climb-v0.2.0/) | 0.2.0 | `70e75c7` (tag `v0.2.0`) | `4567937` | `70e75c7` | `sha256:4d216571…` | 0.20.1 | 2026-09-18 |
 | [`climb-v0.2.1`](platform/priv/releases/climb-v0.2.1/) | 0.2.1 | `a1b9c05` (tag `v0.2.1`) | `d891b3b` | `a1b9c05` | `sha256:4d216571…` | 0.20.1 | 2026-09-21 |
+| [`climb-v0.3.0`](platform/priv/releases/climb-v0.3.0/) | 0.3.0 | `74d87d3` (tag `v0.3.0`) | `e0765e6` | `74d87d3` | `sha256:4d216571…` | 0.21.3 | 2026-09-27 |
 
 The evaluated subject in every record is Hermes 0.19.0, and each names
 the Hello World Climb (`hello-world-climb@1`) as its introduction. The full
@@ -205,7 +207,7 @@ machine; hosted execution is planned.
 | Stage | User outcome |
 | --- | --- |
 | **0.3.0 — create an environment from a Skill** (released) | Inspect a supported Skill without running it; review and approve a plan; build and check tasks offline; accept a frozen collection; run one agent on it without any comparison; verify it and export a private copy for someone else. Comparing Skills on the collection stays optional. |
-| **Later** (planned) | Agent connectors (MCP, WebMCP), hosted environment building and execution, private hosting, NeMo Fabric and Relay, public collaboration, and USDC bounties. |
+| **Later** (planned) | An MCP connector for other agents, hosted environment building and execution, private hosting, NeMo Fabric and Relay, public collaboration, and USDC bounties. |
 
 The [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
 [task set](docs/plan/v0.3.0-task-set.md) are the current product and delivery
