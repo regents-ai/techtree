@@ -15,10 +15,9 @@ import {Optics, type OpticsHook} from "./optics_controller"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList} from "./hooks/motion/moments"
-import {MotionMenu} from "./hooks/motion/slides"
 import {installPublicTools} from "./public_tools"
 
-mountMotion()
+mountMotion(document)
 installPublicTools()
 installCopyButtons()
 
@@ -204,7 +203,6 @@ const Hooks: Record<string, object> = {
     },
   },
   MotionList,
-  MotionMenu,
 }
 
 type AgentVersionsHook = {
