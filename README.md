@@ -22,24 +22,26 @@ with the Hello World Climb as the quick look.
 
 ## What you can use today
 
-The live release is **0.2.1**. It carries the Hello World Climb and the first
-repository experiments: build repair tasks from a local repository with
+The live release is **0.3.0**: create an environment from a Skill. Techtree
+looks at a Skill without running it, plans tasks from it with your approval,
+builds and checks them offline, and lets you accept them as a frozen
+collection you can run, verify and export for someone else. Comparing Skills
+on that collection stays optional. The commands are `techtree forge
+inspect-skill` through `techtree forge import`; the
+[0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
+[task set](docs/plan/v0.3.0-task-set.md) describe them. The active
+[bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
+for installable CLI and plugin coordinates.
+
+Before it, 0.2.1 brought the Hello World Climb and the
+first repository experiments: build repair tasks from a local repository with
 `techtree forge build` and `techtree forge status`, run your own Hermes on them
 with `techtree forge run`, once without a Skill and once with it, compare the
 two runs task by task with `techtree forge compare`, and revise the Skill once
 through `techtree uplift`. Every run is recorded with its patch, its test
 verdict and the usage Hermes reported. The one selected public repair has been
 reproduced end to end, locally and on a fresh Linux worker; it does not yet
-demonstrate measured Skill improvement. The active
-[bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
-for installable CLI and plugin coordinates.
-
-**0.3.0 is in preparation** and is not released: create an environment from a
-Skill. Techtree looks at a Skill without running it, plans tasks from it with
-your approval, builds and checks them offline, and lets you accept them as a
-frozen collection you can run, verify and export. The commands are in this
-repository today; see the [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md)
-and its [task set](docs/plan/v0.3.0-task-set.md).
+demonstrate measured Skill improvement.
 
 | Capability | Status | Where it lives |
 | --- | --- | --- |
