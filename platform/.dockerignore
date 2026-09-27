@@ -58,6 +58,7 @@ vendor/.regent-ui-stage-*
 vendor/.regent-identity-history
 vendor/.regent-blog-history
 vendor/.regent-blog-stage-*
+vendor/.regent-agent-access-stage
 .envrc
 .env.local
 

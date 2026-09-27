@@ -267,7 +267,8 @@ The expected layout is `<workspace>/<product>/platform`,
 `<workspace>/regents/identity`.
 From this component directory, `REGENT_DEPS_ROOT` may point at `<workspace>` when
 it is elsewhere. Individual packages may instead be selected with `REGENT_UI_PATH`,
-`REGENT_PRIVY_PATH` and `REGENT_IDENTITY_PATH`. Record all three repository commit IDs with check results;
+`REGENT_PRIVY_PATH`, `REGENT_BLOG_PATH`, `REGENT_AGENT_ACCESS_PATH` and
+`REGENT_IDENTITY_PATH`. Record all three repository commit IDs with check results;
 release builds and isolated agent worktrees must use their selected immutable
 revisions, rather than updating sibling checkouts during verification.
 Do not clone recursive Solidity submodules for a web-only change.
@@ -334,6 +335,9 @@ Run `mix regent_identity.stage` through the prepared worktree with pinned
 `REGENT_IDENTITY_REVISION` and `REGENT_PRIVY_REVISION`, alongside `mix regent_ui.stage`.
 Both shared packages must match their snapshot manifests. The generated vendor
 packages are build inputs; staging does not migrate a database or deploy.
+`mix techtree.agent_access.stage`, with the pinned `REGENT_AGENT_ACCESS_REVISION`
+(the same `elixir-utils` revision), stages `regent_agent_access` into
+`vendor/regent_agent_access` the same way.
 The Regents release owner alone runs `RegentIdentity.Migrator.up(Repo)` on the
 identified shared destination, before enabling profiles on consumers.
 

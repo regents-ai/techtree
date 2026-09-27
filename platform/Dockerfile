@@ -44,6 +44,7 @@ ENV REGENT_PRIVY_PATH="/app/vendor/regent_privy_shared"
 ENV REGENT_IDENTITY_PATH="/app/vendor/regent_identity"
 ENV REGENT_UI_PATH="/app/vendor/regent_ui"
 ENV REGENT_BLOG_PATH="/app/vendor/regent_blog"
+ENV REGENT_AGENT_ACCESS_PATH="/app/vendor/regent_agent_access"
 
 # Dependencies first, and only the production ones, so that editing application
 # code does not re-fetch or re-compile them.
@@ -52,6 +53,7 @@ COPY vendor/regent_ui vendor/regent_ui
 COPY vendor/regent_privy_shared vendor/regent_privy_shared
 COPY vendor/regent_identity vendor/regent_identity
 COPY vendor/regent_blog vendor/regent_blog
+COPY vendor/regent_agent_access vendor/regent_agent_access
 RUN mix deps.get --only $MIX_ENV
 
 RUN mkdir config

@@ -12,20 +12,15 @@ defmodule TechtreeWeb.Router do
                              "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   @theme_cookie "techtree_theme"
 
-  # Most pages are HTML only. The home page, About, Contact and Privacy also
-  # answer `Accept: text/markdown`; `TechtreeWeb.MD` holds their Markdown.
-  # `/skill.md` is Markdown whichever is asked for.
+  # Pages are HTML here. The home page, About, Contact and Privacy also answer
+  # `Accept: text/markdown`, from `TechtreeWeb.PublicDocuments`, before the
+  # router. `/skill.md` is Markdown whichever is asked for.
   pipeline :html_only do
     plug :accepts, ["html"]
   end
 
   pipeline :readable do
     plug :accepts, ["html", "md"]
-  end
-
-  # The home page is a live page; its Markdown answer is sent before it mounts.
-  pipeline :home_markdown do
-    plug :answer_home_markdown
   end
 
   pipeline :browser do
@@ -67,23 +62,18 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:readable, :browser, :home_markdown]
-
-    live "/", HomeLive
-  end
-
-  scope "/", TechtreeWeb do
     pipe_through [:readable, :browser]
 
-    get "/about", PagesController, :about
-    get "/contact", PagesController, :contact
-    get "/privacy", PagesController, :privacy
     get "/skill.md", SkillController, :show
   end
 
   scope "/", TechtreeWeb do
     pipe_through [:html_only, :browser]
 
+    live "/", HomeLive
+    get "/about", PublicPagesController, :show
+    get "/contact", PublicPagesController, :show
+    get "/privacy", PublicPagesController, :show
     get "/blog", BlogController, :index
     get "/blog/:slug", BlogController, :show
     live "/docs", DocsLive
@@ -109,7 +99,7 @@ defmodule TechtreeWeb.Router do
 
   scope "/", TechtreeWeb do
     get "/sitemap.xml", SitemapController, :index
-    get "/llms.txt", AgentGuideController, :show
+    get "/llms.txt", PublicPagesController, :llms
   end
 
   scope "/api/v1", TechtreeWeb do
@@ -143,13 +133,6 @@ defmodule TechtreeWeb.Router do
     |> put_resp_header("content-security-policy", "default-src 'none'; frame-ancestors 'none'")
     |> put_resp_header("x-frame-options", "DENY")
     |> put_resp_header("referrer-policy", "no-referrer")
-  end
-
-  defp answer_home_markdown(conn, _opts) do
-    case get_format(conn) do
-      "md" -> TechtreeWeb.MD.answer(conn, :home)
-      "html" -> conn
-    end
   end
 
   defp put_theme(conn, _opts) do
