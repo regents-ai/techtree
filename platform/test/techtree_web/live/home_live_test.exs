@@ -56,7 +56,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     test "the copy remains visible beside a bounded crown canvas", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
       css = File.read!("assets/css/app.css")
-      javascript = File.read!("assets/js/app.js")
+      javascript = File.read!("assets/js/app.ts")
 
       assert has_element?(live, ".hero__copy")
       refute css =~ "hero-reveal-failsafe"
@@ -227,7 +227,7 @@ defmodule TechtreeWeb.HomeLiveTest do
   end
 
   test "the project source link refreshes GitHub stars and formats large counts compactly" do
-    javascript = File.read!(Path.expand("../../../assets/js/app.js", __DIR__))
+    javascript = File.read!(Path.expand("../../../assets/js/app.ts", __DIR__))
 
     assert javascript =~ ~s|notation: "compact"|
     assert javascript =~ ~s|maximumFractionDigits: 1|

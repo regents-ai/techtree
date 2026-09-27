@@ -3,13 +3,13 @@
  * every result first; the island only animates from the old picture to the
  * new one.
  */
-import {createLayout, createScope, spring} from "animejs"
-import {BASE, byPointer, still} from "./shared.js"
+import {createLayout, createScope, spring, type LayoutAnimationParams, type Scope} from "animejs"
+import {BASE, byPointer, still} from "./shared"
 
 // How a list moves when the server adds, reorders or removes its items. Each
 // is built fresh per change because a spring or stagger remembers what it
 // measured.
-const LAYOUTS = {
+const LAYOUTS: Record<string, () => LayoutAnimationParams> = {
   bounce: () => ({
     ease: spring({bounce: 0.35, duration: 420}),
     enterFrom: {opacity: 0, transform: "translateY(-12px)"},
@@ -22,8 +22,10 @@ const LAYOUTS = {
  * every item, so an item that stays keeps its identity across a change: it
  * glides to its new place while new items drop in.
  */
+type ListHook = {el: HTMLElement; scope?: Scope}
+
 export const MotionList = {
-  mounted() {
+  mounted(this: ListHook) {
     const scope = createScope({root: this.el})
 
     this.scope = scope.add(() => {
@@ -31,7 +33,7 @@ export const MotionList = {
       // A change asked for from the keyboard shows at once, like any other
       // keyboard press; one the server makes by itself still moves.
       let pressedByKeyboard = false
-      const onClick = event => {
+      const onClick = (event: MouseEvent) => {
         pressedByKeyboard = !byPointer(event)
       }
 
@@ -40,7 +42,7 @@ export const MotionList = {
       // is back as its stylesheet draws it.
       const tidy = () =>
         requestAnimationFrame(() => {
-          for (const el of this.el.querySelectorAll("[style]")) {
+          for (const el of this.el.querySelectorAll<HTMLElement>("[style]")) {
             if (el.style.translate === "none") el.style.removeProperty("translate")
           }
         })
@@ -48,7 +50,7 @@ export const MotionList = {
       scope.add("record", () => layout.record())
       scope.add("glide", () => {
         if (!pressedByKeyboard && !still()) {
-          layout.animate({...LAYOUTS[this.el.dataset.variant](), onComplete: tidy})
+          layout.animate({...LAYOUTS[this.el.dataset.variant!](), onComplete: tidy})
         }
         pressedByKeyboard = false
       })
@@ -58,15 +60,15 @@ export const MotionList = {
     })
   },
 
-  beforeUpdate() {
-    this.scope.methods.record()
+  beforeUpdate(this: ListHook) {
+    this.scope!.methods.record()
   },
 
-  updated() {
-    this.scope.methods.glide()
+  updated(this: ListHook) {
+    this.scope!.methods.glide()
   },
 
-  destroyed() {
+  destroyed(this: ListHook) {
     this.scope?.revert()
   },
 }

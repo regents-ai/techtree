@@ -1,24 +1,43 @@
-function copyStatusFor(button) {
+// The hook a copy button mounts on, and the feedback it is part-way through.
+export type CopyHook = {
+  el: HTMLElement
+  copyFeedbackTimer?: number
+  copyAnnouncementFrame?: number
+  copyInFlight?: boolean
+}
+
+type CopyOptions = {
+  refuse: (el: HTMLElement) => void
+  writeText?: (value: string) => Promise<void>
+}
+
+function copyStatusFor(button: HTMLElement) {
   const status = button.nextElementSibling
   return status?.matches("[data-copy-status]") ? status : null
 }
 
-function resetCopyFeedback(hook, label, idleLabel, status) {
+function resetCopyFeedback(hook: CopyHook, label: Element, idleLabel: string, status: Element | null) {
   window.clearTimeout(hook.copyFeedbackTimer)
-  window.cancelAnimationFrame(hook.copyAnnouncementFrame)
+  if (hook.copyAnnouncementFrame !== undefined) window.cancelAnimationFrame(hook.copyAnnouncementFrame)
   label.textContent = idleLabel
   hook.el.classList.remove("is-copied")
   if (status) status.textContent = ""
 }
 
-function announceCopyStatus(hook, status, message) {
+function announceCopyStatus(hook: CopyHook, status: Element | null, message: string) {
   if (!status) return
   hook.copyAnnouncementFrame = window.requestAnimationFrame(() => {
     status.textContent = message
   })
 }
 
-function scheduleCopyFeedbackReset(hook, label, idleLabel, status, delay) {
+function scheduleCopyFeedbackReset(
+  hook: CopyHook,
+  label: Element,
+  idleLabel: string,
+  status: Element | null,
+  delay: number,
+) {
   hook.copyFeedbackTimer = window.setTimeout(() => {
     label.textContent = idleLabel
     hook.el.classList.remove("is-copied")
@@ -27,7 +46,7 @@ function scheduleCopyFeedbackReset(hook, label, idleLabel, status, delay) {
 }
 
 function mountCopyButton(
-  hook,
+  hook: CopyHook,
   {
     copyValue,
     idleLabel,
@@ -35,13 +54,18 @@ function mountCopyButton(
     failureMessage,
     refuse,
     writeText = value => navigator.clipboard.writeText(value),
+  }: CopyOptions & {
+    copyValue: () => string
+    idleLabel: string
+    successMessage: string
+    failureMessage: string
   },
 ) {
   hook.el.addEventListener("click", async () => {
     if (hook.copyInFlight) return
     hook.copyInFlight = true
 
-    const label = hook.el.querySelector("[data-copy-label]")
+    const label = hook.el.querySelector("[data-copy-label]")!
     const status = copyStatusFor(hook.el)
     resetCopyFeedback(hook, label, idleLabel, status)
 
@@ -63,7 +87,11 @@ function mountCopyButton(
 }
 
 // `refuse` answers a copy that could not happen, beside the words that say so.
-export function mountCommandCopyButton(hook, copyValue, {refuse, writeText}) {
+export function mountCommandCopyButton(
+  hook: CopyHook,
+  copyValue: () => string,
+  {refuse, writeText}: CopyOptions,
+) {
   mountCopyButton(hook, {
     copyValue,
     idleLabel: "Copy",
@@ -74,7 +102,11 @@ export function mountCommandCopyButton(hook, copyValue, {refuse, writeText}) {
   })
 }
 
-export function mountPageCopyButton(hook, copyValue, {refuse, writeText}) {
+export function mountPageCopyButton(
+  hook: CopyHook,
+  copyValue: () => string,
+  {refuse, writeText}: CopyOptions,
+) {
   mountCopyButton(hook, {
     copyValue,
     idleLabel: "Copy page",

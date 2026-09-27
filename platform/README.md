@@ -275,12 +275,13 @@ Do not clone recursive Solidity submodules for a web-only change.
 
 ## Development
 
-Requires Elixir/Erlang, Node and PostgreSQL 14 or newer, plus the shared dependency
-layout above. Run from `platform/`; registry-contract checks separately require Foundry.
+Requires Elixir/Erlang, Node 22.18 or newer (a test loads the TypeScript
+directly) and PostgreSQL 14 or newer, plus the shared dependency layout above.
+Run from `platform/`; registry-contract checks separately require Foundry.
 
 ```bash
 mix setup   # deps, database, assets
-mix check   # formatting, warnings-as-errors, tests
+mix check   # formatting, warnings-as-errors, TypeScript typecheck, tests
 ```
 
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database

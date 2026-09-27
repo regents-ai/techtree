@@ -36,5 +36,5 @@ and its bounded tasks and definition of done are in
 under `docs/plan/` and `docs/v0.2/` are historical records.
 
 For product orientation and related Regent products, see [README.md](README.md).
-The public agent entry point is [platform/priv/pages/llms.txt](platform/priv/pages/llms.txt), served at `/llms.txt`;
+The public agent entry point is [platform/priv/public/llms.md](platform/priv/public/llms.md), served at `/llms.txt`;
 keep its advertised commands consistent with the owning CLI and HTTP contracts.

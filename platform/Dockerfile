@@ -69,8 +69,9 @@ COPY assets assets
 # the lockfile pins. It is bundled into the site's own JavaScript below, so the
 # served page still fetches nothing from anywhere but this site. Install scripts
 # are off: they exist to fetch a native renderer for running this library
-# outside a browser, which nothing here does.
-RUN npm --prefix assets ci --ignore-scripts
+# outside a browser, which nothing here does. The TypeScript checker is a
+# development tool for the gate, so it is left out.
+RUN npm --prefix assets ci --omit=dev --ignore-scripts
 
 # Bundles and minifies the two asset files, then writes the digested copies and
 # the cache manifest the endpoint serves them from.
