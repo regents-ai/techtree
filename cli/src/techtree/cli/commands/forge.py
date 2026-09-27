@@ -11,7 +11,8 @@ pairs a baseline run with a candidate run and writes the record and the
 report; ``forge inspect-skill`` looks at a Source Skill without running any
 of it and records what it holds; ``forge plan`` and ``forge construct``
 prepare, and their ``-start`` commands send, the planning and the building of
-tasks from such a Skill; ``forge collect``, ``forge accept`` and ``forge
+tasks from such a Skill; ``forge correct-task`` records a person's
+corrected copy of a built task; ``forge collect``, ``forge accept`` and ``forge
 verify`` freeze the tasks that qualified as a collection and check it again;
 ``forge export`` copies an accepted collection into a folder,
 ``forge verify-export`` checks such a folder alone, and ``forge import``
@@ -62,6 +63,7 @@ from techtree.forge.collection import (
 from techtree.forge.compare import compare_runs, read_comparison_status
 from techtree.forge.construction import (
     check_construction,
+    correct_task,
     prepare_construction,
     read_construction_status,
     start_construction,
@@ -84,11 +86,13 @@ from techtree.forge.models import (
     ForgeAttemptOutcome,
     ForgeBuildStatus,
     ForgeBuildTasks,
+    ForgeCollectionCandidate,
     ForgeCollectionRecord,
     ForgeCollectionStatus,
     ForgeCollectionTasks,
     ForgeComparisonRecord,
     ForgeComparisonStatus,
+    ForgeConstructionPackage,
     ForgeConstructionRecord,
     ForgeConstructionStatus,
     ForgeConstructionTaskStatus,
@@ -108,6 +112,7 @@ from techtree.forge.models import (
     ForgeSkillRef,
     ForgeSourceStatus,
     ForgeSubjectToolset,
+    ForgeTaskCorrection,
     ForgeTaskKind,
     ForgeTaskRegression,
     ForgeUsage,
@@ -172,6 +177,7 @@ __all__ = [
     "construction_review_lines",
     "construction_warnings",
     "correct_proposal_forge_command",
+    "correct_task_forge_command",
     "import_forge_command",
     "inspect_skill_forge_command",
     "plan_forge_command",
@@ -870,6 +876,65 @@ def construct_start_forge_command(
         action,
         render_data=_render_construction,
     )
+
+
+def correct_task_forge_command(
+    ctx: typer.Context,
+    construction_id: Annotated[
+        str,
+        typer.Argument(
+            metavar="CONSTRUCTION_ID",
+            help="The ended construction that built the task.",
+        ),
+    ],
+    task_name: Annotated[
+        str,
+        typer.Argument(metavar="TASK_NAME", help="The task you corrected."),
+    ],
+    folder: Annotated[
+        Path,
+        typer.Argument(
+            metavar="DIR",
+            help="Your corrected copy of the task's package folder, under the "
+            "package's own name.",
+        ),
+    ],
+) -> None:
+    """Check your corrected copy of a built task and record it as your correction."""
+    context = cli_context(ctx)
+
+    def action() -> CommandResult[ForgeConstructionStatus]:
+        status = correct_task(
+            context.paths,
+            construction_id,
+            task_name,
+            folder,
+            qualify=lambda task_dir, source_skill, source_digest: ForgeService(
+                context.paths, run_command, find_uv()
+            ).import_skill(
+                task_dir=task_dir,
+                source_skill=source_skill,
+                source_digest=source_digest,
+            ),
+        )
+        return CommandResult(
+            data=status,
+            warnings=construction_warnings(context.paths, status),
+            next_actions=construction_next_actions(context.paths, status),
+        )
+
+    def render(data: object, console: Console) -> None:
+        if isinstance(data, ForgeConstructionStatus):
+            [task] = [task for task in data.tasks if task.task_name == task_name]
+            console.print(
+                f"Recorded your correction of {task_name}: "
+                + _correction_words(task.corrections[-1]),
+                markup=False,
+            )
+            console.print()
+            render_forge_construction(data, console)
+
+    invoke_command(context, Operation.ACTION_EXECUTE, action, render_data=render)
 
 
 def collect_forge_command(
@@ -2387,7 +2452,16 @@ def _construct_when_approved(status: ForgeConstructionStatus) -> NextAction:
 
 
 def _usable(task: ForgeConstructionTaskStatus) -> bool:
-    return task.package is not None and task.package.usable_tasks > 0
+    return bool(task.corrections) or (
+        task.package is not None and task.package.usable_tasks > 0
+    )
+
+
+def _build_in_use(task: ForgeConstructionTaskStatus) -> str | None:
+    """The build of a task's newest correction, else of its created package."""
+    if task.corrections:
+        return task.corrections[-1].build_id
+    return None if task.package is None else task.package.build_id
 
 
 def _construction_error(status: ForgeConstructionStatus) -> TechtreeError | None:
@@ -2438,8 +2512,9 @@ def construction_warnings(
                         f"a collection needs at least {MINIMUM_COLLECTION_TASKS}: "
                         "some the improving agent may study and some held out "
                         "from it. Correct the proposal to add tasks with forge "
-                        "correct-proposal, or build the others again with forge "
-                        f"construct --retry-of {status.construction_id}."
+                        "correct-proposal, build the others again with forge "
+                        f"construct --retry-of {status.construction_id}, or "
+                        "correct one yourself with forge correct-task."
                     ),
                     resolvable_by=None,
                 )
@@ -2523,9 +2598,7 @@ def construction_next_actions(
     actions += [
         NextAction(
             operation=Operation.PLAN_INSPECT,
-            prepared_arguments=invocation(
-                "forge", "status", arguments=[task.package.build_id]
-            ),
+            prepared_arguments=invocation("forge", "status", arguments=[build_id]),
             expected_state_digest=None,
             side_effect=SideEffect.NONE,
             approval_required=False,
@@ -2535,18 +2608,66 @@ def construction_next_actions(
             reason=f"How {task.task_name} was checked, and the task it made.",
         )
         for task in status.tasks
-        if task.package is not None and _usable(task)
+        if _usable(task) and (build_id := _build_in_use(task)) is not None
     ]
     return actions
 
 
 def _task_words(task: ForgeConstructionTaskStatus) -> str:
     package = task.package
+    if task.corrections:
+        return (
+            "corrected by a person, usable, checked as build "
+            f"{task.corrections[-1].build_id}"
+        )
     if package is None:
         return _CALL_STATE_WORDS[task.state]
     if package.failure is None:
         return f"usable, checked as build {package.build_id}"
     return f"written, but not usable: {package.failure.message}"
+
+
+def _created_words(package: ForgeConstructionPackage) -> str:
+    """What became of the package the creator wrote."""
+    if package.failure is None:
+        return f"usable, checked as build {package.build_id}"
+    return (
+        f"not usable, build {package.build_id}; forge status {package.build_id} "
+        "says why"
+    )
+
+
+def _correction_words(correction: ForgeTaskCorrection) -> str:
+    """When a person corrected a task, the build it became, what it replaced
+    and which files changed."""
+    return (
+        f"{correction.corrected_at:%Y-%m-%d %H:%M:%S} UTC, checked as build "
+        f"{correction.build_id}"
+        + (
+            ""
+            if correction.replaces is None
+            else f", replacing build {correction.replaces}"
+        )
+        + "; "
+        + _changes_words(correction)
+    )
+
+
+def _changes_words(correction: ForgeTaskCorrection) -> str:
+    """Which files a correction changed: each by name when there are few,
+    else how many of each kind."""
+    changes = correction.changes
+    if len(changes) <= 4:
+        return ", ".join(f"{change.path} {change.change}" for change in changes)
+    counts = {
+        kind: sum(change.change == kind for change in changes)
+        for kind in ("added", "modified", "removed")
+    }
+    return ", ".join(
+        f"{count} {_plural(count, 'file or folder', 'files and folders')} {kind}"
+        for kind, count in counts.items()
+        if count
+    )
 
 
 def render_forge_construction(
@@ -2580,20 +2701,26 @@ def render_forge_construction(
             console.print()
             console.print(f"{task.task_name}: {_task_words(task)}", markup=False)
             call = task.call
-            if call is None:
-                continue
-            lines = [f"Package: {task.package_name}"]
-            if call.seconds is not None:
-                lines.append(f"Took: {call.seconds:.0f} seconds")
-            if call.stopped is not None:
-                lines.append(
-                    "Stopped: at its time limit"
-                    if call.stopped == "wall_time"
-                    else "Stopped: with Ctrl-C"
-                )
-            lines.append(f"Cost: {_cost_words(call.usage)}")
-            if call.failure is not None:
-                lines.append(f"Why: {call.failure.message}")
+            lines = []
+            if call is not None:
+                lines.append(f"Package: {task.package_name}")
+                if call.seconds is not None:
+                    lines.append(f"Took: {call.seconds:.0f} seconds")
+                if call.stopped is not None:
+                    lines.append(
+                        "Stopped: at its time limit"
+                        if call.stopped == "wall_time"
+                        else "Stopped: with Ctrl-C"
+                    )
+                lines.append(f"Cost: {_cost_words(call.usage)}")
+                if call.failure is not None:
+                    lines.append(f"Why: {call.failure.message}")
+            if task.package is not None and task.corrections:
+                lines.append(f"As the creator wrote it: {_created_words(task.package)}")
+            lines += [
+                f"Corrected: {_correction_words(correction)}"
+                for correction in task.corrections
+            ]
             for line in lines:
                 console.print(Padding(Text(line), (0, 0, 0, 2)))
     console.print()
@@ -2624,19 +2751,7 @@ def collection_review_lines(record: ForgeCollectionRecord) -> list[str]:
         f"{_plural(proposed, 'task', 'tasks')}, each as it went the last time "
         "it was tried:",
     ]
-    for task in review.tasks:
-        lines.append(
-            f"  {task.task_name}: "
-            + (
-                f"qualified, checked as build {task.build_id}"
-                if task.usable
-                else _CALL_STATE_WORDS[task.state]
-                if task.build_id is None
-                else f"built, but did not qualify; forge status {task.build_id} "
-                "says why"
-            )
-            + ("" if task.why is None else f": {task.why}")
-        )
+    lines += [f"  {task.task_name}: {_candidate_words(task)}" for task in review.tasks]
     held_out = [m.task_name for m in review.members if m.part == "held_out"]
     study = [m.task_name for m in review.members if m.part == "study"]
     lines += [
@@ -2655,12 +2770,37 @@ def collection_review_lines(record: ForgeCollectionRecord) -> list[str]:
             else f", replacing {review.previous.collection_id} (version "
             f"{review.previous.version})"
         ),
+        "The automatic checks show that each task's grader agrees with its own "
+        "sample solutions, not that it accepts every correct answer, so read "
+        "each task, and correct any with forge correct-task and collect again, "
+        "before accepting.",
         "Accepting freezes exactly these tasks' files and qualification. Any "
         "change afterwards is a new version, accepted again. Accepting runs "
         "nothing and calls no model.",
         f"This acceptance covers exactly this: {record.collection_digest[:19]}",
     ]
     return lines
+
+
+def _candidate_words(task: ForgeCollectionCandidate) -> str:
+    """How a task went, and whether a person corrected it."""
+    if task.corrections:
+        return (
+            "qualified; corrected by a person"
+            + ("" if len(task.corrections) == 1 else f" {len(task.corrections)} times")
+            + f", last on {_correction_words(task.corrections[-1])}"
+        )
+    return (
+        (
+            f"qualified, checked as build {task.build_id}"
+            if task.usable
+            else _CALL_STATE_WORDS[task.state]
+            if task.build_id is None
+            else f"built, but did not qualify; forge status {task.build_id} says why"
+        )
+        + ("" if task.why is None else f": {task.why}")
+        + "; not corrected by a person"
+    )
 
 
 def _ask_to_accept(context: CliContext, record: ForgeCollectionRecord) -> None:

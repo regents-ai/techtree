@@ -501,20 +501,52 @@ tasks the earlier one, finished or stopped, left without a usable package, and
 it needs its own approval. `forge collect` is offered as the next step only
 once at least two tasks of the construction and those it retried are usable;
 with fewer, the `forge_construction_too_few_usable` warning says a collection
-needs two and suggests correcting the proposal or building the rest again.
+needs two and suggests correcting the proposal, building the rest again, or
+correcting a task by hand.
+
+**Forge task correction (a person's edit of a built task).** `forge
+correct-task CONSTRUCTION_ID TASK_NAME DIR` (`forge/construction.py`) takes a
+copy of a task's package, qualified or not, that a person copied out of its
+build (`<build>/tasks/<package name>/`) and edited. The arguments follow the
+construction's own: the construction and the task name its review lists, and
+the folder, which keeps the package's name because admission requires the
+folder's name to be the one `task.toml` names. The construction must have
+finished or stopped (`forge_correction_not_ready`), the task must be one it
+called the creator for (`forge_correction_no_task`), and no construction may
+retry it with that task (`forge_correction_retried`, since collecting would
+then take the retry's package). A misnamed folder
+(`forge_correction_wrong_name`) or one whose files are exactly those of the
+package it would replace (`forge_correction_unchanged`) is refused before
+anything is built. The folder then goes through `ForgeService.import_skill`
+with the construction's Source Skill and digest, exactly as a created package
+does, into a new build; a folder admission refuses, or one that does not
+qualify, is refused with that build's reason and nothing is recorded. Only a
+qualified correction writes
+`corrections/<task>/<build_id>.json` (`techtree.forge-task-correction.v1alpha1`)
+beside the construction: the construction and task, `corrected_at`, the new
+`build_id` and `content_digest`, `replaces` (the build of the task's newest
+earlier correction, else of its created package, or none when the creator
+wrote none) with `replaced_digest` (its content digest, or none when it was
+never admitted), and `changes`, every file or folder `added`, `removed` or
+`modified` against it (all added when there is none). The original build and
+the construction's own records are never touched. A task with no usable
+package can be corrected too (a rescue), and correcting again replaces the
+newest correction. `forge status` shows each correction under its task, and a
+corrected task counts as usable, so `--retry-of` does not build it again.
 
 **Forge collection (qualified tasks, accepted and frozen).** `forge collect
 CONSTRUCTION_ID [--task NAME]... [--previous COLLECTION_ID]`
 (`forge/collection.py`, U4) prepares an acceptance and runs nothing. It reads
 the construction and every construction it retried, and writes
 `forge/collections/<forgecol_id>/collection.json`
-(`techtree.forge-collection.v1alpha3`): the proposal and Source Skill with
+(`techtree.forge-collection.v1alpha4`): the proposal and Source Skill with
 their digests and the Source Skill's name (`source_name`), the proposal's claims, the constructions, every proposed task in proposal order with
-how it went the last time it was tried (the call's state, the build its
-package became, whether that build qualified it, or what stopped the call),
-and the members, the qualified tasks being accepted (all of them unless
-`--task` names fewer), each by the claim it tests and its kind (as its
-construction package recorded them), its build, task id, content digest, its
+how it went the last time it was tried (the call's state, the person's
+corrections of it in that construction, the build its newest correction or
+else its package became, whether that build qualified it, or what stopped the
+call), and the members, the qualified tasks being accepted (all of them unless
+`--task` names fewer), each by the claim it tests and its kind (as that
+construction's review lists them), its build, task id, content digest, its
 `fingerprint` (the digest of its files other than the `task.toml` Techtree
 writes, which holds the package's name, description and keywords and the
 outputs the task requires, and so differs every time a task is built; two
@@ -575,7 +607,14 @@ nothing qualified (`forge_collection_empty`), a task that did not qualify
 part (`forge_collection_too_few`): one of a single task, saying which other
 qualified tasks `--task` left out or else to propose more, and one whose
 inherited parts are all the same, naming the missing part. The review shows
-which tasks are held out and says the improving agent will never see them. `forge accept COLLECTION_ID`
+which tasks are held out and says the improving agent will never see them,
+marks every task as corrected by a person or not, and says that the automatic
+checks show that each task's grader agrees with its own sample solutions, not
+that it accepts every correct answer, so read each task, and correct any with
+`forge correct-task` and collect again, before accepting. A correction made
+after a collection was prepared makes it stale; one made after acceptance is
+left out when it is verified, which counts only corrections made before the
+acceptance. `forge accept COLLECTION_ID`
 makes the review again, refuses one that changed (`forge_collection_stale`)
 or no longer replaces the latest version, asks, and writes `acceptance.json` with that digest; an accepted collection is
 frozen and never accepted again (`forge_collection_accepted`). A collection of
@@ -605,14 +644,16 @@ hidden name beside it, checks the copy, and only then renames it into place;
 the folder and everything in it are the owner's alone (0700/0600), and nothing
 is published. It holds exactly: `tasks/<task_id>/`, each member's files copied
 entry by entry from its build's commitment without following links;
-`export.json` (`techtree.forge-export.v1alpha3`), the collection record and
+`export.json` (`techtree.forge-export.v1alpha4`), the collection record and
 acceptance with each member's build record and qualification evidence, and
 `readme_digest`, the sha256 of the README; and a
 `README.md` made from what `export.json` holds and the tasks' own `task.toml` time
 limits, opening with the collection's fingerprint and the Source Skill's
 name and fingerprint in full, and saying that it is the same collection only
 if that fingerprint matches the one its sender gave; then what the folder holds and
-leaves out, which tasks are held out, the claims and which claim and kind
+leaves out, which tasks are held out and which a person corrected (the
+corrections themselves are in the collection record, the packages before
+them are not included), the claims and which claim and kind
 each task tests, and that its tests and reference
 solutions let anyone who has it read the answers. Its "Running the tasks
 yourself" section lists what is needed (Docker running the tasks' platform,
@@ -645,7 +686,8 @@ words its README differently still checks an earlier export. Any difference
 is `forge_export_changed`. It
 reports the collection's full fingerprint, what it recomputed and what is
 recorded only: the Source Skill (its
-digest, not its text), the proposal and construction, the qualification runs,
+digest, not its text), the proposal and construction, a person's corrections
+(when, and which files changed, not the tasks before them), the qualification runs,
 the images, and the acceptance's time and answer. All of this shows only that
 the folder agrees with its own records: a folder rewritten whole, with every
 digest made again, agrees with itself too, which is why the fingerprint is

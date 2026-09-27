@@ -61,6 +61,7 @@ from techtree.cli.commands.forge import (
     construct_forge_command,
     construct_start_forge_command,
     correct_proposal_forge_command,
+    correct_task_forge_command,
     export_forge_command,
     import_forge_command,
     inspect_skill_forge_command,
@@ -447,6 +448,11 @@ def _forge_app() -> typer.Typer:
         "construct-start",
         help="Review a prepared construction, approve it, and build its tasks once.",
     )(construct_start_forge_command)
+    app.command(
+        "correct-task",
+        help="Check your corrected copy of a built task and record it as your "
+        "correction.",
+    )(correct_task_forge_command)
     app.command(
         "collect",
         help="Prepare the acceptance of qualified tasks as one collection.",
