@@ -15,7 +15,7 @@ import {
   type Scope,
   type TextSplitter,
 } from "animejs"
-import {BASE, SLOW, still} from "./shared"
+import {BASE, CLIPPED_CHAR, SLOW, still} from "./shared"
 import type {Hook} from "../../hook_composition"
 
 // How a list moves when the server adds, reorders or drops its items: `bounce`
@@ -129,7 +129,7 @@ export const countHook = (rolls: Record<string, Roll>): Hook => ({
       const now = figure.textContent ?? ""
       if (was === now) return
 
-      const split = splitText(figure, {words: false, chars: clip ? {wrap: "clip"} : true})
+      const split = splitText(figure, {words: false, chars: clip ? CLIPPED_CHAR : true})
       const digits = split.chars.filter((_char, i) => was.at(i - now.length) !== now[i])
       this.splits.add(split)
       this.scope?.methods.roll(split, digits, worth(now) > worth(was))

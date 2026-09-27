@@ -3,6 +3,7 @@
 @import "./agent_versions.css";
 @import "./techtree_home.css";
 @import "./techtree_pages.css";
+@import "./components/motion.css";
 
 /* Palette, type, cut skins and interaction sweeps come from Regent UI.
    Product CSS composes the bounded live crown hero and the ruled document. */
@@ -330,7 +331,6 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .docs-nav nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
   .docs-content { padding-left: 0; border-left: 0; }
 }
-.split-clip { display: inline-block; overflow: clip; }
 @media (max-width: 47.99rem) {
   .page { padding-block: var(--space-4); }
   .page--flush { padding-block: 0; }

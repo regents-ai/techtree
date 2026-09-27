@@ -1,0 +1,3 @@
+/* The box each rising word or digit sits in (CLIPPED_WORD and CLIPPED_CHAR in the
+   motion kit), hiding it until it reaches its place. */
+.split-clip { display: inline-block; overflow: clip; }
