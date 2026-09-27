@@ -24,13 +24,14 @@ defmodule TechtreeWeb.PublicationBody do
   rather than a check: a body sent as anything else is never read, and the
   address it was sent to finds no bytes and refuses.
 
+  The address is matched the way the routing table matches it, by its
+  segments, so a trailing slash is the same address and meets the same cap.
+
   Every other address is left exactly as it was: no body is kept for one and no
   cap is imposed on it, because nothing reads one.
   """
 
   alias Techtree.Network
-
-  @path "/api/v1/publications"
 
   @doc """
   Read a request body the way `Plug.Conn.read_body/2` does.
@@ -43,7 +44,10 @@ defmodule TechtreeWeb.PublicationBody do
           {:ok, binary(), Plug.Conn.t()}
           | {:more, binary(), Plug.Conn.t()}
           | {:error, term()}
-  def read_body(%Plug.Conn{method: "POST", request_path: @path} = conn, options) do
+  def read_body(
+        %Plug.Conn{method: "POST", path_info: ["api", "v1", "publications"]} = conn,
+        options
+      ) do
     case Plug.Conn.read_body(conn, options) do
       {:ok, body, conn} ->
         if byte_size(body) <= Network.maximum_body_bytes() do

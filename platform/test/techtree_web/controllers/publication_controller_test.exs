@@ -171,6 +171,19 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert Network.list_publication_entries!() == []
     end
 
+    test "a trailing slash is the same address and meets the same cap", %{conn: conn} do
+      oversized = ~s({"files":{"bundle.json":") <> String.duplicate("a", 3_000_000) <> ~s("}})
+
+      refused =
+        assert_raise Plug.Parsers.RequestTooLargeError, fn ->
+          conn
+          |> put_req_header("content-type", "application/json")
+          |> post("/api/v1/publications/", oversized)
+        end
+
+      assert Plug.Exception.status(refused) == 413
+    end
+
     test "a body under it reaches the checks", %{conn: conn} do
       assert publish(conn, NetworkFixture.submission()).status == 201
     end
@@ -225,6 +238,22 @@ defmodule TechtreeWeb.PublicationControllerTest do
              |> from_own_address()
              |> publish(NetworkFixture.submission())
              |> Map.fetch!(:status) == 201
+    end
+
+    test "a caller already over the limit is refused before their body is read" do
+      caller = own_address()
+      body = ~s({"schema_version":"techtree.publication-submission.v1alpha1","files":{}})
+
+      for _attempt <- 1..10 do
+        Phoenix.ConnTest.build_conn() |> Map.put(:remote_ip, caller) |> publish(body)
+      end
+
+      # Read and decoded, this body would raise a parse error instead.
+      refused =
+        Phoenix.ConnTest.build_conn() |> Map.put(:remote_ip, caller) |> publish("{not json")
+
+      assert refused.status == 429
+      assert refused.body_params == %Plug.Conn.Unfetched{aspect: :body_params}
     end
 
     test "behind Fly's proxy each visitor has their own limit, which no header they write escapes",
