@@ -16,7 +16,11 @@ from techtree.forge.docker import Docker
 from techtree.forge.models import ForgeBuildRecord, ForgeQualification
 from techtree.forge.qualify import build_task_image, qualify_build
 from techtree.forge.report import first_failed_check, task_verdict
-from techtree.forge.service import ForgeService, read_build_status
+from techtree.forge.service import (
+    ForgeService,
+    host_docker_platform,
+    read_build_status,
+)
 from techtree.forge.skill2env import (
     MAX_TASK_BYTES,
     Skill2EnvAdmission,
@@ -25,9 +29,12 @@ from techtree.forge.skill2env import (
 from techtree.paths import paths_from_root
 
 SOURCE_DIGEST = "sha256:" + "a" * 64
-AMD64_SLIM = (
-    "python:3.12-slim@sha256:"
-    "44ff437bba879d4941b710a369a8f19266aea34b29002807f0c487fabc9eec9b"
+HOST_PLATFORM = host_docker_platform()
+#: The slim image built for the other architecture, which this machine never pulls.
+OTHER_ARCHITECTURE_SLIM = "python:3.12-slim@sha256:" + (
+    "950206c37262dd86c55659797f6ee418fee30535072f65a82ed470d985f5cda5"
+    if HOST_PLATFORM == "linux/amd64"
+    else "44ff437bba879d4941b710a369a8f19266aea34b29002807f0c487fabc9eec9b"
 )
 #: The deadlines the checks get: the material probe, the run that does nothing
 #: (verifier time plus margin), then each step of the reference run (its own
@@ -99,7 +106,7 @@ def test_import_commits_exact_bytes_and_qualifies_the_task_offline(
         "pull",
         "--quiet",
         "--platform",
-        "linux/arm64",
+        HOST_PLATFORM,
         PYTHON_SLIM,
     ]
     build_call = next(call for call in docker.calls if call[1] == "build")
@@ -394,7 +401,7 @@ def test_rejections_keep_their_evidence_and_are_said_in_words(
     "base",
     [
         "python:3.12-slim@sha256:" + "b" * 64,
-        AMD64_SLIM,
+        OTHER_ARCHITECTURE_SLIM,
         "docker.io/library/" + PYTHON_SLIM,
         "python:3.11-slim@" + PYTHON_SLIM.split("@")[1],
     ],
@@ -452,7 +459,7 @@ def test_task_image_builds_offline_and_a_fetching_recipe_fails_with_its_log(
         "docker",
         "build",
         "--platform",
-        "linux/arm64",
+        HOST_PLATFORM,
         "--network",
     ]
     assert build_call[5] == "none"
