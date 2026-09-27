@@ -12,11 +12,9 @@ defmodule TechtreeWeb.PublicationBody do
   are checked against a digest of what arrived rather than against a
   re-rendering of it. So the bytes are set aside as they are read.
 
-  *The size is capped as it arrives.* A body over the cap is stopped at the
-  parser, which is before it has been decoded, before it has been hashed, and
-  before anything has looked at what it claims to be. Nothing is spooled to
-  disk on the way there, because there is no multipart parser on this site to
-  spool it.
+  The size cap is not here: the parser in `TechtreeWeb.Endpoint` reads no more
+  than the cap from any address, and stops a body over it before it has been
+  decoded, hashed or looked at.
 
   The bytes are only kept for a request that arrived as `application/json`,
   because `Plug.Parsers` calls this reader for the parser that matched the
@@ -24,42 +22,32 @@ defmodule TechtreeWeb.PublicationBody do
   rather than a check: a body sent as anything else is never read, and the
   address it was sent to finds no bytes and refuses.
 
-  The address is matched the way the routing table matches it, by its
-  segments, so a trailing slash is the same address and meets the same cap.
-
-  Every other address is left exactly as it was: no body is kept for one and no
-  cap is imposed on it, because nothing reads one.
+  `TechtreeWeb.PublicationAddress` decides which requests those are. Every
+  other address is read as it always was, and no body is kept for one.
   """
 
-  alias Techtree.Network
+  alias TechtreeWeb.PublicationAddress
 
   @doc """
   Read a request body the way `Plug.Conn.read_body/2` does.
 
   For the one address that accepts one the bytes are also assigned to the
-  connection, and a body over the cap is reported as one that did not finish —
-  which is how `Plug.Parsers` is told that a body was too large.
+  connection.
   """
   @spec read_body(Plug.Conn.t(), keyword()) ::
           {:ok, binary(), Plug.Conn.t()}
           | {:more, binary(), Plug.Conn.t()}
           | {:error, term()}
-  def read_body(
-        %Plug.Conn{method: "POST", path_info: ["api", "v1", "publications"]} = conn,
-        options
-      ) do
-    case Plug.Conn.read_body(conn, options) do
-      {:ok, body, conn} ->
-        if byte_size(body) <= Network.maximum_body_bytes() do
-          {:ok, body, Plug.Conn.assign(conn, :submitted_bytes, body)}
-        else
-          {:more, body, conn}
-        end
-
-      other ->
-        other
-    end
+  def read_body(conn, options) do
+    if PublicationAddress.post?(conn),
+      do: keep(conn, options),
+      else: RegentIdentity.BodyReader.read_body(conn, options)
   end
 
-  def read_body(conn, options), do: RegentIdentity.BodyReader.read_body(conn, options)
+  defp keep(conn, options) do
+    case Plug.Conn.read_body(conn, options) do
+      {:ok, body, conn} -> {:ok, body, Plug.Conn.assign(conn, :submitted_bytes, body)}
+      other -> other
+    end
+  end
 end

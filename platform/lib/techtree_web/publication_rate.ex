@@ -13,10 +13,13 @@ defmodule TechtreeWeb.PublicationRate do
 
   It stands in the endpoint, in front of the parser, so a caller already over
   the limit is refused before their body is read, let alone decoded. Each
-  request is counted here and nowhere else. It matches the publication address
-  the way the routing table does, by its segments, so a trailing slash is the
-  same address and counted the same. `TechtreeWeb.ClientAddress` says who the
-  caller is.
+  request is counted here and nowhere else. `TechtreeWeb.PublicationAddress`
+  decides which requests those are, and `TechtreeWeb.ClientAddress` says who
+  the caller is.
+
+  The refusal also closes the connection. A body that was sent is otherwise
+  still read off a kept-alive connection after the answer, and the point of
+  refusing here is that it is not read.
   """
 
   @behaviour Plug
@@ -24,12 +27,17 @@ defmodule TechtreeWeb.PublicationRate do
   alias Techtree.Network.RateLimit
   alias TechtreeWeb.ClientAddress
   alias TechtreeWeb.ExactResponse
+  alias TechtreeWeb.PublicationAddress
 
   @impl Plug
   def init(options), do: options
 
   @impl Plug
-  def call(%Plug.Conn{method: "POST", path_info: ["api", "v1", "publications"]} = conn, _options) do
+  def call(conn, _options) do
+    if PublicationAddress.post?(conn), do: count(conn), else: conn
+  end
+
+  defp count(conn) do
     case RateLimit.allow(ClientAddress.key(conn)) do
       :ok ->
         conn
@@ -38,6 +46,7 @@ defmodule TechtreeWeb.PublicationRate do
         conn
         |> ExactResponse.put_api_headers()
         |> Plug.Conn.put_resp_header("retry-after", Integer.to_string(seconds))
+        |> Plug.Conn.put_resp_header("connection", "close")
         |> ExactResponse.send_error(
           429,
           :publication_rate_limited,
@@ -47,6 +56,4 @@ defmodule TechtreeWeb.PublicationRate do
         |> Plug.Conn.halt()
     end
   end
-
-  def call(conn, _options), do: conn
 end

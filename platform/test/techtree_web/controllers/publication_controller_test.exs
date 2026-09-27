@@ -171,17 +171,20 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert Network.list_publication_entries!() == []
     end
 
-    test "a trailing slash is the same address and meets the same cap", %{conn: conn} do
+    test "every spelling of the address, and every other address, meets the same cap",
+         %{conn: conn} do
       oversized = ~s({"files":{"bundle.json":") <> String.duplicate("a", 3_000_000) <> ~s("}})
 
-      refused =
-        assert_raise Plug.Parsers.RequestTooLargeError, fn ->
-          conn
-          |> put_req_header("content-type", "application/json")
-          |> post("/api/v1/publications/", oversized)
-        end
+      for path <- ["/api/v1/publications/", "/api/v1/publication%73", "/api/v1/nothing"] do
+        refused =
+          assert_raise Plug.Parsers.RequestTooLargeError, fn ->
+            conn
+            |> put_req_header("content-type", "application/json")
+            |> post(path, oversized)
+          end
 
-      assert Plug.Exception.status(refused) == 413
+        assert Plug.Exception.status(refused) == 413
+      end
     end
 
     test "a body under it reaches the checks", %{conn: conn} do
@@ -254,6 +257,13 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
       assert refused.status == 429
       assert refused.body_params == %Plug.Conn.Unfetched{aspect: :body_params}
+
+      # The router decodes each segment, so an escaped letter is the same address.
+      assert Phoenix.ConnTest.build_conn()
+             |> Map.put(:remote_ip, caller)
+             |> put_req_header("content-type", "application/json")
+             |> post("/api/v1/publication%73", body)
+             |> Map.fetch!(:status) == 429
     end
 
     test "behind Fly's proxy each visitor has their own limit, which no header they write escapes",

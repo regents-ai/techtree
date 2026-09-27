@@ -7,7 +7,8 @@ defmodule TechtreeWeb.ClientAddress do
   connection's peer is the proxy and is the same for every visitor. Measured on
   the running machine on 27 September 2026, public requests arrived from
   `172.16.6.2` — seen here as `::ffff:172.16.6.2`, because the release listens
-  on `::` and an IPv4 peer arrives in its IPv4-mapped form. The machine's own
+  on `::` (`config/runtime.exs`) and an IPv4 peer arrives in its IPv4-mapped
+  form. The match below depends on that listener. The machine's own
   network and gateway are a different range, `172.19.6.0/29`. A limit keyed on
   the peer would be one budget shared by everybody.
 
@@ -27,8 +28,9 @@ defmodule TechtreeWeb.ClientAddress do
   `x-forwarded-for` is never read. Fly appends to it rather than replacing it,
   so everything left of the entries Fly added is whatever the client wrote.
 
-  An IPv6 client is keyed by its /64, the block one host is ordinarily handed,
-  so that one host cannot spend the budget once for every address it holds.
+  An IPv6 visitor named by the proxy is keyed by its /64, the block one host is
+  ordinarily handed, so that one host cannot spend the budget once for every
+  address it holds.
 
   This is the local form of the template's trusted-proxy adapter; when that is
   published it replaces this module.

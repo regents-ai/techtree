@@ -49,15 +49,6 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
-  # The pipeline in front of the only write the public may make; the
-  # owner-only profile writes authenticate through RegentIdentity on :api.
-  # Its rate limit stands in the endpoint, in front of the parser
-  # (`TechtreeWeb.PublicationRate`), so an over-limit body is never read.
-  pipeline :publishing do
-    plug :accepts, ["json"]
-    plug :put_public_api_headers
-  end
-
   # The public profile page is temporarily withdrawn. Keep the owner-only
   # API and implementation intact for its later return.
   scope "/api/v1", TechtreeWeb do
@@ -126,11 +117,12 @@ defmodule TechtreeWeb.Router do
     get "/publication-keys/:key_id", PublicationKeyController, :show
   end
 
-  # The one public write address, on its own so that what stands in front of
-  # it is visible here rather than buried in a pipeline everything shares. The
-  # profile routes above accept bodies only from the signed-in owner.
+  # The one public write address. Its rate limit and exact-byte reader stand
+  # in the endpoint, in front of the parser (`TechtreeWeb.PublicationRate`,
+  # `TechtreeWeb.PublicationBody`). The profile routes above accept bodies only
+  # from the signed-in owner.
   scope "/api/v1", TechtreeWeb do
-    pipe_through :publishing
+    pipe_through :api
 
     post "/publications", PublicationController, :create
   end

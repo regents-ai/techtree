@@ -13,7 +13,9 @@ defmodule Techtree.Network.RateLimit do
   and a store for this would be a larger thing than the problem. Old windows are
   swept rather than left to grow, and the sweep deletes them inside the table
   rather than copying the table out to look at it, so its cost does not grow
-  with this process's memory however many callers there have been.
+  with this process's memory however many callers there have been. Each sweep
+  reports how long it took, how many windows it deleted and how many remain, as
+  the `[:techtree, :rate_limit, :sweep]` event.
 
   Who the caller is is decided before the count, by
   `TechtreeWeb.ClientAddress`; this module counts whatever key it is handed.
@@ -70,7 +72,16 @@ defmodule Techtree.Network.RateLimit do
     window = Keyword.fetch!(Network.rate_limit(), :window_seconds)
     current = div(System.system_time(:second), window)
 
-    :ets.select_delete(@table, [{{{:_, :"$1"}, :_}, [{:<, :"$1", current}], [true]}])
+    {microseconds, deleted} =
+      :timer.tc(fn ->
+        :ets.select_delete(@table, [{{{:_, :"$1"}, :_}, [{:<, :"$1", current}], [true]}])
+      end)
+
+    :telemetry.execute(
+      [:techtree, :rate_limit, :sweep],
+      %{duration: microseconds, deleted: deleted, size: :ets.info(@table, :size)},
+      %{}
+    )
 
     schedule()
     {:noreply, state}
