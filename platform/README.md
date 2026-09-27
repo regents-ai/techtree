@@ -270,7 +270,8 @@ checks separately require Foundry.
 
 ```bash
 mix setup   # deps, database, assets
-mix check   # formatting, warnings-as-errors, TypeScript typecheck, tests
+mix check   # warnings-as-errors, unused locks, Hex audit, format, Credo, Sobelow,
+            # compile-time links, Ash codegen, TypeScript typecheck, tests
 ```
 
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database

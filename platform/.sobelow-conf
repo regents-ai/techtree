@@ -1,0 +1,9 @@
+[
+  private: true,
+  skip: true,
+  ignore: [
+    # Config.Headers looks for the headers in router pipelines; TechtreeWeb.Endpoint
+    # sets them for every page before the router, and the API sets its own.
+    "Config.Headers"
+  ]
+]

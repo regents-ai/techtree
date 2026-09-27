@@ -136,6 +136,8 @@ defmodule Techtree.Network.Seed do
     end
   end
 
+  # An operator's own proof directory, named on the command line.
+  # sobelow_skip ["Traversal.FileModule"]
   defp files(proof_directory) do
     proof_directory
     |> Path.join("**")

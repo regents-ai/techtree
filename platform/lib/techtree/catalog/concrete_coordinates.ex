@@ -141,8 +141,12 @@ defmodule Techtree.Catalog.ConcreteCoordinates do
   end
 
   defp sweep(value, path) when is_binary(value) do
-    key = List.last(path)
+    with :ok <- filled_in(value, path), do: pinned(value, path)
+  end
 
+  defp sweep(_value, _path), do: :ok
+
+  defp filled_in(value, path) do
     cond do
       value == "" ->
         {:error, refuse("is empty", path, value)}
@@ -156,6 +160,15 @@ defmodule Techtree.Catalog.ConcreteCoordinates do
       value =~ @zeroed ->
         {:error, refuse("is a filled-in blank", path, value)}
 
+      true ->
+        :ok
+    end
+  end
+
+  defp pinned(value, path) do
+    key = List.last(path)
+
+    cond do
       mutable?(value, path) ->
         {:error, refuse("is a mutable reference", path, value)}
 
@@ -169,8 +182,6 @@ defmodule Techtree.Catalog.ConcreteCoordinates do
         :ok
     end
   end
-
-  defp sweep(_value, _path), do: :ok
 
   # Anything this release tells a machine to fetch is named by an address and a
   # hash together. An address on its own is an instruction to trust whatever

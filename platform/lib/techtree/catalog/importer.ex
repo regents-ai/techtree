@@ -27,6 +27,8 @@ defmodule Techtree.Catalog.Importer do
   alias Techtree.Catalog.Error
   alias Techtree.Catalog.Verifier
 
+  # Importing a release is operator work with no actor, and every catalog
+  # resource refuses writes from any other caller.
   @internal [authorize?: false]
 
   # What a page tells a person before they run a Climb: the model and provider

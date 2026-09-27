@@ -124,7 +124,9 @@ defmodule TechtreeWeb.Layouts do
   defp share_title(title), do: title <> " · Techtree"
 
   # Who Techtree is, for a reader that speaks schema.org. There is no postal
-  # address: none has been published.
+  # address: none has been published. Built from constants and the site's own
+  # address, and encoded HTML-safe, so it is inserted as it is.
+  # sobelow_skip ["XSS.Raw"]
   defp structured_data do
     url = TechtreeWeb.Endpoint.url()
     organization = "https://regents.sh/#organization"
@@ -176,6 +178,7 @@ defmodule TechtreeWeb.Layouts do
       },
       escape: :html_safe
     )
+    |> Phoenix.HTML.raw()
   end
 
   defp page_description(assigns) do

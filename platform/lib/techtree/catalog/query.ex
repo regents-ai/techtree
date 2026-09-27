@@ -256,6 +256,9 @@ defmodule Techtree.Catalog.Query do
     end
   end
 
+  # The path comes from the imported index and is resolved inside the catalog
+  # root by Bundle.resolve/2; a request only names a digest.
+  # sobelow_skip ["Traversal.FileModule"]
   defp read_file(revision, relative_path) do
     with {:ok, _snapshot} <- Catalog.snapshot_path(revision),
          {:ok, path} <-

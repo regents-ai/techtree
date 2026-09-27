@@ -55,6 +55,9 @@ defmodule TechtreeWeb.ExactResponse do
   Send exact bytes, or a `304` if the caller already holds this digest.
   """
   @spec send_exact(Plug.Conn.t(), binary(), String.t(), String.t(), caching()) :: Plug.Conn.t()
+  # The media type is chosen by the controller from a fixed set, and the bytes
+  # are published documents sent with nosniff and a policy that runs nothing.
+  # sobelow_skip ["XSS.ContentType", "XSS.SendResp"]
   def send_exact(conn, bytes, media_type, digest, caching) do
     etag = ~s("#{digest}")
 

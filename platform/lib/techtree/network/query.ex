@@ -31,8 +31,8 @@ defmodule Techtree.Network.Query do
   require Ash.Query
 
   alias Techtree.Network
-  alias Techtree.Network.PublicationEntry
   alias Techtree.Network.AgentVersions
+  alias Techtree.Network.PublicationEntry
 
   @typedoc """
   One page of the log, and where the next one starts.
@@ -130,8 +130,10 @@ defmodule Techtree.Network.Query do
   """
   @spec for_campaign(String.t()) :: %{entries: [PublicationEntry.t()], truncated?: boolean()}
   def for_campaign(campaign_spec_digest) when is_binary(campaign_spec_digest) do
-    found = Network.list_publication_entries_for_campaign!(campaign_spec_digest)
-    %{entries: Enum.take(found, 12), truncated?: length(found) > 12}
+    {entries, rest} =
+      campaign_spec_digest |> Network.list_publication_entries_for_campaign!() |> Enum.split(12)
+
+    %{entries: entries, truncated?: rest != []}
   end
 
   @doc """

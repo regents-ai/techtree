@@ -386,12 +386,14 @@ defmodule Techtree.Network.Bundle do
       files
       |> Map.keys()
       |> Enum.sort()
-      |> Enum.reduce_while(:ok, fn path, :ok ->
-        case path_shape(path) do
-          :ok -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, refuse_path(path, reason)}}
-        end
-      end)
+      |> reduce_while_ok(&checked_path/1)
+    end
+  end
+
+  defp checked_path(path) do
+    case path_shape(path) do
+      :ok -> :ok
+      {:error, reason} -> {:error, refuse_path(path, reason)}
     end
   end
 
@@ -516,26 +518,27 @@ defmodule Techtree.Network.Bundle do
     listed = List.wrap(manifest["payload"]["artifacts"])
 
     with :ok <- artifact_set(listed, files) do
-      Enum.reduce_while(listed, :ok, fn artifact, :ok ->
-        bytes = Map.fetch!(files, artifact["relative_path"])
+      reduce_while_ok(listed, &artifact_matches(&1, files))
+    end
+  end
 
-        if Digest.hash_bytes(bytes) == artifact["digest"] and
-             byte_size(bytes) == artifact["size"] do
-          {:cont, :ok}
-        else
-          {:halt,
-           {:error,
-            Error.new(
-              :submission_artifact_digest_mismatch,
-              "a file in this bundle is not the file the bundle says it is",
-              %{
-                "path" => artifact["relative_path"],
-                "expected_digest" => artifact["digest"],
-                "computed_digest" => Digest.hash_bytes(bytes)
-              }
-            )}}
-        end
-      end)
+  defp artifact_matches(artifact, files) do
+    bytes = Map.fetch!(files, artifact["relative_path"])
+    computed = Digest.hash_bytes(bytes)
+
+    if computed == artifact["digest"] and byte_size(bytes) == artifact["size"] do
+      :ok
+    else
+      {:error,
+       Error.new(
+         :submission_artifact_digest_mismatch,
+         "a file in this bundle is not the file the bundle says it is",
+         %{
+           "path" => artifact["relative_path"],
+           "expected_digest" => artifact["digest"],
+           "computed_digest" => computed
+         }
+       )}
     end
   end
 
@@ -573,36 +576,32 @@ defmodule Techtree.Network.Bundle do
   # -- 8. Payload digests ---------------------------------------------------
 
   defp payload_digests(files) do
-    files
-    |> Enum.sort()
-    |> Enum.reduce_while({:ok, []}, fn {path, bytes}, {:ok, acc} ->
-      case signed_envelope(bytes) do
-        {:ok, envelope} ->
-          case recomputed(envelope) do
-            :ok ->
-              {:cont, {:ok, [{path, envelope} | acc]}}
+    envelopes =
+      for {path, bytes} <- Enum.sort(files),
+          {:ok, envelope} <- [signed_envelope(bytes)],
+          do: {path, envelope}
 
-            {:error, computed} ->
-              {:halt,
-               {:error,
-                Error.new(
-                  :submission_payload_digest_mismatch,
-                  "a signed document in this bundle does not hash to the digest it carries",
-                  %{
-                    "path" => path,
-                    "claimed_digest" => envelope["payload_digest"],
-                    "computed_digest" => computed
-                  }
-                )}}
-          end
+    with :ok <- reduce_while_ok(envelopes, &payload_digest_matches/1) do
+      {:ok, envelopes}
+    end
+  end
 
-        :plain ->
-          {:cont, {:ok, acc}}
-      end
-    end)
-    |> case do
-      {:ok, envelopes} -> {:ok, Enum.reverse(envelopes)}
-      {:error, error} -> {:error, error}
+  defp payload_digest_matches({path, envelope}) do
+    case recomputed(envelope) do
+      :ok ->
+        :ok
+
+      {:error, computed} ->
+        {:error,
+         Error.new(
+           :submission_payload_digest_mismatch,
+           "a signed document in this bundle does not hash to the digest it carries",
+           %{
+             "path" => path,
+             "claimed_digest" => envelope["payload_digest"],
+             "computed_digest" => computed
+           }
+         )}
     end
   end
 
@@ -837,18 +836,19 @@ defmodule Techtree.Network.Bundle do
   defp candidate_experiment(nil, _files), do: nil
 
   defp candidate_experiment(digest, files) when is_binary(digest) do
-    files
-    |> Enum.find_value(fn {_path, bytes} ->
-      if Digest.hash_bytes(bytes) == digest do
-        case Jason.decode(bytes) do
-          {:ok, document} when is_map(document) -> document
-          _other -> nil
-        end
-      end
+    Enum.find_value(files, fn {_path, bytes} ->
+      if Digest.hash_bytes(bytes) == digest, do: json_object(bytes)
     end)
   end
 
   defp candidate_experiment(_digest, _files), do: nil
+
+  defp json_object(bytes) do
+    case Jason.decode(bytes) do
+      {:ok, document} when is_map(document) -> document
+      _other -> nil
+    end
+  end
 
   # -- 15. The committed task list -------------------------------------------
 
@@ -935,48 +935,35 @@ defmodule Techtree.Network.Bundle do
   defp content(files) do
     files
     |> Enum.sort()
-    |> Enum.reduce_while(:ok, fn {path, bytes}, :ok ->
-      case Jason.decode(bytes) do
-        {:ok, document} ->
-          case sift(document) do
-            :ok -> {:cont, :ok}
-            {:error, finding} -> {:halt, {:error, refuse_content(path, finding)}}
-          end
-
-        _other ->
-          {:halt,
-           {:error,
-            Error.new(
-              :submission_private_content,
-              "every file in a proof bundle is a JSON document, and this site " <>
-                "cannot read one of these to see what is in it",
-              %{"path" => path}
-            )}}
-      end
-    end)
+    |> reduce_while_ok(fn {path, bytes} -> file_content(path, bytes) end)
   end
+
+  defp file_content(path, bytes) do
+    case Jason.decode(bytes) do
+      {:ok, document} ->
+        content_finding(path, sift(document))
+
+      _other ->
+        {:error,
+         Error.new(
+           :submission_private_content,
+           "every file in a proof bundle is a JSON document, and this site " <>
+             "cannot read one of these to see what is in it",
+           %{"path" => path}
+         )}
+    end
+  end
+
+  defp content_finding(_path, :ok), do: :ok
+  defp content_finding(path, {:error, finding}), do: {:error, refuse_content(path, finding)}
 
   defp sift(document) when is_map(document) do
-    Enum.reduce_while(document, :ok, fn {member, value}, :ok ->
-      if member in @forbidden_members do
-        {:halt, {:error, {:member, member}}}
-      else
-        case sift(value) do
-          :ok -> {:cont, :ok}
-          {:error, finding} -> {:halt, {:error, finding}}
-        end
-      end
+    reduce_while_ok(document, fn {member, value} ->
+      if member in @forbidden_members, do: {:error, {:member, member}}, else: sift(value)
     end)
   end
 
-  defp sift(document) when is_list(document) do
-    Enum.reduce_while(document, :ok, fn value, :ok ->
-      case sift(value) do
-        :ok -> {:cont, :ok}
-        {:error, finding} -> {:halt, {:error, finding}}
-      end
-    end)
-  end
+  defp sift(document) when is_list(document), do: reduce_while_ok(document, &sift/1)
 
   defp sift(value) when is_binary(value) do
     if private_path?(value), do: {:error, {:path, value}}, else: :ok
@@ -1038,5 +1025,14 @@ defmodule Techtree.Network.Bundle do
        "this submission declares a run that the signed result inside it does not name",
        %{"declared_run_id" => declared, "run_id" => actual}
      )}
+  end
+
+  defp reduce_while_ok(enumerable, check) do
+    Enum.reduce_while(enumerable, :ok, fn element, :ok ->
+      case check.(element) do
+        :ok -> {:cont, :ok}
+        {:error, error} -> {:halt, {:error, error}}
+      end
+    end)
   end
 end

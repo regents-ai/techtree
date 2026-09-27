@@ -180,6 +180,8 @@ defmodule TechtreeWeb.TddShowcase do
   missing, does not match, or disagrees with another.
   """
   @spec load!(Path.t()) :: t()
+  # The folder is the configured showcase folder, never request input.
+  # sobelow_skip ["Traversal.FileModule"]
   def load!(folder) do
     %{
       "schema_version" => "techtree.forge-comparison.v1alpha5",
@@ -293,6 +295,7 @@ defmodule TechtreeWeb.TddShowcase do
 
   defp config, do: Application.fetch_env!(:techtree, __MODULE__)
 
+  # sobelow_skip ["Traversal.FileModule"]
   defp read_json!(folder, relative),
     do: folder |> Path.join(relative) |> File.read!() |> Jason.decode!()
 
@@ -450,6 +453,7 @@ defmodule TechtreeWeb.TddShowcase do
   # nothing more. The Skill's own fingerprint is the digest of that file list,
   # as the CLI's `skill_content_digest` works it out
   # (cli/src/techtree/manifests/builder.py).
+  # sobelow_skip ["Traversal.FileModule"]
   defp skill_files!(folder, name, digest, recorded_skill) do
     %{"name" => ^name, "root_digest" => ^digest, "files" => recorded} = recorded_skill
     ^digest = canonical_digest(recorded)

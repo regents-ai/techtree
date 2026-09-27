@@ -149,6 +149,8 @@ defmodule Techtree.Catalog.Bundle do
   The exact bytes one index entry names, digest-verified.
   """
   @spec read_entry!(t(), entry()) :: binary()
+  # The path is resolved inside the configured catalog root by resolve/2.
+  # sobelow_skip ["Traversal.FileModule"]
   def read_entry!(%__MODULE__{} = bundle, entry) do
     path =
       case object_path(bundle, entry.relative_path) do
@@ -277,6 +279,8 @@ defmodule Techtree.Catalog.Bundle do
   @spec filenames() :: [String.t()]
   def filenames, do: [@source_filename, @catalog_filename, @bootstrap_filename]
 
+  # The filename is one of this module's own three document names.
+  # sobelow_skip ["Traversal.FileModule"]
   defp read_document!(root, filename) do
     path = Path.join(root, filename)
 

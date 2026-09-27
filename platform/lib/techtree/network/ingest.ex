@@ -115,6 +115,8 @@ defmodule Techtree.Network.Ingest do
   alias Techtree.Network.WithdrawalRequest
   alias Techtree.Repo
 
+  # The one writer to the run log; a submission is authorized by its signature,
+  # checked in full by `Techtree.Network.Bundle` before this runs.
   @internal [authorize?: false]
 
   @typedoc """

@@ -29,6 +29,7 @@ defmodule Techtree.Catalog.Publication do
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Error
 
+  # Switching the published release is operator work with no actor.
   @internal [authorize?: false]
 
   @typedoc """

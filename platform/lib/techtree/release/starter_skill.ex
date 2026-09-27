@@ -111,6 +111,8 @@ defmodule Techtree.Release.StarterSkill do
     end
   end
 
+  # The path is this module's own fixed file inside the application.
+  # sobelow_skip ["Traversal.FileModule"]
   defp read(path) do
     case File.read(path) do
       {:ok, bytes} ->

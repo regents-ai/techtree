@@ -13,8 +13,8 @@ defmodule TechtreeWeb.HealthController do
 
   use TechtreeWeb, :controller
 
-  alias Techtree.Catalog.Query
   alias Techtree.BuildInfo
+  alias Techtree.Catalog.Query
 
   @doc """
   Report whether a catalog release is being served.

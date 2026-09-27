@@ -79,23 +79,27 @@ defmodule Techtree.Catalog.Verifier do
     |> reduce_while_ok(fn entry ->
       with {:ok, path} <- Bundle.object_path(bundle, entry.relative_path),
            {:ok, bytes} <- read_file(path, entry.relative_path) do
-        case Digest.verify_bytes(bytes, entry.digest) do
-          :ok ->
-            :ok
-
-          {:error, computed} ->
-            {:error,
-             Error.object_digest_mismatch(
-               "a catalog object does not match the digest it is filed under",
-               %{
-                 "path" => entry.relative_path,
-                 "expected_digest" => entry.digest,
-                 "computed_digest" => computed
-               }
-             )}
-        end
+        filed_under_digest(bytes, entry)
       end
     end)
+  end
+
+  defp filed_under_digest(bytes, entry) do
+    case Digest.verify_bytes(bytes, entry.digest) do
+      :ok ->
+        :ok
+
+      {:error, computed} ->
+        {:error,
+         Error.object_digest_mismatch(
+           "a catalog object does not match the digest it is filed under",
+           %{
+             "path" => entry.relative_path,
+             "expected_digest" => entry.digest,
+             "computed_digest" => computed
+           }
+         )}
+    end
   end
 
   @doc """
@@ -565,6 +569,8 @@ defmodule Techtree.Catalog.Verifier do
     end
   end
 
+  # Every caller resolves the path inside the bundle root first.
+  # sobelow_skip ["Traversal.FileModule"]
   defp read_file(path, relative_path) do
     case File.read(path) do
       {:ok, bytes} ->
