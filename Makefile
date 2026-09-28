@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-cli check-plugin check-plugin-integration check-platform check-required-fixes release
+.PHONY: check check-cli check-plugin check-plugin-integration check-platform check-required-fixes release readiness
 
 check: check-cli check-plugin check-plugin-integration check-platform check-required-fixes check-contracts
 
@@ -35,3 +35,8 @@ release:
 	@test -z "$$(git status --porcelain)" || { echo "Commit every change first: the release checks and builds the committed tree." >&2; exit 1; }
 	$(MAKE) check
 	scripts/release.sh
+
+# Starts the local server on a free port, checks what the agent-readiness scorer
+# looks for against it, and stops it. Needs the local development database.
+readiness:
+	scripts/readiness.sh
