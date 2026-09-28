@@ -95,6 +95,12 @@ defmodule TechtreeWeb.Endpoint do
     documents: &TechtreeWeb.PublicDocuments.document/1,
     guide: "/llms.txt"
 
+  # One budget per caller, shared by the health check and every `/api` path,
+  # answered or not, except publishing, which `TechtreeWeb.PublicationRate`
+  # counts on its own. Every answer says what is left of it; past it the answer
+  # is 429 with Retry-After. Pages are never counted, and counting never waits.
+  plug :limit_rate
+
   # One route reads a request body, and nothing here needs to accept a file. A
   # body in a content type this does not parse is passed along untouched and
   # meets the same refusal it would have met anyway. No address accepts more
@@ -111,6 +117,26 @@ defmodule TechtreeWeb.Endpoint do
 
   plug TechtreeWeb.MethodSurface
   plug TechtreeWeb.Router
+
+  @request_rate_limit Application.compile_env!(:techtree, :request_rate_limit)
+  @rate_limit RegentAgentAccess.RateLimit.init(
+                policy: "default",
+                limit: Keyword.fetch!(@request_rate_limit, :limit),
+                window: Keyword.fetch!(@request_rate_limit, :window_seconds),
+                admit: &Techtree.RateLimit.admit/3,
+                key: &TechtreeWeb.ClientAddress.key/1
+              )
+
+  defp limit_rate(%Plug.Conn{path_info: ["healthz"]} = conn, _opts),
+    do: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+  defp limit_rate(%Plug.Conn{path_info: ["api" | _]} = conn, _opts) do
+    if TechtreeWeb.PublicationAddress.post?(conn),
+      do: conn,
+      else: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+  end
+
+  defp limit_rate(conn, _opts), do: conn
 
   defp secure_browser_headers(conn, _opts) do
     put_secure_browser_headers(conn, %{

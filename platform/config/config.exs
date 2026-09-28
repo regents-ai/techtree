@@ -78,6 +78,11 @@ config :techtree, Techtree.Network,
   maximum_body_bytes: 2_097_152,
   rate_limit: [limit: 10, window_seconds: 60]
 
+# Every other request to the health check and the API, per caller: generous for
+# a person or an agent reading, and a bound on one script in a loop.
+# Publishing has its own budget above and is not counted here.
+config :techtree, :request_rate_limit, limit: 120, window_seconds: 60
+
 # The release artifacts this build publishes beside the bundle. Today that is
 # the starter Skill: one `SKILL.md`, served at the digest of its exact bytes.
 config :techtree, Techtree.Release, starter_skill_root: {:priv, "release"}
