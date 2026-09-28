@@ -64,7 +64,7 @@ defmodule TechtreeWeb.Endpoint do
     from: :techtree,
     gzip: not code_reloading?,
     only: TechtreeWeb.static_paths(),
-    only_matching: ~w(favicon apple-touch-icon robots),
+    only_matching: ~w(favicon apple-touch-icon),
     raise_on_missing_only: code_reloading?,
     headers: @static_headers
 

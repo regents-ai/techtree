@@ -29,6 +29,8 @@ defmodule TechtreeWeb.RouterTest do
 
     assert paths == [
              "get /",
+             "get /.well-known/api-catalog",
+             "get /.well-known/security.txt",
              "get /about",
              "get /api/v1/bootstrap",
              "get /api/v1/catalog",
@@ -41,6 +43,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/publications/:bundle_digest/bundle",
              "get /blog",
              "get /blog/:slug",
+             "get /capabilities",
              "get /changelog",
              "get /climbs/:slug",
              "get /contact",
@@ -54,6 +57,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /repo2rlenv",
              "get /results",
              "get /results/:bundle_digest",
+             "get /robots.txt",
              "get /sitemap.xml",
              "get /skill.md",
              "get /start",
@@ -167,6 +171,7 @@ defmodule TechtreeWeb.RouterTest do
       |> get("/api/v1/nope")
 
     assert conn.status == 404
+
     assert %{"error" => %{"code" => "not_found", "message" => "Not Found", "hint" => hint}} =
              json_response(conn, 404)
 

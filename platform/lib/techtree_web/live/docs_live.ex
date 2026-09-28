@@ -10,6 +10,7 @@ defmodule TechtreeWeb.DocsLive do
 
   import TechtreeWeb.PageCopy, only: [page_copy: 1]
 
+  alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
 
@@ -60,6 +61,14 @@ defmodule TechtreeWeb.DocsLive do
                 {"Browser agents", "#browser-tools"},
                 {"Data boundary", "#data-boundary"},
                 {"Troubleshooting", "#troubleshooting"}
+              ]}
+            />
+            <.docs_group
+              title="API"
+              links={[
+                {"Errors", "#errors"},
+                {"Rate limits", "#rate-limits"},
+                {"Versioning", "#versioning"}
               ]}
             />
             <.docs_group
@@ -391,13 +400,28 @@ defmodule TechtreeWeb.DocsLive do
             <p>
               Every page offers the agent built into a browser these tools. Each only reads public
               information, needs no account and spends nothing. Publishing a Result stays with the
-              CLI and its key.
+              CLI and its key. The <a href="/capabilities">tool manifest</a> describes them as JSON.
             </p>
             <.definition_list>
               <:fact :for={tool <- Techtree.Capabilities.tools()} term={tool["title"]}>
                 <code>{tool["name"]}</code> reads <code>{tool["route"]}</code>
               </:fact>
             </.definition_list>
+          </section>
+
+          <section
+            :for={
+              {id, heading} <- [
+                {"errors", "Errors"},
+                {"rate-limits", "Rate limits"},
+                {"versioning", "Versioning and deprecation"}
+              ]
+            }
+            id={id}
+            class="doc-section"
+          >
+            <h2>{heading}</h2>
+            <div class="docs-prose">{raw(PublicDocuments.docs_section(heading))}</div>
           </section>
 
           <section id="data-boundary" class="doc-section">

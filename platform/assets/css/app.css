@@ -224,6 +224,14 @@ code { font-size: .9em; }
 .doc-list { list-style: square; }
 .docs-numbered-list { list-style: decimal; }
 .doc-list li + li, .docs-numbered-list li + li { margin-top: var(--space-1); }
+/* Reference sections written in Markdown: the same rhythm as the rest of the docs. */
+.docs-prose { margin-top: var(--space-2); }
+.docs-prose > * + * { margin-top: var(--space-2); }
+.docs-prose :where(p, ul, ol) { max-width: var(--measure); }
+.docs-prose ul { list-style: square; padding-left: var(--space-3); }
+.docs-prose li + li { margin-top: var(--space-1); }
+.docs-prose h3 { margin-top: var(--space-3); }
+.docs-prose pre { margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 .docs-code, .prompt__block { max-width: 100%; margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 
 /* Native copy menu is intentionally not a disclosure: it is a compact popup.
