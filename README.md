@@ -26,33 +26,24 @@ The live release is **0.3.0**: create an environment from a Skill. Techtree
 looks at a Skill without running it, plans tasks from it with your approval,
 builds and checks them offline, and lets you accept them as a frozen
 collection you can run, verify and export for someone else. Comparing Skills
-on that collection stays optional. The commands are `techtree forge
-inspect-skill` through `techtree forge import`; the
+on that collection stays optional. The commands are `regents techtree forge
+inspect-skill` through `regents techtree forge export`, from [regents-cli](https://github.com/regents-ai/regents-cli); the
 [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
 [task set](docs/plan/v0.3.0-task-set.md) describe them. The active
 [bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
 for installable CLI and plugin coordinates.
 
-Before it, 0.2.1 brought the Hello World Climb and the
-first repository experiments: build repair tasks from a local repository with
-`techtree forge build` and `techtree forge status`, run your own Hermes on them
-with `techtree forge run`, once without a Skill and once with it, compare the
-two runs task by task with `techtree forge compare`, and revise the Skill once
-through `techtree uplift`. Every run is recorded with its patch, its test
-verdict and the usage Hermes reported. The one selected public repair has been
-reproduced end to end, locally and on a fresh Linux worker; it does not yet
-demonstrate measured Skill improvement.
+Before it, 0.2.1 brought the Hello World Climb and a first trial of building
+repair tasks from a repository. That trial is no longer offered.
 
 | Capability | Status | Where it lives |
 | --- | --- | --- |
-| Hello World Climb: a local Skill comparison with Hermes and Verifiers | Available now | [`cli/`](cli/) (`techtree climb`), [`plugin/`](plugin/) (`/techtree demo`) |
-| Signed result bundles and offline verification | Available now | [`cli/`](cli/) (`techtree proof verify`) |
-| Publishing a verified run, and public Results pages | Available now | [`cli/`](cli/) (`techtree publish`, `techtree withdraw`), [`platform/`](platform/) ([Results](https://techtree.sh/results)) |
+| Hello World Climb: a local Skill comparison with Hermes and Verifiers | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree climb`), [`plugin/`](plugin/) (`/techtree demo`) |
+| Signed result bundles and offline verification | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree proof verify`) |
+| Publishing a verified run, and public Results pages | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree publish`, `regents techtree withdraw`), [`platform/`](platform/) ([Results](https://techtree.sh/results)) |
 | Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Start](https://techtree.sh/start), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
-| Structured machine responses (`techtree.cli.v2`) for agents and scripts | Available now | [`cli/`](cli/) ([contract](cli/docs/cli-json-contract.md)) |
-| Guided revision of a Skill after a comparison | Experimental | [`cli/`](cli/) (`techtree uplift`) |
-| Build tasks from a repository; run, compare and revise a Skill on them in your own signed-in Hermes | Experimental | [`cli/`](cli/) (`techtree forge build`, `status`, `run`, `compare`) |
-| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export, import | Experimental | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge import`) |
+| Structured machine responses (`--json`) for agents and scripts | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) |
+| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export | Experimental | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree forge inspect-skill` through `regents techtree forge export`) |
 | Read-only browser tools for agents (WebMCP): the Start guide, the Climbs and the Results | Available now | [`platform/`](platform/) |
 | An MCP connector for other agents | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
@@ -60,8 +51,9 @@ demonstrate measured Skill improvement.
 | Public collaboration, forks, agent messages, and USDC bounties | Planned | — |
 
 The active start guide controls exact installation coordinates. Historical
-release documents can still name the old plugin repository; development now
-lives in this monorepo’s `plugin/` directory. Do not replace a pinned release
+release documents can still name the old plugin repository or the `techtree`
+command; the plugin is developed in this monorepo’s `plugin/` directory and the
+command-line tool in regents-cli. Do not replace a pinned release
 coordinate with an arbitrary branch.
 
 ## Release compatibility
@@ -137,7 +129,7 @@ A result bundle contains **participant-attested evidence**. Verify a bundle
 someone has shared with you:
 
 ```sh
-techtree proof verify path/to/result-bundle
+regents techtree proof verify path/to/result-bundle
 ```
 
 Verification checks supplied files, signatures, configuration, task membership,
@@ -178,7 +170,7 @@ harness runtime, trajectory format, or trainer.
 | System | Role | Status |
 | --- | --- | --- |
 | [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. The Hello World Climb runs through a pinned Verifiers engine. | Available now |
-| Repo2RLEnv | Turns a repository's history into repair tasks, pinned to version 0.8.8. | Experimental |
+| Repo2RLEnv | Turns a repository's history into repair tasks. | Planned |
 | [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental |
 | [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs, so other agents can be evaluated. | Planned |
 | [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional and observe-only. | Planned |
@@ -263,27 +255,28 @@ use the internet, and which run offline in throwaway containers.
 
 ## How the repository is organised
 
-The CLI executes, the plugin adapts, the platform publishes, and the contracts
-own the registry.
+regents-cli executes, the plugin adapts, the platform publishes, and the
+contracts own the registry.
 
-| Directory | Role | What it owns | Guide |
+| Part | Role | What it owns | Guide |
 | --- | --- | --- | --- |
-| [`cli/`](cli/) | **Executes** | Everything that runs, builds or verifies, on your own machine: Climbs and runs, repository and Skill environments (`techtree forge`), signing and offline proof checks, publication transport, and the machine contract. It also holds the plugin's test suite. | [CLI](cli/README.md) |
-| [`plugin/`](plugin/) | **Adapts** | A thin Hermes adapter over the CLI: it runs `techtree` with fixed arguments, reads one JSON answer back, and asks the person before anything that spends or publishes. No evaluation logic, and no network of its own. | [Plugin](plugin/README.md) |
+| [regents-cli](https://github.com/regents-ai/regents-cli) | **Executes** | Everything that runs, builds or verifies, on your own machine, under `regents techtree`: Climbs and runs, Skill environments (`regents techtree forge`), signing and offline proof checks, and publication. | [regents-cli](https://github.com/regents-ai/regents-cli#techtree) |
+| [`cli/`](cli/) | **Earlier releases** | The `techtree` command that the release records up to `climb-v0.3.0` install. | [CLI](cli/README.md) |
+| [`plugin/`](plugin/) | **Adapts** | A thin Hermes adapter over regents-cli: it runs `regents techtree` with fixed arguments, reads one JSON answer back, and asks the person before anything that spends or publishes. No evaluation logic, and no network of its own. | [Plugin](plugin/README.md) |
 | [`platform/`](platform/) | **Publishes** | techtree.sh: the install guide and bootstrap, the catalog, publication intake, Results and verification pages, and the changelog. | [Platform](platform/README.md) |
 | [`contracts/`](contracts/) | **Registry** | The `TechtreeGraphRegistryV1` Solidity contract, its deployment scripts and Foundry tests. | [Contracts](contracts/README.md) |
 
-For CLI/plugin development, install Python 3.12 and
+For plugin development, install Python 3.12 and
 [uv](https://docs.astral.sh/uv/), then:
 
 ```sh
 git clone https://github.com/regents-ai/techtree.git
 cd techtree
-make -C cli install
 make -C plugin install
-make -C cli check
-make -C cli check-plugin
+make -C plugin check
 ```
+
+The command-line tool is developed in [regents-cli](https://github.com/regents-ai/regents-cli).
 
 Platform development additionally needs Erlang/Elixir, Node, PostgreSQL, and the
 shared library setup described in the [platform guide](platform/README.md#development).

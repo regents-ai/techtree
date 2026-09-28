@@ -29,7 +29,7 @@ the person's own computer.
 
 - [Start](https://techtree.sh/start): two ways to begin: test a Skill (with one instruction for the person's local agent or Hermes), or take a quick look with the example Climb. Each names what it needs and where its data goes.
 - [Agent installation guide](https://techtree.sh/skill.md): the exact release to install, and every step from making the tasks to comparing the two runs. Each review waits for the person's own answer; never approve on their behalf.
-- [A real comparison](https://techtree.sh/examples/tdd): a tdd Skill tested on tasks made from it, with its task files to rerun.
+- [A real comparison](https://techtree.sh/examples/tdd): a tdd Skill tested on tasks made from it, with its task files.
 - [Bootstrap contract](https://techtree.sh/api/v1/bootstrap): use its exact released versions and arguments. Reject placeholder releases.
 - [Catalog](https://techtree.sh/api/v1/catalog).
 - [CLI](https://github.com/regents-ai/techtree/blob/main/cli/README.md) and [Hermes plugin](https://github.com/regents-ai/techtree/blob/main/plugin/README.md).

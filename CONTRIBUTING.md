@@ -14,13 +14,17 @@ make check-plugin
 make check-platform
 ```
 
+The `regents techtree` command-line tool is developed in
+[regents-cli](https://github.com/regents-ai/regents-cli); `cli/` holds the
+`techtree` command that earlier release records install.
+
 Run `make check` before opening a pull request. The full gate is model-free: it
 must not start paid inference, publish a result, deploy the platform, or release
 a package.
 
 ## Change boundaries
 
-- Keep CLI and protocol behavior in `cli/`.
+- Keep command-line and protocol behavior in regents-cli.
 - Keep Hermes presentation and operator behavior in `plugin/`.
 - Keep public web and publication-ingestion behavior in `platform/`.
 - When a shared contract changes, update every affected component in the same

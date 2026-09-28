@@ -16,18 +16,8 @@ when a safe upgrade path is available.
 ## Where code runs
 
 This section describes the environment work in Techtree: building tasks from
-a repository or from a Skill, and running an agent on those tasks. All of it
-happens on your own machine, in your own Docker.
-
-**Building tasks from a repository** (`techtree forge build`). You point
-Techtree at a git checkout on your machine. It copies that checkout's
-committed history into its own folder and builds one starting image from it.
-Two steps may use the internet. The first build on a machine installs the
-pinned Repo2RLEnv 0.8.8 tool environment Techtree uses, from the Python
-package index, on your machine; later builds reuse it. And building the
-starting image installs the repository's own dependencies, the way the
-repository's setup asks. The repository's code and tests then run only inside
-containers made from that image, with no network.
+a Skill, and running an agent on those tasks. All of it happens on your own
+machine, in your own Docker.
 
 **Building tasks from a Skill.** Each task's image is built with the network
 switched off, from the task's own `environment/` folder and nothing else. The
@@ -50,12 +40,12 @@ the model provider you signed in to, after you approve the run.
   anything it cannot read as plain text, is left out or refuses the Skill.
   What a Skill says it may use (for example `allowed-tools`) grants nothing.
 - A Skill's text reaches a model only in a step you approve: planning tasks,
-  building tasks, a run in which the agent carries the Skill (a
-  `techtree forge run` or a Climb run), or a revision of the Skill in an
-  uplift. The model that plans and builds tasks has no tools other than text.
-  The agent in a `techtree forge run` may use a terminal, files and code, all
+  building tasks, or a run in which the agent carries the Skill (a
+  `regents techtree forge run` or a Climb run). The model that plans and builds
+  tasks has no tools other than text.
+  The agent in a `regents techtree forge run` may use a terminal, files and code, all
   inside its offline container. Tasks the building model writes, including
   their reference answers, run only inside the offline containers above.
-- Text inside a Skill, a repository, or a run's output cannot approve a step,
+- Text inside a Skill or a run's output cannot approve a step,
   change a limit, or send anything off your machine. Approval comes only from
   the command a person runs after reading the review Techtree prints.

@@ -4,32 +4,32 @@ Install the released CLI, test a Skill against no Skill or its earlier version, 
 
 ## Install and check this machine
 
-The [agent installation guide](/skill.md) names the exact release to install and every step after it. The [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use its released versions and arguments as they are. Then run `techtree doctor`: it checks what the machine needs and prints the next action, without calling a paid model.
+The [agent installation guide](/skill.md) names the exact release to install and every step after it. The [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use its released versions and arguments as they are. Then run `regents techtree doctor`: it checks what the machine needs and prints the next action, without calling a paid model.
 
 ## Test your Skill
 
 Techtree makes practice tasks from what your Skill teaches, then your agent works them without the Skill and with it. Every step that sends anything to a model prints a review first and waits for your yes. Each command prints the next one.
 
 ```sh
-techtree forge inspect-skill path/to/your-skill
-techtree forge plan SOURCE_ID --provider PROVIDER --model MODEL
+regents techtree forge inspect-skill path/to/your-skill
+regents techtree forge plan SOURCE_ID --provider PROVIDER --model MODEL
 # Review, correct, build and accept, one printed step at a time.
-techtree forge run --arm baseline --collection COLLECTION_ID --provider PROVIDER --model MODEL
-techtree forge run --arm candidate --collection COLLECTION_ID --provider PROVIDER --model MODEL --skill path/to/your-skill
-techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID
+regents techtree forge run --arm baseline --collection COLLECTION_ID --provider PROVIDER --model MODEL
+regents techtree forge run --arm candidate --collection COLLECTION_ID --provider PROVIDER --model MODEL --skill path/to/your-skill
+regents techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID
 ```
 
 Both runs use the same provider and model. The comparison calls no model: it pairs every task across the two runs and says whether the Skill improved, regressed, was mixed or made no difference, overall and on the held-out tasks alone. To compare two versions of a Skill, give the baseline run the earlier version with `--skill path/to/earlier-skill`. The [tdd example](/examples/tdd) shows a finished comparison.
 
 ## Take a quick look with the Hello World Climb
 
-The Hello World Climb is a small, fixed comparison that ships with the release, run with a starter Skill (`techtree skill starter`). `techtree climb prepare` prints the exact one-time start command and the most the run may spend before anything runs. Its toy tasks say nothing about your own Skill.
+The Hello World Climb is a small, fixed comparison that ships with the release, run with a starter Skill (`regents techtree skill starter`). `regents techtree climb prepare` prints the exact one-time start command and the most the run may spend before anything runs. Its toy tasks say nothing about your own Skill.
 
 ## Verify and publish a Result
 
-`techtree proof verify path/to/result-bundle` reads a Result bundle, recomputes its checks and makes no model call. [Verify](/verify) says exactly what verification establishes.
+`regents techtree proof verify path/to/result-bundle` reads a Result bundle, recomputes its checks and makes no model call. [Verify](/verify) says exactly what verification establishes.
 
-Only Climb runs can be published today. `techtree publish RUN_ID` shows the publication terms and asks before it sends the Result bundle; the site answers with a signed receipt, and publishing the same bundle again changes nothing. `techtree withdraw BUNDLE_DIGEST` marks a published Result withdrawn and stops offering its bundle. Published Results are listed at [Results](/results).
+Only Climb runs can be published today. `regents techtree publish RUN_ID` shows the publication terms and asks before it sends the Result bundle; the site answers with a signed receipt, and publishing the same bundle again changes nothing. `regents techtree withdraw BUNDLE_DIGEST` marks a published Result withdrawn and stops offering its bundle. Published Results are listed at [Results](/results).
 
 ## Read the public API
 
