@@ -14,6 +14,7 @@ defmodule TechtreeWeb.OpenAPI do
   alias TechtreeWeb.Endpoint
 
   @digest_pattern "^sha256:[0-9a-f]{64}$"
+  @request_rate_limit Application.compile_env!(:techtree, :request_rate_limit)
   @climb_objects ~w(climb campaign execution_plan data_policy taskset_validation)
 
   @doc "The OpenAPI document, addressed at this deployment."
@@ -23,22 +24,25 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "1",
+        "version" => "2",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
           "The public catalog of Climbs, the log of published Results, the one address " <>
             "that accepts a signed Result bundle or its withdrawal, and the owner-only " <>
-            "shared profile. Reads need no account. Every refusal from a Techtree " <>
-            "address carries the same error object: a stable code, a message, and " <>
-            "whether retrying could help.",
+            "shared profile. Reads need no account. Every error is an `error` object " <>
+            "with a stable code: a refusal from an address says whether retrying could " <>
+            "help, and an unknown address, an unreadable body, a request over the rate " <>
+            "limit or an unexpected failure says what to do next. A breaking change " <>
+            "ships with a new major `info.version` and is listed in the documentation's " <>
+            "versioning and deprecation section the same day.",
         "license" => %{"name" => "MIT", "identifier" => "MIT"},
         "contact" => %{"name" => "Regents Labs", "email" => "build@regents.sh"}
       },
       "servers" => [%{"url" => Endpoint.url()}],
       "security" => [],
       "externalDocs" => %{"url" => Endpoint.url() <> "/docs"},
-      "paths" => paths(),
+      "paths" => paths() |> Map.new(fn {path, item} -> {path, with_rate_limits(item)} end),
       "components" => components()
     }
   end
@@ -253,20 +257,19 @@ defmodule TechtreeWeb.OpenAPI do
                   "schema" => %{"type" => "string"}
                 }
               }),
-            "400" => error("The body is not one of the two documents, or not JSON."),
+            "400" =>
+              json(
+                "The body is not one of the two documents, or not JSON.",
+                %{"anyOf" => [ref("Error"), ref("RequestError")]}
+              ),
             "404" => error("The withdrawal names no published Result."),
             "409" => error("A different document was already published for this run."),
-            "413" => error("The body is larger than the limit."),
+            "413" => json("The body is larger than the limit.", ref("RequestError")),
             "422" => error("A check on the bundle or the withdrawal failed; the code names it."),
             "429" =>
               "Too many publications from this caller; retry after the stated seconds."
               |> error()
-              |> Map.put("headers", %{
-                "Retry-After" => %{
-                  "description" => "Seconds until the caller may publish again.",
-                  "schema" => %{"type" => "integer"}
-                }
-              }),
+              |> Map.put("headers", %{"Retry-After" => header_ref("RetryAfter")}),
             "503" =>
               error(
                 "The site cannot sign a new receipt right now, so nothing was recorded; " <>
@@ -357,8 +360,8 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" =>
             profile_responses(%{
               "200" => json("The updated profile.", ref("ProfileResponse")),
-              "400" => error("The body is not valid JSON."),
-              "413" => error("The body is larger than 8 KiB."),
+              "400" => json("The body is not valid JSON.", ref("RequestError")),
+              "413" => json("The body is larger than 8 KiB.", ref("RequestError")),
               "415" => profile_error("The body is not `application/json`."),
               "422" => profile_error("The update is not valid.")
             })
@@ -398,6 +401,29 @@ defmodule TechtreeWeb.OpenAPI do
           "description" => "The Privy identity token paired with the access token."
         }
       },
+      "headers" => %{
+        "RateLimitPolicy" => %{
+          "description" =>
+            "The budget this request counted against, as \"policy\";q=requests;w=window seconds. " <>
+              "Each client address has #{@request_rate_limit[:limit]} requests per " <>
+              "#{@request_rate_limit[:window_seconds]} seconds, `default`, shared by the health " <>
+              "check and the API. Publishing and withdrawing count against their own budget, " <>
+              "`publication`, instead.",
+          "schema" => %{"type" => "string"},
+          "example" =>
+            ~s("default";q=#{@request_rate_limit[:limit]};w=#{@request_rate_limit[:window_seconds]})
+        },
+        "RateLimit" => %{
+          "description" =>
+            "What is left of that budget, as \"policy\";r=remaining;t=seconds until the window resets.",
+          "schema" => %{"type" => "string"},
+          "example" => ~s("default";r=#{@request_rate_limit[:limit] - 1};t=42)
+        },
+        "RetryAfter" => %{
+          "description" => "Seconds to wait before the window resets.",
+          "schema" => %{"type" => "integer", "minimum" => 1}
+        }
+      },
       "parameters" => %{
         "IfNoneMatch" => %{
           "name" => "If-None-Match",
@@ -429,6 +455,25 @@ defmodule TechtreeWeb.OpenAPI do
                 "type" => "boolean",
                 "description" => "Whether retrying could help."
               }
+            }
+          }
+        }
+      },
+      "RequestError" => %{
+        "type" => "object",
+        "required" => ["error"],
+        "properties" => %{
+          "error" => %{
+            "type" => "object",
+            "required" => ["code", "message", "hint"],
+            "properties" => %{
+              "code" => %{
+                "type" => "string",
+                "description" =>
+                  "The status name in snake case, such as `not_found` or `too_many_requests`."
+              },
+              "message" => %{"type" => "string"},
+              "hint" => %{"type" => "string", "description" => "What to do next."}
             }
           }
         }
@@ -827,6 +872,49 @@ defmodule TechtreeWeb.OpenAPI do
       responses
     )
   end
+
+  # Every answer from the health check and the API says where the caller stands
+  # in its budget; past it the answer is 429. `default` covers what is not
+  # listed: an unknown address or method, or an unexpected failure.
+  defp with_rate_limits(item) do
+    Map.new(item, fn {method, operation} ->
+      {method, Map.update!(operation, "responses", &rate_limited(&1, errors_of(operation)))}
+    end)
+  end
+
+  defp rate_limited(responses, errors) do
+    responses
+    |> Map.put_new(
+      "429",
+      json(
+        "Too many requests from this client address in the current window.",
+        ref("RequestError")
+      )
+      |> Map.put("headers", %{"Retry-After" => header_ref("RetryAfter")})
+    )
+    |> Map.new(fn {status, response} ->
+      {status,
+       Map.update(response, "headers", rate_limit_headers(), &Map.merge(&1, rate_limit_headers()))}
+    end)
+    |> Map.put(
+      "default",
+      json(
+        "Any other error, such as an unknown address or method.",
+        %{"anyOf" => [ref(errors), ref("RequestError")]}
+      )
+    )
+  end
+
+  defp errors_of(%{"security" => [_ | _]}), do: "ProfileError"
+  defp errors_of(_operation), do: "Error"
+
+  defp rate_limit_headers,
+    do: %{
+      "RateLimit-Policy" => header_ref("RateLimitPolicy"),
+      "RateLimit" => header_ref("RateLimit")
+    }
+
+  defp header_ref(name), do: %{"$ref" => "#/components/headers/" <> name}
 
   defp ref(name), do: %{"$ref" => "#/components/schemas/" <> name}
   defp ref_parameter(name), do: %{"$ref" => "#/components/parameters/" <> name}
