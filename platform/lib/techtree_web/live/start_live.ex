@@ -1,8 +1,7 @@
 defmodule TechtreeWeb.StartLive do
   @moduledoc """
   Where a person starts, chosen by what they want to do: test their own
-  Skill, take a quick look with the example Climb, or build tasks from their
-  own repository.
+  Skill, or take a quick look with the example Climb.
 
   Each path names what it needs, roughly how long it takes and where its data
   goes. The version requirements and the install line come from the active
@@ -64,7 +63,7 @@ defmodule TechtreeWeb.StartLive do
           <p class="eyebrow">Start locally</p>
           <h1 id="start-title">{@title}</h1>
           <p class="lede">
-            To see what a Skill changes, Techtree makes tasks from it and your agent works them twice: once without the Skill, or with its earlier version, and once with it. Only the Skill changes, so the difference is the Skill’s. Test your own Skill, take a quick look with the example, or build tasks from your own repository.
+            To see what a Skill changes, Techtree makes tasks from it and your agent works them twice: once without the Skill, or with its earlier version, and once with it. Only the Skill changes, so the difference is the Skill’s. Test your own Skill, or take a quick look with the example.
           </p>
         </header>
 
@@ -87,11 +86,6 @@ defmodule TechtreeWeb.StartLive do
             <span class="start-paths__name">Take a quick look</span>
             <.capability_status capability={:climb} />
             <span class="start-paths__note">Run the small Hello World example end to end.</span>
-          </a>
-          <a href="#repository" class="start-paths__item">
-            <span class="start-paths__name">Build tasks from my repository</span>
-            <.capability_status capability={:repository_tasks} />
-            <span class="start-paths__note">Turn past fixes into repair tasks.</span>
           </a>
         </nav>
 
@@ -149,7 +143,7 @@ defmodule TechtreeWeb.StartLive do
           </ol>
           <section :if={@setup_commands} class="start-guide__direct" aria-labelledby="setup-direct">
             <h3 id="setup-direct">Or set it up yourself</h3>
-            <.command_block id="copy-setup-cli" label="Techtree CLI" lines={@setup_commands.cli} />
+            <.command_block id="copy-setup-cli" label="Command line" lines={@setup_commands.cli} />
             <.link navigate={~p"/docs#test-skill"} class="text-link">
               Every step, including the comparison →
             </.link>
@@ -197,42 +191,6 @@ defmodule TechtreeWeb.StartLive do
           </.link>
         </section>
 
-        <section id="repository" class="start-path" aria-labelledby="repository-title">
-          <header class="start-path__head">
-            <.capability_status capability={:repository_tasks} />
-            <h2 id="repository-title">Build tasks from my repository</h2>
-            <p>
-              Point Techtree at a project with tests and a git history. It turns past fixes into repair tasks and keeps only the ones whose tests really check the fix.
-            </p>
-          </header>
-          <.definition_list>
-            <:fact term="You need">
-              <.requirements minimums={@minimums} provider={false} hermes={false}>
-                <li>
-                  A git repository with a test command; without your own Dockerfile, a Python project managed by uv
-                </li>
-              </.requirements>
-            </:fact>
-            <:fact term="Time">
-              A few minutes to set up. A build looks at ten past fixes by default and can take longer on a large project.
-            </:fact>
-            <:fact term="Where your data goes">
-              Building makes no model calls and sends nothing to Techtree. Docker downloads a base image and your project's dependencies, and the tasks stay on your computer. Running an agent on them later sends its work to the model provider you choose.
-            </:fact>
-          </.definition_list>
-          <.command_block
-            :if={@setup_commands}
-            id="copy-start-repository"
-            label="Build tasks"
-            lines={@setup_commands.repository}
-          />
-          <p class="later-note">
-            <.capability_status capability={:hosted_building} />
-            <span>A hosted service that builds these environments for you.</span>
-            <.link navigate={~p"/repo2rlenv"} class="text-link">About Repo2RLEnv →</.link>
-          </p>
-        </section>
-
         <div class="start-guide__next">
           <div>
             <p class="eyebrow">Afterwards</p><h2>Keep the evidence.</h2><p>
@@ -255,17 +213,10 @@ defmodule TechtreeWeb.StartLive do
       example: example_commands(install_argv, reference),
       cli: [
         {:command, install_argv},
-        {:command, ["techtree", "forge", "inspect-skill", "path/to/your-skill"]},
+        {:command, ["regents", "techtree", "forge", "inspect-skill", "path/to/your-skill"]},
         {:comment, "Then plan with a provider and model you choose:"},
-        {:command, ["techtree", "forge", "plan", "--help"]},
+        {:command, ["regents", "techtree", "forge", "plan", "--help"]},
         {:comment, "Every review waits for your answer."}
-      ],
-      repository: [
-        {:command, install_argv},
-        {:command,
-         ["techtree", "forge", "build", "--repo", "path/to/your-repo", "--test-cmd", "pytest"]},
-        {:comment, "Then read what qualified:"},
-        {:command, ["techtree", "forge", "status", "BUILD_ID"]}
       ]
     }
   end
@@ -295,11 +246,12 @@ defmodule TechtreeWeb.StartLive do
   defp example_commands(install_argv, reference) do
     [
       {:command, install_argv},
-      {:command, ["techtree", "setup"]},
-      {:command, ["techtree", "doctor", "--climb", reference]},
-      {:command, ["techtree", "skill", "starter"]},
+      {:command, ["regents", "techtree", "setup"]},
+      {:command, ["regents", "techtree", "doctor", "--climb", reference]},
+      {:command, ["regents", "techtree", "skill", "starter"]},
       {:comment, "Prepare with the Skill it placed, then run the start command it prints:"},
-      {:command, ["techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]}
+      {:command,
+       ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]}
     ]
   end
 end

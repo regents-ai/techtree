@@ -25,15 +25,15 @@ defmodule TechtreeWeb.SkillControllerTest do
     assert conn.resp_body =~ "uv tool install --python 3.12 techtree==0.1.0"
     assert conn.resp_body =~ release.digest
     assert conn.resp_body =~ release.source_revision
-    assert conn.resp_body =~ "techtree forge inspect-skill PATH"
+    assert conn.resp_body =~ "regents techtree forge inspect-skill PATH"
     assert conn.resp_body =~ "`--yes --reviewed-on host-agent`"
     assert conn.resp_body =~ "Never approve anything on\n   the person's behalf"
 
     assert conn.resp_body =~
-             "techtree setup\ntechtree doctor --climb hello-world-climb@1\ntechtree skill starter"
+             "regents techtree setup\nregents techtree doctor --climb hello-world-climb@1\nregents techtree skill starter"
 
     assert conn.resp_body =~ "macOS or Linux · Python 3.12, provided by the installer"
-    assert conn.resp_body =~ "techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID"
+    assert conn.resp_body =~ "regents techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID"
 
     assert conn.resp_body =~
              "adding `--skill OLD_PATH` only to measure against the earlier version"

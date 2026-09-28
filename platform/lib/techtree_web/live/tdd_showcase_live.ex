@@ -7,8 +7,8 @@ defmodule TechtreeWeb.TddShowcaseLive do
   agent that tries to improve the Skill, and comes first, in words, with the
   tasks that went each way. The tasks such an agent could see follow on their
   own. Then the claims each task tests, the Skill itself, what stands behind
-  the numbers and how they were made, and how to check and run the
-  comparison again from its export. The full task list, the Skill's files and
+  the numbers and how they were made, and the export folder that holds the
+  tasks. The full task list, the Skill's files and
   the fingerprints sit underneath, folded.
 
   Everything comes from `TechtreeWeb.TddShowcase`, which reads the files the
@@ -196,62 +196,24 @@ defmodule TechtreeWeb.TddShowcaseLive do
         </ul>
       </section>
 
-      <section id="showcase-rerun" class="section">
-        <p class="eyebrow">Check it yourself</p>
-        <h2>Check the tasks and run this comparison again</h2>
+      <section id="showcase-check" class="section">
+        <p class="eyebrow">The tasks</p>
+        <h2>The tasks behind this comparison</h2>
         <.definition_list>
           <:fact term="Fingerprint of the tasks">
             <.digest value={@showcase.fingerprint} />
           </:fact>
         </.definition_list>
-        <p class="small quiet section-note">
-          The first command below prints the fingerprint of the tasks it checks. They are the same
-          tasks as these only if it matches this one.
+        <p>
+          <a id="showcase-export" href={@export_url}>The export folder of these tasks</a>
+          holds every task with its tests, its reference solutions and the records of how it was
+          built and accepted. It names the fingerprint above; a folder with any other fingerprint
+          holds other tasks.
         </p>
-        <div class="rerun">
-          <div class="rerun__needs">
-            <h3>You need</h3>
-            <ul class="needs">
-              <li>
-                <a id="showcase-export" href={@export_url}>The export folder of these tasks</a>,
-                with its tests and records. Use it only if the first command prints the
-                fingerprint above; a folder with any other fingerprint holds other tasks.
-              </li>
-              <li>The Skill's files, shown on this page, in a folder of their own</li>
-              <li>Docker, Techtree and Hermes, as the export folder's own instructions describe</li>
-              <li>An account with a model provider you choose; its calls may cost money</li>
-            </ul>
-          </div>
-          <.command_block
-            id="copy-showcase-rerun"
-            label="Check it and run it again"
-            lines={Enum.map(@showcase.commands, &{:command, &1})}
-          />
-        </div>
         <p class="small quiet section-note">
-          Words in capitals stand for what only you know: your folders, the provider and model
-          you choose, and the ids the two runs print. Each run shows what it will do and asks
-          before it starts.
+          To test your own change to a Skill, compare its earlier and new versions on tasks built
+          from it. <.link navigate={~p"/docs#two-versions"}>How to compare two versions →</.link>
         </p>
-
-        <h3 class="rerun__heading">What a new run can tell you</h3>
-        <ul class="needs">
-          <li>
-            A new run is a new comparison. The model may not answer the same way twice, so its
-            numbers can differ from these.
-          </li>
-          <li>
-            Whether yours agrees is for you to judge. This site keeps no record that ties a new
-            run to this one.
-          </li>
-          <li>
-            To test your own change to this Skill, give the baseline run the earlier version with
-            <code>--skill</code>
-            instead of no Skill, and the candidate run your new version. The comparison then says
-            whether the change is worth keeping.
-            <.link navigate={~p"/docs#two-versions"}>How to compare two versions →</.link>
-          </li>
-        </ul>
       </section>
 
       <section class="section">

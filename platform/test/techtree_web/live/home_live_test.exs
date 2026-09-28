@@ -92,7 +92,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       expected =
         Enum.join(release.install_argv, " ") <>
           "\n" <>
-          "techtree forge inspect-skill path/to/your-skill"
+          "regents techtree forge inspect-skill path/to/your-skill"
 
       assert has_element?(live, "#copy-home-cli")
       assert copied_text(html, "copy-home-cli") == expected

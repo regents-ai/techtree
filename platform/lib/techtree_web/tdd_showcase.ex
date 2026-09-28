@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.TddShowcase do
   @moduledoc """
   The one example comparison this site shows: Matt Pocock's `tdd` Skill
-  against no Skill, from the files of one local `techtree forge` comparison.
+  against no Skill, from the files of one local `regents techtree forge` comparison.
 
   The folder is configured (`config :techtree, TechtreeWeb.TddShowcase,
   folder: ...`), as `{:priv, subdirectory}` for the copy shipped in the
@@ -105,8 +105,7 @@ defmodule TechtreeWeb.TddShowcase do
               api_calls: non_neg_integer() | nil,
               total_tokens: non_neg_integer() | nil
             }
-          },
-          commands: [[String.t()]]
+          }
         }
 
   # Fewer graded pairs than this and no verdict is given: the CLI's
@@ -275,8 +274,7 @@ defmodule TechtreeWeb.TddShowcase do
       study: part!(stored_study, :study, tasks),
       tasks: tasks,
       claims: claims(claims, tasks),
-      arms: %{baseline: arm(baseline), candidate: arm(candidate)},
-      commands: commands(readme)
+      arms: %{baseline: arm(baseline), candidate: arm(candidate)}
     }
   end
 
@@ -501,13 +499,5 @@ defmodule TechtreeWeb.TddShowcase do
       [_line, limit] = Regex.run(~r/^- #{Regex.escape(name)}: (.+)$/m, section)
       {name, limit}
     end)
-  end
-
-  # The commands the export's README lists, in order, as argv.
-  defp commands(readme) do
-    [_before, block] = String.split(readme, "### The commands, in order\n\n```\n", parts: 2)
-    [block | _after] = String.split(block, "\n```", parts: 2)
-    [_ | _] = lines = String.split(block, "\n")
-    Enum.map(lines, &String.split(&1, " "))
   end
 end

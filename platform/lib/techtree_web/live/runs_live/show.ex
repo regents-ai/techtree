@@ -434,7 +434,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         <.command_block
           :if={!@withdrawn?}
           id="copy-runs-verify"
-          argv={["techtree", "proof", "verify", "techtree-result.json"]}
+          argv={["regents", "techtree", "proof", "verify", "techtree-result.json"]}
           label="Verify offline"
         />
       </section>
@@ -561,15 +561,16 @@ defmodule TechtreeWeb.RunsLive.Show do
   defp rerun_commands(install_argv, reference, fingerprint) do
     [
       {:command, install_argv},
-      {:command, ["techtree", "setup"]},
-      {:command, ["techtree", "doctor", "--climb", reference]},
+      {:command, ["regents", "techtree", "setup"]},
+      {:command, ["regents", "techtree", "doctor", "--climb", reference]},
       {:comment, "Put the Skill's files in a folder, then prepare it:"},
-      {:command, ["techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]},
+      {:command,
+       ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]},
       {:comment, "Check that the Skill content digest it prints is #{fingerprint}"},
       {:comment, "Start the draft it names. Techtree shows the most it may spend first:"},
-      {:command, ["techtree", "climb", "start", "DRAFT_ID"]},
+      {:command, ["regents", "techtree", "climb", "start", "DRAFT_ID"]},
       {:comment, "When it finishes, check the run and read its result:"},
-      {:command, ["techtree", "run", "result", "RUN_ID"]}
+      {:command, ["regents", "techtree", "run", "result", "RUN_ID"]}
     ]
   end
 

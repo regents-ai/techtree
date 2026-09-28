@@ -183,7 +183,7 @@ defmodule TechtreeWeb.Layouts do
   end
 
   defp description_for_path("/start"),
-    do: "Try the example Climb, evaluate your own Skill, or build tasks from your repository."
+    do: "Try the example Climb or evaluate your own Skill."
 
   defp description_for_path("/results"),
     do: "Browse participant-attested Results from controlled Skill comparisons."

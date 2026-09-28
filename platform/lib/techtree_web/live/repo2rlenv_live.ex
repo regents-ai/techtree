@@ -196,23 +196,6 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
             independent reproduction. We’ll report those boundaries alongside the evidence.
           </p>
         </Regent.Primitives.disclosure>
-
-        <div class="start-guide__next">
-          <div>
-            <div class="service-kicker">
-              <p class="eyebrow">Try it on your computer</p>
-              <.capability_status capability={:repository_tasks} />
-            </div>
-            <h2>Build tasks from your repository.</h2>
-            <p>
-              While the hosted service is being built, Techtree can already turn past fixes in a
-              local git repository into repair tasks and check each one on your computer.
-            </p>
-          </div>
-          <.link navigate={~p"/start#repository"} class="rg-button rg-button--primary">
-            Build tasks from my repository →
-          </.link>
-        </div>
       </article>
     </Layouts.page>
     """

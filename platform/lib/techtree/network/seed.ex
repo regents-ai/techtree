@@ -11,7 +11,7 @@ defmodule Techtree.Network.Seed do
   ## They go through the ingest and nowhere else
 
   There is no seeding path into the database. A submission is built out of the
-  proof directory exactly as `techtree publish` would build it, and handed to
+  proof directory exactly as `regents techtree publish` would build it, and handed to
   `Techtree.Network.Ingest.accept/3` — the same function the one write address
   calls, running the same checks in the same order, taking the same refusals.
   A fixture insert would put rows on the log that no check had ever seen, and
@@ -99,7 +99,7 @@ defmodule Techtree.Network.Seed do
   end
 
   @doc """
-  The exact bytes `techtree publish` puts on the wire for one proof directory.
+  The exact bytes `regents techtree publish` puts on the wire for one proof directory.
 
   Four members and no fifth, the files keyed by their POSIX path inside the
   directory against the base64 of their stored bytes, and the whole document in

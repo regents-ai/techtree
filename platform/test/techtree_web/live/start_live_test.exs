@@ -28,9 +28,9 @@ defmodule TechtreeWeb.StartLiveTest do
       expected_cli =
         [
           Enum.join(release.install_argv, " "),
-          "techtree forge inspect-skill path/to/your-skill",
+          "regents techtree forge inspect-skill path/to/your-skill",
           "# Then plan with a provider and model you choose:",
-          "techtree forge plan --help",
+          "regents techtree forge plan --help",
           "# Every review waits for your answer."
         ]
         |> Enum.join("\n")
@@ -48,11 +48,11 @@ defmodule TechtreeWeb.StartLiveTest do
       expected_example =
         [
           Enum.join(release.install_argv, " "),
-          "techtree setup",
-          "techtree doctor --climb #{release.introductory_reference}",
-          "techtree skill starter",
+          "regents techtree setup",
+          "regents techtree doctor --climb #{release.introductory_reference}",
+          "regents techtree skill starter",
           "# Prepare with the Skill it placed, then run the start command it prints:",
-          "techtree climb prepare #{release.introductory_reference} --skill path/to/skill"
+          "regents techtree climb prepare #{release.introductory_reference} --skill path/to/skill"
         ]
         |> Enum.join("\n")
 
@@ -61,8 +61,7 @@ defmodule TechtreeWeb.StartLiveTest do
       for id <- [
             "copy-start-example",
             "copy-start-instruction",
-            "copy-setup-cli",
-            "copy-start-repository"
+            "copy-setup-cli"
           ] do
         assert has_element?(live, "##{id}", "Copy")
         assert has_element?(live, "##{id}-status[role=status]")
@@ -78,13 +77,13 @@ defmodule TechtreeWeb.StartLiveTest do
       assert has_element?(live, "#setup-direct", "Or set it up yourself")
       assert has_element?(live, ~s|.start-guide__direct a[href="/docs#test-skill"]|)
 
-      [skill_at, example_at, repository_at] =
+      [skill_at, example_at] =
         Enum.map(
-          [~s|id="skill"|, ~s|id="example"|, ~s|id="repository"|],
+          [~s|id="skill"|, ~s|id="example"|],
           &(:binary.match(html, &1) |> elem(0))
         )
 
-      assert skill_at < example_at and example_at < repository_at
+      assert skill_at < example_at
     end
 
     @tag :tmp_dir
@@ -147,8 +146,7 @@ defmodule TechtreeWeb.StartLiveTest do
     for id <- [
           "copy-start-example",
           "copy-start-instruction",
-          "copy-setup-cli",
-          "copy-start-repository"
+          "copy-setup-cli"
         ] do
       refute html =~ id
     end

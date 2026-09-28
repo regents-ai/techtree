@@ -61,7 +61,7 @@ defmodule TechtreeWeb.TddShowcaseTest do
            end)
   end
 
-  test "the Skill, the runs' settings and the commands come from the committed files",
+  test "the Skill and the runs' settings come from the committed files",
        %{showcase: showcase} do
     assert %{name: "tdd", digest: "sha256:" <> _} = showcase.skill
 
@@ -82,7 +82,6 @@ defmodule TechtreeWeb.TddShowcaseTest do
     assert showcase.limits == %{cpus: 2, memory_mb: 4096}
     assert showcase.not_established == [:served_model, :agent_unmodified, :sampling]
     assert "sha256:" <> _ = showcase.fingerprint
-    assert length(showcase.commands) == 6
     assert Enum.all?(showcase.tasks, &(&1.time_limit == "30 minutes"))
   end
 

@@ -24,14 +24,13 @@ Techtree is a working technical preview built from three independent parts: Prim
 
 - To decide whether a change to a Skill is worth keeping.
 - To compare your agent with and without a Skill on tasks made from it.
-- To build repair tasks from a repository's own history (experimental).
 - To check someone else's published Result offline, without trusting this site.
 
 It is not a general benchmark of a model's broad capability, and it does not run your agent for you in the cloud.
 
 ## How to start
 
-- [Start](/start): test your Skill, take a quick look with the example Climb, or build tasks from your repository.
+- [Start](/start): test your Skill, or take a quick look with the example Climb.
 - [Agent installation guide](/skill.md): the exact release to install and every step for your agent to follow, from making the tasks to comparing the runs. Each review waits for the person's own answer.
 - [Docs](/docs): install, test a Skill, verify, publish and integrate.
 

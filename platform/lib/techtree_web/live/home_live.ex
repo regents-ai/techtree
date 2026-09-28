@@ -196,50 +196,6 @@ defmodule TechtreeWeb.HomeLive do
         </div>
       </section>
 
-      <section
-        id="from-a-repository"
-        class="home-section service-intro"
-        aria-labelledby="service-intro-title"
-      >
-        <Regent.Structure.section_bar>
-          <p class="rg-section-bar__label">From a repository</p>
-          <.capability_status capability={:repository_tasks} />
-        </Regent.Structure.section_bar>
-        <div class="service-intro__body">
-          <div>
-            <h2 id="service-intro-title">Your repo. Tasks from its own history.</h2>
-            <p>
-              From a local checkout with its history, Techtree finds past fixes whose tests fail
-              before the fix and pass after it, and turns each one into a repair task. Every task
-              is checked again in a fresh container on your computer, and no model is called.
-            </p>
-            <p class="later-note later-note--inline">
-              <.capability_status capability={:hosted_building} />
-              The hosted Repo2RLEnv service, which will do this for a pinned repository, comes later.
-            </p>
-            <div class="service-intro__actions">
-              <.link navigate={~p"/start#repository"} class="rg-button rg-button--secondary">
-                Build tasks from my repository <span aria-hidden="true">→</span>
-              </.link>
-              <.link navigate={~p"/repo2rlenv"} class="text-link">
-                About Repo2RLEnv <span aria-hidden="true">→</span>
-              </.link>
-            </div>
-          </div>
-          <ol class="service-flow" aria-label="How tasks are built from your repository">
-            <li>
-              <span>01 / Source</span><strong>Local checkout</strong><small>Committed history</small>
-            </li>
-            <li>
-              <span>02 / Tasks</span><strong>Past fixes</strong><small>Tests fail before, pass after</small>
-            </li>
-            <li>
-              <span>03 / Check</span><strong>Fresh containers</strong><small>Kept or rejected, with reasons</small>
-            </li>
-          </ol>
-        </div>
-      </section>
-
       <section class="home-section trust" aria-labelledby="trust-title">
         <div class="section-heading">
           <p class="eyebrow">Where the work goes</p>
@@ -294,7 +250,7 @@ defmodule TechtreeWeb.HomeLive do
               id="copy-home-cli"
               lines={[
                 {:command, @release.install_argv},
-                {:command, ["techtree", "forge", "inspect-skill", "path/to/your-skill"]}
+                {:command, ["regents", "techtree", "forge", "inspect-skill", "path/to/your-skill"]}
               ]}
               label="Install, then look at your Skill"
             />

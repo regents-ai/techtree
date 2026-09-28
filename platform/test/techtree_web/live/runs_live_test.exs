@@ -498,7 +498,7 @@ defmodule TechtreeWeb.RunsLiveTest do
              )
 
       assert copied_text(html, "copy-runs-verify") ==
-               "techtree proof verify techtree-result.json"
+               "regents techtree proof verify techtree-result.json"
     end
 
     test "a withdrawn entry keeps its page and is marked at the top of it",

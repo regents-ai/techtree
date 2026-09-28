@@ -2,7 +2,7 @@ defmodule TechtreeWeb.TddShowcaseLiveTest do
   @moduledoc """
   The example comparison page, drawn from the test folder: the verdict names
   the held-out tasks by how they went, the tasks the improving agent could see
-  stand apart, and the commands and the export folder are the export's own.
+  stand apart, and the export folder link is the configured one.
 
   A comparison with tasks missing a score is drawn from one of the variant
   records, put in place of the test folder's own; the page reads the
@@ -37,13 +37,6 @@ defmodule TechtreeWeb.TddShowcaseLiveTest do
     study = view |> element("#showcase-study") |> render()
     assert Enum.all?(showcase.study.tasks, &(study =~ &1.name))
     refute Enum.any?(showcase.held_out.tasks, &(study =~ &1.name))
-  end
-
-  test "the rerun commands copy exactly the export README's block", %{view: view} do
-    readme = File.read!(Path.join([TddShowcase.folder(), "export", "README.md"]))
-    [_, block] = Regex.run(~r/### The commands, in order\n\n```\n(.*?)\n```/s, readme)
-
-    assert copied_text(render(view), "copy-showcase-rerun") == block
   end
 
   test "the export folder link is the configured one", %{view: view} do

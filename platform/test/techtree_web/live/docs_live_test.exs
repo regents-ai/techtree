@@ -59,15 +59,15 @@ defmodule TechtreeWeb.DocsLiveTest do
     {:ok, live, html} = live(conn, ~p"/docs")
     text = visible_text(html)
 
-    assert text =~ "techtree doctor --climb"
-    assert text =~ "techtree climb prepare"
-    assert text =~ "techtree proof verify path/to/result-bundle"
-    assert text =~ "techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID"
+    assert text =~ "regents techtree doctor --climb"
+    assert text =~ "regents techtree climb prepare"
+    assert text =~ "regents techtree proof verify path/to/result-bundle"
+    assert text =~ "regents techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID"
     assert text =~ "--arm baseline --collection COLLECTION_ID"
     assert text =~ "--skill path/to/earlier-skill"
     assert text =~ "Only Climb runs can be published today."
-    assert text =~ "techtree publish RUN_ID"
-    assert text =~ "techtree withdraw BUNDLE_DIGEST"
+    assert text =~ "regents techtree publish RUN_ID"
+    assert text =~ "regents techtree withdraw BUNDLE_DIGEST"
     assert copied_text(html, "copy-docs-hermes") =~ "skill.md"
     assert has_element?(live, "#copy-docs-hermes-plugin")
     assert text =~ "GET /api/v1/bootstrap"

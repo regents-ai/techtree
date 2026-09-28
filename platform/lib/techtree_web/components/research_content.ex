@@ -37,7 +37,7 @@ defmodule TechtreeWeb.ResearchContent do
         task membership, and the fingerprints of the files used to produce the claim.
       </p>
       <p>Anyone holding the bundle can verify it offline:</p>
-      <pre class="docs-code"><code>techtree proof verify path/to/result-bundle</code></pre>
+      <pre class="docs-code"><code>regents techtree proof verify path/to/result-bundle</code></pre>
       <p>No model call is needed. The verifier does not need to contact Techtree.</p>
       <p>It checks that:</p>
       <ul class="doc-list">
@@ -189,9 +189,9 @@ defmodule TechtreeWeb.ResearchContent do
         behaves like a local run. It is not a benchmark of model capability.
       </p>
       <p>
-        Creating an environment from a Skill and building tasks from a repository are
-        experimental today; <.link navigate={~p"/start"}>Start</.link> shows both. A local
-        dashboard remains later work.
+        Creating an environment from a Skill is experimental today;
+        <.link navigate={~p"/start"}>Start</.link>
+        shows how. A local dashboard remains later work.
       </p>
     </section>
 

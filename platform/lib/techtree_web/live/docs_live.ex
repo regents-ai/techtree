@@ -131,7 +131,8 @@ defmodule TechtreeWeb.DocsLive do
                   id="copy-docs-install"
                   lines={[
                     {:command, @release.install_argv},
-                    {:command, ["techtree", "doctor", "--climb", @release.introductory_reference]}
+                    {:command,
+                     ["regents", "techtree", "doctor", "--climb", @release.introductory_reference]}
                   ]}
                   label="Install, then run Doctor"
                 />
@@ -155,9 +156,10 @@ defmodule TechtreeWeb.DocsLive do
             <.command_block
               id="copy-docs-skill-tasks"
               lines={[
-                {:command, ["techtree", "forge", "inspect-skill", "path/to/your-skill"]},
+                {:command, ["regents", "techtree", "forge", "inspect-skill", "path/to/your-skill"]},
                 {:command,
                  [
+                   "regents",
                    "techtree",
                    "forge",
                    "plan",
@@ -181,6 +183,7 @@ defmodule TechtreeWeb.DocsLive do
               lines={[
                 {:command,
                  [
+                   "regents",
                    "techtree",
                    "forge",
                    "run",
@@ -195,6 +198,7 @@ defmodule TechtreeWeb.DocsLive do
                  ]},
                 {:command,
                  [
+                   "regents",
                    "techtree",
                    "forge",
                    "run",
@@ -209,7 +213,8 @@ defmodule TechtreeWeb.DocsLive do
                    "--skill",
                    "path/to/your-skill"
                  ]},
-                {:command, ["techtree", "forge", "compare", "BASELINE_RUN_ID", "CANDIDATE_RUN_ID"]}
+                {:command,
+                 ["regents", "techtree", "forge", "compare", "BASELINE_RUN_ID", "CANDIDATE_RUN_ID"]}
               ]}
               label="Compare without and with the Skill"
             />
@@ -223,22 +228,22 @@ defmodule TechtreeWeb.DocsLive do
             </p>
             <h3>3. Revise once, if you want to</h3>
             <p>
-              <code>techtree uplift context COMPARISON_ID</code>
+              <code>regents techtree uplift context COMPARISON_ID</code>
               gives what a revision may learn from, never the held-out tasks. Write the revised
               Skill into a new folder, then run
               <code>
-                techtree uplift prepare --from-run COMPARISON_ID --candidate-skill path/to/revised-skill
+                regents techtree uplift prepare --from-run COMPARISON_ID --candidate-skill path/to/revised-skill
               </code>
-              and the <code>techtree uplift start</code>
+              and the <code>regents techtree uplift start</code>
               command it prints. The revision is judged on the held-out tasks alone.
             </p>
             <h3>Fix a task, or check where things stand</h3>
             <p>
-              If a built task is wrong, fix a copy of it by hand and record that with <code>techtree forge correct-task CONSTRUCTION_ID TASK_NAME DIR</code>.
-              <code>techtree forge status ID</code>
+              If a built task is wrong, fix a copy of it by hand and record that with <code>regents techtree forge correct-task CONSTRUCTION_ID TASK_NAME DIR</code>.
+              <code>regents techtree forge status ID</code>
               shows any build, plan, run or comparison.
-              <code>techtree forge export COLLECTION_ID --to FOLDER</code>
-              writes a copy of the tasks for someone else to rerun.
+              <code>regents techtree forge export COLLECTION_ID --to FOLDER</code>
+              writes a copy of the tasks for someone else to read.
             </p>
           </section>
 
@@ -251,6 +256,7 @@ defmodule TechtreeWeb.DocsLive do
             <.command_block
               id="copy-docs-two-versions"
               argv={[
+                "regents",
                 "techtree",
                 "forge",
                 "run",
@@ -285,9 +291,10 @@ defmodule TechtreeWeb.DocsLive do
               :if={@release && @release.introductory_reference}
               id="copy-docs-prepare"
               lines={[
-                {:command, ["techtree", "skill", "starter"]},
+                {:command, ["regents", "techtree", "skill", "starter"]},
                 {:command,
                  [
+                   "regents",
                    "techtree",
                    "climb",
                    "prepare",
@@ -299,7 +306,8 @@ defmodule TechtreeWeb.DocsLive do
               label="Prepare the Hello World Climb"
             />
             <p>
-              Approve and run only the exact <code>techtree climb start</code> command printed by
+              Approve and run only the exact <code>regents techtree climb start</code>
+              command printed by
               preparation. Closing the terminal does not stop a started Run.
             </p>
           </section>
@@ -338,7 +346,7 @@ defmodule TechtreeWeb.DocsLive do
             </p>
             <.command_block
               id="copy-docs-verify"
-              argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
+              argv={["regents", "techtree", "proof", "verify", "path/to/result-bundle"]}
               label="Verify locally"
             />
             <p><.link navigate={~p"/proofs"}>Read exactly what verification establishes.</.link></p>
@@ -348,7 +356,7 @@ defmodule TechtreeWeb.DocsLive do
             <h2>Publish a Result</h2>
             <p>
               Only Climb runs can be published today. A Skill comparison stays on your computer;
-              <code>techtree forge export</code>
+              <code>regents techtree forge export</code>
               writes a copy of its tasks to share.
             </p>
             <p>
@@ -357,7 +365,7 @@ defmodule TechtreeWeb.DocsLive do
             </p>
             <.command_block
               id="copy-docs-publish"
-              argv={["techtree", "publish", "RUN_ID"]}
+              argv={["regents", "techtree", "publish", "RUN_ID"]}
               label="Publish one finished Run"
             />
             <p>
@@ -366,7 +374,7 @@ defmodule TechtreeWeb.DocsLive do
             </p>
             <.command_block
               id="copy-docs-withdraw"
-              argv={["techtree", "withdraw", "BUNDLE_DIGEST"]}
+              argv={["regents", "techtree", "withdraw", "BUNDLE_DIGEST"]}
               label="Withdraw a published Result"
             />
             <p>
@@ -430,10 +438,11 @@ defmodule TechtreeWeb.DocsLive do
             <ol class="docs-numbered-list">
               <li>Run Doctor for the exact Climb reference.</li>
               <li>Read the next action and any missing prerequisite it reports.</li>
-              <li>Use <code>techtree run status RUN_ID</code> for a started Run.</li>
-              <li>Use <code>techtree run logs RUN_ID</code> for execution details.</li>
+              <li>Use <code>regents techtree run status RUN_ID</code> for a started Run.</li>
+              <li>Use <code>regents techtree run logs RUN_ID</code> for execution details.</li>
               <li>
-                Use <code>techtree forge status ID</code> for a Skill test's build, plan, run or
+                Use <code>regents techtree forge status ID</code>
+                for a Skill test's build, plan, run or
                 comparison.
               </li>
               <li>Re-run local verification before attempting publication again.</li>

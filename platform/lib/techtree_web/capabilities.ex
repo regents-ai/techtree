@@ -22,7 +22,6 @@ defmodule TechtreeWeb.Capabilities do
       name: "Revise a Skill once and compare the revision with it",
       status: :experimental
     },
-    %{id: :repository_tasks, name: "Build tasks from a repository", status: :experimental},
     %{
       id: :climb,
       name: "Try the Hello World Climb, a small fixed comparison with a starter Skill",

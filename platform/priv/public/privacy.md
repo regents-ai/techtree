@@ -25,13 +25,13 @@ Nothing from a run reaches Techtree unless you choose to publish its finished Re
 
 If you give a name or a GitHub link for your Skill when you publish, they are shown with the Result. If you leave an Ethereum address to be recognised by later, it is kept apart from the Result and is never shown anywhere. Ask for it to be removed and it is deleted from the live database; copies in database backups are not erased.
 
-You can withdraw a Result you published with `techtree withdraw`. Techtree then stops handing out the bundle. Its entry stays on the public log, marked withdrawn, and copies people already downloaded still exist.
+You can withdraw a Result you published with `regents techtree withdraw`. Techtree then stops handing out the bundle. Its entry stays on the public log, marked withdrawn, and copies people already downloaded still exist.
 
 To stop one caller from flooding the log, Techtree counts publications by the network address they come from. The count is held in memory for a minute and is not saved.
 
 ## Profiles
 
-The `techtree profile` command uses a few owner-only addresses on this site. They answer only to your own Privy sign-in. When you sync, Techtree keeps a profile made from that sign-in: your Privy user id, the wallet addresses linked to it and the one you choose, a display name if you set one, your linked X account's id, username and display name, and when your sign-in proof was issued. Profiles are kept in a store that other Regents Labs products share. Only you can read or change yours through these addresses.
+A few owner-only addresses on this site answer only to your own Privy sign-in. When you sync a profile through them, Techtree keeps one made from that sign-in: your Privy user id, the wallet addresses linked to it and the one you choose, a display name if you set one, your linked X account's id, username and display name, and when your sign-in proof was issued. Profiles are kept in a store that other Regents Labs products share. Only you can read or change yours through these addresses.
 
 You can delete your Privy account yourself, through Privy. That does not remove the profile Techtree keeps: to have it deleted, write to [build@regents.sh](mailto:build@regents.sh).
 

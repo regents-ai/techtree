@@ -52,7 +52,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
     text = visible_text(html)
 
     assert copied_text(html, "copy-proof-verify") ==
-             "techtree proof verify path/to/result-bundle"
+             "regents techtree proof verify path/to/result-bundle"
 
     refute text =~ "arrives in a later release"
     refute text =~ "USDC"

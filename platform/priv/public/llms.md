@@ -9,7 +9,6 @@
 - Deciding whether a change to a Skill is worth keeping: make tasks from the Skill, then compare the earlier version with the new one (experimental).
 - Comparing an agent with and without a Skill on tasks made from it (experimental).
 - A quick look at how a comparison runs, with the Hello World Climb and a starter Skill.
-- Building repair tasks from a repository's own history (experimental).
 - Verifying someone else's published Result offline, without trusting this site.
 
 When not to use it: Techtree is not a general benchmark of a model's broad
@@ -28,13 +27,13 @@ the person's own computer.
 
 ## Local work and optional publication
 
-- [Start](https://techtree.sh/start): three ways to begin: test a Skill (with one instruction for the person's local agent or Hermes), take a quick look with the example Climb, or build tasks from a local repository. Each names what it needs and where its data goes.
+- [Start](https://techtree.sh/start): two ways to begin: test a Skill (with one instruction for the person's local agent or Hermes), or take a quick look with the example Climb. Each names what it needs and where its data goes.
 - [Agent installation guide](https://techtree.sh/skill.md): the exact release to install, and every step from making the tasks to comparing the two runs. Each review waits for the person's own answer; never approve on their behalf.
 - [A real comparison](https://techtree.sh/examples/tdd): a tdd Skill tested on tasks made from it, with its task files to rerun.
 - [Bootstrap contract](https://techtree.sh/api/v1/bootstrap): use its exact released versions and arguments. Reject placeholder releases.
 - [Catalog](https://techtree.sh/api/v1/catalog).
 - [CLI](https://github.com/regents-ai/techtree/blob/main/cli/README.md) and [Hermes plugin](https://github.com/regents-ai/techtree/blob/main/plugin/README.md).
-- [Published results](https://techtree.sh/results). Only Climb runs can be published today; each Result page links its bundle for offline checking with `techtree proof verify`.
+- [Published results](https://techtree.sh/results). Only Climb runs can be published today; each Result page links its bundle for offline checking with `regents techtree proof verify`.
 
 The Python CLI owns local environments, campaigns and offline proof
 verification. Testing a Skill uploads nothing to Techtree; planning, building

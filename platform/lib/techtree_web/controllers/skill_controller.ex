@@ -48,16 +48,16 @@ defmodule TechtreeWeb.SkillController do
     Release fingerprint: `#{release.digest}`
     Source revision: `#{release.source_revision}`
 
-    If `techtree --version` already prints #{release.version}, it is installed.
+    If `regents --version` already prints #{release.version}, it is installed.
 
     ## Make the tasks
 
     1. Ask the person where their Skill is: a folder with a `SKILL.md`.
-    2. Run `techtree forge inspect-skill PATH`. It reads the files and runs none
+    2. Run `regents techtree forge inspect-skill PATH`. It reads the files and runs none
        of them. Show the person what it prints. If it refuses the Skill, relay the
        reason and stop.
     3. Ask the person which provider and model should plan the tasks, then run
-       `techtree forge plan SOURCE_ID --provider PROVIDER --model MODEL`. It calls
+       `regents techtree forge plan SOURCE_ID --provider PROVIDER --model MODEL`. It calls
        no model. It prints a review: what would be sent, to which provider, and
        the limits. Show it exactly as printed. The model call uses the person's
        Hermes profile `techtree`; if that profile is missing or signed out,
@@ -70,10 +70,10 @@ defmodule TechtreeWeb.SkillController do
        the person's behalf, and never answer a review for them.
 
     Accepting prints the collection's ID. The person can check the accepted
-    tasks at any time (`techtree forge verify COLLECTION_ID`) or write a copy to
-    share (`techtree forge export COLLECTION_ID --to FOLDER`). If a built task is
+    tasks at any time (`regents techtree forge verify COLLECTION_ID`) or write a copy to
+    share (`regents techtree forge export COLLECTION_ID --to FOLDER`). If a built task is
     wrong, the person can fix a copy of it by hand and record that with
-    `techtree forge correct-task CONSTRUCTION_ID TASK_NAME DIR`.
+    `regents techtree forge correct-task CONSTRUCTION_ID TASK_NAME DIR`.
 
     ## Compare, then decide
 
@@ -81,15 +81,15 @@ defmodule TechtreeWeb.SkillController do
        to compare against: no Skill, or an earlier version of their Skill (a
        folder with its own `SKILL.md`). Both runs use the same provider and model.
     7. Run the baseline:
-       `techtree forge run --arm baseline --collection COLLECTION_ID --provider PROVIDER --model MODEL`,
+       `regents techtree forge run --arm baseline --collection COLLECTION_ID --provider PROVIDER --model MODEL`,
        adding `--skill OLD_PATH` only to measure against the earlier version.
        It starts nothing yet. It prints a review of the model calls, tools and
        limits; show it exactly as printed and stop. Only after the person says
        yes to that exact review, run the command Techtree printed next.
     8. Run the candidate the same way, with the Skill being tested:
-       `techtree forge run --arm candidate --collection COLLECTION_ID --provider PROVIDER --model MODEL --skill PATH`.
+       `regents techtree forge run --arm candidate --collection COLLECTION_ID --provider PROVIDER --model MODEL --skill PATH`.
        It waits for its own yes.
-    9. Run `techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID`. It calls no
+    9. Run `regents techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID`. It calls no
        model. It pairs every task across the two runs and gives a verdict:
        improved, regressed, mixed, no difference, or inconclusive when too few
        tasks were scored on both sides. It gives a verdict for all the tasks,
@@ -99,13 +99,13 @@ defmodule TechtreeWeb.SkillController do
        verdicts and where the report was written, and let them decide.
 
     To revise the Skill once and test the revision, run
-    `techtree uplift context COMPARISON_ID` for what the comparison may be
+    `regents techtree uplift context COMPARISON_ID` for what the comparison may be
     studied from (never the held-out tasks), write the revised Skill into a new
     folder, then run
-    `techtree uplift prepare --from-run COMPARISON_ID --candidate-skill NEW_PATH`
-    and `techtree uplift start REVISION_ID`, which waits for its own yes.
+    `regents techtree uplift prepare --from-run COMPARISON_ID --candidate-skill NEW_PATH`
+    and `regents techtree uplift start REVISION_ID`, which waits for its own yes.
 
-    `techtree forge status ID` shows where any build, plan, run or comparison
+    `regents techtree forge status ID` shows where any build, plan, run or comparison
     stands.
 
     #{climb_section(release)}## Data boundary
@@ -129,18 +129,18 @@ defmodule TechtreeWeb.SkillController do
     about the person's own Skill.
 
     ```sh
-    techtree setup
-    techtree doctor --climb #{reference}
-    techtree skill starter
-    techtree climb prepare #{reference} --skill path/to/skill
+    regents techtree setup
+    regents techtree doctor --climb #{reference}
+    regents techtree skill starter
+    regents techtree climb prepare #{reference} --skill path/to/skill
     ```
 
-    Read the preparation output and run the exact one-time `techtree climb start`
+    Read the preparation output and run the exact one-time `regents techtree climb start`
     command it prints. Nothing causing model token spend starts on its own.
     Publishing a finished Climb run is optional and uploads its proof bundle,
     while Episodes and Traces remain local. Only Climb runs can be published
     today; a Skill comparison stays on the person's computer, and
-    `techtree forge export` writes a copy to share.
+    `regents techtree forge export` writes a copy to share.
 
     """
   end

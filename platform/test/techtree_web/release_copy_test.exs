@@ -302,7 +302,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       assert text =~ "What remains unproven"
       assert text =~ "Verification is not observation"
       assert text =~ "The site did not witness the execution."
-      assert text =~ "techtree proof verify path/to/result-bundle"
+      assert text =~ "regents techtree proof verify path/to/result-bundle"
       refute text =~ CatalogFixture.campaign_digest()
       refute text =~ "arrives in a later release"
       refute text =~ "USDC"

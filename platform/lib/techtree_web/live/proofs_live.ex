@@ -124,7 +124,7 @@ defmodule TechtreeWeb.ProofsLive do
           </div>
           <.command_block
             id="copy-proof-verify"
-            argv={["techtree", "proof", "verify", "path/to/result-bundle"]}
+            argv={["regents", "techtree", "proof", "verify", "path/to/result-bundle"]}
             label="Verify offline"
           />
         </section>
