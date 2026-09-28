@@ -85,8 +85,8 @@ defmodule TechtreeWeb.PublicationController do
   something already recorded, because that answer is a stored receipt: the
   document is checked exactly as it would be with the key, and only a matching
   entry already on the log is answered from. Anything that would need a new
-  signature is refused as retryable, and the participant can send the identical
-  document again once the key is there.
+  signature is refused with a hint to send the identical document again once the
+  key is there.
   """
 
   use TechtreeWeb, :controller
@@ -127,7 +127,13 @@ defmodule TechtreeWeb.PublicationController do
         )
 
       {:error, message} ->
-        ExactResponse.send_error(conn, 400, :publication_query_invalid, message, false)
+        ExactResponse.send_error(
+          conn,
+          400,
+          :publication_query_invalid,
+          message,
+          "#{url(~p"/openapi.json")} lists the query parameters this address takes."
+        )
     end
   end
 
@@ -143,7 +149,7 @@ defmodule TechtreeWeb.PublicationController do
         400,
         :publication_digest_invalid,
         "the publication fingerprint in the path is not a digest",
-        false
+        find_a_run()
       )
     end
   end
@@ -167,7 +173,7 @@ defmodule TechtreeWeb.PublicationController do
           404,
           :publication_missing,
           "no run is published under that fingerprint",
-          false
+          find_a_run()
         )
     end
   end
@@ -184,7 +190,7 @@ defmodule TechtreeWeb.PublicationController do
         400,
         :publication_digest_invalid,
         "the publication fingerprint in the path is not a digest",
-        false
+        find_a_run()
       )
     end
   end
@@ -215,7 +221,7 @@ defmodule TechtreeWeb.PublicationController do
           404,
           :publication_missing,
           "no run is published under that fingerprint",
-          false
+          find_a_run()
         )
     end
   end
@@ -231,7 +237,7 @@ defmodule TechtreeWeb.PublicationController do
       "the participant withdrew this run, so this site no longer hands out the " <>
         "bytes they submitted; the entry, the event that withdrew it and its " <>
         "receipt are still at /api/v1/publications/" <> entry.bundle_digest,
-      false
+      "Read the entry and its receipt at #{url(~p"/api/v1/publications/#{entry.bundle_digest}")}."
     )
   end
 
@@ -331,9 +337,23 @@ defmodule TechtreeWeb.PublicationController do
       Error.status_for(error.code),
       error.code,
       error.message,
-      error.retryable?
+      hint(Error.status_for(error.code))
     )
   end
+
+  defp hint(404), do: find_a_run()
+
+  defp hint(409),
+    do:
+      "This log already holds a different document for this run; " <>
+        "read it at #{url(~p"/api/v1/publications")}."
+
+  defp hint(_status),
+    do:
+      "Correct what the message names and send it again; " <>
+        "#{url(~p"/docs")}#publish shows how to publish and withdraw a Result."
+
+  defp find_a_run, do: "Use a fingerprint listed at #{url(~p"/api/v1/publications")}."
 
   defp refuse_uncountersignable(conn) do
     ExactResponse.send_error(
@@ -343,7 +363,7 @@ defmodule TechtreeWeb.PublicationController do
       "this site signs a receipt for every run it publishes or withdraws and " <>
         "cannot sign one right now, so nothing was recorded; the same document " <>
         "can be sent again unchanged",
-      true
+      "Send the same document again later."
     )
   end
 
@@ -355,7 +375,7 @@ defmodule TechtreeWeb.PublicationController do
       "what this address takes is sent as application/json, at most " <>
         "#{Techtree.Network.maximum_body_bytes()} bytes: the files of one proof " <>
         "bundle, or a signed request to withdraw one already published",
-      false
+      hint(400)
     )
   end
 end

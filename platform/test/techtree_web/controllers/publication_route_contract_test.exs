@@ -6,7 +6,7 @@ defmodule TechtreeWeb.PublicationRouteContractTest do
 
     assert served.status == 400
 
-    assert %{"error" => %{"code" => "publication_digest_invalid", "retryable" => false}} =
+    assert %{"error" => %{"code" => "publication_digest_invalid", "hint" => _}} =
              json_response(served, 400)
   end
 end

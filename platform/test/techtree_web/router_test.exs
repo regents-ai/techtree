@@ -127,7 +127,7 @@ defmodule TechtreeWeb.RouterTest do
         assert refused.status == 405, "#{refused.method} #{path} answered #{refused.status}"
         assert get_resp_header(refused, "allow") == ["GET, HEAD"]
 
-        assert %{"error" => %{"code" => "method_not_allowed", "retryable" => false}} =
+        assert %{"error" => %{"code" => "method_not_allowed", "hint" => _}} =
                  json_response(refused, 405)
       end
     end

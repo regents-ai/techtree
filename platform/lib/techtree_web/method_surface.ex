@@ -33,7 +33,7 @@ defmodule TechtreeWeb.MethodSurface do
             405,
             :method_not_allowed,
             refusal(conn.request_path, methods),
-            false
+            "Use a method in the Allow header; #{TechtreeWeb.Endpoint.url()}/openapi.json lists every request."
           )
           |> Plug.Conn.halt()
         end

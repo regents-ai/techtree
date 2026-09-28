@@ -42,7 +42,7 @@ defmodule TechtreeWeb.ObjectController do
         400,
         :invalid_digest,
         "An object is addressed by sha256: followed by 64 lowercase hexadecimal characters.",
-        false
+        "Use a fingerprint listed in the catalog at #{url(~p"/api/v1/catalog")}."
       )
     end
   end

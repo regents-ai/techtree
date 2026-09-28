@@ -60,7 +60,7 @@ defmodule TechtreeWeb.PublicationKeyController do
           404,
           :network_key_missing,
           "this site countersigns with no key under that fingerprint",
-          false
+          "Use the key named in a receipt from #{url(~p"/api/v1/publications")}."
         )
 
       :error ->
@@ -70,7 +70,7 @@ defmodule TechtreeWeb.PublicationKeyController do
           :network_key_unavailable,
           "this site holds no signing key, so it is countersigning nothing and " <>
             "has no public half to publish",
-          true
+          "Try again later."
         )
     end
   end

@@ -4,9 +4,9 @@ defmodule Techtree.Network.Error do
 
   A refusal has to say which check failed, and it has to say it in the shape
   every other refusal on this site already takes: a stable code a machine can
-  branch on, a sentence that is safe to show a stranger, and whether trying
-  again could possibly help. `Techtree.Catalog.Error` fixed that shape for the
-  read surface; this is the same shape for the two addresses that read a body.
+  branch on and a sentence that is safe to show a stranger; the publication
+  address adds what to do next. `Techtree.Catalog.Error` fixed that shape for
+  the read surface; this is the same shape for the two addresses that read a body.
 
   Most of the codes are one-to-one with the checks in
   `Techtree.Network.Bundle`; two more name the two claims the submission
@@ -58,18 +58,17 @@ defmodule Techtree.Network.Error do
   @type t :: %__MODULE__{
           code: code(),
           message: String.t(),
-          retryable?: boolean(),
           details: %{optional(String.t()) => term()}
         }
 
-  defexception [:code, :message, details: %{}, retryable?: false]
+  defexception [:code, :message, details: %{}]
 
   @doc """
   Refuse a submission, naming the check that did not hold.
   """
   @spec new(code(), String.t(), map()) :: t()
   def new(code, message, details \\ %{}) do
-    %__MODULE__{code: code, message: message, details: details, retryable?: false}
+    %__MODULE__{code: code, message: message, details: details}
   end
 
   @doc """

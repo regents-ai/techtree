@@ -87,7 +87,7 @@ defmodule TechtreeWeb.PublicationBundleControllerTest do
 
       assert served.status == 400
 
-      assert %{"error" => %{"code" => "publication_digest_invalid", "retryable" => false}} =
+      assert %{"error" => %{"code" => "publication_digest_invalid", "hint" => _}} =
                json_response(served, 400)
     end
   end
@@ -113,7 +113,7 @@ defmodule TechtreeWeb.PublicationBundleControllerTest do
 
       assert served.status == 410
 
-      assert %{"error" => %{"code" => "publication_withdrawn", "retryable" => false}} =
+      assert %{"error" => %{"code" => "publication_withdrawn", "hint" => _}} =
                json_response(served, 410)
     end
 

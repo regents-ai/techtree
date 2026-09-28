@@ -9,14 +9,15 @@ defmodule TechtreeWeb.ExactResponse do
   address is, and a `304` when the caller already holds that exact digest. That
   is one rule, so it lives in one place rather than three times over.
 
-  Failures use the spec section 15 error vocabulary: a stable code, a message
-  that is safe to show a stranger, and whether retrying could help. Nothing else
-  — a catalog failure must not describe the serving host.
+  Failures answer `{"error": {"code", "message", "hint"}}`: a stable code, a
+  message that is safe to show a stranger, and what to do next. Nothing else — a
+  catalog failure must not describe the serving host.
   """
 
   import Plug.Conn
 
   alias Techtree.Catalog.Error
+  alias TechtreeWeb.Endpoint
 
   # A content address cannot change meaning, so a client may keep it forever.
   @immutable "public, max-age=31536000, immutable"
@@ -81,21 +82,21 @@ defmodule TechtreeWeb.ExactResponse do
   """
   @spec send_error(Plug.Conn.t(), Error.t()) :: Plug.Conn.t()
   def send_error(conn, %Error{} = error) do
-    send_error(conn, status_for(error.code), error.code, error.message, error.retryable?)
+    send_error(conn, status_for(error.code), error.code, error.message, hint_for(error.code))
   end
 
   @doc """
   Refuse a request the catalog was never asked about.
   """
-  @spec send_error(Plug.Conn.t(), Plug.Conn.status(), atom(), String.t(), boolean()) ::
+  @spec send_error(Plug.Conn.t(), Plug.Conn.status(), atom(), String.t(), String.t()) ::
           Plug.Conn.t()
-  def send_error(conn, status, code, message, retryable?) do
+  def send_error(conn, status, code, message, hint) do
     body =
       Jason.encode_to_iodata!(%{
         "error" => %{
           "code" => to_string(code),
           "message" => message,
-          "retryable" => retryable?
+          "hint" => hint
         }
       })
 
@@ -118,6 +119,16 @@ defmodule TechtreeWeb.ExactResponse do
   def status_for(:catalog_object_digest_mismatch), do: 503
   def status_for(:bootstrap_release_missing), do: 503
   def status_for(:catalog_bundle_invalid), do: 503
+
+  @doc """
+  What a caller can do about each catalog failure.
+  """
+  @spec hint_for(Error.code()) :: String.t()
+  def hint_for(:catalog_object_missing),
+    do: "Use a fingerprint listed in the catalog at #{Endpoint.url()}/api/v1/catalog."
+
+  def hint_for(_code),
+    do: "Try again later; #{Endpoint.url()}/healthz says whether this site is serving a release."
 
   defp cache_control(:immutable), do: @immutable
   defp cache_control(:revalidated), do: @revalidated

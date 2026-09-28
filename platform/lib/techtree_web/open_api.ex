@@ -24,7 +24,7 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "2",
+        "version" => "3",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
@@ -260,11 +260,11 @@ defmodule TechtreeWeb.OpenAPI do
             "400" =>
               json(
                 "The body is not one of the two documents, or not JSON.",
-                %{"anyOf" => [ref("Error"), ref("RequestError")]}
+                ref("Error")
               ),
             "404" => error("The withdrawal names no published Result."),
             "409" => error("A different document was already published for this run."),
-            "413" => json("The body is larger than the limit.", ref("RequestError")),
+            "413" => json("The body is larger than the limit.", ref("Error")),
             "422" => error("A check on the bundle or the withdrawal failed; the code names it."),
             "429" =>
               "Too many publications from this caller; retry after the stated seconds."
@@ -360,8 +360,8 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" =>
             profile_responses(%{
               "200" => json("The updated profile.", ref("ProfileResponse")),
-              "400" => json("The body is not valid JSON.", ref("RequestError")),
-              "413" => json("The body is larger than 8 KiB.", ref("RequestError")),
+              "400" => json("The body is not valid JSON.", ref("Error")),
+              "413" => json("The body is larger than 8 KiB.", ref("Error")),
               "415" => profile_error("The body is not `application/json`."),
               "422" => profile_error("The update is not valid.")
             })
@@ -444,33 +444,12 @@ defmodule TechtreeWeb.OpenAPI do
         "properties" => %{
           "error" => %{
             "type" => "object",
-            "required" => ["code", "message", "retryable"],
-            "properties" => %{
-              "code" => %{
-                "type" => "string",
-                "description" => "A stable code, such as `not_found`."
-              },
-              "message" => %{"type" => "string"},
-              "retryable" => %{
-                "type" => "boolean",
-                "description" => "Whether retrying could help."
-              }
-            }
-          }
-        }
-      },
-      "RequestError" => %{
-        "type" => "object",
-        "required" => ["error"],
-        "properties" => %{
-          "error" => %{
-            "type" => "object",
             "required" => ["code", "message", "hint"],
             "properties" => %{
               "code" => %{
                 "type" => "string",
                 "description" =>
-                  "The status name in snake case, such as `not_found` or `too_many_requests`."
+                  "A stable code, such as `publication_missing`, `not_found` or `too_many_requests`."
               },
               "message" => %{"type" => "string"},
               "hint" => %{"type" => "string", "description" => "What to do next."}
@@ -888,7 +867,7 @@ defmodule TechtreeWeb.OpenAPI do
       "429",
       json(
         "Too many requests from this client address in the current window.",
-        ref("RequestError")
+        ref("Error")
       )
       |> Map.put("headers", %{"Retry-After" => header_ref("RetryAfter")})
     )
@@ -900,13 +879,15 @@ defmodule TechtreeWeb.OpenAPI do
       "default",
       json(
         "Any other error, such as an unknown address or method.",
-        %{"anyOf" => [ref(errors), ref("RequestError")]}
+        errors
       )
     )
   end
 
-  defp errors_of(%{"security" => [_ | _]}), do: "ProfileError"
-  defp errors_of(_operation), do: "Error"
+  defp errors_of(%{"security" => [_ | _]}),
+    do: %{"anyOf" => [ref("ProfileError"), ref("Error")]}
+
+  defp errors_of(_operation), do: ref("Error")
 
   defp rate_limit_headers,
     do: %{

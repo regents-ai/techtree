@@ -65,7 +65,7 @@ defmodule TechtreeWeb.PublicationRate do
           429,
           :publication_rate_limited,
           "runs are published and withdrawn one at a time by a person, not in a stream; try again shortly",
-          true
+          "Wait the seconds in the Retry-After header, then send the same request again."
         )
         |> Plug.Conn.halt()
     end

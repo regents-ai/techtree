@@ -2,9 +2,8 @@ defmodule Techtree.Catalog.Error do
   @moduledoc """
   The typed failures the catalog subsystem can report.
 
-  Spec section 15 fixes the vocabulary: a stable code, a human message that is
-  safe to show a stranger, whether retrying could help, and sanitized details.
-  The details of a catalog failure are deliberately limited to catalog-relative
+  Each has a stable code, a human message that is safe to show a stranger, and
+  sanitized details; `TechtreeWeb.ExactResponse` adds what to do next. The details of a catalog failure are deliberately limited to catalog-relative
   paths, digests, and object kinds — an absolute path on the serving host is
   internal information (spec section 8.11) and never appears here.
   """
@@ -21,11 +20,10 @@ defmodule Techtree.Catalog.Error do
   @type t :: %__MODULE__{
           code: code(),
           message: String.t(),
-          retryable?: boolean(),
           details: %{optional(String.t()) => term()}
         }
 
-  defexception [:code, :message, details: %{}, retryable?: false]
+  defexception [:code, :message, details: %{}]
 
   @doc """
   A bundle that cannot be read, parsed, or believed as a whole.
@@ -62,6 +60,6 @@ defmodule Techtree.Catalog.Error do
   def summary(%__MODULE__{code: code, message: message}), do: "#{code}: #{message}"
 
   defp new(code, message, details) do
-    %__MODULE__{code: code, message: message, details: details, retryable?: false}
+    %__MODULE__{code: code, message: message, details: details}
   end
 end

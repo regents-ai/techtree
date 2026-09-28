@@ -123,7 +123,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
       assert %{
                "error" => %{
                  "code" => "submission_artifact_digest_mismatch",
-                 "retryable" => false,
+                 "hint" => _,
                  "message" => message
                }
              } = json_response(conn, 422)
@@ -218,7 +218,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
       assert refused.status == 429
 
-      assert %{"error" => %{"code" => "publication_rate_limited", "retryable" => true}} =
+      assert %{"error" => %{"code" => "publication_rate_limited", "hint" => _}} =
                json_response(refused, 429)
 
       assert [seconds] = get_resp_header(refused, "retry-after")
@@ -831,7 +831,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
         assert served.status == 503
 
-        assert %{"error" => %{"code" => "network_key_unavailable", "retryable" => true}} =
+        assert %{"error" => %{"code" => "network_key_unavailable", "hint" => _}} =
                  json_response(served, 503)
       end)
     end
@@ -844,7 +844,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
         assert refused.status == 503
 
-        assert %{"error" => %{"code" => "network_key_unavailable", "retryable" => true}} =
+        assert %{"error" => %{"code" => "network_key_unavailable", "hint" => _}} =
                  json_response(refused, 503)
 
         assert Network.list_publication_entries!() == []
@@ -854,7 +854,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
     test "answers a checked repeat from what it stored, and records nothing new", %{conn: conn} do
       # Invariant: with no key, only a fully checked repeat of something already
       # recorded is answered, with its stored receipt; anything that would need
-      # a new signature records nothing and is refused as retryable.
+      # a new signature records nothing and is refused with a hint to send it again.
       keys = NetworkFixture.key_pair()
       files = NetworkFixture.resign(NetworkFixture.files(), keys: keys)
       submission = NetworkFixture.submission(files)
@@ -871,7 +871,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
         refused = conn |> again() |> publish(request)
 
-        assert %{"error" => %{"code" => "network_key_unavailable", "retryable" => true}} =
+        assert %{"error" => %{"code" => "network_key_unavailable", "hint" => _}} =
                  json_response(refused, 503)
 
         assert {:ok, %{withdrawn_at: nil}} = Query.get_entry(digest)

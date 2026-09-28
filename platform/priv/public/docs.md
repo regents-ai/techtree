@@ -49,16 +49,10 @@ The CLI's `--json` flag prints one machine-readable answer per command.
 
 ## Errors
 
-Every JSON error is an `error` object with a stable `code` and a `message`. A refusal from one of the addresses above also says whether sending the same request again could help:
+Every JSON error is an `error` object with a stable `code`, a `message` and a `hint` that says what to do next:
 
 ```json
-{"error": {"code": "publication_missing", "message": "no run is published under that fingerprint", "retryable": false}}
-```
-
-An unknown address, a body that cannot be read, a request over the rate limit or an unexpected failure says what to do next instead:
-
-```json
-{"error": {"code": "not_found", "message": "Not Found", "hint": "See https://techtree.sh/docs and https://techtree.sh/openapi.json for supported requests."}}
+{"error": {"code": "publication_missing", "message": "no run is published under that fingerprint", "hint": "Use a fingerprint listed at https://techtree.sh/api/v1/publications."}}
 ```
 
 Profile answers carry the `code` alone. Branch on the status and the `code`, never on the wording of `message`.
@@ -84,6 +78,7 @@ RateLimit: "default";r={{request_remaining}};t=42
 
 ### Breaking changes
 
+- Version 3: every error except a profile answer is `{"error": {"code", "message", "hint"}}`; `retryable` is gone.
 - Version 2: an unknown address, a body that cannot be read and an unexpected failure answer `{"error": {"code", "message", "hint"}}`, with no `retryable`.
 
 ## Browser tools
