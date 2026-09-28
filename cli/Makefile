@@ -31,7 +31,7 @@ GENERATED_PATHS := \
 
 .PHONY: install lint format format-check typecheck test test-unit test-contract \
 	test-integration test-plugin typecheck-plugin plugin-doctor plugin-schemas \
-	plugin-founder-skills plugin-release-core plugin-release-core-cli \
+	plugin-release-core plugin-release-core-cli \
 	real-model-run real-model-run-single schemas engine-bundle fixture-catalog goldens \
 	release-core regenerate generated-check verifiers-preflight check check-plugin clean \
 	v02-conformance-preflight
@@ -99,11 +99,6 @@ plugin-schemas:
 # plugin the way a host does, through an installed techtree, and it went red and
 # unnoticed for as long as it was a target nobody ran (techtree-python-qgr).
 check-plugin: test-plugin typecheck-plugin plugin-doctor
-
-# Checks the founder Skills in the plugin checkout against decision 0007's
-# behavioural contracts.
-plugin-founder-skills:
-	$(RUN) python tools/plugin/check_founder_skills.py
 
 # The plugin and the installed Techtree must carry the identical ReleaseCore.
 plugin-release-core:

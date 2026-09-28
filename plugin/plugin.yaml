@@ -61,10 +61,6 @@ provides_tools:
   - techtree_run_result
   - techtree_proof_verify
   - techtree_publish_run
-  - techtree_uplift_context
-  - techtree_uplift_propose
-  - techtree_uplift_prepare
-  - techtree_uplift_start
 provides_hooks:
   - on_session_start
   - on_session_end

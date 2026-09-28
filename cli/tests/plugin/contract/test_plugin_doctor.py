@@ -226,15 +226,14 @@ def test_a_runtime_techtree_import_blocks(checkout: Path) -> None:
 
 
 def test_bundled_skills_are_reported_when_present(checkout: Path) -> None:
-    """This build bundles the operator and skill-improver Skills, namespaced."""
+    """This build bundles the operator Skill, namespaced."""
     assert (checkout / "skills" / "operator" / "SKILL.md").is_file()
-    assert (checkout / "skills" / "skill-improver" / "SKILL.md").is_file()
 
     report = run_plugin_doctor(checkout, path_lookup=_all_executables)
 
     check = _check(report, "bundled_skills")
     assert check.status == "pass"
-    assert check.detail.endswith("techtree:operator, techtree:skill-improver")
+    assert check.detail.endswith("techtree:operator")
 
 
 def test_no_removed_skill_is_bundled(checkout: Path) -> None:

@@ -101,9 +101,8 @@ pinned agent in a container that receives only what the Climb declares.
 
 The guided introduction is **Techtree Hello World** (`hello-world-climb@1`), a
 toy Skill-uplift Climb: it runs the synthetic BranchCode v1 task family with
-and without the `hello-world-starter-v1` Skill, then offers one guided
-revision. It shows how the mechanism works. It is not a measure of broad
-capability.
+and without the `hello-world-starter-v1` Skill. It shows how the mechanism
+works. It is not a measure of broad capability.
 
 ## Install
 
@@ -150,9 +149,9 @@ for yourself before you approve anything.
 
 - **The guard's own list of command words** — `cli/guards.py`, reported as
   privilege escalation. It is the deny-list: the words the guard looks for in
-  text a model wrote, so a proposed Skill that would have someone install a
-  package, open a shell, or take administrator rights is refused. A list of
-  what to refuse has to name the things it refuses.
+  text a model wrote beside a result, so wording that would have someone
+  install a package, open a shell, or take administrator rights is refused. A
+  list of what to refuse has to name the things it refuses.
 - **Three places the plugin starts the Techtree CLI** — `cli/bridge.py`, reported
   as execution. Those three are the entire boundary between this plugin and
   Techtree. Each starts the one command named in `cli/constants.py`, with a fixed
@@ -215,7 +214,6 @@ In any session:
 | `/techtree cancel` | stop a run |
 | `/techtree result` | the finished result |
 | `/techtree verify` | check a local proof, offline |
-| `/techtree improve` | what a finished run says about itself |
 
 In a terminal, where Techtree's own rendered output belongs:
 
@@ -292,14 +290,12 @@ cli/release.py       the pinned release, its digest, and its cross-checks
 cli/bridge.py        the only path from the plugin into Techtree
 cli/doctor.py        the plugin's own doctor
 cli/bootstrap.py     installation after a person has said yes
-cli/guards.py        checks on proposed Skills
+cli/guards.py        checks on model-written wording
 host/commands.py     `/techtree` and `hermes techtree ...` registries
 host/hooks.py        session lifecycle registry
 host/channels.py     how compact an answer has to be
 host/state.py        the identifiers a conversation keeps
 services/narrative.py fixed presentation wording
-services/diff.py     the deterministic Skill difference
-services/llm.py      the host model boundary
 services/approvals.py approval and plan records
 tools/               the tools the agent calls
 services/            the container assembled during registration
@@ -350,25 +346,11 @@ an answer that fits a narrow window is also fine in a wide one.
 
 ## What it writes, and turning it off
 
-The plugin writes to exactly one place, for one reason, and only during a
-guided revision. Everything else it remembers lives in the conversation and
-is gone when the conversation is.
-
-```text
-${XDG_STATE_HOME:-~/.local/state}/techtree-hermes/proposals/
-```
-
-When you ask for a revision, the proposed Skill is written there so Techtree
-can be handed a path to scan. Techtree takes its own snapshot immediately, and
-the plugin deletes its copy in the same call. The directory is created
-`0700` and the file `0600`, so nothing there is readable by other users of the
-machine. If a deletion ever fails, the answer says so and names the directory
-that still exists — the plugin does not fail that quietly, because what is
-left behind is your own Skill text.
-
-Nothing else persists. The plugin keeps draft identifiers, run identifiers and
-proof paths in memory for the length of a session; it writes no configuration
-file, no cache, no log, and no credential anywhere.
+The plugin writes nothing to disk. What it remembers lives in the
+conversation and is gone when the conversation is: it keeps draft
+identifiers, run identifiers and proof paths in memory for the length of a
+session, and writes no configuration file, no cache, no log, and no credential
+anywhere.
 
 ### Disabling
 
@@ -385,17 +367,7 @@ Nothing on disk changes.
 hermes plugins remove techtree
 ```
 
-That removes the plugin. One directory can be left behind, the staging
-directory described above, and it is the only thing the plugin can leave:
-
-```text
-${XDG_STATE_HOME:-$HOME/.local/state}/techtree-hermes
-```
-
-Look inside it — on a healthy machine it is empty — and then delete that
-folder yourself, with whatever you normally use. There is deliberately no
-command to copy from here: a line that erases a directory tree is not
-something anybody should paste out of a README.
+That removes the plugin, and it leaves nothing of its own behind.
 
 Two things are deliberately **not** removed by either command, because they are
 not the plugin's to delete:
@@ -403,19 +375,16 @@ not the plugin's to delete:
 - **Techtree's own home** — your runs, drafts, proof bundles and the evaluation
   engine. It belongs to the Techtree CLI, not to this plugin. Remove the CLI
   with `uv tool uninstall techtree` and delete its home if you want it gone.
-- **Anything held by your model provider.** A guided revision sends the Skill
-  text and the sanitized improvement context to the provider behind the agent
-  you are talking to, and an evaluated run sends its tasks to the provider the
-  run is configured with. What those providers retain is governed by their
-  policies, and no command here reaches it.
+- **Anything held by your model provider.** An evaluated run sends its tasks
+  to the provider the run is configured with. What providers retain is
+  governed by their policies, and no command here reaches it.
 
 ## Release status
 
 This directory carries the release contract in `release-core.json`, release
 `climb-v0.3.0`, with host Hermes 0.21.3 as its minimum. It names the
-starter Skill and the founder-frozen `skill-improver`, so the installed plugin
-can prepare Techtree Hello World and offer one guided revision after a finished
-comparison. Earlier records required Hermes 0.20.1, and each record's own
+starter Skill, so the installed plugin can prepare Techtree Hello World and run
+its comparison. Earlier records required Hermes 0.20.1, and each record's own
 minimum applies to the plugin commit it installs.
 Which plugin commit is installable is decided by the active
 release that [techtree.sh/start](https://techtree.sh/start) publishes;

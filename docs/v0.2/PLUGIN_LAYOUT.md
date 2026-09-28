@@ -18,7 +18,7 @@ executable caller exists.
 
 ```text
 plugin/
-├── plugin.yaml           the Hermes manifest: name techtree, 17 tools, 2 hooks
+├── plugin.yaml           the Hermes manifest: name techtree, 13 tools, 2 hooks
 ├── release-core.json     the release bytes it must agree with the CLI about
 ├── pyproject.toml
 ├── uv.lock
@@ -27,8 +27,8 @@ plugin/
 ├── README.md
 ├── cli/                  the bridge: the one way into the Techtree CLI
 ├── host/                 the Hermes-facing surface: commands, channels, hooks
-├── services/             presentation, approvals, proposals, session state
-├── skills/               operator and skill-improver
+├── services/             presentation, approvals, session state
+├── skills/               operator
 ├── tools/                the tool handlers the manifest names
 └── docs/assets/
 ```
@@ -137,9 +137,9 @@ WP0 records this map. Nothing else.
 1. **The Codex manifest format is unresolved.** WP6's spike decides it. The
    layout above assumes it needs the same five directories the Hermes package
    uses; if it does not, the directories it does not need are not created.
-2. **Where the shared Skills live is unresolved.** `skills/operator` and
-   `skills/skill-improver` are written against the CLI's behavior rather than
-   against Hermes, so a Codex operator would want the same content. Copying
-   them into both packages is assumed here, consistent with the no-shared-SDK
-   decision; a single reviewed source with a build-time copy is the alternative
-   and would need its own decision.
+2. **Where the shared Skill lives is unresolved.** `skills/operator` is
+   written against the CLI's behavior rather than against Hermes, so a Codex
+   operator would want the same content. Copying it into both packages is
+   assumed here, consistent with the no-shared-SDK decision; a single reviewed
+   source with a build-time copy is the alternative and would need its own
+   decision.

@@ -98,19 +98,11 @@ def latest_session(services: Any) -> DemoSessionState | None:
 
 def active_run_ids(services: Any) -> list[str]:
     """Return the run identifiers this session started and has not finished."""
-    running = {
-        DemoStage.FIRST_RUN_ACTIVE: "first_run_id",
-        DemoStage.SECOND_RUN_ACTIVE: "second_run_id",
-    }
-    found: list[str] = []
-    for session in load_sessions(services).values():
-        attribute = running.get(session.stage)
-        if attribute is None:
-            continue
-        run_id = getattr(session, attribute)
-        if isinstance(run_id, str) and run_id:
-            found.append(run_id)
-    return found
+    return [
+        session.first_run_id
+        for session in load_sessions(services).values()
+        if session.stage is DemoStage.FIRST_RUN_ACTIVE and session.first_run_id
+    ]
 
 
 def prune_expired_plans(services: Any, now: datetime | None = None) -> int:
@@ -159,8 +151,6 @@ def reconcile_session_with_cli(
         return session
     if stage is DemoStage.FIRST_RESULT_READY and not data.get("result_available"):
         return session
-    if stage is DemoStage.FIRST_RESULT_READY and session.second_run_id == run_id:
-        stage = DemoStage.COMPLETE
 
     return _touch(session, stage=stage)
 
@@ -184,11 +174,6 @@ def read_session_document(document: Any) -> DemoSessionState:
             first_run_id=document.get("first_run_id"),
             first_proof_path=document.get("first_proof_path"),
             source_skill_v1_digest=document.get("source_skill_v1_digest"),
-            proposal_id=document.get("proposal_id"),
-            second_draft_id=document.get("second_draft_id"),
-            second_run_id=document.get("second_run_id"),
-            second_proof_path=document.get("second_proof_path"),
-            revision_attempts=int(document.get("revision_attempts", 0)),
             updated_at=str(document["updated_at"]),
         )
     except (KeyError, TypeError, ValueError) as error:
@@ -207,10 +192,6 @@ def session_payload(session: DemoSessionState) -> dict[str, Any]:
         "first_run_id": session.first_run_id,
         "first_proof_path": session.first_proof_path,
         "source_skill_v1_digest": session.source_skill_v1_digest,
-        "second_draft_id": session.second_draft_id,
-        "second_run_id": session.second_run_id,
-        "second_proof_path": session.second_proof_path,
-        "revision_attempts": session.revision_attempts,
         "updated_at": session.updated_at,
     }
 
@@ -218,8 +199,6 @@ def session_payload(session: DemoSessionState) -> dict[str, Any]:
 def _active_run_id(session: DemoSessionState) -> str | None:
     if session.stage is DemoStage.FIRST_RUN_ACTIVE:
         return session.first_run_id
-    if session.stage is DemoStage.SECOND_RUN_ACTIVE:
-        return session.second_run_id
     return None
 
 

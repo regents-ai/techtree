@@ -21,9 +21,8 @@ from .models import DemoSessionState, DemoStage, ReleaseCore
 #:
 #: The table is here rather than in the callers because section 10.4 forbids
 #: particular jumps outright — an install plan never becomes an installation,
-#: a prepared draft never becomes a started run, a first result never becomes
-#: a proposal, a proposal never becomes a second run — and every one of those
-#: is a person's decision. A transition that is not in this table cannot
+#: and a prepared draft never becomes a started run — and each of those is a
+#: person's decision. A transition that is not in this table cannot
 #: happen by accident, because it cannot happen at all.
 ALLOWED_TRANSITIONS: Mapping[DemoStage, frozenset[DemoStage]] = {
     DemoStage.PLUGIN_READY: frozenset(
@@ -35,13 +34,7 @@ ALLOWED_TRANSITIONS: Mapping[DemoStage, frozenset[DemoStage]] = {
     DemoStage.FIRST_RUN_ACTIVE: frozenset(
         {DemoStage.FIRST_RESULT_READY, DemoStage.FAILED, DemoStage.CANCELLED}
     ),
-    DemoStage.FIRST_RESULT_READY: frozenset({DemoStage.REVISION_PROPOSAL_READY}),
-    DemoStage.REVISION_PROPOSAL_READY: frozenset({DemoStage.SECOND_DRAFT_PREPARED}),
-    DemoStage.SECOND_DRAFT_PREPARED: frozenset({DemoStage.SECOND_RUN_ACTIVE}),
-    DemoStage.SECOND_RUN_ACTIVE: frozenset(
-        {DemoStage.COMPLETE, DemoStage.FAILED, DemoStage.CANCELLED}
-    ),
-    DemoStage.COMPLETE: frozenset(),
+    DemoStage.FIRST_RESULT_READY: frozenset(),
     DemoStage.FAILED: frozenset(),
     DemoStage.CANCELLED: frozenset(),
 }
@@ -77,11 +70,6 @@ def create_demo_session(
         first_run_id=None,
         first_proof_path=None,
         source_skill_v1_digest=None,
-        proposal_id=None,
-        second_draft_id=None,
-        second_run_id=None,
-        second_proof_path=None,
-        revision_attempts=0,
         updated_at=_now(),
     )
 
@@ -121,42 +109,6 @@ def update_after_first_result(
         session,
         DemoStage.FIRST_RESULT_READY,
         first_proof_path=_identifier(data, "proof_path"),
-    )
-
-
-def update_after_second_start(
-    session: DemoSessionState, envelope: Mapping[str, Any]
-) -> DemoSessionState:
-    """Record the second comparison, and that a revision was spent on it."""
-    data = _data(envelope)
-    run_id = _identifier(data, "run_id")
-    if run_id is None:
-        return session
-    return _advance(
-        session,
-        DemoStage.SECOND_RUN_ACTIVE,
-        second_run_id=run_id,
-        second_draft_id=_identifier(data, "draft_id"),
-        revision_attempts=session.revision_attempts + 1,
-    )
-
-
-def update_after_proposal(
-    session: DemoSessionState, *, proposal_id: str | None = None
-) -> DemoSessionState:
-    """Record that one revision has been proposed, before it is prepared."""
-    return _advance(session, DemoStage.REVISION_PROPOSAL_READY, proposal_id=proposal_id)
-
-
-def update_after_second_prepare(
-    session: DemoSessionState, envelope: Mapping[str, Any]
-) -> DemoSessionState:
-    """Record the prepared replacement comparison."""
-    data = _data(envelope)
-    return _advance(
-        session,
-        DemoStage.SECOND_DRAFT_PREPARED,
-        second_draft_id=_identifier(data, "draft_id"),
     )
 
 

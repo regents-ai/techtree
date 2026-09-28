@@ -50,7 +50,7 @@ demonstrate measured Skill improvement.
 | Publishing a verified run, and public Results pages | Available now | [`cli/`](cli/) (`techtree publish`, `techtree withdraw`), [`platform/`](platform/) ([Results](https://techtree.sh/results)) |
 | Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Start](https://techtree.sh/start), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
 | Structured machine responses (`techtree.cli.v2`) for agents and scripts | Available now | [`cli/`](cli/) ([contract](cli/docs/cli-json-contract.md)) |
-| Guided revision of a Skill after a comparison | Experimental | [`cli/`](cli/) (`techtree uplift`), [`plugin/`](plugin/) (`/techtree improve`) |
+| Guided revision of a Skill after a comparison | Experimental | [`cli/`](cli/) (`techtree uplift`) |
 | Build tasks from a repository; run, compare and revise a Skill on them in your own signed-in Hermes | Experimental | [`cli/`](cli/) (`techtree forge build`, `status`, `run`, `compare`) |
 | Create an environment from a Skill: inspect, plan, build, accept, run, verify, export, import | Experimental | [`cli/`](cli/) (`techtree forge inspect-skill` through `techtree forge import`) |
 | Read-only browser tools for agents (WebMCP): the Start guide, the Climbs and the Results | Available now | [`platform/`](platform/) |
@@ -125,10 +125,8 @@ Fixed tasks + configured subject + evaluation limits
 ```
 
 Hello World uses small synthetic tasks to demonstrate the mechanism. It is
-not a benchmark of general intelligence or production usefulness. Guided
-revision uses the same benchmark membership; it does **not** provide an
-untouched proving split. A valid result can show improvement, a tie, or a
-regression.
+not a benchmark of general intelligence or production usefulness. A valid
+result can show improvement, a tie, or a regression.
 
 Local execution and offline verification do not require a Techtree account.
 Model inference still requires the configured provider and may cost money.
@@ -254,8 +252,7 @@ producer, not a prerequisite for any release.
 
 Publication is explicit. Local Episodes, Traces, logs, and proposals are not
 automatically uploaded. Local-first execution can still send requests to a
-model provider; guided revision may use a different provider and budget.
-Inspect those destinations before approving a run.
+model provider. Inspect those destinations before approving a run.
 
 Public result material must exclude credentials and private evidence. Downloading
 or buying an artifact does not make it safe to execute. A shared Regent profile

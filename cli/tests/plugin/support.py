@@ -60,10 +60,6 @@ OPERATIONS: dict[str, str] = {
     "run status": "run.status",
     "setup": "action.execute",
     "skill starter": "plan.prepare",
-    "uplift context": "plan.prepare",
-    "uplift prepare": "plan.prepare",
-    "uplift skill-source": "plan.inspect",
-    "uplift start": "action.execute",
     "withdraw": "action.execute",
 }
 

@@ -2,9 +2,8 @@
 
 Techtree computed the result, so Techtree's deterministic payload is the only
 source of every number, verdict, status, grade, and digest. What this module
-adds is fixed text that never varies: the reproduction statement, the two
-result labels, and the same-membership disclosure that travels with a second
-comparison.
+adds is fixed text that never varies: the reproduction statement and the
+result label.
 
 Decision 0009 removed presentation wording by a host model from the release.
 The wording builders and answer schema below are kept for reference and are
@@ -241,59 +240,9 @@ def _caveats(deterministic_payload: Mapping[str, Any]) -> list[Mapping[str, Any]
     return [caveat for caveat in caveats if isinstance(caveat, Mapping)]
 
 
-# The second comparison ------------------------------------------------------------
+# The result label ---------------------------------------------------------------
 #
-# Decision 0007 fixes the words for this one, because it is the result most
-# easily oversold. A revision proposed from a run's own feedback, measured
-# again on that same task set, is a development iteration — useful, honest,
-# and not evidence that anything generalizes. Decision 0009 fixes the two
-# public labels these results are shown under.
+# Decision 0009 fixes the public label a Hello World result is shown under.
 
-#: What the first comparison's result is called.
+#: What the comparison's result is called.
 FIRST_RESULT_LABEL: Final = "Hello World Uplift Receipt"
-
-#: What the second comparison's result is called.
-SECOND_RESULT_LABEL: Final = "Hello World — Iteration 2"
-
-#: What kind of exercise it is.
-SECOND_RESULT_ITERATION_LABEL: Final = "same-benchmark development iteration"
-
-#: The sentence that has to travel with it.
-SAME_MEMBERSHIP_DISCLOSURE: Final = (
-    "The revision was written from this run's own feedback and measured again "
-    "on the same task membership, so this is a development iteration rather "
-    "than evidence that the Skill generalizes."
-)
-
-#: Words that would describe this result as something it is not.
-SECOND_RESULT_FORBIDDEN_WORDS: Final[tuple[str, ...]] = (
-    "sealed",
-    "held-out",
-    "held out",
-    "generalization",
-    "generalisation",
-    "independent",
-)
-
-
-def second_result_receipt(
-    *,
-    source_feedback_report_digest: str | None,
-    decision: str | None,
-    verification_status: str | None,
-) -> dict[str, Any]:
-    """Return the fixed wording and provenance for a second comparison.
-
-    The label and the disclosure are constants, not choices. The provenance
-    names the report the revision was written from, which is what makes
-    "the same membership" checkable rather than merely stated.
-    """
-    return {
-        "label": SECOND_RESULT_LABEL,
-        "iteration": SECOND_RESULT_ITERATION_LABEL,
-        "disclosure": SAME_MEMBERSHIP_DISCLOSURE,
-        "reproduction": REPRODUCTION_STATEMENT,
-        "source_feedback_report_digest": source_feedback_report_digest,
-        "decision": decision,
-        "verification_status": verification_status,
-    }

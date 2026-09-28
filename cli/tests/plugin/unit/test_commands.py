@@ -359,15 +359,6 @@ def test_verify_reports_what_the_proof_said() -> None:
     assert "offline" in answer
 
 
-def test_improve_says_what_this_build_will_not_do() -> None:
-    context = _envelope("uplift context", {"context": {}, "relative_path": "x.json"})
-    services = _services(bridge=FakeBridge({"uplift context": context}))
-
-    answer = handle_slash_command(f"improve {RUN_ID}", services)
-
-    assert "not part of this build" in answer
-
-
 def test_a_failure_is_reported_not_raised() -> None:
     services = _services(
         bridge=FakeBridge({"climb list": _envelope("climb list", {}, ok=False)})
@@ -440,7 +431,6 @@ SUCCESSFUL_ANSWERS: dict[str, dict[str, Any]] = {
         },
     ),
     "proof verify": _envelope("proof verify", {"verified": True, "checks": [1, 2, 3]}),
-    "uplift context": _envelope("uplift context", {"context": {}}),
 }
 
 
@@ -454,7 +444,6 @@ SUCCESSFUL_ANSWERS: dict[str, dict[str, Any]] = {
         f"cancel {RUN_ID}",
         f"result {RUN_ID}",
         f"verify {RUN_ID}",
-        f"improve {RUN_ID}",
     ],
 )
 def test_every_successful_answer_ends_with_one_next_step(invocation: str) -> None:

@@ -51,7 +51,6 @@ SLASH_USAGE: Mapping[str, str] = {
     "cancel": "stop a run — /techtree cancel <run-id>",
     "result": "the finished result — /techtree result [run-id]",
     "verify": "check a local proof — /techtree verify [run-id or path]",
-    "improve": "what a finished run says about itself — /techtree improve [run-id]",
 }
 
 
@@ -510,24 +509,6 @@ def _slash_verify(services: Any, arguments: Sequence[str]) -> str:
     )
 
 
-def _slash_improve(services: Any, arguments: Sequence[str]) -> str:
-    run_id = _run_argument(services, arguments)
-    if run_id is None:
-        return "Name the finished run: /techtree improve <run-id>"
-    answer = _tool(services, "techtree_uplift_context", {"run_id": run_id})
-    if not answer.get("ok"):
-        return _error_line(answer)
-    return "\n".join(
-        [
-            f"Techtree exported the improvement context for {run_id}.",
-            "It holds only what may be shown: public task inputs, pass or fail, "
-            "and rewards — never the subject's answers or the expected ones.",
-            "Proposing a revised Skill is not part of this build.",
-            "Next: ask me to check this run's proof offline.",
-        ]
-    )
-
-
 _SLASH_ACTIONS: Mapping[str, Callable[[Any, Sequence[str]], str]] = {
     "setup": _slash_setup,
     "climbs": _slash_climbs,
@@ -536,7 +517,6 @@ _SLASH_ACTIONS: Mapping[str, Callable[[Any, Sequence[str]], str]] = {
     "cancel": _slash_cancel,
     "result": _slash_result,
     "verify": _slash_verify,
-    "improve": _slash_improve,
 }
 
 
@@ -721,7 +701,7 @@ def _run_argument(services: Any, arguments: Sequence[str]) -> str | None:
         return arguments[0]
     session = latest_session(services)
     if session is not None:
-        return session.second_run_id or session.first_run_id
+        return session.first_run_id
     running = active_run_ids(services)
     return running[0] if running else None
 

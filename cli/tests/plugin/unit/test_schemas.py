@@ -120,7 +120,6 @@ def test_spending_tools_say_so_in_their_description() -> None:
     """A tool that spends model tokens or changes the host says so first."""
     spending = {
         "techtree_climb_start": "spends model tokens on inference",
-        "techtree_uplift_start": "spends model tokens on inference",
         "techtree_bootstrap_install": "changes software",
     }
 
@@ -137,6 +136,5 @@ def test_reading_tools_say_they_are_free() -> None:
         "techtree_run_status",
         "techtree_run_result",
         "techtree_proof_verify",
-        "techtree_uplift_context",
     ):
         assert "free" in SCHEMAS[name]["description"]

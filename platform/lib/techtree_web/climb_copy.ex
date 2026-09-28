@@ -4,11 +4,10 @@ defmodule TechtreeWeb.ClimbCopy do
   carries.
 
   A ClimbManifest has a title and a summary. A CampaignSpec has neither, and
-  nothing in the protocol names the task family in words, the Skill a newcomer
-  starts from, or what the results of a run are called. Those are decisions
-  about how a published Climb is described, so they are written once, here,
-  against the reference they belong to, and never inferred from a package name
-  or a file path.
+  nothing in the protocol names the task family in words or the Skill a
+  newcomer starts from. Those are decisions about how a published Climb is
+  described, so they are written once, here, against the reference they belong
+  to, and never inferred from a package name or a file path.
 
   A Climb with no entry is described from its own documents and nothing else.
   """
@@ -25,11 +24,7 @@ defmodule TechtreeWeb.ClimbCopy do
           campaign_title: String.t(),
           task_family: String.t(),
           starter_skill: String.t(),
-          candidate_skill_label: String.t(),
-          starter_note: String.t(),
-          first_result_label: String.t(),
-          second_result_label: String.t(),
-          revision_note: String.t()
+          candidate_skill_label: String.t()
         }
 
   @copy %{
@@ -49,19 +44,7 @@ defmodule TechtreeWeb.ClimbCopy do
       campaign_title: "Hello World Skill Uplift",
       task_family: "BranchCode v1",
       starter_skill: "hello-world-starter-v1",
-      candidate_skill_label: "Hello World Skill",
-      starter_note:
-        "The Hello World starter Skill is intentionally incomplete and calibrated " <>
-          "to solve roughly two-thirds of the toy tasks. Individual runs may vary. " <>
-          "The gap is deliberate, so that the guided one-turn revision has " <>
-          "measurable headroom.",
-      first_result_label: "Hello World Uplift Receipt",
-      second_result_label: "Hello World — Iteration 2",
-      revision_note:
-        "Your own agent proposes one revision. Techtree tests it exactly the way it " <>
-          "tested the first attempt. A proposal may be unusable, or may run and fail to " <>
-          "improve the score — both of those are results, and both are reported as they " <>
-          "happened."
+      candidate_skill_label: "Hello World Skill"
     }
   }
 

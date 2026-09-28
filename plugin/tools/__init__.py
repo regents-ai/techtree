@@ -1,7 +1,7 @@
 """Model-visible tool handlers. Specification section 7.11.
 
 Every handler obeys the same contract, and it is enforced here rather than
-repeated fifteen times:
+repeated for every tool:
 
 * it takes the tool arguments and returns one JSON string, on success and on
   failure alike;
@@ -184,12 +184,6 @@ from .run import (  # noqa: E402
     techtree_run_result,
     techtree_run_status,
 )
-from .uplift import (  # noqa: E402
-    techtree_uplift_context,
-    techtree_uplift_prepare,
-    techtree_uplift_propose,
-    techtree_uplift_start,
-)
 
 TOOL_HANDLERS: Mapping[str, ServiceHandler] = MappingProxyType(
     {
@@ -206,10 +200,6 @@ TOOL_HANDLERS: Mapping[str, ServiceHandler] = MappingProxyType(
         "techtree_run_result": techtree_run_result,
         "techtree_proof_verify": techtree_proof_verify,
         "techtree_publish_run": techtree_publish_run,
-        "techtree_uplift_context": techtree_uplift_context,
-        "techtree_uplift_propose": techtree_uplift_propose,
-        "techtree_uplift_prepare": techtree_uplift_prepare,
-        "techtree_uplift_start": techtree_uplift_start,
     }
 )
 

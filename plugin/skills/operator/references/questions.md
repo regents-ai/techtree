@@ -270,8 +270,7 @@ standing. If someone reads the log as a scoreboard, correct it.
 
 That is not a question this measures. It measured one Skill against one set of
 synthetic tasks on one occasion. Offer what is actually available: they can
-read every task's result, check the proof, and run a second comparison against
-a revised Skill.
+read every task's result and check the proof.
 
 ## When you do not know
 

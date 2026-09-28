@@ -61,9 +61,6 @@ the approval surface — there is no value you can supply that stands in
 for their approval. What was shown is what starts, because the draft is
 frozen and nothing else is startable.
 
-A second comparison needs its own approval. Show the difference between the
-two Skills, show the policy again, and ask again.
-
 ## Publishing a finished run
 
 Publishing is offered only when Techtree offers it, which is only for a run

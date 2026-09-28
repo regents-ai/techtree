@@ -51,16 +51,13 @@ The guided introduction is **Techtree Hello World**, a toy Skill-uplift Climb
 watch what writing a procedure down changes.
 
 Say what it is every time you describe it: a toy introductory demonstration of
-the mechanism, not a measure of broad capability. The first result is the
-**Hello World Uplift Receipt**; the second, after one revision, is
-**Hello World — Iteration 2**.
+the mechanism, not a measure of broad capability. The result is the
+**Hello World Uplift Receipt**.
 
-## Three different Skills, easy to confuse
+## Two different Skills, easy to confuse
 
-- **The starter subject Skill** — the Skill being measured in the first
-  comparison. It goes into the container.
-- **The revised subject Skill** — a proposed improvement on the first one,
-  measured the same way in a second comparison.
+- **The starter subject Skill** — the Skill being measured in the comparison.
+  It goes into the container.
 - **Operator Skills, including this one** — instructions for *you*. They never
   go into the container, and they are never what is being measured.
 
@@ -239,37 +236,10 @@ way it leans.
 Nobody has to publish anything. A run that stays on the machine is a complete
 result, and no is an ordinary answer that needs no reason.
 
-## Improving a Skill
-
-After a finished run, `techtree_uplift_context` exports what Techtree is
-willing to reveal about how the Skill performed: public task inputs, pass or
-fail, rewards. It never contains the expected answers or the subject's
-replies, and nothing outside it may be used to revise a Skill. Do not go
-looking for more.
-
-A revision is one proposal, not a search. Prepare it, show the person the
-difference between the two Skills and the data policy again, and start the
-second comparison only if they approve it specifically.
-
-Hermes will ask the person to confirm before that call goes out. Say this
-while they decide, every time. Writing the revision means sending the Skill
-being revised and a sanitized summary of how it did to the model provider
-configured for Host Hermes — the agent this person is talking to, and not the
-one the evaluated run uses. Two providers see different things here, and the
-person deciding whether to go ahead is entitled to know which sees what:
-
-- the **evaluated run's** provider sees the tasks and the subject's attempts;
-- **your** provider sees the Skill text and the sanitized context, for the one
-  revision request.
-
 ## Where this build stops
 
 Not blocked, and not waiting on anything. These are the edges of what v0.1
 does, and somebody is better told before they walk into one.
-
-The guided revision rewrites a single `SKILL.md`. A Skill made of several
-files can be measured, but the revision step will not restructure it, and the
-one attempt a person gets is spent on that one file.
 
 Publishing is a step somebody takes, never one that happens on its own.
 Nothing is published unless the person publishes a finished run themselves.
@@ -304,7 +274,6 @@ Do not work around it.
   the complete proof bundle travels while Episodes and Traces remain local;
   model inference still goes to the provider.
 - Offer publishing only when Techtree offered it, and let the person answer.
-- One revision proposal, after a valid finished run, with the diff shown.
 - A tie usually means both sides failed that task, not that they drew.
 - Say you do not know, rather than filling the gap with something plausible.
 

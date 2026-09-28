@@ -9,7 +9,6 @@ import pytest
 from techtree_hermes.cli.errors import ApprovalRequiredError, BootstrapPlanError
 from techtree_hermes.services.approvals import (
     DOCUMENTED_CONFIRMATION_KEYS,
-    GUIDED_REVISION_DISCLOSURE,
     POLICY_ACKNOWLEDGEMENT_METHOD,
     REVIEWED_ON_HOST_AGENT,
     InstallPlanStore,
@@ -198,46 +197,6 @@ def test_no_token_or_policy_digest_reaches_the_command_line() -> None:
     for argument in start_arguments(DRAFT_ID):
         assert "--confirmation-token" not in argument
         assert "--accept-data-policy" not in argument
-
-
-# The guided revision's disclosure ---------------------------------------------------
-#
-# Decision 0019 s2 replaced the token machinery with Hermes's native approval
-# surface. The disclosure content survives verbatim, because what a person is
-# told before the request is composed was never the part that was wrong.
-
-
-def test_the_disclosure_says_every_thing_it_has_to_say() -> None:
-    """Decision 0018 fixes the elements; the wording is ours."""
-    said = " ".join(GUIDED_REVISION_DISCLOSURE).lower()
-
-    assert "verified starter skill" in said
-    assert "model provider configured for host hermes" in said
-    for withheld in (
-        "raw episodes",
-        "traces",
-        "hidden answers",
-        "proof bundles",
-        "private keys",
-        "provider credentials",
-    ):
-        assert withheld in said, withheld
-    assert "one model-generation request" in said
-    assert "may be unusable or may fail to improve the score" in said
-
-
-def test_the_disclosure_never_promises_a_result() -> None:
-    """The approved framing is may-fail. Never "will fix", never "closes"."""
-    said = " ".join(GUIDED_REVISION_DISCLOSURE).lower()
-
-    for promise in (
-        "your agent will fix",
-        "learns from its mistakes",
-        "close the gap",
-        "will improve",
-        "guarantee",
-    ):
-        assert promise not in said, promise
 
 
 def test_the_plugin_issues_no_approval_of_its_own() -> None:

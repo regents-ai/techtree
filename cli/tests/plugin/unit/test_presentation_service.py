@@ -11,16 +11,13 @@ from typing import Any
 
 import pytest
 from techtree_hermes.cli.errors import PluginError
-from techtree_hermes.cli.release import load_embedded_release_core
 from techtree_hermes.services.models import ChannelKind
-from techtree_hermes.services.narrative import FIRST_RESULT_LABEL, SECOND_RESULT_LABEL
+from techtree_hermes.services.narrative import FIRST_RESULT_LABEL
 from techtree_hermes.services.presentation import (
     GATEWAY_ORDER,
     TERMINAL_ORDER,
     PresentationService,
 )
-
-CORE = load_embedded_release_core()
 
 
 def _payload(**overrides: Any) -> dict[str, Any]:
@@ -62,7 +59,7 @@ def _envelope(**overrides: Any) -> dict[str, Any]:
 
 
 def _service() -> PresentationService:
-    return PresentationService(release=CORE)
+    return PresentationService()
 
 
 # Deterministic, and only deterministic ---------------------------------------------
@@ -157,7 +154,7 @@ def test_each_channel_has_its_mandatory_order() -> None:
     assert terminal["order"].index("scores") < terminal["order"].index("proof")
 
 
-# The Hello World labels ---------------------------------------------------------------
+# The Hello World label ---------------------------------------------------------------
 
 
 def test_the_first_comparison_is_the_hello_world_uplift_receipt() -> None:
@@ -166,19 +163,6 @@ def test_the_first_comparison_is_the_hello_world_uplift_receipt() -> None:
     )
 
     assert result["result_label"] == FIRST_RESULT_LABEL == "Hello World Uplift Receipt"
-
-
-def test_the_second_comparison_is_iteration_two() -> None:
-    result = _service().deterministic_only(
-        result_envelope=_envelope(),
-        channel=ChannelKind.TERMINAL,
-        comparison="second",
-        source_feedback_report_digest="sha256:" + "a" * 64,
-    )
-
-    assert result["result_label"] == SECOND_RESULT_LABEL == "Hello World — Iteration 2"
-    assert result["receipt"]["label"] == SECOND_RESULT_LABEL
-    assert result["receipt"]["source_feedback_report_digest"] == "sha256:" + "a" * 64
 
 
 # A result that did not verify ---------------------------------------------------------

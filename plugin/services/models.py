@@ -88,10 +88,6 @@ class DemoStage(StrEnum):
     FIRST_DRAFT_PREPARED = "first_draft_prepared"
     FIRST_RUN_ACTIVE = "first_run_active"
     FIRST_RESULT_READY = "first_result_ready"
-    REVISION_PROPOSAL_READY = "revision_proposal_ready"
-    SECOND_DRAFT_PREPARED = "second_draft_prepared"
-    SECOND_RUN_ACTIVE = "second_run_active"
-    COMPLETE = "complete"
     FAILED = "failed"
     CANCELLED = "cancelled"
 
@@ -112,11 +108,6 @@ class DemoSessionState:
     first_run_id: str | None
     first_proof_path: str | None
     source_skill_v1_digest: str | None
-    proposal_id: str | None
-    second_draft_id: str | None
-    second_run_id: str | None
-    second_proof_path: str | None
-    revision_attempts: int
     updated_at: str
 
 
@@ -959,81 +950,6 @@ class PresentationNarrative:
             *self.caveats,
             *((self.next_step,) if self.next_step else ()),
         )
-
-
-@dataclass(frozen=True)
-class SkillRevisionOutput:
-    """One proposed revision of a Skill. Specification section 6.5.
-
-    A proposal, not an evaluated artifact. Nothing here has been measured
-    against anything: it is what one model thought, once, and it becomes worth
-    something only after Techtree runs it as the candidate in a controlled
-    comparison.
-    """
-
-    analysis_summary: str
-    change_rationale: tuple[str, ...]
-    revised_skill_markdown: str
-    expected_tradeoffs: tuple[str, ...]
-    confidence: Literal["low", "medium", "high"]
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return the proposal in the shape a tool result carries it."""
-        return {
-            "analysis_summary": self.analysis_summary,
-            "change_rationale": list(self.change_rationale),
-            "revised_skill_markdown": self.revised_skill_markdown,
-            "expected_tradeoffs": list(self.expected_tradeoffs),
-            "confidence": self.confidence,
-        }
-
-    def prose(self) -> tuple[str, ...]:
-        """Return the parts a person reads, apart from the Skill itself."""
-        return (self.analysis_summary, *self.change_rationale, *self.expected_tradeoffs)
-
-
-# Revision provenance ------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class SkillRevisionProvenance:
-    """What one proposed Skill revision was made from. Decisions 0007 R2, 0010.
-
-    Every field is a digest or an identifier, and together they answer the only
-    question that matters about a proposal: exactly what was this made from?
-    The Skill it revises, the sanitized context it was allowed to see, the
-    verified skill-improver Skill whose text steered the turn, the schema the
-    answer had to fit, the complete request that was sent, the answer that came
-    back, and which attempt this was — which, for the introductory demo, is
-    always the first and only one.
-
-    Decision 0010 fixes these nine values as exactly what the single-turn
-    request commits to, and requires all nine on the candidate Skill v2.
-    """
-
-    skill_improver_digest: str
-    improvement_context_digest: str
-    source_skill_root_digest: str
-    source_skill_entrypoint_digest: str
-    output_schema_digest: str
-    complete_request_digest: str
-    host_model_id: str
-    host_response_digest: str
-    revision_attempt: int
-
-    def to_dict(self) -> dict[str, Any]:
-        """Return the provenance in the shape a proposal records it."""
-        return {
-            "skill_improver_digest": self.skill_improver_digest,
-            "improvement_context_digest": self.improvement_context_digest,
-            "source_skill_root_digest": self.source_skill_root_digest,
-            "source_skill_entrypoint_digest": self.source_skill_entrypoint_digest,
-            "output_schema_digest": self.output_schema_digest,
-            "complete_request_digest": self.complete_request_digest,
-            "host_model_id": self.host_model_id,
-            "host_response_digest": self.host_response_digest,
-            "revision_attempt": self.revision_attempt,
-        }
 
 
 # Actions ---------------------------------------------------------------------

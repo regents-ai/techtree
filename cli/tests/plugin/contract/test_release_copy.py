@@ -8,11 +8,11 @@ trying to be reassuring rather than by a person trying to be exact.
 
 So the copy is scanned rather than reviewed. Every surface a user or the host
 agent actually reads is here: the model-visible tool schemas, the `/techtree`
-command surface, the guided-revision disclosure, the README, and the operator
-Skill with its references.
+command surface, the approval records, the README, and the operator Skill with
+its references.
 
-Decision 0018 added a fourth boundary to the three above: the guided revision
-may produce nothing useful, and copy may not promise otherwise.
+Decision 0018 added a fourth boundary to the three above: copy may not promise
+that an agent will make a Skill better.
 
 Decision 0025 adds two more, and they are the same mistake twice. The Campaign
 declares a maximum spend and a per-episode timeout; nothing works out what a
@@ -22,10 +22,6 @@ contract value, and copy that phrases one as a meter or a cut-off is telling
 the reader a protection exists. So the copy may not promise a price in advance,
 may not promise that spending stops a run, and may not promise that a run is
 over by any particular time.
-
-`skills/skill-improver/SKILL.md` is deliberately absent. It is founder-written
-and frozen by digest, it is never shown to a user, and a test that could
-demand an edit to it would be a test that could break a release coordinate.
 
 One scan here runs the other way round. Decision 0035 settles what v0.1 *is* —
 a proof of concept for a stack of three independent parts — and the danger with
@@ -73,8 +69,9 @@ def _public_copy() -> dict[str, str]:
     copy = {
         "host/schemas.py": _string_literals(PLUGIN_ROOT / "host" / "schemas.py"),
         "host/commands.py": _string_literals(PLUGIN_ROOT / "host" / "commands.py"),
-        # The guided-revision disclosure is read out to a person verbatim, so
-        # it is public copy and is held to the same boundaries.
+        # The approval records state what this plugin and the CLI it runs each
+        # do, and are read out to a person, so they are held to the same
+        # boundaries.
         "services/approvals.py": _string_literals(
             PLUGIN_ROOT / "services" / "approvals.py"
         ),
@@ -83,10 +80,6 @@ def _public_copy() -> dict[str, str]:
         # tool is where the first paid step is offered, so its reasons say
         # what that step commits to.
         "tools/demo.py": _string_literals(PLUGIN_ROOT / "tools" / "demo.py"),
-        # The second paid step is offered from the uplift tool's payload, and
-        # its reason is read out the same way the first one's is, so it is held
-        # to the same boundaries.
-        "tools/uplift.py": _string_literals(PLUGIN_ROOT / "tools" / "uplift.py"),
         # The offer to publish is relayed from here, and the boundary between
         # what this plugin does and what the command it runs does is stated
         # here first. Decisions 0038.
@@ -102,9 +95,6 @@ def _public_copy() -> dict[str, str]:
 
 
 PUBLIC_COPY = _public_copy()
-
-#: The founder Skill is frozen by digest and never read by a user.
-EXCLUDED_FROM_SCAN = PLUGIN_ROOT / "skills" / "skill-improver" / "SKILL.md"
 
 
 # The four boundaries ----------------------------------------------------------------
@@ -186,10 +176,9 @@ FORBIDDEN_NAME: re.Pattern[str] = re.compile(r"HelloWorldBench", re.I)
 #: phrase is banned — "your model provider" is a true and useful thing to say.
 FORBIDDEN_OWNERSHIP: re.Pattern[str] = re.compile(r"\byour\s+own\s+models?\b", re.I)
 
-#: Decision 0018 s5. The guided revision may produce nothing useful, and the
-#: approved framing says so. These say the opposite — that the agent is an
-#: improving thing which will get there — and each one is a promise about an
-#: outcome no one has measured yet.
+#: Decision 0018 s5. These say that the agent is an improving thing which will
+#: get there, and each one is a promise about an outcome no one has measured
+#: yet.
 FORBIDDEN_AGENCY: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "your agent will fix the Skill",
@@ -200,11 +189,6 @@ FORBIDDEN_AGENCY: tuple[tuple[str, re.Pattern[str]], ...] = (
         re.compile(r"\blearns?\s+from\s+(its|their|your)\s+(mistakes|errors)\b", re.I),
     ),
     ("it will close the gap", re.compile(r"\bclos(e|es|ing)\s+the\s+gap\b", re.I)),
-)
-
-#: The framing that has to be there instead, wherever the revision is offered.
-MAY_FAIL_FRAMING: re.Pattern[str] = re.compile(
-    r"may\s+be\s+unusable\s+or\s+may\s+fail\s+to\s+improve", re.I
 )
 
 #: An exact score is not what was calibrated. Decision 0015 s6: the claim is
@@ -350,13 +334,11 @@ def test_the_scan_reads_every_public_surface() -> None:
         "host/schemas.py",
         "host/commands.py",
         "tools/demo.py",
-        "tools/uplift.py",
         "tools/publish.py",
         "README.md",
         "skills/operator/SKILL.md",
     }
     assert all(text.strip() for text in PUBLIC_COPY.values())
-    assert str(EXCLUDED_FROM_SCAN.relative_to(PLUGIN_ROOT)) not in PUBLIC_COPY
 
 
 @pytest.mark.parametrize(
@@ -462,19 +444,6 @@ def test_the_ban_is_the_exact_phrase_and_not_the_useful_one() -> None:
     assert not FORBIDDEN_OWNERSHIP.search("under your provider's policies")
 
 
-def test_the_guided_revision_says_where_the_skill_text_goes() -> None:
-    """WP11g S2: the host agent's provider sees the Skill and the context."""
-    surfaces = {
-        "host/schemas.py": PUBLIC_COPY["host/schemas.py"],
-        "skills/operator/SKILL.md": PUBLIC_COPY["skills/operator/SKILL.md"],
-    }
-
-    for name, text in surfaces.items():
-        collapsed = " ".join(text.split()).lower()
-        assert "model provider" in collapsed, name
-        assert "not the one the evaluated run uses" in collapsed, name
-
-
 @pytest.mark.parametrize(
     ("described", "pattern"),
     FORBIDDEN_AGENCY,
@@ -483,17 +452,10 @@ def test_the_guided_revision_says_where_the_skill_text_goes() -> None:
 def test_no_copy_promises_the_agent_will_improve_itself(
     described: str, pattern: re.Pattern[str]
 ) -> None:
-    """Decision 0018 s5. The revision may produce nothing, and copy must allow it."""
+    """Decision 0018 s5. A comparison may show no gain, and copy must allow it."""
     offenders = _offenders(pattern)
 
     assert not offenders, f"copy promises {described!r}: {offenders}"
-
-
-def test_the_may_fail_framing_is_the_one_that_is_used() -> None:
-    """Forbidding the overclaim is only half of it; the honest line has to be there."""
-    from techtree_hermes.services.approvals import GUIDED_REVISION_DISCLOSURE
-
-    assert MAY_FAIL_FRAMING.search(" ".join(GUIDED_REVISION_DISCLOSURE))
 
 
 def test_the_agency_ban_leaves_ordinary_description_alone() -> None:
@@ -546,16 +508,15 @@ def test_no_copy_promises_a_run_is_over_by_a_certain_time(
 def test_the_surfaces_that_spend_money_say_no_price_is_worked_out() -> None:
     """Deleting the overclaim is half of it; the honest line has to be there.
 
-    The two tools that spend somebody's money and the command surface that
-    offers the first one are the places a person decides, so each of them says
+    The tool that spends somebody's money and the command surface that offers
+    it are the places a person decides, so each of them says
     what does not happen rather than leaving the reader to assume it does.
     """
     schemas = all_tool_schemas()
 
-    for name in ("techtree_climb_start", "techtree_uplift_start"):
-        description = schemas[name]["description"]
-        assert NO_PRICE_FRAMING.search(description), name
-        assert NO_METER_FRAMING.search(description), name
+    description = schemas["techtree_climb_start"]["description"]
+    assert NO_PRICE_FRAMING.search(description)
+    assert NO_METER_FRAMING.search(description)
 
     assert NO_PRICE_FRAMING.search(PUBLIC_COPY["host/commands.py"])
     assert NO_METER_FRAMING.search(PUBLIC_COPY["host/commands.py"])
@@ -574,8 +535,7 @@ def test_the_surfaces_that_spend_tokens_say_where_a_charge_lands() -> None:
     """
     schemas = all_tool_schemas()
 
-    for name in ("techtree_climb_start", "techtree_uplift_start"):
-        assert BILLING_FRAMING.search(schemas[name]["description"]), name
+    assert BILLING_FRAMING.search(schemas["techtree_climb_start"]["description"])
 
     assert BILLING_FRAMING.search(PUBLIC_COPY["host/commands.py"])
     assert BILLING_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
@@ -810,8 +770,6 @@ PUBLICATION_SURFACES: tuple[str, ...] = (
 PUBLICATION_TOOLS: tuple[str, ...] = (
     "techtree_climb_inspect",
     "techtree_demo_prepare",
-    "techtree_uplift_prepare",
-    "techtree_uplift_propose",
 )
 
 #: Ticket 8vj. A dollar figure written into the copy is right for one Campaign
@@ -908,28 +866,6 @@ def test_the_review_that_offers_the_first_paid_run_names_the_declared_maximum() 
         assert NO_METER_FRAMING.search(line), line
         for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
             assert not pattern.search(line), (described, line)
-
-
-def test_the_review_that_offers_the_second_paid_run_names_the_declared_maximum() -> (
-    None
-):
-    """Ticket jgf: the first run named the figure on both surfaces; this did not.
-
-    The second run has no rendered review of its own — what an operator reads
-    is the payload the uplift tool returns with its next action — so that is
-    where decision 0019 section 2's budget goes. The reason names the declared
-    maximum among the things to show, exactly as the first run's does, and the
-    tool that spends the money says what that maximum is and is not, where
-    Hermes shows it before asking anybody to confirm.
-    """
-    offered = PUBLIC_COPY["tools/uplift.py"]
-    description = all_tool_schemas()["techtree_uplift_start"]["description"]
-
-    assert "the declared maximum" in offered
-    assert "declares it may cost" in description
-    assert "never a prediction of the bill" in description
-    assert NO_PRICE_FRAMING.search(description)
-    assert NO_METER_FRAMING.search(description)
 
 
 def test_no_copy_writes_a_dollar_figure_of_its_own() -> None:
@@ -1529,13 +1465,12 @@ def test_the_phone_whitelist_is_still_a_whitelist() -> None:
 
 def test_the_phone_answer_still_fits_the_channel_it_is_read_in() -> None:
     """An answer over the budget is replaced whole, so it has to fit."""
-    from techtree_hermes.cli.release import load_embedded_release_core
     from techtree_hermes.services.models import ChannelKind
     from techtree_hermes.services.presentation import PresentationService
     from techtree_hermes.tools import tool_result
 
     payload = founder_result_payload()
-    service = PresentationService(release=load_embedded_release_core())
+    service = PresentationService()
     answer = tool_result(
         service.deterministic_only(
             result_envelope={
@@ -1555,7 +1490,6 @@ def test_the_phone_answer_still_fits_the_channel_it_is_read_in() -> None:
 
 def test_a_result_whose_qualifications_are_long_keeps_the_answer_whole() -> None:
     """The one part of a compact answer a run can make arbitrarily long."""
-    from techtree_hermes.cli.release import load_embedded_release_core
     from techtree_hermes.services.models import ChannelKind
     from techtree_hermes.services.presentation import PresentationService
     from techtree_hermes.tools import tool_result
@@ -1566,7 +1500,7 @@ def test_a_result_whose_qualifications_are_long_keeps_the_answer_whole() -> None
             for index in range(6)
         ]
     )
-    service = PresentationService(release=load_embedded_release_core())
+    service = PresentationService()
     relayed = service.deterministic_only(
         result_envelope={"ok": True, "facts": {"report": {}, "presentation": payload}},
         channel=ChannelKind.GATEWAY,

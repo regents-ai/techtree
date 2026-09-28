@@ -25,7 +25,7 @@ def main() -> int:
     arguments = parser.parse_args()
 
     load_plugin_package()
-    schemas_module = import_module(f"{PACKAGE_NAME}.schemas")
+    schemas_module = import_module(f"{PACKAGE_NAME}.host.schemas")
     schemas = cast(dict[str, Any], dict(schemas_module.all_tool_schemas()))
 
     if arguments.out is None:

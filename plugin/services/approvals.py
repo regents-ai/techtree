@@ -227,21 +227,6 @@ def _expiry(plan: BootstrapInstallPlan) -> datetime:
 # The plugin's remaining job is to make the decision an informed one — say
 # what the step does before it is taken — and to record that it was taken.
 
-#: What the person is told before the one revision request is composed.
-#: Decision 0018 fixes the elements; the wording is ours, and it never
-#: promises a result. Decision 0019 kept this content verbatim and replaced
-#: only the mechanism that gated it.
-GUIDED_REVISION_DISCLOSURE: Final[tuple[str, ...]] = (
-    "This step sends the verified starter Skill and a sanitized summary of how "
-    "it did to the model provider configured for Host Hermes — the agent you "
-    "are talking to, not the one the evaluated run uses.",
-    "It does not send raw Episodes, Traces, hidden answers, proof bundles, "
-    "private keys, or provider credentials.",
-    "It makes one model-generation request. There is no second attempt.",
-    "Your Hermes model will propose one revision. Techtree will test it. A "
-    "proposal may be unusable or may fail to improve the score.",
-)
-
 #: Who approved, in the one form this plugin can honestly report. The person
 #: answered Hermes's own approval surface; the plugin saw the call arrive
 #: after it, and says exactly that rather than implying it checked a signature.

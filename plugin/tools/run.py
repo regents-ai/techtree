@@ -98,16 +98,10 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
         # channel's copy of it, and the full one is one terminal command away.
         payload["facts"] = {}
     if envelope.get("ok"):
-        second = session is not None and session.second_run_id == run_id
         try:
             payload.update(
-                PresentationService(release=services.release_core).deterministic_only(
-                    result_envelope=envelope,
-                    channel=channel,
-                    comparison="second" if second else "first",
-                    source_feedback_report_digest=(
-                        _source_feedback_digest(services, session) if second else None
-                    ),
+                PresentationService().deterministic_only(
+                    result_envelope=envelope, channel=channel
                 )
             )
         except PluginError as error:
@@ -117,22 +111,3 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
     if session is not None:
         payload["demo"] = session_payload(session)
     return tool_result(payload, channel)
-
-
-def _source_feedback_digest(services: Any, session: Any) -> str | None:
-    """Return the digest of the report the revision was written from.
-
-    Decision 0007: a second receipt names its own feedback source, which is
-    what makes "the same task membership" a checkable claim rather than a
-    disclaimer.
-    """
-    if session is None or not session.first_run_id:
-        return None
-    try:
-        envelope = services.bridge.invoke(["uplift", "context", session.first_run_id])
-    except PluginError:
-        return None
-    data = envelope.get("facts") if isinstance(envelope, dict) else None
-    context = data.get("context") if isinstance(data, dict) else None
-    digest = context.get("source_report_digest") if isinstance(context, dict) else None
-    return digest if isinstance(digest, str) else None

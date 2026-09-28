@@ -28,11 +28,10 @@ from techtree_hermes.services.session import (
     update_after_first_prepare,
     update_after_first_result,
     update_after_first_start,
-    update_after_second_start,
 )
 
 RUN_ID = "run_" + "0" * 32
-SECOND_RUN_ID = "run_" + "1" * 32
+OTHER_RUN_ID = "run_" + "1" * 32
 DRAFT_ID = "draft_" + "0" * 32
 DIGEST = "sha256:" + "a" * 64
 
@@ -145,10 +144,6 @@ def test_a_session_payload_carries_only_declared_fields() -> None:
         "first_run_id",
         "first_proof_path",
         "source_skill_v1_digest",
-        "second_draft_id",
-        "second_run_id",
-        "second_proof_path",
-        "revision_attempts",
         "updated_at",
     }
 
@@ -180,7 +175,6 @@ def test_a_well_formed_document_reads_back() -> None:
     document = {
         **session_payload(session),
         "release_core_digest": DIGEST,
-        "proposal_id": None,
     }
 
     assert read_session_document(document).first_run_id == RUN_ID
@@ -204,12 +198,14 @@ def test_active_runs_are_the_ones_still_going() -> None:
     services = FakeServices()
     save_session(services, _session_at(DemoStage.FIRST_RUN_ACTIVE, first_run_id=RUN_ID))
     save_session(
-        services,
-        _session_at(DemoStage.SECOND_RUN_ACTIVE, second_run_id=SECOND_RUN_ID),
+        services, _session_at(DemoStage.FIRST_RUN_ACTIVE, first_run_id=OTHER_RUN_ID)
     )
-    save_session(services, _session_at(DemoStage.COMPLETE, first_run_id="run_ignored"))
+    save_session(
+        services,
+        _session_at(DemoStage.FIRST_RESULT_READY, first_run_id="run_ignored"),
+    )
 
-    assert sorted(active_run_ids(services)) == sorted([RUN_ID, SECOND_RUN_ID])
+    assert sorted(active_run_ids(services)) == sorted([RUN_ID, OTHER_RUN_ID])
 
 
 def test_stale_sessions_and_expired_plans_are_pruned() -> None:
@@ -339,15 +335,3 @@ def test_a_failed_result_call_does_not_mark_a_result_ready() -> None:
     session = _session_at(DemoStage.FIRST_RUN_ACTIVE, first_run_id=RUN_ID)
 
     assert update_after_first_result(session, {"ok": False, "facts": {}}) == session
-
-
-def test_the_second_run_counts_the_revision() -> None:
-    session = _session_at(DemoStage.SECOND_DRAFT_PREPARED, first_run_id=RUN_ID)
-
-    session = update_after_second_start(
-        session, {"ok": True, "facts": {"run_id": SECOND_RUN_ID, "draft_id": DRAFT_ID}}
-    )
-
-    assert session.stage is DemoStage.SECOND_RUN_ACTIVE
-    assert session.second_run_id == SECOND_RUN_ID
-    assert session.revision_attempts == 1

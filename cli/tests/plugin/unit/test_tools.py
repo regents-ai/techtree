@@ -447,40 +447,6 @@ def test_proof_verification_accepts_a_run_or_a_path() -> None:
 # Uplift ------------------------------------------------------------------------------
 
 
-def test_the_uplift_trio_bridges_the_committed_commands() -> None:
-    bridge = FakeBridge()
-    services = _services(bridge=bridge)
-
-    _call("techtree_uplift_context", services, {"run_id": RUN_ID})
-    assert bridge.last_argv() == ["uplift", "context", RUN_ID]
-
-    _call(
-        "techtree_uplift_prepare",
-        services,
-        {"run_id": RUN_ID, "revised_skill_path": "/tmp/skill-v2"},
-    )
-    assert bridge.last_argv() == [
-        "uplift",
-        "prepare",
-        "--from-run",
-        RUN_ID,
-        "--candidate-skill",
-        "/tmp/skill-v2",
-    ]
-
-
-def test_a_missing_guided_session_says_how_to_start_one() -> None:
-    result = _call(
-        "techtree_uplift_propose",
-        _services(bridge=FakeBridge()),
-        {"source_run_id": RUN_ID},
-    )
-
-    assert result["ok"] is False
-    assert result["code"] == "demo_session_not_found"
-    assert "techtree_demo_prepare" in result["next_actions"][0]["label"]
-
-
 def _demo_bridge() -> FakeBridge:
     prepared = _envelope(
         "climb prepare",

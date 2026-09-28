@@ -16,15 +16,8 @@ from typing import Any, Final
 
 from ..cli.errors import PluginError
 from ..host.channels import bounded_gateway_text, is_gateway_safe_required
-from .models import ChannelKind, ReleaseCore
-from .narrative import (
-    FIRST_RESULT_LABEL,
-    REPRODUCTION_STATEMENT,
-    SAME_MEMBERSHIP_DISCLOSURE,
-    SECOND_RESULT_FORBIDDEN_WORDS,
-    SECOND_RESULT_LABEL,
-    second_result_receipt,
-)
+from .models import ChannelKind
+from .narrative import FIRST_RESULT_LABEL, REPRODUCTION_STATEMENT
 
 #: The order a terminal reads a result in. Specification section 8.8.
 TERMINAL_ORDER: Final[tuple[str, ...]] = (
@@ -47,22 +40,17 @@ GATEWAY_ORDER: Final[tuple[str, ...]] = (
 class PresentationService:
     """Composes one result out of Techtree's numbers, and only those."""
 
-    def __init__(self, *, release: ReleaseCore) -> None:
-        self._release = release
-
     def deterministic_only(
         self,
         *,
         result_envelope: Mapping[str, Any],
         channel: ChannelKind,
-        comparison: str = "first",
-        source_feedback_report_digest: str | None = None,
     ) -> dict[str, Any]:
         """Return everything Techtree said, in the order this channel reads it."""
         payload = _payload_of(result_envelope)
         verified = _verification_ok(payload)
         compact = is_gateway_safe_required(channel)
-        result: dict[str, Any] = {
+        return {
             "ok": bool(result_envelope.get("ok", True)),
             "operation": "result.inspect",
             "channel": channel.value,
@@ -78,19 +66,6 @@ class PresentationService:
             "completion_summary": completion_summary(result_envelope),
             "result_label": FIRST_RESULT_LABEL,
         }
-
-        if comparison == "second":
-            result["result_label"] = SECOND_RESULT_LABEL
-            result["receipt"] = second_result_receipt(
-                source_feedback_report_digest=source_feedback_report_digest,
-                decision=payload.get("decision"),
-                verification_status=payload.get("verification_status"),
-            )
-            result["comparison_labels"] = {
-                "baseline": "Skill v1",
-                "candidate": "Skill v2",
-            }
-        return result
 
 
 def _payload_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -260,20 +235,6 @@ def completion_summary(result_envelope: Mapping[str, Any]) -> dict[str, Any]:
 def _token_total(value: Any) -> int | None:
     """Return a recorded token total, never treating a malformed value as zero."""
     return value if isinstance(value, int) and not isinstance(value, bool) else None
-
-
-def forbidden_second_result_words(text: str) -> list[str]:
-    """Return the words that would oversell a second comparison.
-
-    The plugin's own fixed sentences are removed before scanning. One of them
-    says the result has NOT been independently reproduced, and a check that
-    flagged the honest sentence for containing the dishonest word would be a
-    check that punishes candour.
-    """
-    lowered = text.lower()
-    for honest in (REPRODUCTION_STATEMENT, SAME_MEMBERSHIP_DISCLOSURE):
-        lowered = lowered.replace(honest.lower(), "")
-    return [word for word in SECOND_RESULT_FORBIDDEN_WORDS if word in lowered]
 
 
 #: What a phone is shown of a result: the canonical facts, without the table.
