@@ -235,6 +235,9 @@ code { font-size: .9em; }
 .docs-prose table { display: block; max-width: 100%; margin-block: var(--space-3); overflow-x: auto; border-collapse: collapse; font-size: .875rem; }
 .docs-prose :where(th, td) { padding: var(--space-1) var(--space-2); border: 1px solid var(--hairline); text-align: left; vertical-align: top; }
 .docs-prose th { background: var(--color-surface); }
+/* Names and addresses stay whole; the description column keeps a readable measure and the table scrolls instead. */
+.docs-prose td code { overflow-wrap: normal; white-space: nowrap; }
+.docs-prose td:last-child { min-width: 18rem; }
 .docs-code, .prompt__block { max-width: 100%; margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 
 /* Native copy menu is intentionally not a disclosure: it is a compact popup.
