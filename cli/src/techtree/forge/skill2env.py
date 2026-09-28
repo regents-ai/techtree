@@ -1,6 +1,6 @@
 """Inert admission of one pinned Skill2Env package; this does not qualify it.
 
-Only the host-authored, single-task Harbor 1.3 shape is supported. No upstream
+Only the host-authored, single-task Harbor 1.4 shape is supported. No upstream
 launcher, model, Docker command, credential resolution or dependency is used.
 The recipe's external base images must be on the release allow-list
 (``resources/forge/skill2env/base-images.json``) by exact name and digest;

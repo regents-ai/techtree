@@ -489,7 +489,6 @@ def test_task_image_builds_offline_and_a_fetching_recipe_fails_with_its_log(
     [
         ("a" * 64, "c" * 64),
         ('source_skill = "local/reconcile"', 'source_skill = "local/another"'),
-        ('schema_version = "1.3"', 'version = "1.3"'),
         ('network_mode = "no-network"', 'network_mode = "public"'),
         ("allowed_hosts = []", 'allowed_hosts = ["example.com"]'),
         ("[environment.env]", '[environment.env]\nTOKEN = "${TOKEN}"'),

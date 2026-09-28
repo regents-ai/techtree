@@ -14,9 +14,10 @@ adapted from the task-construction stage. Techtree writes the package the
 creator answers with, and its `task.toml` from `contract.json`, and imports
 it here like any other task.
 
-`contract.json` records the upstream pin, Harbor 0.16.0 dependency and
-authoritative Harbor task schema 1.3. Its fixed sections are derived from
-Skill2Env's host-authored `task_config.py` and Harbor 0.16.0's serialized defaults.
+`contract.json` records the upstream pin, the Harbor release Techtree follows
+(0.23.0) and its task schema 1.4. Its fixed sections are derived from
+Skill2Env's host-authored `task_config.py` and Harbor 0.23.0's serialized defaults.
+Skill2Env's own `pyproject.toml` still names Harbor 0.16.0.
 Techtree requires those sections explicitly and rejects aliases and additional
 configuration. These are intentionally narrower rules than Harbor's full schema.
 The SHA-256 of `contract.json` alone is stored as the Skill build's

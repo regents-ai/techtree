@@ -86,7 +86,7 @@ def skill2env_task(parent: Path) -> Path:
     for directory in ("environment", "tests", "solution"):
         (task / directory).mkdir(parents=True)
     (task / "task.toml").write_text(
-        'schema_version = "1.3"\nartifacts = ["/app/result.txt"]\n\n'
+        'schema_version = "1.4"\nartifacts = ["/app/result.txt"]\n\n'
         '[task]\nname = "skill2env/task_reconcile_1234abcd"\n'
         'description = "Sum the supplied amounts."\nkeywords = ["reconcile"]\n'
         '[[task.authors]]\nname = "skill2env"\n\n'
