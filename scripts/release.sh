@@ -33,7 +33,7 @@ cleanup() {
     echo "Server log:" >&2
     docker logs --tail 40 "$run-app" >&2
   fi
-  docker rm --force "$run-app" "$run-db" >/dev/null 2>&1 || true
+  docker rm --force --volumes "$run-app" "$run-db" >/dev/null 2>&1 || true
   docker network rm "$run" >/dev/null 2>&1 || true
   rm -r "$context"
 }
