@@ -29,16 +29,19 @@ export const byPointer = (event: MouseEvent) => event.detail > 0
 
 // Menus and dialogs can open without a click of their own, from a hover or
 // from the server. They move only when the reader was last using a mouse or a
-// finger.
+// finger. Going back or forward starts afresh, as a key press does, so what
+// that reopens is simply there.
 let pointer = false
 
 export const lastInputByPointer = () => pointer
 
 export function watchInput(doc: Document) {
   const byHand = () => { pointer = true }
+  const byKey = () => { pointer = false }
   doc.addEventListener("pointerdown", byHand, true)
   doc.addEventListener("pointermove", byHand, true)
-  doc.addEventListener("keydown", () => { pointer = false }, true)
+  doc.addEventListener("keydown", byKey, true)
+  doc.defaultView?.addEventListener("popstate", byKey)
 }
 
 // Anime.js hands an element back to its stylesheet by restoring the inline
