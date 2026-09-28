@@ -76,8 +76,8 @@ with nothing offered in exchange for one.
 
 The person answers at the approval surface, and the plugin then runs the
 command on their behalf with the flags that record where they answered. The
-plugin itself reaches no network. The Techtree CLI it runs is what talks to
-the run log, and only after the yes.
+plugin itself reaches no network. The regents command it runs is what talks
+to the run log, and only after the yes.
 
 ## What is never an approval
 

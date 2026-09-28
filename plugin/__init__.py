@@ -10,7 +10,7 @@ In particular, registration never:
 * reaches the network,
 * installs a package,
 * runs Docker,
-* runs the Techtree CLI,
+* runs regents,
 * calls a model,
 * or writes to the user's files.
 
@@ -50,8 +50,8 @@ __all__ = ["register"]
 def register(ctx: Any) -> None:
     """Validate local static release assets and register the plugin surfaces.
 
-    Must not: access the network, install a package, run Docker, run the
-    Techtree CLI, call an LLM, or mutate user files.
+    Must not: access the network, install a package, run Docker, run
+    regents, call an LLM, or mutate user files.
     """
     services = build_services(ctx)
     _register_tools(ctx, services)

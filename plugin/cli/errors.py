@@ -1,10 +1,15 @@
 """Plugin-local errors. Specification sections 7.4, 12.
 
-The plugin does not restate Techtree's error taxonomy. When the CLI produced a
-failure, its envelope is preserved as-is; the codes here belong to the bridge,
-bootstrap, release, and state layers that live on this side of the boundary.
+The plugin does not restate Techtree's error taxonomy. When regents answered
+with an error, that answer is preserved as-is; the codes here belong to the
+bridge, bootstrap, release, and state layers that live on this side of the
+boundary.
 
-Borrowed text — CLI stderr, an exception message, an installer quoting a
+A plugin failure answers in the same shape regents does, ``{"error": {...}}``,
+so a host agent reads one kind of failure whichever side of the boundary it
+came from.
+
+Borrowed text — regents stderr, an exception message, an installer quoting a
 command line back — is repeated word for word. Decision 0036 removed the
 scrubber that used to edit it: a value's shape is not evidence of what it is,
 so nothing here guesses.
@@ -21,8 +26,8 @@ from typing import Final
 CODE_PLUGIN_RELEASE_CORE_INVALID: Final = "plugin_release_core_invalid"
 CODE_PLUGIN_RELEASE_CORE_MISMATCH: Final = "plugin_release_core_mismatch"
 CODE_PLUGIN_STATE_CORRUPT: Final = "plugin_state_corrupt"
-CODE_TECHTREE_CLI_NOT_FOUND: Final = "techtree_cli_not_found"
-CODE_TECHTREE_CLI_RELEASE_MISMATCH: Final = "techtree_cli_release_mismatch"
+CODE_REGENTS_CLI_NOT_FOUND: Final = "regents_cli_not_found"
+CODE_REGENTS_CLI_RELEASE_MISMATCH: Final = "regents_cli_release_mismatch"
 CODE_CLI_OUTPUT_INVALID: Final = "cli_output_invalid"
 CODE_CLI_OUTPUT_TOO_LARGE: Final = "cli_output_too_large"
 CODE_CLI_TIMEOUT: Final = "cli_timeout"
@@ -67,31 +72,31 @@ class PluginError(Exception):
 
 
 class CliNotInstalledError(PluginError):
-    """The Techtree CLI is not present on PATH."""
+    """regents is not present on PATH."""
 
-    code = CODE_TECHTREE_CLI_NOT_FOUND
+    code = CODE_REGENTS_CLI_NOT_FOUND
     repair = "Run techtree_bootstrap_check to obtain the pinned install plan."
 
 
 class CliInvocationError(PluginError):
-    """The Techtree CLI could not be run, or did not finish in time."""
+    """regents could not be run, or did not finish in time."""
 
     code = CODE_CLI_TIMEOUT
     retryable = True
 
 
-class CliEnvelopeError(PluginError):
-    """CLI machine output was not exactly one well-formed JSON envelope."""
+class CliAnswerError(PluginError):
+    """regents machine output was not exactly one well-formed JSON answer."""
 
     code = CODE_CLI_OUTPUT_INVALID
-    repair = "Confirm the installed CLI matches the pinned release."
+    repair = "Confirm the installed regents matches the pinned release."
 
 
 class ReleaseMismatchError(PluginError):
     """Embedded release data disagrees with what is installed."""
 
     code = CODE_PLUGIN_RELEASE_CORE_MISMATCH
-    repair = "Reinstall the CLI version pinned by this plugin release."
+    repair = "Reinstall the regents-cli version pinned by this plugin release."
 
 
 class BootstrapPlanError(PluginError):
@@ -122,7 +127,7 @@ class PluginStateError(PluginError):
 
 
 def safe_error_payload(error: Exception) -> dict[str, object]:
-    """Return stable code, safe message, retryability, and repair action."""
+    """Return the ``error`` object: stable code, message, retryability, repair."""
     if isinstance(error, PluginError):
         code = error.code
         retryable = error.retryable
@@ -139,5 +144,5 @@ def safe_error_payload(error: Exception) -> dict[str, object]:
         "retryable": retryable,
     }
     if repair is not None:
-        payload["next_actions"] = [{"id": code, "label": repair}]
+        payload["repair"] = repair
     return payload

@@ -12,15 +12,15 @@ Every successful answer ends with one immediate next step (decision 0024
 section 7), so a reader is never left holding a result with nothing to do.
 
 ``hermes techtree …`` is terminal-only, and is where Techtree's own rendered
-output belongs. ``watch`` in particular runs Techtree's live view against the
-user's own terminal; no model-visible tool ever holds an open watch, because a
-tool call that never returns is a conversation that never continues.
+output belongs: each verb runs ``regents techtree …`` against the user's own
+terminal. No model-visible tool ever waits on a run, because a tool call that
+never returns is a conversation that never continues.
 
 That surface is one command deep on purpose. The host turns every name a
 plugin registers into ``hermes <name>``, so this plugin registers the single
 name ``techtree`` and hangs its verbs off that. A verb registered on its own
-would be a bare ``hermes doctor`` or ``hermes watch`` — the first four of ours
-shadowed by Hermes's own commands of those names, the rest a top-level word
+would be a bare ``hermes doctor`` or ``hermes result`` — four of ours
+shadowed by Hermes's own commands of those names, the last a top-level word
 taken from everyone else who might want it.
 
 The grammar is fixed. A subcommand is looked up in a table, its arguments are
@@ -41,6 +41,9 @@ from .channels import ensure_gateway_safe
 from .state import active_run_ids, latest_session
 
 SLASH_COMMAND = "techtree"
+
+#: regents' code for a proof that was read and did not hold together.
+PROOF_BUNDLE_INVALID = "proof_bundle_invalid"
 
 #: The one grammar, and what each part of it means to a person.
 SLASH_USAGE: Mapping[str, str] = {
@@ -105,7 +108,7 @@ def register_cli_subcommands(ctx: Any, services: Any) -> None:
     name is registered — our own — and every verb lives beneath it. Registering
     the verbs themselves would put ``doctor``, ``demo``, ``status`` and
     ``verify`` up against Hermes's own commands of those names, and would claim
-    ``watch`` and ``result`` as top-level words that are not ours to take.
+    ``result`` as a top-level word that is not ours to take.
     """
     command = build_cli_command(services)
     ctx.register_cli_command(
@@ -125,9 +128,9 @@ def _slash_setup(services: Any, arguments: Sequence[str]) -> str:
 
     cli = answer.get("cli", {})
     lines.append(
-        f"Techtree CLI: {cli.get('version') or 'not installed'}"
+        f"regents: {cli.get('version') or 'not installed'}"
         if cli.get("installed")
-        else "Techtree CLI: not installed"
+        else "regents: not installed"
     )
     if answer.get("refusal"):
         lines.append(str(answer["refusal"]["message"]))
@@ -146,15 +149,14 @@ def _slash_setup(services: Any, arguments: Sequence[str]) -> str:
 
 def _slash_climbs(services: Any, arguments: Sequence[str]) -> str:
     answer = _tool(services, "techtree_climb_list", {})
-    if not answer.get("ok"):
+    if "error" in answer:
         return _error_line(answer)
     if answer.get("truncated"):
         return (
             "The list is too long to show here. "
-            "Next: run `techtree climb list` in a terminal to see all of it."
+            "Next: run `regents techtree climb list` in a terminal to see all of it."
         )
-    facts = answer.get("facts")
-    climbs = facts.get("climbs") if isinstance(facts, dict) else None
+    climbs = answer.get("climbs")
     if not isinstance(climbs, list) or not climbs:
         return (
             "This build ships no Climbs. "
@@ -251,7 +253,7 @@ def _slash_status(services: Any, arguments: Sequence[str]) -> str:
     if run_id is None:
         return "No run to report on. Start one, or give me a run identifier."
     answer = _tool(services, "techtree_run_status", {"run_id": run_id})
-    if not answer.get("ok"):
+    if "error" in answer:
         return _error_line(answer)
     summary = answer.get("summary", {})
     return (
@@ -271,28 +273,12 @@ def _slash_cancel(services: Any, arguments: Sequence[str]) -> str:
     if not arguments:
         return "Name the run to stop: /techtree cancel <run-id>"
     answer = _tool(services, "techtree_run_cancel", {"run_id": arguments[0]})
-    if not answer.get("ok"):
+    if "error" in answer:
         return _error_line(answer)
     return (
         f"Asked Techtree to stop {arguments[0]}.\n"
         "Next: ask me for its status to confirm it stopped."
     )
-
-
-#: What a cost figure's provenance means to a reader, in the words Techtree's
-#: own renderings use. The plugin cannot import Techtree — it reads a finished
-#: payload out of another process — so the phrase is looked up here and never
-#: reworded, and a figure is never shown with a basis this build cannot name.
-_COST_BASIS: Mapping[str, str] = {
-    "provider_reported": "reported by the provider",
-    "computed_from_pinned_price": "computed from the pinned price",
-    "estimated": "estimated, not billed",
-}
-
-#: What is said of a figure whose provenance this build has no phrase for. A
-#: number with no stated basis is the one thing decision 0007 R6 forbids, so
-#: the absence is stated rather than the figure being shown bare.
-_COST_BASIS_UNNAMED = "and this build has no name for where that figure came from"
 
 
 def _number(value: Any, spec: str) -> str | None:
@@ -360,12 +346,6 @@ def _cost_line(presentation: Mapping[str, Any]) -> str:
     are different claims, and the word telling them apart travels with the
     number rather than somewhere below it.
     """
-    reported = _number(presentation.get("cost_usd"), ".2f")
-    if reported is not None:
-        basis = _COST_BASIS.get(
-            str(presentation.get("cost_provenance")), _COST_BASIS_UNNAMED
-        )
-        return f"${reported}, {basis}"
     derived = presentation.get("derived_cost")
     if isinstance(derived, Mapping):
         figure = _number(derived.get("usd"), ".2f")
@@ -376,8 +356,6 @@ def _cost_line(presentation: Mapping[str, Any]) -> str:
 
 def _cost_basis_lines(presentation: Mapping[str, Any]) -> list[str]:
     """Return what a reader needs in order to judge the figure above it."""
-    if presentation.get("cost_usd") is not None:
-        return []
     derived = presentation.get("derived_cost")
     if not isinstance(derived, Mapping):
         reason = presentation.get("cost_unavailable_reason")
@@ -463,9 +441,9 @@ def _slash_result(services: Any, arguments: Sequence[str]) -> str:
     if run_id is None:
         return "No finished run yet. Give me a run identifier once one exists."
     answer = _tool(services, "techtree_run_result", {"run_id": run_id})
-    if not answer.get("ok"):
+    if "error" in answer:
         return _error_line(answer)
-    presentation = (answer.get("facts") or {}).get("presentation") or {}
+    presentation = answer.get("presentation") or {}
     lines = [f"Run {run_id}"]
     if presentation:
         lines += [
@@ -492,20 +470,19 @@ def _slash_verify(services: Any, arguments: Sequence[str]) -> str:
         return "Name a run or a proof path: /techtree verify <run-id or path>"
     key = "run_id" if target.startswith("run_") else "proof_path"
     answer = _tool(services, "techtree_proof_verify", {key: target})
-    if not answer.get("ok"):
-        return _error_line(answer)
-    data = answer.get("facts") or {}
-    return (
-        f"Proof for {target}: "
-        + ("verified" if data.get("verified") else "did not verify")
-        + f" ({len(data.get('checks') or [])} checks, all offline)"
-        + "\n"
-        + (
-            "Next: ask me for the measured difference in this run's result."
-            if data.get("verified")
-            else f"Next: run `techtree proof verify {target}` in a terminal to "
-            "see every check."
+    error = answer.get("error")
+    if isinstance(error, dict) and error.get("code") == PROOF_BUNDLE_INVALID:
+        return (
+            f"Proof for {target}: did not verify. {_error_line(answer)}\n"
+            f"Next: run `regents techtree proof verify {target}` in a terminal "
+            "to see every check."
         )
+    if error is not None:
+        return _error_line(answer)
+    return (
+        f"Proof for {target}: verified"
+        f" ({len(answer.get('checks') or [])} checks, all offline)\n"
+        "Next: ask me for the measured difference in this run's result."
     )
 
 
@@ -554,13 +531,6 @@ def _cli_status(services: Any) -> Callable[[Any], int]:
     return run
 
 
-def _cli_watch(services: Any) -> Callable[[Any], int]:
-    def run(namespace: Any) -> int:
-        return _terminal(services, ["run", "status", namespace.run_id, "--watch"])
-
-    return run
-
-
 def _cli_result(services: Any) -> Callable[[Any], int]:
     def run(namespace: Any) -> int:
         return _terminal(services, ["run", "result", namespace.run_id])
@@ -600,11 +570,6 @@ def build_cli_verbs(services: Any) -> Mapping[str, CliCommand]:
             help="show how a run is progressing",
             setup=_add_run_id,
             handler=_cli_status(services),
-        ),
-        "watch": CliCommand(
-            help="follow a run until it ends (terminal only)",
-            setup=_add_run_id,
-            handler=_cli_watch(services),
         ),
         "result": CliCommand(
             help="show the finished report for a run",
@@ -655,7 +620,6 @@ CLI_VERB_NAMES: tuple[str, ...] = (
     "doctor",
     "demo",
     "status",
-    "watch",
     "result",
     "verify",
 )

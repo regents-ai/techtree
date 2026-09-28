@@ -19,7 +19,6 @@ the other fails the build rather than reaching a host agent.
 
 from __future__ import annotations
 
-import ast
 import importlib
 import re
 from pathlib import Path
@@ -453,13 +452,11 @@ def test_this_build_emits_the_v2_envelope() -> None:
 
 
 #: Files that may still name the v1 envelope version, and why. This test names
-#: it in order to forbid it. ``test_models.py`` hands the plugin's parser a v1
-#: envelope to prove it is rejected. Everything else that builds or reads an
-#: envelope speaks one version, and the frozen trees — the v1 contract
-#: document and ``schemas/v1alpha1`` — are history rather than code.
+#: it in order to forbid it. Everything else that builds or reads an envelope
+#: speaks one version, and the frozen trees — the v1 contract document and
+#: ``schemas/v1alpha1`` — are history rather than code.
 V1_VERSION_IS_ALLOWED: frozenset[str] = frozenset(
     {
-        "test_models.py",
         "test_v02_machine_contract.py",
     }
 )
@@ -497,7 +494,7 @@ def test_no_v1_envelope_or_next_action_shape_survives() -> None:
 
 def test_nothing_that_speaks_the_envelope_still_names_v1() -> None:
     """One envelope version, defined once, named nowhere it could be read as live."""
-    roots = (CLI_ROOT / "src", CLI_ROOT / "tests", MONOREPO_ROOT / "plugin")
+    roots = (CLI_ROOT / "src", CLI_ROOT / "tests")
     for root in roots:
         for suffix in ("*.py", "*.json"):
             for path in sorted(root.rglob(suffix)):
@@ -661,52 +658,3 @@ def test_a_start_offered_after_a_review_is_bound_to_the_draft_reviewed() -> None
     assert priced.estimated_cost.maximum_authorized_cost == "12.5"
     assert priced.estimated_cost.estimate_source == "campaign_declared_maximum"
     assert priced.estimated_cost.execution_plan_digest is None
-
-
-def literal_tuple(module: Path, name: str) -> tuple[str, ...]:
-    """Return one module-level tuple of string literals, without importing it.
-
-    The Hermes plugin is a separate package with its own import machinery, and
-    reading its source is enough here: what is being checked is the vocabulary
-    it hard-codes, which is a literal in the file either way.
-    """
-    tree = ast.parse(module.read_text(encoding="utf-8"))
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.AnnAssign | ast.Assign):
-            continue
-        targets = [node.target] if isinstance(node, ast.AnnAssign) else node.targets
-        if not any(
-            isinstance(target, ast.Name) and target.id == name for target in targets
-        ):
-            continue
-        assert isinstance(node.value, ast.Tuple), f"{name} is not a tuple literal"
-        return tuple(ast.literal_eval(element) for element in node.value.elts)
-    raise AssertionError(f"{module} defines no {name}")
-
-
-def test_the_hermes_consumer_reads_exactly_the_contract_envelope() -> None:
-    """The producer and the only consumer describe one envelope.
-
-    The plugin parses an envelope by name and rejects a field it has never
-    heard of, so its field lists *are* its half of the contract. They are
-    checked against the document rather than against the CLI's model, because
-    the document is what a second consumer would be written from.
-    """
-    models = MONOREPO_ROOT / "plugin" / "services" / "models.py"
-    assert (
-        list(literal_tuple(models, "_CLI_ENVELOPE_FIELDS"))
-        == documented_envelope_fields()
-    )
-    assert (
-        list(literal_tuple(models, "_CLI_NEXT_ACTION_FIELDS"))
-        == documented_next_action_fields()
-    )
-    assert set(literal_tuple(models, "_CLI_OPERATIONS")) == PLANNED_OPERATIONS
-    assert set(literal_tuple(models, "_CLI_RETRY_CLASSES")) == RETRY_CLASSES
-
-
-def test_the_hermes_consumer_speaks_the_same_envelope_version() -> None:
-    """One version, moved in one change. There is no negotiation."""
-    constants = MONOREPO_ROOT / "plugin" / "cli" / "constants.py"
-    text = constants.read_text(encoding="utf-8")
-    assert f'SUPPORTED_CLI_SCHEMA: Final = "{CLI_SCHEMA_VERSION}"' in text

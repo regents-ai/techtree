@@ -22,9 +22,10 @@ Four rules hold the whole flow up:
 * Missing ``uv`` is a prerequisite the user resolves. The plugin does not pipe
   a remote script into a shell, and does not pick a package manager for them.
 
-After an installation the plugin checks what actually landed: the CLI runs,
-its release matches this build, and Techtree's own Doctor agrees the machine
-is ready.
+Techtree is installed as the Regents command line, ``regents-cli``, whose
+``regents techtree`` namespace this plugin calls. After an installation the
+plugin checks what actually landed: regents runs, its release matches this
+build, and ``regents techtree doctor`` agrees the machine is ready.
 """
 
 from __future__ import annotations
@@ -45,8 +46,10 @@ from ..services.models import (
     BootstrapInstallPlan,
     PluginAction,
     ReleaseCore,
+    answer_error,
+    is_success,
 )
-from .bridge import PathLookup, read_cli_version, resolve_techtree_binary
+from .bridge import PathLookup, read_cli_version, resolve_regents_binary
 from .constants import (
     CLI_DISTRIBUTION_NAME,
     CLI_PYTHON_SERIES,
@@ -56,7 +59,7 @@ from .constants import (
 from .errors import (
     CODE_BOOTSTRAP_POST_INSTALL_VERIFY_FAILED,
     CODE_BOOTSTRAP_TERMINAL_TOOL_UNAVAILABLE,
-    CODE_TECHTREE_CLI_NOT_FOUND,
+    CODE_REGENTS_CLI_NOT_FOUND,
     CODE_UV_NOT_FOUND,
     BootstrapPlanError,
     PluginError,
@@ -68,8 +71,8 @@ TERMINAL_TOOL: Final = "terminal"
 
 #: The fixed shape of the one installation command, filled in from the release.
 #: The interpreter is named rather than left to the installer to choose, so
-#: that Techtree lands on a Python it supports on a machine whose default is
-#: newer than it supports.
+#: that regents lands on a Python Techtree supports on a machine whose default
+#: is newer than it supports.
 INSTALL_ARGUMENTS: Final = ("tool", "install", "--python", CLI_PYTHON_SERIES)
 
 #: Where a person learns to install uv. The plugin links; it does not fetch.
@@ -192,14 +195,15 @@ def bootstrap_check(
 ) -> dict[str, Any]:
     """Report what this host has, and what the one next step is.
 
-    Installs nothing, calls no model, runs no Docker. When Techtree is already
-    installed it reads the installed release and, when asked, runs Techtree's
-    own Doctor. When Techtree is missing it offers one pinned plan.
+    Installs nothing, calls no model, runs no Docker. When regents is already
+    installed it reads the installed release and, when asked, runs
+    ``regents techtree doctor``. When regents is missing it offers one pinned
+    plan.
     """
     release: ReleaseCore = services.release_core
     digest: str = services.release_core_digest
     uv_path = detect_uv(path_lookup=path_lookup)
-    cli_path = resolve_techtree_binary(path_lookup=path_lookup)
+    cli_path = resolve_regents_binary(path_lookup=path_lookup)
 
     result: dict[str, Any] = {
         "plugin_version": PLUGIN_VERSION,
@@ -247,10 +251,10 @@ def bootstrap_check(
     result["install_plan"] = plan_payload(plan)
     result["next_action"] = PluginAction(
         id="install_techtree",
-        label=f"Install Techtree {plan.version} with: {display_command(plan)}",
+        label=f"Install regents-cli {plan.version} with: {display_command(plan)}",
         reason=(
-            "Techtree is not installed. This command changes software on this "
-            "machine, so the user has to approve it."
+            "regents, which runs Techtree, is not installed. This command "
+            "changes software on this machine, so the user has to approve it."
         ),
         tool="techtree_bootstrap_install",
         arguments={"plan_id": plan.plan_id},
@@ -306,10 +310,10 @@ def install_cli_with_approval(
         "command": command,
         "verification": verification,
         "message": (
-            f"Techtree {verification.get('version')} is installed and belongs "
+            f"regents {verification.get('version')} is installed and belongs "
             "to this plugin's release. Next: inspect the Hello World Climb."
             if verification["verified"]
-            else "The installation did not verify; Techtree was not confirmed."
+            else "The installation did not verify; regents was not confirmed."
         ),
     }
     if verification["verified"]:
@@ -335,7 +339,7 @@ def verify_installation(services: Any) -> dict[str, Any]:
     try:
         result["version"] = services.bridge.version()
     except PluginError as error:
-        result["code"] = getattr(error, "code", CODE_TECHTREE_CLI_NOT_FOUND)
+        result["code"] = getattr(error, "code", CODE_REGENTS_CLI_NOT_FOUND)
         result["message"] = str(error)
         return result
 
@@ -350,7 +354,7 @@ def verify_installation(services: Any) -> dict[str, Any]:
     if not release["compatible"]:
         result["code"] = CODE_BOOTSTRAP_POST_INSTALL_VERIFY_FAILED
         result["message"] = (
-            "the installed Techtree belongs to a different release: "
+            "the installed regents belongs to a different release: "
             + ", ".join(release["mismatches"])
         )
         return result
@@ -362,14 +366,19 @@ def verify_installation(services: Any) -> dict[str, Any]:
 
 
 def doctor_summary(services: Any) -> dict[str, Any]:
-    """Run Techtree's Doctor and summarize what it found.
+    """Run ``regents techtree doctor`` and summarize what it found.
 
     Doctor's own words are preserved. What is added is the one judgement the
     plugin needs downstream: whether anything blocking failed, because a
     blocking failure means no demo may be prepared.
+
+    A machine that is not ready answers with the error
+    ``environment_not_ready``, whose details carry only the blocking checks, so
+    those are the checks reported; a ready machine answers with every check and
+    an empty ``blocking_failures``.
     """
     try:
-        envelope = services.bridge.invoke(["doctor"])
+        answer = services.bridge.invoke(["doctor"])
     except PluginError as error:
         return {
             "ran": False,
@@ -379,28 +388,48 @@ def doctor_summary(services: Any) -> dict[str, Any]:
             "code": getattr(error, "code", None),
         }
 
-    data = envelope.get("facts") or {}
-    checks = data.get("checks") if isinstance(data, dict) else None
-    checks = checks if isinstance(checks, list) else []
-    blocking = [
+    if is_success(answer):
+        checks = answer.get("checks")
+        checks = checks if isinstance(checks, list) else []
+        blocking = _blocking_summaries(answer.get("blocking_failures"))
+        return {
+            "ran": True,
+            "ok": not blocking,
+            "checks": checks,
+            "blocking_failures": blocking,
+            "can_prepare_demo": not blocking,
+            "warnings": answer.get("warnings", []),
+        }
+
+    failure = answer_error(answer)
+    details = failure.get("details")
+    failing = details.get("blocking_failures") if isinstance(details, dict) else None
+    failing = failing if isinstance(failing, list) else []
+    return {
+        "ran": True,
+        "ok": False,
+        "checks": failing,
+        "blocking_failures": _blocking_summaries(failing),
+        "can_prepare_demo": False,
+        "warnings": [],
+        "code": failure.get("code"),
+        "message": failure.get("message"),
+    }
+
+
+def _blocking_summaries(checks: Any) -> list[dict[str, Any]]:
+    """Return each blocking check as the id, label and detail a person reads."""
+    if not isinstance(checks, list):
+        return []
+    return [
         {
             "id": check.get("id"),
             "label": check.get("label"),
             "detail": check.get("detail"),
         }
         for check in checks
-        if isinstance(check, dict) and check.get("blocking")
+        if isinstance(check, dict)
     ]
-
-    return {
-        "ran": True,
-        "ok": bool(envelope.get("ok")) and not blocking,
-        "checks": checks,
-        "blocking_failures": blocking,
-        "can_prepare_demo": not blocking,
-        "blockers": envelope.get("blockers", []),
-        "warnings": envelope.get("warnings", []),
-    }
 
 
 def _installed_cli_facts(
@@ -441,9 +470,9 @@ def _next_action_for_installed(result: Mapping[str, Any]) -> dict[str, Any]:
     if compatibility.get("compatible") is False:
         return PluginAction(
             id="release_mismatch",
-            label="Install the Techtree version this plugin release pins",
+            label="Install the regents-cli version this plugin release pins",
             reason=(
-                "The installed Techtree belongs to a different release: "
+                "The installed regents belongs to a different release: "
                 + ", ".join(compatibility.get("mismatches", []))
             ),
             requires_user_confirmation=True,

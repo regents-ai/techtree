@@ -63,7 +63,7 @@ has ever seen it.
 
 ## "Can I check it myself?"
 
-Yes, and encourage it — that is the point of the thing. `techtree proof verify`
+Yes, and encourage it — that is the point of the thing. `regents techtree proof verify`
 against the run's proof directory does the whole check offline. It needs no
 account, no network, and nothing from us.
 
@@ -114,11 +114,11 @@ public key; no EVM address is attached unless you choose to add one.”
 
 The question is only an opt-in offer. Do not call `techtree_publish_run` until
 the person explicitly approves it. If the result has no `publication_offer`,
-or its proof did not verify, do not ask to publish; use the next action Techtree
-gave, such as checking the proof offline. The plugin never takes or sends an
-EVM address. If the person wants to attach one, give them Techtree's exact
-terminal command for that run, `techtree publish <run-id>` with the actual run
-ID substituted, and let the terminal prompt handle it rather than soliciting
+or its proof did not verify, do not ask to publish; offer to check the proof
+offline instead. The plugin never takes or sends an
+EVM address. If the person wants to attach one, give them the exact
+terminal command for that run, `regents techtree publish <run-id>` with the
+actual run ID substituted, and let the terminal prompt handle it rather than soliciting
 the address in chat.
 
 ## "Where did my data go?"
@@ -177,7 +177,7 @@ Each of those is pinned to an exact version, and the release is only as
 reproducible as those pins. Say so if asked what the evidence rests on — it is
 how the release is put together, not an apology for it.
 
-## "My security scanner flagged this plugin. What are the five findings?"
+## "My security scanner flagged this plugin. What are the findings?"
 
 They are real, they are what the plugin genuinely does, and none of them is
 hidden or worked around. Say what each one is:
@@ -186,7 +186,7 @@ hidden or worked around. Say what each one is:
 is a list of about a dozen command words — the package managers, the shells,
 the download tools, the version-control and administrative ones — that the
 plugin refuses to let a model-written summary tell someone to run. Commands
-shown to a person come from Techtree's own next actions, never from a sentence
+shown to a person come from regents' own answers, never from a sentence
 a model wrote. A deny-list has to name what it denies, so a scanner reading
 that file sees the vocabulary and flags it. It is the block-list, not an
 action. This page describes the list rather than repeating it, so that the
@@ -194,10 +194,10 @@ document explaining the findings does not become one of them.
 
 **Three subprocess calls, in `cli/bridge.py`.** Flagged MEDIUM, as execution. They
 are the entire boundary between this plugin and Techtree, and they are three
-because the plugin drives the CLI three different ways: one captures output and
-reads back a JSON answer, one asks the CLI its version and must not parse that
-as an answer, and one deliberately does not capture anything so Techtree's own
-rendered report reaches the terminal the person is looking at. Each builds a
+because the plugin drives `regents` three different ways: one captures output
+and reads back a JSON answer, one asks regents its version and must not parse
+that as an answer, and one deliberately does not capture anything so regents'
+own rendered report reaches the terminal the person is looking at. Each builds a
 fixed argument array, runs no shell, and passes a named allowlist of
 environment variables rather than this process's own. There is no fourth.
 
@@ -206,17 +206,22 @@ obfuscation. It strips escape sequences and control bytes out of anything the
 plugin prints into a conversation, so borrowed output cannot redraw somebody's
 terminal. It is a sanitiser, and a scanner sees a control-byte pattern.
 
+**Nine more, in the plugin's own `tests/` and `scripts/`.** The tests start
+real processes to prove the bridge builds the command it claims to, and the
+guard tests carry the very sentences the guard exists to refuse. None of it
+runs when the plugin loads or when a tool is called.
+
 ## "Hermes refused to install this. Is something wrong?"
 
 No. That is the scanner working, and it is worth saying so plainly before
 anything else, because a refusal reads like a verdict on the software.
 
-Hermes reads a plugin's source before installing it. This one comes back at
-caution, and a plugin from a community source at caution is refused rather
-than queried — it does not stop and ask. The refusal names the flag that
-overrides it.
+Hermes reads a plugin's source before installing it. On Hermes 0.21.3 this
+one comes back at caution, and a plugin from a community source at caution is
+refused rather than queried — it does not stop and ask. The refusal names the
+flag that overrides it.
 
-What is owed at that moment is the five findings and what each one is, which
+What is owed at that moment is the findings and what each one is, which
 is the answer above. Then the decision is the person's: run the pinned command
 again with the override, having read them. Never offer to turn the scanning
 off, and never run the override for somebody who has not answered. The whole
@@ -232,7 +237,7 @@ it is to write the same operations so the pattern-matcher stops recognising
 them. That is evasion, not a fix, and it would leave anyone reading the code a
 worse account of it than the scanner gives.
 
-So the verdict is caution, and it stays caution. What is owed instead is a
+So the findings stay, and so does the verdict. What is owed instead is a
 straight answer about what each finding is — which is this.
 
 ## "Why does one Skill have three different names?"

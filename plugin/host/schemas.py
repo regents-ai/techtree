@@ -7,7 +7,8 @@ model tokens on inference for an evaluated run.
 
 Four things never appear in a schema here: an API key, an executable path, an
 installation command, and an unbounded identifier. Anything the plugin runs is
-built from release data and the fixed CLI contract, never from these arguments.
+built from release data and the fixed ``regents techtree`` contract, never from
+these arguments.
 """
 
 from __future__ import annotations
@@ -99,8 +100,9 @@ def _schema(
 _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     "techtree_bootstrap_check": _schema(
         description=(
-            "Report whether this host can run Techtree: whether the Techtree "
-            "CLI is installed, whether it matches the release this plugin was "
+            "Report whether this host can run Techtree: whether regents, the "
+            "command line that runs it, is installed, whether it matches the "
+            "release this plugin was "
             "built against, and what the next step is. Read-only and free: it "
             "installs nothing and starts no evaluation. Run this first in any "
             "Techtree conversation."
@@ -109,7 +111,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "include_doctor": {
                 "type": "boolean",
                 "description": (
-                    "Also run Techtree's own Doctor when the CLI is present. "
+                    "Also run Techtree's own Doctor when regents is present. "
                     "Doctor inspects Docker, the evaluation engine, the "
                     "catalog, and evaluation-provider authentication. Free, "
                     "but slower than the plain check."
@@ -119,7 +121,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     ),
     "techtree_bootstrap_install": _schema(
         description=(
-            "Install the pinned Techtree CLI release using the plan that "
+            "Install the pinned regents-cli release using the plan that "
             "techtree_bootstrap_check produced. This changes software on the "
             "user's machine and always requires the user to approve the exact "
             "command through the host's normal terminal approval. The package, "
@@ -141,7 +143,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     "techtree_system_check": _schema(
         description=(
             "Run Techtree's Doctor and report each readiness check separately: "
-            "CLI release, managed engine, Docker, public catalog, host "
+            "regents release, managed engine, Docker, public catalog, host "
             "platform, and evaluation-provider authentication. Read-only and "
             "free. Use it when something failed and you need to know which "
             "part of the host is not ready."
@@ -211,8 +213,8 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     "techtree_demo_prepare": _schema(
         description=(
             "Prepare Techtree Hello World, the toy Skill-uplift Climb, with "
-            "the founder-supplied hello-world-starter-v1 Skill: check the "
-            "CLI, run Doctor, materialize the starter Skill by its pinned "
+            "the founder-supplied hello-world-starter-v1 Skill: check "
+            "regents, run Doctor, materialize the starter Skill by its pinned "
             "digest, and prepare a draft. Free and starts nothing. It returns "
             "the exact field that changes between the two runs, the "
             "data-policy summary, how many episodes the comparison will run, "
@@ -279,7 +281,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
     "techtree_run_result": _schema(
         description=(
             "Return the finished report for a completed run: the comparison "
-            "outcome, the uplift report, and the local proof path. Read-only "
+            "outcome, the uplift report, and the execution record. Read-only "
             "and free. Everything it returns is Techtree's own output, "
             "relayed unchanged and with no model asked to describe it; the "
             "result was not independently reproduced by anyone else, and must "
@@ -314,7 +316,7 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "Publish a finished run's proof to the public run log. REQUIRES "
             "USER CONFIRMATION, and offer it only when Techtree itself has "
             "offered it: a verified result and a passing proof check each "
-            "carry a 'publish_run' next action, and a run whose proof did not "
+            "carry a publication_offer, and a run whose proof did not "
             "verify is never offered. Before asking, say what travels and what "
             "does not. It uploads the complete proof bundle — its manifests, "
             "signed report and receipts, cited documents, and any optional "
@@ -328,8 +330,9 @@ _TOOL_SCHEMAS: Final[dict[str, dict[str, Any]]] = {
             "between two people's entries. A published entry can be withdrawn "
             "afterwards, which is recorded, and it is not deleted. No Ethereum "
             "address is sent this way, and nothing is offered in exchange for "
-            "one. This plugin reaches no network; the Techtree CLI it runs is "
-            "what talks to the run log, and only after the person has said yes."
+            "one. This plugin reaches no network; the regents command it runs "
+            "is what talks to the run log, and only after the person has said "
+            "yes."
         ),
         properties={"run_id": _run_id("The verified run to publish.")},
         required=["run_id"],

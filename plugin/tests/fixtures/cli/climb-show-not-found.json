@@ -1,0 +1,1 @@
+{"error": {"code": "climb_not_found", "message": "this build ships no Climb called 'does-not-exist@1'", "details": {"reference": "does-not-exist@1", "available": ["hello-world-climb@1"]}}}

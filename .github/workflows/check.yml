@@ -23,9 +23,6 @@ jobs:
       - name: Check plugin package
         working-directory: plugin
         run: make check
-      - name: Check CLI and plugin integration
-        working-directory: cli
-        run: make check-plugin
 
   platform:
     name: Public platform

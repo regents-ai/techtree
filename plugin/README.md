@@ -14,7 +14,7 @@ Paste this into Hermes:
 > Read this plugin directory's pinned Hello World installation instructions.
 > Explain the exact commands, the prerequisites, what spends model tokens,
 > and the privacy terms. Ask before installing the plugin, installing
-> the Techtree CLI, or starting a run that spends tokens. After the
+> regents, or starting a run that spends tokens. After the
 > plugin is enabled, tell me when to restart Hermes, then continue with
 > Techtree Doctor and the Hello World Climb.
 
@@ -32,9 +32,9 @@ Paste this into Hermes:
          │  one pasted prompt
          ▼
    Hermes (operator) ······ plugin/               ◀ this component
-         │  fixed argv · one JSON envelope
+         │  fixed argv · one JSON answer
          ▼
-   Techtree CLI ··········· cli/
+   regents techtree ······· regents-cli, its own repository
          │  pinned engine, detached runs
          ▼
    Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
@@ -48,12 +48,14 @@ Paste this into Hermes:
    platform/ ─ the site: pinned guide, catalog, published objects, run log
 ```
 
-## Other components in this monorepo
+## Other components
 
-- **[CLI and campaign kernel](../cli/)** — the
-  Techtree CLI and evaluation substrate: campaigns, detached runs, signed
-  comparison reports, and offline proof verification. Everything a comparison
-  measures and records happens there, on the participant's own machine.
+- **[regents-cli](https://github.com/regents-ai/regents-cli)** — the `regents`
+  command. Its `regents techtree` commands are the campaign kernel and
+  evaluation substrate: campaigns, detached runs, signed comparison reports,
+  and offline proof verification. Everything a comparison measures and records
+  happens there, on the participant's own machine. It is installed with
+  `uv tool install regents-cli`.
 - **[Public platform](../platform/)** — the website
   at techtree.sh: the pinned installation guide, the campaign catalog, the
   published protocol objects, the public run log, and the docs. Everything it
@@ -66,7 +68,7 @@ Paste this into Hermes:
 | Agent host | Nous Research's Hermes, the operator | host Hermes 0.21.3 or newer |
 | Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
 | Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
-| Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
+| Campaign kernel and evidence | `regents techtree`, from regents-cli | Python 3.12, managed with uv |
 
 Techtree runs a neutral agent and a Skill-enabled agent against the
 same toy tasks, shows the measured difference, and creates a signed
@@ -78,8 +80,8 @@ Climb measures, prepare a run, start it, follow it, and read the result.
 ## Repository experiments and Skill environments
 
 The plugin has no tools for building tasks from a repository or for creating
-an environment from a Skill. Both run through the
-Techtree CLI in a terminal, as `techtree forge` commands. The bundled operator
+an environment from a Skill. Both run through
+`regents` in a terminal, as `regents techtree forge` commands. The bundled operator
 Skill tells Hermes how to walk a person through creating an environment: ask
 where the Skill is and never pick one, run one step at a time, show each
 review exactly as Techtree prints it, and run an approving command only after
@@ -109,8 +111,7 @@ works. It is not a measure of broad capability.
 > [!WARNING]
 > Starting a comparison spends model tokens against your own provider credit.
 > Nothing causing LLM token spend starts on its own: installing the plugin,
-> installing the
-> Techtree CLI, and starting a run that spends are three separate approvals,
+> installing regents, and starting a run that spends are three separate approvals,
 > and each one waits for you to answer.
 
 Install only from the exact pinned guide at
@@ -119,9 +120,9 @@ vector from the active BootstrapRelease, links the exact 40-character plugin
 commit, and shows the command argument for argument. Do not copy a branch name,
 a floating package version, or an example placeholder into an install command.
 
-**Expect Hermes to refuse the first attempt.** It reads the source before
-installing anything, this plugin comes back at caution, and a community-source
-plugin at caution is refused rather than queried. That is not a fault and the
+**On Hermes 0.21.3, expect Hermes to refuse the first attempt.** It reads the
+source before installing anything, this plugin comes back at caution there, and
+a community-source plugin at caution is refused rather than queried. That is not a fault and the
 step past it is a decision you make after reading what the scan found — see
 [Install-time security scanning](#install-time-security-scanning) below.
 
@@ -129,30 +130,32 @@ Supported host: Hermes 0.21.3. The evaluated subject remains the separately
 pinned Hermes 0.19.0 named by the Campaign. The release this plugin belongs to
 is recorded in `release-core.json`.
 
-Installing the plugin does not install Techtree itself. Ask in the
+Installing the plugin does not install regents, the command that runs
+Techtree. Ask in the
 conversation — "is Techtree ready?" — and the plugin will tell you what is
 missing and show you the exact command to install it. That command always
 needs your approval and installs only the version pinned by the same release.
 
 After the plugin is installed and enabled, restart Hermes once so the tools
-load. The plugin then asks again before installing the Techtree CLI. Spending
+load. The plugin then asks again before installing regents. Spending
 tokens on a comparison has its own separate approval after Doctor and the run
 review.
 
 ## Install-time security scanning
 
 Hermes reads a plugin's source before installing it and shows you what it
-found. This plugin comes back at **caution**, with five findings in three
-places. Not one of them is an oversight waiting to be tidied away: each is
-part of how the plugin does its work, and each is a few lines you can read
-for yourself before you approve anything.
+found. This plugin comes back at **caution** on Hermes 0.21.3 and at **safe**
+on Hermes 0.21.4, with the same fourteen findings in ten files either way.
+Not one of them is an oversight waiting to be tidied away: each is part of how
+the plugin does its work or proves it, and each is a few lines you can read for
+yourself before you approve anything.
 
 - **The guard's own list of command words** — `cli/guards.py`, reported as
   privilege escalation. It is the deny-list: the words the guard looks for in
   text a model wrote beside a result, so wording that would have someone
   install a package, open a shell, or take administrator rights is refused. A
   list of what to refuse has to name the things it refuses.
-- **Three places the plugin starts the Techtree CLI** — `cli/bridge.py`, reported
+- **Three places the plugin starts regents** — `cli/bridge.py`, reported
   as execution. Those three are the entire boundary between this plugin and
   Techtree. Each starts the one command named in `cli/constants.py`, with a fixed
   argument list, no shell, a named list of environment variables rather than
@@ -161,6 +164,13 @@ for yourself before you approve anything.
 - **The control-character stripper** — `host/channels.py`, reported as
   obfuscation. One pattern, matching terminal control codes, so they can be
   taken out of anything the plugin puts into a conversation.
+- **The plugin's own tests and checkers** — `tests/` and `scripts/`, nine
+  findings reported as execution, supply chain, privilege escalation and
+  destructive commands. The tests start real processes to prove the bridge
+  builds the command it claims to, and the guard tests carry the very
+  sentences the guard refuses — a download piped into a shell, an
+  administrator command, a disk-wiping command hidden in a version string.
+  None of it runs when the plugin loads or when a tool is called.
 
 ### Hermes refuses this install the first time, and that is expected
 
@@ -168,13 +178,12 @@ It does not stop and ask. A plugin from a community source that comes back at
 caution is refused outright, and the refusal names what would override it:
 
 ```text
-Decision: BLOCKED — Blocked (community source + caution verdict, 5 findings).
-Use --force to override.
+Security scan blocked plugin install: Requires confirmation (caution verdict, 14 findings)
 ```
 
 So installing is two deliberate steps rather than one. Run the pinned command
 from [techtree.sh/start](https://techtree.sh/start) first and read what the
-scan reports. If it is the five findings above, in the three files above, and
+scan reports. If it is the fourteen findings above, in the files above, and
 you have looked at the code they name, run the same command again with
 `--force` appended.
 
@@ -198,8 +207,8 @@ Loading the plugin never installs software, never reaches the network, never
 starts Docker, never runs Techtree, and never calls a model. This is enforced
 by a test that seals off every way of starting a process, opening a socket, or
 writing a file, and then requires the plugin to load anyway. It lives with the
-rest of the plugin's suite in the Techtree repository, as
-`tests/plugin/contract/test_no_registration_side_effects.py`.
+rest of the plugin's suite in this directory, as
+`tests/contract/test_no_registration_side_effects.py`.
 
 ## Commands
 
@@ -215,14 +224,13 @@ In any session:
 | `/techtree result` | the finished result |
 | `/techtree verify` | check a local proof, offline |
 
-In a terminal, where Techtree's own rendered output belongs:
+In a terminal, where regents' own rendered output belongs:
 
 | Command | What it does |
 | --- | --- |
 | `hermes techtree doctor` | is this machine ready to run a Climb? |
 | `hermes techtree demo` | prepare Techtree Hello World |
 | `hermes techtree status <run>` | how a run is progressing |
-| `hermes techtree watch <run>` | follow a run until it ends |
 | `hermes techtree result <run>` | the finished report for a run |
 | `hermes techtree verify <path>` | check a local proof, offline |
 
@@ -230,50 +238,46 @@ Everything this plugin adds to your terminal sits under the one word
 `techtree`, so nothing here takes a name of its own alongside Hermes' own
 commands. `hermes techtree` on its own lists what you just read.
 
-`watch` follows a run live in your terminal. Nothing the model can call ever
-holds an open watch — a conversation that is waiting is a conversation that
-has stopped.
-
 ## Check the plugin
 
 ```bash
-make -C ../cli plugin-doctor
+make doctor
 ```
 
 Reports whether this build is sound — its manifest, its tool descriptions, its
 release bytes, and whether its code stays within the standard library — and
-whether the Techtree CLI and `uv` are present on this machine. A missing CLI is
+whether `regents` and `uv` are present on this machine. A missing `regents` is
 a warning with a next step, not a failure: the plugin is meant to work on a
-machine where Techtree was never installed.
+machine where regents was never installed.
 
 ## How it talks to Techtree
 
-Every scientific thing this plugin can cause happens by running the `techtree`
-command with a fixed list of arguments and reading back one JSON answer. There
-is no second path: no shell and no imported Techtree code. This plugin reaches
+Every scientific thing this plugin can cause happens by running
+`regents techtree` with a fixed list of arguments and reading back one JSON
+answer. There is no second path: no shell and no imported regents code. This plugin reaches
 no network either — no module of it imports a networking library, and the
 plugin doctor proves that by reading every runtime import rather than by
-promising it. The Techtree CLI it runs is what talks to the run log, and only
-after the person has said yes.
-The plugin adds the machine-output flags itself, so an answer is never coloured
-or half-interactive, and it accepts exactly one well-formed answer — anything
-else is treated as the two sides disagreeing about the contract rather than
-something to guess at.
+promising it. The regents command it runs is what talks to the run log, and
+only after the person has said yes.
+The plugin adds `--json` itself, so an answer is never coloured or
+interactive, and it accepts exactly one well-formed answer — anything else is
+treated as the two sides disagreeing about the contract rather than something
+to guess at.
 
 That command is also given a short, named list of environment variables and
-nothing else: where Techtree keeps its home, where its own authentication
-lives, and what the terminal can render. A Hermes session carries whatever the
-person who started it had exported, and almost none of it is Techtree's
-business. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `cli/constants.py`, short
+nothing else: where to find programs, the home directory regents keeps its
+state under, a temporary directory, the language settings, and the kind of
+terminal. A Hermes session carries whatever the person who started it had
+exported, and almost none of it is Techtree's business. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `cli/constants.py`, short
 enough to read in one go.
 
-The plugin and the installed Techtree also have to belong to the same release.
+The plugin and the installed regents also have to belong to the same release.
 Both carry the identical `release-core.json`, published under the SHA-256 of
-the file itself, so agreement can be checked with `shasum` in either component
-directory — or by asking the installed CLI what release it belongs to:
+the file itself, so agreement can be checked by asking the installed regents
+what release it belongs to:
 
 ```bash
-make -C ../cli plugin-release-core-cli
+make release-core-cli
 ```
 
 ## Repository layout
@@ -287,7 +291,7 @@ cli/errors.py        plugin-local errors and their stable codes
 services/models.py   local models and strict parsers
 host/schemas.py      the model-visible tool schemas
 cli/release.py       the pinned release, its digest, and its cross-checks
-cli/bridge.py        the only path from the plugin into Techtree
+cli/bridge.py        the only path from the plugin into regents
 cli/doctor.py        the plugin's own doctor
 cli/bootstrap.py     installation after a person has said yes
 cli/guards.py        checks on model-written wording
@@ -300,33 +304,32 @@ services/approvals.py approval and plan records
 tools/               the tools the agent calls
 services/            the container assembled during registration
 skills/              bundled read-only operator Skills
+tests/               the plugin's test suite: unit, contract, integration
+scripts/             the plugin's own checkers: doctor, schemas, release bytes, types
 ```
 
-That is the whole plugin package: what the plugin is, and nothing about how it
-is built. Its tests and tooling live under `../cli/tests/plugin/` and
-`../cli/tools/plugin/`, because a suite that proves the guards work has to carry
-the attacks they catch, while this directory remains exactly what an
-install-time scanner reads.
+Everything above `tests/` is the plugin package. The tests and checkers sit
+beside it, and a suite that proves the guards work has to carry the attacks
+they catch, which is what the install-time scan reports from those two
+directories.
 
 ## Development
 
 ```bash
 make install    # sync the tooling environment
-make check      # format, lint, types
+make check      # format, lint, types, tests, and the plugin doctor
 ```
 
 The plugin runtime uses only the Python standard library, and never imports
-Techtree's Python package: the CLI's JSON envelope is the only boundary
+regents' Python package: the regents JSON answer is the only boundary
 between the two. The plugin doctor fails the build if that stops being true.
 
-The full test battery — unit, contract, and integration, including the
-contract tests that talk to a real Techtree CLI with read-only commands — is:
+The contract tests that ask a real regents read-only questions run when
+`REGENTS_CLI_ARGV` names the command to run:
 
 ```bash
-make -C ../cli test-plugin
+make test REGENTS_CLI_ARGV=regents
 ```
-
-It reads this plugin directly from the monorepo's `plugin/` directory.
 
 ## What it remembers
 
@@ -338,7 +341,7 @@ Techtree, not from anything the plugin was keeping.
 
 ## Bounded answers
 
-Everything except `watch` answers in the conversation itself. Those answers are
+Everything answers in the conversation itself. Those answers are
 compact, carry no terminal control codes, and are bounded — and when an answer
 is cut, it says so and names the command that shows all of it. When nothing
 tells the plugin how much room it has, it assumes the smaller budget, because
@@ -373,8 +376,10 @@ Two things are deliberately **not** removed by either command, because they are
 not the plugin's to delete:
 
 - **Techtree's own home** — your runs, drafts, proof bundles and the evaluation
-  engine. It belongs to the Techtree CLI, not to this plugin. Remove the CLI
-  with `uv tool uninstall techtree` and delete its home if you want it gone.
+  engine, in `~/.regents/techtree`. It belongs to regents, not to this plugin.
+  Remove regents with `uv tool uninstall regents-cli`, which removes the
+  `regents` command for every Regents site and not only Techtree, and delete
+  that home if you want it gone.
 - **Anything held by your model provider.** An evaluated run sends its tasks
   to the provider the run is configured with. What providers retain is
   governed by their policies, and no command here reaches it.
@@ -382,7 +387,7 @@ not the plugin's to delete:
 ## Release status
 
 This directory carries the release contract in `release-core.json`, release
-`climb-v0.3.0`, with host Hermes 0.21.3 as its minimum. It names the
+`climb-v0.3.1`, with host Hermes 0.21.3 as its minimum. It names the
 starter Skill, so the installed plugin can prepare Techtree Hello World and run
 its comparison. Earlier records required Hermes 0.20.1, and each record's own
 minimum applies to the plugin commit it installs.

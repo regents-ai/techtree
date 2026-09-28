@@ -24,7 +24,7 @@ TERMINAL_ORDER: Final[tuple[str, ...]] = (
     "scores",
     "controlled_change",
     "proof",
-    "next_actions",
+    "publication_offer",
 )
 
 #: The order a phone reads a result in.
@@ -43,46 +43,41 @@ class PresentationService:
     def deterministic_only(
         self,
         *,
-        result_envelope: Mapping[str, Any],
+        result: Mapping[str, Any],
         channel: ChannelKind,
     ) -> dict[str, Any]:
-        """Return everything Techtree said, in the order this channel reads it."""
-        payload = _payload_of(result_envelope)
+        """Return everything Techtree said, in the order this channel reads it.
+
+        ``result`` is the answer of ``regents techtree run result``: the
+        presentation payload, the uplift report and the execution record at
+        its top level.
+        """
+        payload = _payload_of(result)
         verified = _verification_ok(payload)
         compact = is_gateway_safe_required(channel)
         return {
-            "ok": bool(result_envelope.get("ok", True)),
-            "operation": "result.inspect",
             "channel": channel.value,
             "order": list(GATEWAY_ORDER if compact else TERMINAL_ORDER),
             "presentation": compact_presentation(payload) if compact else dict(payload),
-            "report": None if compact else _report_of(result_envelope),
             "verification_status": payload.get("verification_status"),
             "proof_grade": payload.get("proof_grade"),
             "leads_with": "result" if verified else "verification_failure",
             "reproduction": REPRODUCTION_STATEMENT,
             "outcome": describe_outcome(payload),
             "usage": usage_summary(payload),
-            "completion_summary": completion_summary(result_envelope),
+            "completion_summary": completion_summary(result),
             "result_label": FIRST_RESULT_LABEL,
         }
 
 
-def _payload_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any]:
-    data = result_envelope.get("facts")
-    payload = data.get("presentation") if isinstance(data, Mapping) else None
+def _payload_of(result: Mapping[str, Any]) -> Mapping[str, Any]:
+    payload = result.get("presentation")
     if not isinstance(payload, Mapping):
         raise PluginError(
             "this run result carries no presentation payload to show",
             code="host_llm_output_invalid",
         )
     return payload
-
-
-def _report_of(result_envelope: Mapping[str, Any]) -> Mapping[str, Any] | None:
-    data = result_envelope.get("facts")
-    report = data.get("report") if isinstance(data, Mapping) else None
-    return report if isinstance(report, Mapping) else None
 
 
 def _verification_ok(payload: Mapping[str, Any]) -> bool:
@@ -165,14 +160,12 @@ def usage_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "candidate_tokens": payload.get("candidate_tokens"),
         "baseline_seconds": payload.get("baseline_seconds"),
         "candidate_seconds": payload.get("candidate_seconds"),
-        "cost_usd": payload.get("cost_usd"),
-        "cost_provenance": payload.get("cost_provenance", "unavailable"),
         "derived_cost": payload.get("derived_cost"),
         "cost_unavailable_reason": payload.get("cost_unavailable_reason"),
     }
 
 
-def completion_summary(result_envelope: Mapping[str, Any]) -> dict[str, Any]:
+def completion_summary(result: Mapping[str, Any]) -> dict[str, Any]:
     """Return headline completion totals from the signed execution record.
 
     The overall elapsed time is the record's own value, not a sum or a new
@@ -181,9 +174,8 @@ def completion_summary(result_envelope: Mapping[str, Any]) -> dict[str, Any]:
     The side values remain available here and in ``usage`` for a reader who
     wants the breakdown.
     """
-    data = result_envelope.get("facts")
-    payload = data.get("presentation") if isinstance(data, Mapping) else None
-    record = data.get("execution_record") if isinstance(data, Mapping) else None
+    payload = result.get("presentation")
+    record = result.get("execution_record")
     if not isinstance(record, Mapping):
         return {
             "elapsed_seconds": None,
@@ -269,12 +261,10 @@ COMPACT_PRESENTATION_FIELDS: Final[tuple[str, ...]] = (
     "baseline_rate_limited_calls",
     "candidate_rate_limited_calls",
     "every_rollout_completed",
-    # What it cost and, inseparably, what kind of figure that is: a figure the
-    # provider reported, one worked out while rendering, or none with the
-    # reason there is none. Decision 0007 R6 forbids the figure without its
-    # basis, so the basis fields are part of the same widening.
-    "cost_usd",
-    "cost_provenance",
+    # What it cost and, inseparably, what kind of figure that is: one worked
+    # out while rendering, with its basis, or none with the reason there is
+    # none. Decision 0007 R6 forbids the figure without its basis, so the
+    # reason field is part of the same widening.
     "derived_cost",
     "cost_unavailable_reason",
     "decision",

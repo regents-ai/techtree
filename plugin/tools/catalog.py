@@ -12,7 +12,7 @@ from .arguments import require_climb_reference
 
 @safe_tool
 def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
-    """Run Techtree's Doctor, and report the release check beside it."""
+    """Run ``regents techtree doctor``, and report the release check beside it."""
     channel = channel_of(args, kwargs)
     doctor = doctor_summary(services)
     try:
@@ -22,9 +22,9 @@ def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "label": "Techtree release",
             "status": "pass" if release["compatible"] else "fail",
             "detail": (
-                "the installed Techtree belongs to this plugin's release"
+                "the installed regents belongs to this plugin's release"
                 if release["compatible"]
-                else "the installed Techtree belongs to a different release: "
+                else "the installed regents belongs to a different release: "
                 + ", ".join(release["mismatches"])
             ),
             "blocking": not release["compatible"],
@@ -49,7 +49,6 @@ def techtree_system_check(services: Any, args: dict[str, Any], **kwargs: Any) ->
             "checks": checks,
             "blocking_failures": blocking,
             "can_prepare_demo": not blocking,
-            "blockers": doctor.get("blockers", []),
             "warnings": doctor.get("warnings", []),
             "next_action": (
                 {

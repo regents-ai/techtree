@@ -5,7 +5,6 @@
 ```bash
 make check            # format, lint, typecheck, tests, generated-check, v0.2 preflight
 make test-integration # the integration battery
-make check-plugin     # the plugin: its tests, its typecheck, its doctor
 make regenerate       # rebuild every generated artifact, then re-run generated-check
 ```
 
@@ -24,8 +23,8 @@ This repository is the CLI and evaluation substrate, and the hub: the campaign
 kernel (a CampaignSpec is the scientific contract, a ClimbManifest its public
 wrapper), the content-addressed catalog, the run lifecycle, receipts, signed
 uplift reports, offline proof verification, and the terminal and compact
-renderers. It also holds the decision records, the specs, the release
-artifacts, and the plugin's tests and tooling. `techtree forge`
+renderers. It also holds the decision records, the specs and the release
+artifacts. `techtree forge`
 (`src/techtree/forge/`) builds tasks from a repository and, for 0.3.0 (in
 preparation), creates environments from a Skill; the current plan is
 `../docs/plan/v0.3.0-skill-environments.md` with its task set beside it.

@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-cli check-plugin check-plugin-integration check-platform check-required-fixes release readiness
+.PHONY: check check-cli check-plugin plugin-release-core check-platform check-required-fixes release readiness
 
-check: check-cli check-plugin check-plugin-integration check-platform check-required-fixes check-contracts
+check: check-cli check-plugin check-platform check-required-fixes check-contracts
 
 check-cli:
 	$(MAKE) -C cli check
@@ -10,8 +10,9 @@ check-cli:
 check-plugin:
 	$(MAKE) -C plugin check
 
-check-plugin-integration:
-	$(MAKE) -C cli check-plugin
+# The plugin's embedded ReleaseCore, checked and its digest printed.
+plugin-release-core:
+	$(MAKE) -C plugin release-core
 
 check-platform:
 	cd platform && mix deps.get && mix assets.setup && mix assets.build && mix precommit

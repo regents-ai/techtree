@@ -14,6 +14,7 @@ from ..cli.errors import PluginError
 from ..host.state import save_session, session_payload
 from ..services.approvals import run_approved_event, start_arguments
 from ..services.assets import materialize_starter_skill
+from ..services.models import is_success
 from ..services.session import (
     create_demo_session,
     update_after_first_prepare,
@@ -32,7 +33,7 @@ from .arguments import (
 def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) -> str:
     """Walk the introductory Climb up to the point where a person must decide.
 
-    Everything before the approval happens here: the CLI is checked, Doctor
+    Everything before the approval happens here: regents is checked, Doctor
     runs, the founder's starter Skill is materialized and verified, the Climb
     is inspected, and a draft is prepared. Nothing is started, and no model is
     called.
@@ -46,7 +47,7 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
                 "command": "demo prepare",
                 "blocked": "release_mismatch",
                 "message": (
-                    "The installed Techtree belongs to a different release: "
+                    "The installed regents belongs to a different release: "
                     + ", ".join(release["mismatches"])
                 ),
                 "release": release,
@@ -101,7 +102,7 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
             skill["candidate_label"],
         ]
     )
-    if not prepared.get("ok"):
+    if not is_success(prepared):
         return passthrough(prepared, channel)
 
     session = create_demo_session(
@@ -112,25 +113,24 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
     session = update_after_first_prepare(session, prepared)
     save_session(services, session)
 
-    data = prepared.get("facts") or {}
     return tool_result(
         {
             "ok": True,
             "command": "demo prepare",
             "demo": session_payload(session),
-            "climb": inspection.get("facts"),
-            "draft_id": data.get("draft_id"),
-            "draft_digest": data.get("draft_digest"),
-            "data_policy_digest": data.get("data_policy_digest"),
-            "campaign_spec_digest": data.get("campaign_spec_digest"),
-            "skill_root_digest": data.get("skill_root_digest"),
+            "climb": inspection,
+            "draft_id": prepared.get("draft_id"),
+            "draft_digest": prepared.get("draft_digest"),
+            "data_policy_digest": prepared.get("data_policy_digest"),
+            "campaign_spec_digest": prepared.get("campaign_spec_digest"),
+            "skill_root_digest": prepared.get("skill_root_digest"),
             "starter_skill_digest": skill["skill_root_digest"],
-            "estimated_episodes": data.get("estimated_episodes"),
+            "estimated_episodes": prepared.get("estimated_episodes"),
             # The most this Campaign declares it may cost, read off the draft
             # Techtree just prepared. Decision 0019 section 2 puts the budget in
             # this review; the figure belongs to the Campaign, so it is carried
             # here rather than written into the words that describe it.
-            "campaign_maximum_usd": data.get("campaign_maximum_usd"),
+            "campaign_maximum_usd": prepared.get("campaign_maximum_usd"),
             "changed_field": "the candidate Skill; everything else is identical",
             "next_action": {
                 "id": "start_first_comparison",
@@ -182,7 +182,7 @@ def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> 
     channel = channel_of(args, kwargs)
     draft_id = require_draft_id(require_argument(args, "draft_id"))
 
-    envelope = services.bridge.invoke(
+    answer = services.bridge.invoke(
         [
             "climb",
             "start",
@@ -191,29 +191,28 @@ def techtree_climb_start(services: Any, args: dict[str, Any], **kwargs: Any) -> 
     )
 
     session = _session_for_draft(services, draft_id)
-    if envelope.get("ok"):
+    if is_success(answer):
         if session is not None:
-            save_session(services, update_after_first_start(session, envelope))
+            save_session(services, update_after_first_start(session, answer))
         # Decision 0019 s2: one ordinary run event recording that a person
         # approved starting this exact draft. A fact about what happened, not
         # an acceptance artifact anybody has to verify.
         return tool_result(
             {
-                **envelope,
+                **answer,
                 "approval": run_approved_event(
-                    draft_id=draft_id, draft_digest=_draft_digest(envelope)
+                    draft_id=draft_id, draft_digest=_draft_digest(answer)
                 ),
             },
             channel,
         )
 
-    return passthrough(envelope, channel)
+    return passthrough(answer, channel)
 
 
-def _draft_digest(envelope: Any) -> str | None:
+def _draft_digest(answer: Any) -> str | None:
     """Return the digest Techtree named for this draft, or None if it named none."""
-    data = envelope.get("facts") if isinstance(envelope, dict) else None
-    digest = data.get("draft_digest") if isinstance(data, dict) else None
+    digest = answer.get("draft_digest")
     return digest if isinstance(digest, str) and digest else None
 
 

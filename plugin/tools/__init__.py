@@ -5,15 +5,16 @@ repeated for every tool:
 
 * it takes the tool arguments and returns one JSON string, on success and on
   failure alike;
-* it never raises into the host agent loop — an exception becomes a safe error
-  payload with a stable code;
+* it never raises into the host agent loop — an exception becomes an
+  ``{"error": {...}}`` answer with a stable code, the same shape regents
+  answers a failure in;
 * it never blocks on a benchmark: work that takes minutes returns a run
   identifier and the conversation carries on;
 * it never emits unbounded output, and when a result is too large to carry it
   says so plainly instead of silently cutting it off.
 
 Handlers are written against the service container and bound to it during
-registration, so a handler cannot reach the host, the CLI, or the filesystem
+registration, so a handler cannot reach the host, regents, or the filesystem
 except through services it was given.
 """
 
@@ -89,24 +90,22 @@ def tool_result(
         return text
 
     reduced: dict[str, Any] = {
-        "ok": payload.get("ok"),
         "truncated": True,
         "code": CODE_TOOL_RESULT_TOO_LARGE,
         "message": (
             "The full answer is too large to return here. Nothing was lost: "
-            "run the Techtree command yourself to see all of it."
+            "run the regents techtree command yourself to see all of it."
         ),
         "bytes": len(text.encode("utf-8")),
         "limit_bytes": limit,
         "channel": channel.value,
     }
     for key in (
+        "ok",
         "command",
-        "operation",
         "run_id",
         "draft_id",
         "next_action",
-        "next_actions",
         "publication_offer",
         "completion_summary",
         "error",
@@ -117,20 +116,19 @@ def tool_result(
 
 
 def passthrough(
-    envelope: Mapping[str, Any], channel: ChannelKind = ChannelKind.UNKNOWN
+    answer: Mapping[str, Any], channel: ChannelKind = ChannelKind.UNKNOWN
 ) -> str:
-    """Return the CLI's own envelope as the answer, bounded and unchanged.
+    """Return regents' own answer as the tool's answer, bounded and unchanged.
 
     Techtree's words about a Techtree result are the honest ones, so a
     read-only tool repeats them rather than paraphrasing.
     """
-    return tool_result(dict(envelope), channel)
+    return tool_result(dict(answer), channel)
 
 
-def failed(error: Exception, **extra: Any) -> str:
-    """Return the safe JSON answer for a failure."""
-    payload: dict[str, Any] = {"ok": False, **safe_error_payload(error), **extra}
-    return tool_result(payload)
+def failed(error: Exception) -> str:
+    """Return the ``{"error": {...}}`` answer for a failure on the plugin's side."""
+    return tool_result({"error": safe_error_payload(error)})
 
 
 def safe_tool(handler: Any) -> Any:

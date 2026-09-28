@@ -22,7 +22,7 @@ frozen release artifacts unless a release task explicitly replaces them.
 
 Keep the three component READMEs useful from their own directories. When a
 change crosses components, update the contract producer and consumer together
-and verify the integration through `make -C cli check-plugin`.
+and verify the integration through `make check-plugin`.
 
 Follow the workspace `regent-workflow`. A single engineering agent works each
 lane, verifies its own result, and the founder reviews it. Security-relevant

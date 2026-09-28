@@ -17,6 +17,8 @@ from ..host.state import (
     save_session,
     session_payload,
 )
+from ..services.approvals import cancel_arguments
+from ..services.models import is_success
 from ..services.narrative import REPRODUCTION_STATEMENT
 from ..services.presentation import PresentationService
 from ..services.session import update_after_first_result
@@ -30,22 +32,23 @@ def techtree_run_status(services: Any, args: dict[str, Any], **kwargs: Any) -> s
     """Report how a run is progressing, and return straight away."""
     channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
-    envelope = services.bridge.invoke(["run", "status", run_id])
+    answer = services.bridge.invoke(["run", "status", run_id])
 
     session = latest_session(services)
     if session is not None:
         save_session(services, reconcile_session_with_cli(services, session))
 
-    data = envelope.get("facts") or {}
+    if not is_success(answer):
+        return passthrough(answer, channel)
     return tool_result(
         {
-            **envelope,
+            **answer,
             "summary": {
                 "run_id": run_id,
-                "phase": data.get("phase"),
-                "finished": bool(data.get("terminal")),
-                "result_available": bool(data.get("result_available")),
-                "worker_alive": data.get("worker_alive"),
+                "phase": answer.get("phase"),
+                "finished": bool(answer.get("terminal")),
+                "result_available": bool(answer.get("result_available")),
+                "worker_alive": answer.get("worker_alive"),
             },
         },
         channel,
@@ -58,7 +61,7 @@ def techtree_run_cancel(services: Any, args: dict[str, Any], **kwargs: Any) -> s
     channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
     return passthrough(
-        services.bridge.invoke(["run", "cancel", run_id, "--confirm"]), channel
+        services.bridge.invoke(["run", "cancel", *cancel_arguments(run_id)]), channel
     )
 
 
@@ -73,36 +76,36 @@ def techtree_run_result(services: Any, args: dict[str, Any], **kwargs: Any) -> s
     """
     channel = channel_of(args, kwargs)
     run_id = require_run_id(require_argument(args, "run_id"))
-    envelope = services.bridge.invoke(["run", "result", run_id])
+    answer = services.bridge.invoke(["run", "result", run_id])
 
     session = latest_session(services)
     if session is not None and session.first_run_id == run_id:
-        session = update_after_first_result(session, envelope)
+        session = update_after_first_result(session, answer)
         save_session(services, session)
 
-    payload: dict[str, Any] = {**envelope, "reproduction": REPRODUCTION_STATEMENT}
+    payload: dict[str, Any] = {**answer, "reproduction": REPRODUCTION_STATEMENT}
     # Techtree offers publishing on a result whose proof it checked in this
     # very reading and found sound. The offer is relayed here so a host agent
-    # meets it beside the numbers, and it is read out of the envelope rather
+    # meets it beside the numbers, and it is read out of the answer rather
     # than composed: a result nobody verified carries no offer, so there is
     # none to relay.
-    offer = publication_offer(envelope, run_id)
+    offer = publication_offer(answer, run_id)
     if offer is not None:
         payload["publication_offer"] = offer
     if is_gateway_safe_required(channel):
-        # Techtree's envelope carries the whole report and every per-task row,
-        # which on a real Climb is several times what a phone's answer may
-        # hold. An answer over that budget is replaced whole by an apology, so
-        # leaving the raw envelope in is how a phone ends up with no result at
-        # all rather than a short one. The compact view added below is this
-        # channel's copy of it, and the full one is one terminal command away.
-        payload["facts"] = {}
-    if envelope.get("ok"):
+        # Techtree's answer carries the whole uplift report, the execution
+        # record and every per-task row, which on a real Climb is several
+        # times what a phone's answer may hold. An answer over that budget is
+        # replaced whole by an apology, so leaving them in is how a phone ends
+        # up with no result at all rather than a short one. The compact view
+        # added below is this channel's copy, and the full one is one terminal
+        # command away.
+        for name in ("uplift_report", "execution_record", "report"):
+            payload.pop(name, None)
+    if is_success(answer):
         try:
             payload.update(
-                PresentationService().deterministic_only(
-                    result_envelope=envelope, channel=channel
-                )
+                PresentationService().deterministic_only(result=answer, channel=channel)
             )
         except PluginError as error:
             # Techtree answered with something this build cannot compose into a

@@ -1,8 +1,8 @@
 """The plugin's own doctor. Specification sections 7.4, 7.15, 9.18.
 
 Techtree's Doctor answers "can this machine run a Climb?". This one answers a
-narrower question first: "is this plugin build sound, and is the Techtree CLI
-it needs present?". It is the gate the repository runs in CI and the check an
+narrower question first: "is this plugin build sound, and is the ``regents``
+command it needs present?". It is the gate the repository runs in CI and the check an
 operator runs when the plugin behaves oddly.
 
 Doctor is read-only. It parses files that shipped with the plugin, reads the
@@ -12,8 +12,8 @@ one problem by causing another.
 
 Checks are blocking or not. A blocking failure means this plugin build is
 broken and should not be trusted. A non-blocking warning means something is
-missing that the operator can still supply, such as the CLI itself: the plugin
-is required to load and answer questions on a host where Techtree was never
+missing that the operator can still supply, such as regents itself: the plugin
+is required to load and answer questions on a host where regents was never
 installed.
 """
 
@@ -33,7 +33,7 @@ from ..host.hooks import SESSION_HOOKS
 from ..host.schemas import all_tool_schemas
 from ..services.models import INSTALLER_EXECUTABLE
 from ..tools import TOOL_HANDLERS
-from .bridge import resolve_techtree_binary
+from .bridge import resolve_regents_binary
 from .constants import (
     CLI_COMMAND,
     MANIFEST_FILENAME,
@@ -244,7 +244,7 @@ def run_plugin_doctor(
     Args:
         root: The plugin directory to inspect. Tests point this at a copy.
         path_lookup: How executables are found. Tests substitute a lookup so
-            they can describe a host with and without the Techtree CLI.
+            they can describe a host with and without regents.
     """
     checks: list[DoctorCheck] = []
     manifest = _check_manifest(root, checks)
@@ -271,13 +271,12 @@ def run_plugin_doctor(
     )
     _check_executable(
         checks,
-        located=resolve_techtree_binary(path_lookup=path_lookup),
+        located=resolve_regents_binary(path_lookup=path_lookup),
         name=CLI_COMMAND,
-        check_id="techtree_cli",
-        label="Techtree CLI",
+        check_id="regents_cli",
+        label="regents",
         absent_detail=(
-            "the Techtree CLI is not on PATH, so no Climb can run yet; the "
-            "plugin itself is fine"
+            "regents is not on PATH, so no Climb can run yet; the plugin itself is fine"
         ),
         repair="Run techtree_bootstrap_check for the pinned install plan.",
     )
@@ -288,7 +287,7 @@ def run_plugin_doctor(
         check_id="uv",
         label="uv",
         absent_detail=(
-            "uv is not on PATH, so the plugin cannot offer to install the Techtree CLI"
+            "uv is not on PATH, so the plugin cannot offer to install regents"
         ),
         repair="Install uv with your usual package manager, then check again.",
     )
@@ -460,7 +459,7 @@ def _check_release_core(root: Path, checks: list[DoctorCheck]) -> str | None:
             label="Release core",
             status="pass",
             detail=(
-                f"release {core.release_id} pins CLI {core.cli_version} "
+                f"release {core.release_id} pins regents-cli {core.cli_version} "
                 f"and carries digest {digest}"
             ),
             blocking=True,
@@ -518,7 +517,7 @@ def _check_no_network(root: Path, checks: list[DoctorCheck]) -> None:
                 )
             ),
             blocking=True,
-            repair="Remove the networking import; the CLI is the only boundary."
+            repair="Remove the networking import; regents is the only boundary."
             if offenders
             else None,
         )
@@ -540,10 +539,10 @@ def _check_runtime_imports(root: Path, checks: list[DoctorCheck]) -> None:
             if module in sys.stdlib_module_names:
                 continue
             relative = path.relative_to(root)
-            if module == "techtree":
+            if module == "regents_cli":
                 problems.append(
-                    f"{relative} imports Techtree Python; the CLI JSON "
-                    "envelope is the only boundary"
+                    f"{relative} imports regents Python; the regents JSON "
+                    "answer is the only boundary"
                 )
             else:
                 problems.append(f"{relative} imports third-party module {module!r}")

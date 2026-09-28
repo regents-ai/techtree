@@ -4,9 +4,9 @@ The check itself is entirely local and entirely offline. It reads stored bytes,
 recomputes digests and signatures from them, and fetches nothing; no remote URL
 is fetched or accepted.
 
-A check that passes may carry Techtree's offer to publish the run, and that
+A check that passes may carry regents' offer to publish the run, and that
 offer is relayed with the answer so a host agent can put it to the person.
-Relayed, not composed: the offer exists only when Techtree put it there.
+Relayed, not composed: the offer exists only when regents put it there.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..cli.errors import PluginError
-from . import channel_of, passthrough, safe_tool, tool_result
+from . import channel_of, safe_tool, tool_result
 from .arguments import require_local_path, require_run_id
 from .publish import publication_offer
 
@@ -38,13 +38,16 @@ def techtree_proof_verify(services: Any, args: dict[str, Any], **kwargs: Any) ->
         if run_id
         else require_local_path(str(proof_path), "proof_path")
     )
-    envelope = services.bridge.invoke(["proof", "verify", target])
+    answer = services.bridge.invoke(["proof", "verify", target])
 
-    # Only a run has something to publish. A bundle somebody was handed on a
-    # memory stick is checkable here and is not this machine's run, and
-    # Techtree offers nothing for it — so there is nothing to read and nothing
-    # is invented.
-    offer = publication_offer(envelope, target) if run_id else None
-    if offer is None:
-        return passthrough(envelope, channel)
-    return tool_result({**envelope, "publication_offer": offer}, channel)
+    # Only a run the person named has something to publish here. regents can
+    # offer publishing for a bundle path inside this machine's runs tree, but
+    # the plugin has the run identifier or it does not, and when it does not
+    # it relays no offer rather than guess which run the path belongs to.
+    relayed = {
+        key: value for key, value in answer.items() if key != "publication_offer"
+    }
+    offer = publication_offer(answer, target) if run_id else None
+    if offer is not None:
+        relayed["publication_offer"] = offer
+    return tool_result(relayed, channel)

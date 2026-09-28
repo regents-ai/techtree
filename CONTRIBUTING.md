@@ -11,7 +11,6 @@ gate from the repository root:
 ```sh
 make check-cli
 make check-plugin
-make check-plugin-integration
 make check-platform
 ```
 

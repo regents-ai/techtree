@@ -24,46 +24,43 @@ RELEASE_CORE_FILENAME: Final = "release-core.json"
 SKILLS_DIRNAME: Final = "skills"
 SKILL_ENTRY_FILENAME: Final = "SKILL.md"
 
-# Techtree CLI boundary -----------------------------------------------------
+# regents boundary ----------------------------------------------------------
 
 # The only executable name the plugin ever resolves. It is looked up on PATH;
 # no tool argument, manifest field, or model output can name a different one.
-CLI_COMMAND: Final = "techtree"
+# Techtree is the `techtree` namespace of the Regents command line, so every
+# bridged call starts with ``CLI_NAMESPACE``.
+CLI_COMMAND: Final = "regents"
+CLI_NAMESPACE: Final = ("techtree",)
 
-# Machine-mode flags appended to every bridged CLI invocation, exactly once.
-CLI_JSON_FLAGS: Final = ("--json", "--no-color", "--no-input")
+# The machine-mode flag appended to every bridged call, exactly once. regents
+# prints no colour and asks no question under it: a step that needs a person's
+# agreement answers ``approval_required`` instead of waiting for input.
+CLI_JSON_FLAGS: Final = ("--json",)
 
-# The whole environment a bridged Techtree call is given. Named here, copied by
-# name, and nothing else goes across: a host agent's session carries whatever
-# the person who started it had exported — cloud credentials, provider keys for
+# The whole environment a bridged call is given. Named here, copied by name,
+# and nothing else goes across: a host agent's session carries whatever the
+# person who started it had exported — cloud credentials, provider keys for
 # unrelated services, tokens for things that have no business hearing about an
 # evaluation — and a call that inherits all of it hands every one of them to a
 # process that needs none of them.
 #
-# It is the same list Techtree's own launcher gives its detached worker, plus
-# what the CLI needs that a worker does not:
+# It is the same list regents gives its detached run worker, plus what a
+# terminal needs:
 #
-# * PATH, HOME, TMPDIR — find the CLI and the tools it runs, find the Prime CLI
-#   configuration and the package caches that hang off a home directory, and
-#   put scratch files where this host expects them;
-# * XDG_DATA_HOME — where the CLI resolves its own home from, on the platforms
-#   that use it. Dropping it would point the plugin at a different Techtree
-#   home than the one the person uses in their own terminal;
-# * TECHTREE_HOME, TECHTREE_LOG_LEVEL — Techtree's own variables, and the two
-#   the worker is given;
+# * PATH, HOME, TMPDIR — find regents and the tools it runs, find the Techtree
+#   home (``~/.regents/techtree``) and the Prime CLI configuration under the
+#   home directory, and put scratch files where this host expects them;
 # * LANG, LC_ALL, LC_CTYPE, TERM — how text is encoded, and what the terminal
 #   can render, for the commands whose output goes to a person's screen.
 #
 # A model-provider credential is deliberately absent, and costs nothing: a run
-# authenticates from the Prime CLI configuration under HOME, and Techtree's own
+# authenticates from the Prime CLI configuration under HOME, and the regents
 # worker does not inherit one either.
 CLI_ENVIRONMENT_ALLOWLIST: Final = (
     "PATH",
     "HOME",
     "TMPDIR",
-    "XDG_DATA_HOME",
-    "TECHTREE_HOME",
-    "TECHTREE_LOG_LEVEL",
     "LANG",
     "LC_ALL",
     "LC_CTYPE",
@@ -73,21 +70,21 @@ CLI_ENVIRONMENT_ALLOWLIST: Final = (
 # The distribution an installation plan may name, and the only one. It is a
 # release coordinate, not a setting: no tool argument or model output can
 # change what gets installed.
-CLI_DISTRIBUTION_NAME: Final = "techtree"
+CLI_DISTRIBUTION_NAME: Final = "regents-cli"
 
-# The Python an installation plan installs Techtree on, and the only one. Also
-# a release coordinate: this release states the Python it needs, and the
-# published install command names it (Techtree decisions document 0034).
+# The Python an installation plan installs regents on, and the only one. Also
+# a release coordinate (Techtree decisions document 0034).
 #
 # Left to choose, uv installs onto whatever Python this machine already treats
-# as its default, which on a current Mac is newer than Techtree supports. The
-# install then succeeds and Techtree's own Doctor reports a wrong interpreter
-# as the first thing a new user sees. Naming it here is the whole fix.
+# as its default, which on a current Mac is newer than Techtree supports
+# (``regents techtree doctor`` requires >=3.12,<3.14). The install then
+# succeeds and the doctor reports a wrong interpreter as the first thing a new
+# user sees. Naming it here is the whole fix.
 CLI_PYTHON_SERIES: Final = "3.12"
 
 DEFAULT_CLI_TIMEOUT_SECONDS: Final = 120.0
 
-# Bound for CLI work that reaches the public release origin, such as catalog
+# Bound for regents work that reaches the public release origin, such as catalog
 # refresh or starter-Skill materialization. The plugin itself opens no socket.
 DEFAULT_NETWORK_TIMEOUT_SECONDS: Final = 60.0
 
@@ -105,12 +102,7 @@ DEMO_SESSION_TTL_SECONDS: Final = 604_800
 
 # Release contract ----------------------------------------------------------
 
-SUPPORTED_RELEASE_CORE_SCHEMA: Final = "techtree.release-core.v1"
-
-# The one CLI envelope contract this plugin release speaks. There is no second
-# one: the plugin and the CLI moved to v2 together, and an envelope announcing
-# anything else is a plugin and a CLI that no longer agree.
-SUPPORTED_CLI_SCHEMA: Final = "techtree.cli.v2"
+SUPPORTED_RELEASE_CORE_SCHEMA: Final = "techtree.release-core.v2"
 
 # Host lifecycle hooks this plugin takes part in. Both do local bookkeeping
 # only: no network, no installation, no Docker, no model call.

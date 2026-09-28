@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from typing import Any, Final
 
 from ..cli.errors import PluginError
-from .models import DemoSessionState, DemoStage, ReleaseCore
+from .models import DemoSessionState, DemoStage, ReleaseCore, is_success
 
 #: Which stage may follow which. Specification section 8.18.
 #:
@@ -75,40 +75,37 @@ def create_demo_session(
 
 
 def update_after_first_prepare(
-    session: DemoSessionState, envelope: Mapping[str, Any]
+    session: DemoSessionState, answer: Mapping[str, Any]
 ) -> DemoSessionState:
     """Record the prepared draft. No token is kept: it is used once, elsewhere."""
-    data = _data(envelope)
     return _advance(
         session,
         DemoStage.FIRST_DRAFT_PREPARED,
-        first_draft_id=_identifier(data, "draft_id"),
-        source_skill_v1_digest=_identifier(data, "skill_root_digest"),
+        first_draft_id=_identifier(answer, "draft_id"),
+        source_skill_v1_digest=_identifier(answer, "skill_root_digest"),
     )
 
 
 def update_after_first_start(
-    session: DemoSessionState, envelope: Mapping[str, Any]
+    session: DemoSessionState, answer: Mapping[str, Any]
 ) -> DemoSessionState:
     """Record the detached run this session started."""
-    data = _data(envelope)
-    run_id = _identifier(data, "run_id")
+    run_id = _identifier(answer, "run_id")
     if run_id is None:
         return session
     return _advance(session, DemoStage.FIRST_RUN_ACTIVE, first_run_id=run_id)
 
 
 def update_after_first_result(
-    session: DemoSessionState, envelope: Mapping[str, Any]
+    session: DemoSessionState, answer: Mapping[str, Any]
 ) -> DemoSessionState:
     """Record that a first result exists, and where its proof is."""
-    if not envelope.get("ok"):
+    if not is_success(answer):
         return session
-    data = _data(envelope)
     return _advance(
         session,
         DemoStage.FIRST_RESULT_READY,
-        first_proof_path=_identifier(data, "proof_path"),
+        first_proof_path=_identifier(answer, "proof_path"),
     )
 
 
@@ -117,11 +114,6 @@ def _advance(
 ) -> DemoSessionState:
     require_transition(session.stage, stage)
     return replace(session, stage=stage, updated_at=_now(), **changes)
-
-
-def _data(envelope: Mapping[str, Any]) -> Mapping[str, Any]:
-    data = envelope.get("facts")
-    return data if isinstance(data, dict) else {}
 
 
 def _identifier(data: Mapping[str, Any], name: str) -> str | None:

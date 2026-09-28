@@ -77,10 +77,10 @@ _CANONICAL_TOKENS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ),
 )
 
-#: A narrative names no command. Techtree's own next actions carry those, and
+#: A narrative names no command. Techtree's own answers carry those, and
 #: they are rendered from the payload, not from a sentence.
 _COMMAND_PATTERN: Final = re.compile(
-    r"(?m)(^|[\s`\"'(])(techtree|hermes|uv|bash|sh|curl|pip|docker|git|sudo|rm)\s+[\w-]"
+    r"(?m)(^|[\s`\"'(])(regents|hermes|uv|bash|sh|curl|pip|docker|git|sudo|rm)\s+[\w-]"
 )
 
 _ANSI_PATTERN: Final = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")

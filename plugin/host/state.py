@@ -24,9 +24,9 @@ from typing import Any
 
 from ..cli.constants import DEMO_SESSION_TTL_SECONDS
 from ..cli.errors import PluginError, PluginStateError
-from ..services.models import DemoSessionState, DemoStage
+from ..services.models import DemoSessionState, DemoStage, is_success
 
-#: Phases the CLI reports that mean a run is over, and how it ended.
+#: Phases regents reports that mean a run is over, and how it ended.
 _TERMINAL_PHASES = {
     "completed": DemoStage.FIRST_RESULT_READY,
     "failed": DemoStage.FAILED,
@@ -123,7 +123,7 @@ def reconcile_session_with_cli(
     """Advance convenience state from what Techtree says about the run.
 
     Only Techtree can move a run to finished. This reads one bounded status
-    and believes it: a run counts as complete when the CLI reports a terminal
+    and believes it: a run counts as complete when regents reports a terminal
     phase, the completed phase specifically, and a result that exists. Nothing
     short of that is allowed to look like a finished comparison, because a
     conversation that believes a run finished will go looking for a result
@@ -134,12 +134,11 @@ def reconcile_session_with_cli(
         return session
 
     try:
-        envelope = services.bridge.invoke(["run", "status", run_id])
+        data = services.bridge.invoke(["run", "status", run_id])
     except PluginError:
         return session
 
-    data = envelope.get("facts")
-    if not isinstance(data, dict) or not envelope.get("ok"):
+    if not is_success(data):
         return session
 
     phase = data.get("phase")

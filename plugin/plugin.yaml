@@ -10,9 +10,10 @@
 # reviewing an install wants to know, so it is declared here in plain words.
 #
 # * It runs one local executable. Everything scientific this plugin can cause
-#   happens by running the pinned `techtree` command, resolved by that name on
-#   PATH, with a fixed argument array and no shell. There is no second
-#   executable, and no second path into Techtree.
+#   happens by running the pinned `regents` command (as `regents techtree …`),
+#   resolved by that name on PATH, with a fixed argument array and no shell.
+#   There is no second executable, and no second path into Techtree. It is
+#   installed with `uv tool install regents-cli`.
 #
 # * It reaches Docker only through that command. This plugin starts no
 #   container itself; an evaluation Techtree performs starts one, on this
@@ -21,14 +22,14 @@
 # * It opens no connection itself, and no module of it can: nothing here
 #   imports a networking module, and the plugin doctor proves that by reading
 #   every runtime import rather than by asserting it. What can reach a network
-#   is the `techtree` command this plugin runs, which is a separate program.
-#   It does so only through a plan a person has confirmed: installing the
-#   Techtree CLI, starting a comparison, and publishing a finished run are
-#   three separate approvals, and none of them is a value a model can supply.
+#   is the `regents` command this plugin runs, which is a separate program.
+#   It does so only through a plan a person has confirmed: installing
+#   regents, starting a comparison, and publishing a finished run are three
+#   separate approvals, and none of them is a value a model can supply.
 #
 # * It gives that command a short, named list of environment variables and
 #   nothing else. The list is `CLI_ENVIRONMENT_ALLOWLIST` in `cli/constants.py`;
-#   whatever else a host session is carrying stays out of the CLI's
+#   whatever else a host session is carrying stays out of regents'
 #   environment.
 #
 # * It depends on an inherited HOME. Techtree authenticates to a model

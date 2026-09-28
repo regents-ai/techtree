@@ -22,12 +22,12 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Final, Literal
 
-from ..cli.constants import SUPPORTED_CLI_SCHEMA, SUPPORTED_RELEASE_CORE_SCHEMA
+from ..cli.constants import SUPPORTED_RELEASE_CORE_SCHEMA
 from ..cli.errors import (
     CODE_CLI_OUTPUT_INVALID,
     CODE_PLUGIN_RELEASE_CORE_INVALID,
     BootstrapPlanError,
-    CliEnvelopeError,
+    CliAnswerError,
     PluginError,
 )
 
@@ -50,6 +50,8 @@ HTTPS_ADDRESS_PATTERN: Final = re.compile(r"^https://[^/?#\s]+(?:/[^?#\s]*)?$")
 #: returns, which is what a fetcher checks a response against.
 OBJECT_URL_PATTERN: Final = re.compile(r"^https://[^\s/@]+/[^\s]*sha256:[0-9a-f]{64}$")
 VERSION_PATTERN: Final = re.compile(r"^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$")
+#: A Hermes release tag, as the release names the subject harness: ``v2026.7.20``.
+HERMES_TAG_PATTERN: Final = re.compile(r"^v[0-9]+(?:\.[0-9]+){2,3}$")
 IDENTIFIER_PATTERN: Final = re.compile(r"^[0-9A-Za-z][0-9A-Za-z._/-]{0,127}$")
 # A released Climb reference always pins a version: slug@version.
 CLIMB_REFERENCE_PATTERN: Final = re.compile(
@@ -139,7 +141,6 @@ RELEASE_CORE_FIELDS: Final = (
     "intro_climb_reference",
     "starter_skill_digest",
     "starter_skill_object_url",
-    "skill_improver_digest",
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",
     "subject_hermes_version",
@@ -156,7 +157,6 @@ _RELEASE_CORE_DIGEST_FIELDS: Final = (
     "engine_digest",
     "catalog_digest",
     "starter_skill_digest",
-    "skill_improver_digest",
 )
 
 _RELEASE_CORE_VERSION_FIELDS: Final = (
@@ -164,7 +164,6 @@ _RELEASE_CORE_VERSION_FIELDS: Final = (
     "protocol_version",
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",
-    "subject_hermes_version",
 )
 
 
@@ -209,17 +208,17 @@ class PublicationCoordinates:
 class ReleaseCore:
     """The frozen release the plugin was built against. Section 6.6.
 
-    These are the same bytes the installed CLI ships: a contract of coordinates
-    a person chose, and nothing about any artifact built from it (Techtree
-    decisions document 0026). Which commit a CLI wheel came from is stamped
-    into that wheel and reported by ``techtree release info``; it is not in
-    here, and the plugin never asks this document for it.
+    These are the same bytes the installed regents-cli ships: a contract of
+    coordinates a person chose, and nothing about any artifact built from it
+    (Techtree decisions document 0026). Which commit a regents-cli wheel came
+    from is stamped into that wheel and reported by ``regents techtree release
+    info``; it is not in here, and the plugin never asks this document for it.
 
     Techtree owns verifying its own release document; the plugin reads it,
     repeats it, and compares digests.
     """
 
-    schema_version: Literal["techtree.release-core.v1"]
+    schema_version: Literal["techtree.release-core.v2"]
     release_id: str
     cli_version: str
     protocol_version: str
@@ -228,7 +227,6 @@ class ReleaseCore:
     intro_climb_reference: str
     starter_skill_digest: str
     starter_skill_object_url: str
-    skill_improver_digest: str
     minimum_host_hermes_version: str
     maximum_tested_host_hermes_version: str
     subject_hermes_version: str
@@ -303,6 +301,9 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
         if not VERSION_PATTERN.match(decoded[name]):
             raise invalid(f"field {name!r} is not a version string")
 
+    if not HERMES_TAG_PATTERN.match(decoded["subject_hermes_version"]):
+        raise invalid("field 'subject_hermes_version' is not a Hermes release tag")
+
     if not IDENTIFIER_PATTERN.match(decoded["release_id"]):
         raise invalid("field 'release_id' is not a bounded identifier")
 
@@ -375,12 +376,12 @@ def _parse_publication(
     )
 
 
-# CLI boundary ---------------------------------------------------------------
+# regents boundary ------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class CliInvocation:
-    """One planned Techtree CLI call.
+    """One planned ``regents techtree`` call.
 
     ``argv`` is complete and literal. The bridge runs it with ``shell=False``,
     so no quoting, expansion, or interpolation stands between this list and
@@ -394,402 +395,95 @@ class CliInvocation:
 
 @dataclass(frozen=True)
 class CliResponse:
-    """The outcome of one Techtree CLI call."""
+    """The outcome of one ``regents techtree`` call."""
 
     invocation: CliInvocation
     exit_code: int
-    envelope: Mapping[str, Any]
+    answer: Mapping[str, Any]
     stderr_excerpt: str
 
     @property
     def ok(self) -> bool:
-        """Whether the CLI reported success in its own envelope."""
-        return bool(self.envelope.get("ok"))
+        """Whether regents answered with facts rather than an error."""
+        return is_success(self.answer)
 
 
-_CLI_ENVELOPE_FIELDS: Final = (
-    "schema_version",
-    "operation",
-    "ok",
-    "state_digest",
-    "facts",
-    "unknowns",
-    "blockers",
-    "warnings",
-    "content_refs",
-    "next_actions",
-    "error",
-)
-
-#: The fourteen stable operation identifiers ``techtree.cli.v2`` answers under.
-#: An envelope naming anything else is a CLI this plugin release does not know.
-_CLI_OPERATIONS: Final = (
-    "action.execute",
-    "action.prepare",
-    "claim.inspect",
-    "plan.inspect",
-    "plan.prepare",
-    "profile.get",
-    "profile.sync",
-    "profile.update",
-    "proof.verify",
-    "result.inspect",
-    "run.cancel",
-    "run.reconcile",
-    "run.status",
-    "run.wait",
-)
-
-_CLI_UNKNOWN_FIELDS: Final = ("id", "subject", "reason", "resolvable_by")
-_CLI_BLOCKER_FIELDS: Final = ("id", "text", "blocks", "resolvable_by")
-_CLI_WARNING_FIELDS: Final = ("id", "text", "resolvable_by")
-_CLI_CONTENT_REF_FIELDS: Final = (
-    "id",
-    "kind",
-    "digest",
-    "path",
-    "url",
-    "media_type",
-    "byte_count",
-)
-_CLI_ERROR_FIELDS: Final = ("code", "message", "details")
-_CLI_ESTIMATED_COST_FIELDS: Final = (
-    "currency",
-    "estimated_cost",
-    "maximum_authorized_cost",
-    "estimate_source",
-    "uncertainty_disclosure",
-    "expires_at",
-    "execution_plan_digest",
-)
-
-#: RFC 6901, as the CLI validates it: the empty string, or ``/``-prefixed
-#: tokens in which ``~`` appears only as ``~0`` or ``~1``.
-JSON_POINTER_PATTERN: Final = re.compile(r"^$|^(/([^~]|~[01])*)+$")
-
-#: One spelling per amount, as ``techtree.models.approval`` fixes it: no sign,
-#: no leading zeros, no trailing zero in the fraction. A number shown to
-#: somebody about to agree to spend is not a place to accept two spellings.
-MONETARY_AMOUNT_PATTERN: Final = re.compile(r"^(0|[1-9][0-9]*)(\.[0-9]*[1-9])?$")
-_CLI_NEXT_ACTION_FIELDS: Final = (
-    "operation",
-    "prepared_arguments",
-    "expected_state_digest",
-    "side_effect",
-    "approval_required",
-    "retry_class",
-    "estimated_cost",
-    "data_egress",
-    "reason",
-)
-_CLI_PREPARED_ARGUMENT_FIELDS: Final = ("command", "arguments", "options")
-_CLI_RETRY_CLASSES: Final = (
-    "safe",
-    "safe_after_delay",
-    "reconcile_first",
-    "human_decision_required",
-    "forbidden",
-)
-_CLI_SIDE_EFFECTS: Final = (
-    "none",
-    "local_state",
-    "local_execution",
-    "paid_remote_execution",
-    "public_publication",
-)
-_CLI_DATA_EGRESS: Final = (
-    "none",
-    "package_index",
-    "model_provider",
-    "execution_provider",
-    "publication_service",
-)
+def is_success(answer: Mapping[str, Any]) -> bool:
+    """Whether one regents answer is a success: every failure is ``{"error": ...}``."""
+    return "error" not in answer
 
 
-def parse_cli_envelope(raw: str) -> dict[str, Any]:
-    """Parse exactly one Techtree CLI JSON envelope.
+def answer_error(answer: Mapping[str, Any]) -> Mapping[str, Any]:
+    """Return a failed answer's ``error`` object, or an empty mapping on success."""
+    error = answer.get("error")
+    return error if isinstance(error, dict) else {}
 
-    Machine mode promises one JSON object with no colour and no prompting.
-    Anything else — a second record, ANSI, a missing field, a field the
-    contract does not have — is a contract failure rather than something to
-    salvage.
 
-    Unknown fields are rejected on purpose. The published envelope schema is
-    closed, so a field this plugin release has never heard of means the CLI and
-    the plugin no longer agree about the contract. That is a decision for a
-    person to record, not something a bridge should quietly pass through.
+def parse_cli_answer(raw: str) -> dict[str, Any]:
+    """Parse exactly one regents JSON answer.
 
-    The typed vocabulary is checked as well as the shape. An operation, a retry
-    class, a side effect, or a data-egress class outside the contract's closed
-    sets is a CLI saying something this plugin cannot act on, and acting on it
-    anyway is how a host agent ends up treating an unknown side effect as
-    harmless.
+    ``--json`` promises one JSON object with no colour and no prompting. A
+    success is the facts themselves, at the top level. A failure is an object
+    whose one field is ``error``, carrying at least a ``code`` and a
+    ``message``. Anything else — a second record, ANSI, a non-object, an error
+    with no code — is a contract failure rather than something to salvage.
 
     Raises:
-        CliEnvelopeError: when the output is not one valid envelope.
+        CliAnswerError: when the output is not one valid answer.
     """
     if ANSI_PATTERN.search(raw):
-        raise CliEnvelopeError(
-            "CLI machine output contained ANSI escapes",
+        raise CliAnswerError(
+            "regents machine output contained ANSI escapes",
             code=CODE_CLI_OUTPUT_INVALID,
         )
     if "\x00" in raw:
-        raise CliEnvelopeError("CLI machine output contained a NUL byte")
+        raise CliAnswerError("regents machine output contained a NUL byte")
 
     try:
         decoded = json.loads(raw)
     except json.JSONDecodeError as error:
-        raise CliEnvelopeError(
-            f"CLI machine output was not exactly one JSON document: {error}"
+        raise CliAnswerError(
+            f"regents machine output was not exactly one JSON document: {error}"
         ) from error
 
     if not isinstance(decoded, dict):
-        raise CliEnvelopeError("CLI machine output was not a JSON object")
+        raise CliAnswerError("regents machine output was not a JSON object")
 
-    missing = sorted(set(_CLI_ENVELOPE_FIELDS) - set(decoded))
-    if missing:
-        raise CliEnvelopeError(f"CLI envelope is missing fields {missing}")
-
-    unknown = sorted(set(decoded) - set(_CLI_ENVELOPE_FIELDS))
-    if unknown:
-        raise CliEnvelopeError(
-            f"CLI envelope carries fields this plugin release does not know: {unknown}"
-        )
-
-    if decoded["schema_version"] != SUPPORTED_CLI_SCHEMA:
-        raise CliEnvelopeError(
-            f"CLI envelope schema {decoded['schema_version']!r} is not "
-            f"{SUPPORTED_CLI_SCHEMA!r}"
-        )
-    if decoded["operation"] not in _CLI_OPERATIONS:
-        raise CliEnvelopeError(
-            f"CLI envelope operation {decoded['operation']!r} is not one this "
-            "plugin release knows"
-        )
-    if not isinstance(decoded["ok"], bool):
-        raise CliEnvelopeError("CLI envelope field 'ok' is not a boolean")
-    if not isinstance(decoded["facts"], dict):
-        raise CliEnvelopeError("CLI envelope field 'facts' is not an object")
-
-    _require_list(decoded, "unknowns")
-    for entry in decoded["unknowns"]:
-        _check_unknown(entry)
-    _require_list(decoded, "blockers")
-    for entry in decoded["blockers"]:
-        _check_blocker(entry)
-    _require_list(decoded, "warnings")
-    for entry in decoded["warnings"]:
-        _check_warning(entry)
-    _require_list(decoded, "content_refs")
-    for entry in decoded["content_refs"]:
-        _check_content_ref(entry)
-
-    _require_list(decoded, "next_actions")
-    for entry in decoded["next_actions"]:
-        _check_next_action(entry)
-
-    _check_error(decoded["error"], reported_ok=decoded["ok"])
+    if "error" in decoded:
+        _check_error(decoded)
+    else:
+        _check_success(decoded)
 
     result: dict[str, Any] = decoded
     return result
 
 
-def _require_list(envelope: Mapping[str, Any], name: str) -> None:
-    if not isinstance(envelope[name], list):
-        raise CliEnvelopeError(f"CLI envelope field {name!r} is not a list")
-
-
-def _check_fields(
-    value: Any, expected: Sequence[str], description: str
-) -> Mapping[str, Any]:
-    if not isinstance(value, dict):
-        raise CliEnvelopeError(f"CLI envelope {description} is not an object")
-    missing = sorted(set(expected) - set(value))
-    unknown = sorted(set(value) - set(expected))
-    if missing:
-        raise CliEnvelopeError(f"CLI envelope {description} is missing {missing}")
-    if unknown:
-        raise CliEnvelopeError(f"CLI envelope {description} carries {unknown}")
-    mapping: Mapping[str, Any] = value
-    return mapping
-
-
-def _require_text(entry: Mapping[str, Any], name: str, description: str) -> None:
-    if not isinstance(entry[name], str) or not entry[name]:
-        raise CliEnvelopeError(f"CLI envelope {description} has no {name}")
-
-
-def _check_unknown(value: Any) -> None:
-    entry = _check_fields(value, _CLI_UNKNOWN_FIELDS, "unknowns entry")
-    _require_text(entry, "id", "unknowns entry")
-    _require_text(entry, "reason", "unknowns entry")
-    _check_optional_operation(entry["resolvable_by"], "unknowns entry")
-
-    subject = entry["subject"]
-    if subject is None:
-        return
-    if not isinstance(subject, str) or not JSON_POINTER_PATTERN.fullmatch(subject):
-        raise CliEnvelopeError(
-            f"CLI envelope unknowns entry names the subject {subject!r}, which "
-            "is not a JSON Pointer into the facts"
-        )
-
-
-def _check_blocker(value: Any) -> None:
-    entry = _check_fields(value, _CLI_BLOCKER_FIELDS, "blockers entry")
-    _require_text(entry, "id", "blockers entry")
-    _require_text(entry, "text", "blockers entry")
-    blocks = entry["blocks"]
-    if not isinstance(blocks, list) or not blocks:
-        raise CliEnvelopeError(
-            "CLI envelope blockers entry names no operation it blocks"
-        )
-    for operation in blocks:
-        if operation not in _CLI_OPERATIONS:
-            raise CliEnvelopeError(
-                f"CLI envelope blockers entry blocks {operation!r}, which is "
-                "not an operation this plugin release knows"
-            )
-    _check_optional_operation(entry["resolvable_by"], "blockers entry")
-
-
-def _check_warning(value: Any) -> None:
-    entry = _check_fields(value, _CLI_WARNING_FIELDS, "warnings entry")
-    _require_text(entry, "id", "warnings entry")
-    _require_text(entry, "text", "warnings entry")
-    _check_optional_operation(entry["resolvable_by"], "warnings entry")
-
-
-def _check_content_ref(value: Any) -> None:
-    entry = _check_fields(value, _CLI_CONTENT_REF_FIELDS, "content_refs entry")
-    _require_text(entry, "id", "content_refs entry")
-    _require_text(entry, "kind", "content_refs entry")
-    _require_text(entry, "media_type", "content_refs entry")
-    if entry["path"] is None and entry["url"] is None:
-        raise CliEnvelopeError(
-            "CLI envelope content_refs entry offers neither a path nor a URL"
-        )
-
-
-def _check_optional_operation(value: Any, description: str) -> None:
-    if value is None:
-        return
-    if value not in _CLI_OPERATIONS:
-        raise CliEnvelopeError(
-            f"CLI envelope {description} names {value!r}, which is not an "
-            "operation this plugin release knows"
-        )
-
-
-def _check_next_action(value: Any) -> None:
-    action = _check_fields(value, _CLI_NEXT_ACTION_FIELDS, "next action")
-    _require_text(action, "reason", "next action")
-    if action["operation"] not in _CLI_OPERATIONS:
-        raise CliEnvelopeError(
-            f"CLI envelope next action names operation {action['operation']!r}, "
-            "which is not one this plugin release knows"
-        )
-    if not isinstance(action["approval_required"], bool):
-        raise CliEnvelopeError(
-            "CLI envelope next action does not say whether it needs approval"
-        )
-    for name, allowed in (
-        ("retry_class", _CLI_RETRY_CLASSES),
-        ("side_effect", _CLI_SIDE_EFFECTS),
-        ("data_egress", _CLI_DATA_EGRESS),
-    ):
-        if action[name] not in allowed:
-            raise CliEnvelopeError(
-                f"CLI envelope next action has {name} {action[name]!r}, which "
-                "is not one this plugin release knows"
-            )
-    _check_prepared_arguments(action["prepared_arguments"])
-    _check_estimated_cost(action["estimated_cost"])
-
-
-def _check_estimated_cost(value: Any) -> None:
-    """Check the money statement an action carries, or that it carries none.
-
-    A number a person is shown before agreeing to spend is the one field here
-    worth refusing outright. ``None`` is a real answer — the action spends
-    nothing, or nothing quoted it — and is not the same as a zero, so it is
-    accepted and a malformed object is not.
-    """
-    if value is None:
-        return
-    cost = _check_fields(value, _CLI_ESTIMATED_COST_FIELDS, "estimated cost")
-    if cost["currency"] != "USD":
-        raise CliEnvelopeError(
-            f"CLI envelope estimated cost is in {cost['currency']!r}, which is "
-            "not a currency this plugin release knows"
-        )
-    _require_text(cost, "estimate_source", "estimated cost")
-    _require_text(cost, "uncertainty_disclosure", "estimated cost")
-    for name in ("estimated_cost", "maximum_authorized_cost"):
-        amount = cost[name]
-        if name == "estimated_cost" and amount is None:
-            continue
-        if not isinstance(amount, str) or not MONETARY_AMOUNT_PATTERN.fullmatch(amount):
-            raise CliEnvelopeError(
-                f"CLI envelope estimated cost has {name} {amount!r}, which is "
-                "not an amount in the one spelling this protocol has for it"
-            )
-
-
-def _check_prepared_arguments(value: Any) -> None:
-    prepared = _check_fields(
-        value, _CLI_PREPARED_ARGUMENT_FIELDS, "next action prepared_arguments"
-    )
-    command = prepared["command"]
-    if isinstance(command, str) or not isinstance(command, Sequence) or not command:
-        raise CliEnvelopeError(
-            "CLI envelope next action names no command path to invoke"
-        )
-    arguments = prepared["arguments"]
-    if isinstance(arguments, str) or not isinstance(arguments, Sequence):
-        raise CliEnvelopeError(
-            "CLI envelope next action arguments are not a list of values"
-        )
-    for literal in (*command, *arguments):
-        if not isinstance(literal, str) or not literal:
-            raise CliEnvelopeError(
-                "CLI envelope next action holds an empty command literal"
-            )
-    options = prepared["options"]
-    if not isinstance(options, dict):
-        raise CliEnvelopeError("CLI envelope next action options are not an object")
-    for name, option in options.items():
-        if not isinstance(name, str) or not name.startswith("--"):
-            raise CliEnvelopeError(
-                f"CLI envelope next action option {name!r} is not an option name"
-            )
-        if option == "":
-            raise CliEnvelopeError(
-                f"CLI envelope next action option {name!r} carries no value"
-            )
-        # A flag is spelled ``true`` or is not named at all. ``false`` is
-        # refused, because a bridge that rendered a flag from it would turn a
-        # ``--yes`` that says no into one that says yes.
-        if option is not True and not isinstance(option, str):
-            raise CliEnvelopeError(
-                f"CLI envelope next action option {name!r} is neither a value nor true"
-            )
-
-
-def _check_error(value: Any, *, reported_ok: bool) -> None:
-    if value is None:
-        if not reported_ok:
-            raise CliEnvelopeError("CLI envelope reports failure with no error")
-        return
-    if reported_ok:
-        raise CliEnvelopeError("CLI envelope reports success and an error")
-
-    error = _check_fields(value, _CLI_ERROR_FIELDS, "error")
+def _check_error(answer: Mapping[str, Any]) -> None:
+    if set(answer) != {"error"}:
+        raise CliAnswerError("a regents failure carries fields beside 'error'")
+    error = answer["error"]
+    if not isinstance(error, dict):
+        raise CliAnswerError("a regents failure's 'error' is not an object")
     for name in ("code", "message"):
-        if not isinstance(error[name], str) or not error[name]:
-            raise CliEnvelopeError(f"CLI envelope error has no {name}")
-    if not isinstance(error["details"], dict):
-        raise CliEnvelopeError("CLI envelope error details are not an object")
+        if not isinstance(error.get(name), str) or not error[name]:
+            raise CliAnswerError(f"a regents failure has no {name}")
+    if "details" in error and not isinstance(error["details"], dict):
+        raise CliAnswerError("a regents failure's details are not an object")
+
+
+def _check_success(answer: Mapping[str, Any]) -> None:
+    if "report" in answer and not isinstance(answer["report"], str):
+        raise CliAnswerError("a regents answer's report is not text")
+    warnings = answer.get("warnings", [])
+    if not isinstance(warnings, list):
+        raise CliAnswerError("a regents answer's warnings are not a list")
+    for warning in warnings:
+        if (
+            not isinstance(warning, dict)
+            or not isinstance(warning.get("id"), str)
+            or not isinstance(warning.get("text"), str)
+        ):
+            raise CliAnswerError("a regents warning is not an {id, text} object")
 
 
 # Bootstrap -------------------------------------------------------------------
@@ -797,7 +491,7 @@ def _check_error(value: Any, *, reported_ok: bool) -> None:
 
 @dataclass(frozen=True)
 class BootstrapInstallPlan:
-    """One pinned, expiring CLI installation plan. Specification section 7.6.
+    """One pinned, expiring regents-cli installation plan. Specification section 7.6.
 
     The plan is generated from release data alone. There is no field a model
     can fill in: not the package, not the version, not an index, not a flag.

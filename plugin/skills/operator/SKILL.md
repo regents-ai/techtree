@@ -67,8 +67,8 @@ Skill, and name the comparison whose measured difference they mean.
 ## Creating an environment from a Skill
 
 Someone may ask you to turn one of their Skills into an environment: a set of
-checked tasks written from it. That work happens through the Techtree CLI in
-the terminal, `techtree forge`, and this plugin has no tools for it. The
+checked tasks written from it. That work happens through `regents` in the
+terminal, `regents techtree forge`, and this plugin has no tools for it. The
 agent page at techtree.sh/skill.md lists the steps.
 
 - Ask where the Skill is. Never pick one for them.
@@ -192,9 +192,9 @@ choose to add one.” This is an offer, not
 approval: do not call `techtree_publish_run` in the same response or until the
 person explicitly says yes. If there is no
 `publication_offer` (including an unverified result), do not ask to publish;
-follow Techtree's next action, normally checking the proof offline. The
+offer to check the proof offline instead. The
 plugin never takes or sends an EVM address. If the person wants to attach one,
-give them Techtree's exact terminal command for that run, `techtree publish
+give them the exact terminal command for that run, `regents techtree publish
 <run-id>` with the actual run ID substituted, and let the terminal prompt
 handle it; do not solicit the address in chat.
 
@@ -228,8 +228,8 @@ whole of what publishing does:
   typing it into a conversation.
 
 Say where the boundary is, and say it exactly. This plugin reaches no network,
-and no module of it can. The Techtree CLI it runs is a separate program, and
-that is what talks to the run log, once the person has said yes. Those are two
+and no module of it can. The regents command it runs is a separate program,
+and that is what talks to the run log, once the person has said yes. Those are two
 facts about two programs, and a sentence that merges them is wrong whichever
 way it leans.
 
@@ -262,7 +262,7 @@ Do not work around it.
 
 - Say what v0.1 is: a proof of concept for a stack, with the parts attributed.
 - Inspect before preparing; prepare before starting.
-- Creating an environment: one `techtree forge` step at a time, each review
+- Creating an environment: one `regents techtree forge` step at a time, each review
   shown as printed, and every approval the person's own.
 - Show the episode count, the policy, and what changes — then ask.
 - Never quote a price or a finishing time; neither one exists.

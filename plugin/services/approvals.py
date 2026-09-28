@@ -2,7 +2,7 @@
 
 Two different approvals meet here, and neither one is the plugin's to give.
 
-Installing the Techtree CLI changes software on the user's machine, so it
+Installing regents changes software on the user's machine, so it
 happens by handing the host a fixed command and letting the host's own
 approval surface ask the human. The plugin's part is an install plan: an
 opaque identifier, a short life, and one argv nobody can edit.
@@ -198,6 +198,23 @@ def start_arguments(draft_id: str) -> list[str]:
     return [draft_id, "--yes", "--reviewed-on", REVIEWED_ON_HOST_AGENT]
 
 
+def cancel_arguments(run_id: str) -> list[str]:
+    """Build the exact cancel arguments for a run the user asked to stop.
+
+    Stopping a run goes through the same agreement as starting one: without
+    ``--yes`` regents answers ``approval_required`` and stops nothing. The
+    tool that cancels is only ever called because the user asked, so the
+    plugin passes ``--yes --reviewed-on host-agent`` to say that the person
+    agreed in the conversation.
+
+    Raises:
+        ApprovalRequiredError: when there is no run to stop.
+    """
+    if not run_id:
+        raise ApprovalRequiredError("a run cannot be cancelled without a run to stop")
+    return [run_id, "--yes", "--reviewed-on", REVIEWED_ON_HOST_AGENT]
+
+
 def _expiry(plan: BootstrapInstallPlan) -> datetime:
     try:
         return datetime.fromisoformat(plan.expires_at)
@@ -282,8 +299,8 @@ def run_approved_event(
 #: The last line is the one that is easiest to get wrong and the most
 #: expensive to have got wrong. The plugin's guarantee is about the plugin: no
 #: module of it can open a connection, which the doctor proves by reading every
-#: runtime import rather than by promising. The Techtree CLI is a separate
-#: program and it does reach the run log. A sentence that merges the two — that
+#: runtime import rather than by promising. regents is a separate program and
+#: it does reach the run log. A sentence that merges the two — that
 #: says the plugin publishes, or that says nothing anywhere can — is a copy
 #: defect, and the release copy guard catches it.
 PUBLICATION_DISCLOSURE: Final[tuple[str, ...]] = (
@@ -304,8 +321,8 @@ PUBLICATION_DISCLOSURE: Final[tuple[str, ...]] = (
     "terminal whether they want to leave one, nothing is offered in exchange "
     "for it, and somebody who wants to leave one runs the command themselves "
     "rather than typing it into a tool call.",
-    "This plugin reaches no network. The Techtree CLI it runs is what talks "
-    "to the run log, and it does so only after the person has said yes.",
+    "This plugin reaches no network. The regents command it runs is what "
+    "talks to the run log, and it does so only after the person has said yes.",
 )
 
 #: The audit event kind for a publication a person agreed to. An ordinary
@@ -320,8 +337,8 @@ def publish_arguments(run_id: str) -> list[str]:
     The same two flags ``climb start`` uses, for the same reason and with the
     same chain behind them:
 
-    1. Techtree offers publishing as a next action on a run whose proof it has
-       just verified, and the plugin relays that offer with the disclosure
+    1. Techtree offers publishing, as a ``publication_offer``, on a run whose
+       proof it has just verified, and the plugin relays that offer with the disclosure
        above rather than composing an offer of its own.
     2. Hermes asks the person, on its own approval surface, because the tool
        that publishes is declared as one a human must confirm.

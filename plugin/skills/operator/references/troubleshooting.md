@@ -19,7 +19,7 @@ nothing.
 
 ## The installed Techtree belongs to a different release
 
-The plugin and the CLI must be from the same release, or a comparison could
+The plugin and regents must be from the same release, or a comparison could
 run against a different engine or catalogue than the one this build describes.
 The readiness check names each coordinate that differs.
 
@@ -38,5 +38,5 @@ loudly and do not present the numbers as evidence of anything.
 ## The tool answer was truncated
 
 Long answers are cut, and say when they were. Nothing is lost: the same
-information is available from the Techtree command the message names, run in a
-terminal.
+information is available from the regents command the message names, run in
+a terminal.

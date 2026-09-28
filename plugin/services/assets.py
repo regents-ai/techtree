@@ -11,7 +11,7 @@ left is the check that matters: the bytes on disk must be the bytes the release
 pinned, or they are not read out to anybody.
 
 Obtaining one is Techtree's job and is asked for by name: ``skill starter``,
-across the ordinary CLI boundary, with no options. Techtree resolves it from
+across the ordinary regents boundary, with no options. Techtree resolves it from
 the address its own release publishes, reuses a copy already on the machine,
 scans it, and proves it against the digest that release pins. What comes back
 is then proved a second time here, against the release *this build* carries,
@@ -21,11 +21,10 @@ comparison is about.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any, Final, Protocol
 
 from ..cli.errors import PluginError
-from .models import ReleaseCore
+from .models import ReleaseCore, answer_error, is_success
 
 #: Nothing usable came back about the pinned starter Skill, and Techtree did
 #: not say why in its own words.
@@ -63,34 +62,11 @@ class ReleaseSkillProvider:
                 behalf — it knows why it could not hand a Skill over, and
                 repeating what it said is the only honest thing to report.
         """
-        envelope = services.bridge.invoke(list(STARTER_SKILL_ARGUMENTS))
-        if not envelope.get("ok"):
-            raise PluginError(_cli_message(envelope), code=_cli_code(envelope))
-
-        data = envelope.get("facts")
-        if not isinstance(data, dict):
-            raise PluginError(
-                "Techtree answered the starter Skill command with nothing to read",
-                code=CODE_STARTER_SKILL_UNAVAILABLE,
-            )
-        return dict(data)
-
-
-def _cli_message(envelope: Mapping[str, Any]) -> str:
-    """Return Techtree's own words about a failure, when it wrote any."""
-    error = envelope.get("error")
-    if isinstance(error, Mapping) and isinstance(error.get("message"), str):
-        return str(error["message"])
-    return "Techtree could not put the starter Skill this release pins on this machine"
-
-
-def _cli_code(envelope: Mapping[str, Any]) -> str:
-    """Return Techtree's own code for a failure, when it named one."""
-    error = envelope.get("error")
-    code = error.get("code") if isinstance(error, Mapping) else None
-    if isinstance(code, str) and code:
-        return code
-    return CODE_STARTER_SKILL_UNAVAILABLE
+        answer = services.bridge.invoke(list(STARTER_SKILL_ARGUMENTS))
+        if not is_success(answer):
+            error = answer_error(answer)
+            raise PluginError(str(error["message"]), code=str(error["code"]))
+        return dict(answer)
 
 
 def verify_starter_skill_result(result: dict[str, Any], release: ReleaseCore) -> None:
@@ -115,7 +91,7 @@ def verify_starter_skill_result(result: dict[str, Any], release: ReleaseCore) ->
         raise PluginError(
             "the starter Skill that was materialized is not the one this release names",
             code=CODE_STARTER_SKILL_DIGEST_MISMATCH,
-            repair="Reinstall the pinned Techtree release.",
+            repair="Reinstall the regents-cli version this plugin release pins.",
         )
     path = result.get("skill_path")
     if not isinstance(path, str) or not path:
