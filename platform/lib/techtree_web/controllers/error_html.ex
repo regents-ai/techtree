@@ -10,14 +10,15 @@ defmodule TechtreeWeb.ErrorHTML do
 
   defp error_theme(%{theme: theme}) when theme in ["light", "dark"], do: theme
 
+  # Until the visitor chooses, there is no theme and the device decides.
   defp error_theme(%{conn: %Plug.Conn{} = conn}) do
     case Plug.Conn.fetch_cookies(conn).req_cookies["techtree_theme"] do
       theme when theme in ["light", "dark"] -> theme
-      _ -> "light"
+      _ -> nil
     end
   end
 
-  defp error_theme(_assigns), do: "light"
+  defp error_theme(_assigns), do: nil
 
   @doc "Render statuses without a dedicated branded page using Phoenix's safe status text."
   def render(template, _assigns), do: Phoenix.Controller.status_message_from_template(template)

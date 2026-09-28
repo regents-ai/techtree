@@ -8,14 +8,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <meta name="techtree-revision" content={Techtree.BuildInfo.source_revision()} />
+    <meta name="color-scheme" content={assigns[:theme] || "dark light"} />
     <meta
-      name="color-scheme"
-      content={if(assigns[:theme] == "light", do: "light", else: "dark")}
-    />
-    <meta
-      id="theme-color"
+      :if={assigns[:theme]}
       name="theme-color"
       content={if(assigns[:theme] == "light", do: "#F6F4EA", else: "#161616")}
+    />
+    <meta
+      :if={!assigns[:theme]}
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#F6F4EA"
+    />
+    <meta
+      :if={!assigns[:theme]}
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#161616"
     />
     <meta
       name="description"
@@ -59,10 +68,7 @@
       Skip to main content
     </a>
     <Regent.Structure.frame class="techtree-frame">
-      <.masthead
-        current_path={request_path(assigns)}
-        theme={assigns[:theme] || "light"}
-      />
+      <.masthead current_path={request_path(assigns)} />
       {@inner_content}
     </Regent.Structure.frame>
   </body>

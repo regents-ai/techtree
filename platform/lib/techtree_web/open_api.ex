@@ -340,7 +340,7 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" =>
             profile_responses(%{
               "200" => json("The owner's profile.", ref("ProfileResponse")),
-              "404" => profile_error("No profile exists yet; sync first.")
+              "404" => error("No profile exists yet; sync first.")
             })
         },
         "patch" => %{
@@ -362,8 +362,8 @@ defmodule TechtreeWeb.OpenAPI do
               "200" => json("The updated profile.", ref("ProfileResponse")),
               "400" => json("The body is not valid JSON.", ref("Error")),
               "413" => json("The body is larger than 8 KiB.", ref("Error")),
-              "415" => profile_error("The body is not `application/json`."),
-              "422" => profile_error("The update is not valid.")
+              "415" => error("The body is not `application/json`."),
+              "422" => error("The update is not valid.")
             })
         }
       },
@@ -378,8 +378,7 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" =>
             profile_responses(%{
               "200" => json("The created or refreshed profile.", ref("ProfileResponse")),
-              "409" =>
-                profile_error("The sign-in is older than, or conflicts with, the one on record.")
+              "409" => error("The sign-in is older than, or conflicts with, the one on record.")
             })
         }
       }
@@ -454,17 +453,6 @@ defmodule TechtreeWeb.OpenAPI do
               "message" => %{"type" => "string"},
               "hint" => %{"type" => "string", "description" => "What to do next."}
             }
-          }
-        }
-      },
-      "ProfileError" => %{
-        "type" => "object",
-        "required" => ["error"],
-        "properties" => %{
-          "error" => %{
-            "type" => "object",
-            "required" => ["code"],
-            "properties" => %{"code" => %{"type" => "string"}}
           }
         }
       },
@@ -844,9 +832,9 @@ defmodule TechtreeWeb.OpenAPI do
   defp profile_responses(responses) do
     Map.merge(
       %{
-        "401" => profile_error("The paired Privy proof is missing or does not verify."),
-        "403" => profile_error("The proof does not grant access to this profile."),
-        "503" => profile_error("Profiles are not available right now.")
+        "401" => error("The paired Privy proof is missing or does not verify."),
+        "403" => error("The proof does not grant access to this profile."),
+        "503" => error("Profiles are not available right now.")
       },
       responses
     )
@@ -857,11 +845,11 @@ defmodule TechtreeWeb.OpenAPI do
   # listed: an unknown address or method, or an unexpected failure.
   defp with_rate_limits(item) do
     Map.new(item, fn {method, operation} ->
-      {method, Map.update!(operation, "responses", &rate_limited(&1, errors_of(operation)))}
+      {method, Map.update!(operation, "responses", &rate_limited/1)}
     end)
   end
 
-  defp rate_limited(responses, errors) do
+  defp rate_limited(responses) do
     responses
     |> Map.put_new(
       "429",
@@ -879,15 +867,10 @@ defmodule TechtreeWeb.OpenAPI do
       "default",
       json(
         "Any other error, such as an unknown address or method.",
-        errors
+        ref("Error")
       )
     )
   end
-
-  defp errors_of(%{"security" => [_ | _]}),
-    do: %{"anyOf" => [ref("ProfileError"), ref("Error")]}
-
-  defp errors_of(_operation), do: ref("Error")
 
   defp rate_limit_headers,
     do: %{
@@ -910,7 +893,6 @@ defmodule TechtreeWeb.OpenAPI do
     do: description |> json(schema) |> Map.put("headers", exact_headers())
 
   defp error(description), do: json(description, ref("Error"))
-  defp profile_error(description), do: json(description, ref("ProfileError"))
 
   defp not_modified, do: %{"description" => "The caller already holds these exact bytes."}
 

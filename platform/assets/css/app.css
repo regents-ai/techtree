@@ -11,6 +11,7 @@
 html { -webkit-text-size-adjust: 100%; font-synthesis: none; }
 html[data-theme="light"] { color-scheme: light; }
 html[data-theme="dark"] { color-scheme: dark; }
+html:not([data-theme]) { color-scheme: dark light; }
 body, h1, h2, h3, h4, h5, h6, p, dl, dd, ul, ol, figure, blockquote { margin: 0; }
 ul, ol { padding: 0; list-style: none; }
 button, input, textarea, select { font: inherit; font-family: var(--font-family-ui); }
@@ -379,7 +380,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .hero-product { background: Canvas; color: LinkText; border-color: LinkText; }
   .hero__optics { display: none; }
   body { background: Canvas; color: CanvasText; }
-  :root[data-brand][data-theme] {
+  :root[data-brand]:is([data-theme], :not([data-theme])) {
     --color-fg: CanvasText; --color-fg-muted: CanvasText; --hairline: CanvasText;
     --hairline-strong: CanvasText; --color-surface: Canvas;
   }

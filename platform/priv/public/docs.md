@@ -55,7 +55,7 @@ Every JSON error is an `error` object with a stable `code`, a `message` and a `h
 {"error": {"code": "publication_missing", "message": "no run is published under that fingerprint", "hint": "Use a fingerprint listed at https://techtree.sh/api/v1/publications."}}
 ```
 
-Profile answers carry the `code` alone. Branch on the status and the `code`, never on the wording of `message`.
+Branch on the status and the `code`, never on the wording of `message`.
 
 An unknown address under `/api` answers JSON 404 whatever the `Accept` header says. An unknown page answers 404 as HTML, as Markdown when you ask for `text/markdown`, or as JSON when you ask for `application/json`. The [OpenAPI description](/openapi.json) lists every status each address can return.
 

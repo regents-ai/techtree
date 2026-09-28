@@ -118,6 +118,7 @@ defmodule TechtreeWeb.Router do
     assign(conn, :theme, saved_theme(conn.req_cookies[@theme_cookie]))
   end
 
+  # Until the visitor chooses, there is no theme and the device decides.
   defp saved_theme(value) when value in ["light", "dark"], do: value
-  defp saved_theme(_value), do: "light"
+  defp saved_theme(_value), do: nil
 end

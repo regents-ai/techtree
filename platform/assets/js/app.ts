@@ -99,63 +99,31 @@ syncGitHubStars()
 const githubStarRefresh = window.setInterval(syncGitHubStars, GITHUB_STAR_REFRESH_MS)
 window.addEventListener("pagehide", () => window.clearInterval(githubStarRefresh), {once: true})
 
+// The colour theme. Until the visitor chooses, the page carries no theme and the
+// shared colours follow the device, dark unless it asks for light. A press
+// chooses the opposite of the theme showing and writes it to the cookie the
+// server reads, so the next page is drawn in it. The switch names the theme
+// showing by itself; only the crown is redrawn from here.
 const THEME_COOKIE = "techtree_theme"
 const THEME_MAX_AGE = 60 * 60 * 24 * 365
 const THEMES = {
-  light: {
-    crownVariant: "2",
-    name: "Light",
-    nextName: "Dark",
-    browserColor: "#F6F4EA",
-  },
-  dark: {
-    crownVariant: "4",
-    name: "Dark",
-    nextName: "Light",
-    browserColor: "#161616",
-  },
+  light: {crownVariant: "2", browserColor: "#F6F4EA"},
+  dark: {crownVariant: "4", browserColor: "#161616"},
 }
 type Theme = keyof typeof THEMES
+const lightDevice = window.matchMedia("(prefers-color-scheme: light)")
 
-const isTheme = (value: string | undefined): value is Theme =>
-  value !== undefined && Object.hasOwn(THEMES, value)
-
-function readThemeCookie() {
+function chosenTheme(): Theme | undefined {
   const prefix = `${THEME_COOKIE}=`
   const value = document.cookie
     .split("; ")
     .find(cookie => cookie.startsWith(prefix))
     ?.slice(prefix.length)
 
-  return isTheme(value) ? value : undefined
+  return value === "light" || value === "dark" ? value : undefined
 }
 
-function writeThemeCookie(theme: Theme) {
-  const secure = window.location.protocol === "https:" ? "; Secure" : ""
-  document.cookie =
-    `${THEME_COOKIE}=${theme}; Path=/; Max-Age=${THEME_MAX_AGE}; SameSite=Lax${secure}`
-}
-
-let savedTheme = readThemeCookie()
-
-const pageTheme = (): Theme => savedTheme || "light"
-
-function syncThemeControl(theme: Theme) {
-  const selected = THEMES[theme]
-  const orangeActive = theme === "light"
-
-  document.querySelectorAll<HTMLElement>("[data-theme-toggle]").forEach(toggle => {
-    toggle.dataset.theme = theme
-    toggle.setAttribute("aria-pressed", String(orangeActive))
-    toggle.setAttribute(
-      "aria-label",
-      `Color theme: ${selected.name}. Activate ${selected.nextName} theme.`,
-    )
-    toggle.setAttribute("title", `Switch to ${selected.nextName}`)
-    const state = toggle.querySelector("[data-theme-toggle-state]")
-    if (state) state.textContent = `${selected.name} theme active`
-  })
-}
+const showingTheme = (): Theme => chosenTheme() ?? (lightDevice.matches ? "light" : "dark")
 
 function syncCrownTheme(theme: Theme) {
   const variant = THEMES[theme].crownVariant
@@ -165,29 +133,37 @@ function syncCrownTheme(theme: Theme) {
   })
 }
 
-function applyTheme(theme: Theme) {
-  const selected = THEMES[theme]
-  document.documentElement.dataset.theme = theme
-  document.querySelector("meta[name='theme-color']")?.setAttribute("content", selected.browserColor)
-  syncThemeControl(theme)
+// Live navigation keeps the document, so each page restates its theme: the
+// visitor's choice, or none so the device decides.
+function syncTheme() {
+  const root = document.documentElement
+  const chosen = chosenTheme()
+  if (chosen) root.dataset.theme = chosen
+  else delete root.dataset.theme
+  document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", chosen ?? "dark light")
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach(meta => {
+    meta.content = THEMES[chosen ?? (meta.media.includes("light") ? "light" : "dark")].browserColor
+  })
+
+  const theme = showingTheme()
   syncCrownTheme(theme)
   document.dispatchEvent(new CustomEvent("techtree:themechange", {
-    detail: {theme, crownVariant: selected.crownVariant},
+    detail: {theme, crownVariant: THEMES[theme].crownVariant},
   }))
 }
 
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element) || !event.target.closest("[data-theme-toggle]")) return
 
-  const activeTheme = document.documentElement.dataset.theme || pageTheme()
-  const theme = activeTheme === "light" ? "dark" : "light"
-  savedTheme = theme
-  writeThemeCookie(theme)
-  applyTheme(theme)
+  const theme: Theme = showingTheme() === "dark" ? "light" : "dark"
+  const secure = window.location.protocol === "https:" ? "; Secure" : ""
+  document.cookie = `${THEME_COOKIE}=${theme}; Path=/; Max-Age=${THEME_MAX_AGE}; SameSite=Lax${secure}`
+  syncTheme()
 })
 
-window.addEventListener("phx:page-loading-stop", () => applyTheme(pageTheme()))
-applyTheme(pageTheme())
+window.addEventListener("phx:page-loading-stop", syncTheme)
+lightDevice.addEventListener("change", syncTheme)
+syncTheme()
 
 
 const csrfToken = document.querySelector("meta[name='csrf-token']")!.getAttribute("content")
@@ -198,7 +174,7 @@ const Hooks: Record<string, object> = {
     mounted(this: OpticsHook) {
       // A connected render can restore server attributes after initial theme sync.
       // Resolve them before the existing controller creates its first renderer.
-      syncCrownTheme(pageTheme())
+      syncCrownTheme(showingTheme())
       Optics.mounted.call(this)
     },
   },

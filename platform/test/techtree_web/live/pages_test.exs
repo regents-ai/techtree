@@ -210,12 +210,12 @@ defmodule TechtreeWeb.PagesTest do
       assert html =~ ~s|data-theme="light"|
     end
 
-    test "an absent or retired saved theme uses the light default", %{conn: conn} do
+    test "with no saved theme the page carries none, so the device decides", %{conn: conn} do
       for cookie <- [nil, "orange", "titanium", "invalid"] do
         request = if cookie, do: put_req_cookie(conn, "techtree_theme", cookie), else: conn
         html = request |> get("/") |> html_response(200)
-        assert html =~ ~s|data-theme="light"|
-        assert html =~ ~s|<meta name="color-scheme" content="light">|
+        refute html =~ "data-theme="
+        assert html =~ ~s|<meta name="color-scheme" content="dark light">|
       end
     end
 

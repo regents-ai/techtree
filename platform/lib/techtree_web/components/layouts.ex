@@ -33,7 +33,6 @@ defmodule TechtreeWeb.Layouts do
   end
 
   attr(:current_path, :string, default: "/")
-  attr(:theme, :string, default: "light")
 
   defp masthead(assigns) do
     assigns = assign(assigns, :repository_url, @repository_url)
@@ -99,11 +98,7 @@ defmodule TechtreeWeb.Layouts do
             </span>
           </a>
         </nav>
-        <Regent.ThemeToggle.button
-          id="site-theme-toggle"
-          theme={@theme}
-          data-theme-toggle
-        />
+        <Regent.ThemeToggle.button id="site-theme-toggle" data-theme-toggle />
       </div>
     </header>
     """
