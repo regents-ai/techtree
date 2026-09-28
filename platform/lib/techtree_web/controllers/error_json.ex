@@ -1,31 +1,24 @@
 defmodule TechtreeWeb.ErrorJSON do
   @moduledoc """
-  What a request that reached no controller is told.
+  What a request that reached no controller is told: an unknown address, a body
+  that could not be read, or an unexpected failure.
 
-  The shape is the one every other refusal uses — a stable code, a safe message,
-  and whether retrying could help — so that a caller has one error format to
-  read rather than two. A route that does not exist says exactly that.
+  The body is `{"error": {"code", "message", "hint"}}`: a stable code derived
+  from the status, the status message, and where to read what this site does
+  answer. A refusal from a controller instead says whether retrying could help
+  (`TechtreeWeb.ExactResponse`).
   """
+
+  alias TechtreeWeb.Endpoint
 
   @doc """
-  Render a status-code template as the shared error envelope.
+  Render a status-code template as the recovery error body.
   """
   def render(template, _assigns) do
-    message = Phoenix.Controller.status_message_from_template(template)
-
-    %{
-      "error" => %{
-        "code" => code(message),
-        "message" => message,
-        "retryable" => false
-      }
-    }
-  end
-
-  defp code(message) do
-    message
-    |> String.downcase()
-    |> String.replace(~r/[^a-z0-9]+/, "_")
-    |> String.trim("_")
+    template
+    |> Phoenix.Controller.status_message_from_template()
+    |> RegentAgentAccess.Recovery.json(
+      "See #{Endpoint.url()}/docs and #{Endpoint.url()}/openapi.json for supported requests."
+    )
   end
 end

@@ -160,13 +160,16 @@ defmodule TechtreeWeb.RouterTest do
     end
   end
 
-  test "an unknown route is refused in the shared error shape", %{conn: conn} do
+  test "an unknown route is refused with where to read what is answered", %{conn: conn} do
     conn =
       conn
       |> put_req_header("accept", "application/json")
       |> get("/api/v1/nope")
 
     assert conn.status == 404
-    assert %{"error" => %{"code" => "not_found", "retryable" => false}} = json_response(conn, 404)
+    assert %{"error" => %{"code" => "not_found", "message" => "Not Found", "hint" => hint}} =
+             json_response(conn, 404)
+
+    assert hint =~ "/openapi.json"
   end
 end
