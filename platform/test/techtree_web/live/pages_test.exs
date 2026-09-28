@@ -176,14 +176,17 @@ defmodule TechtreeWeb.PagesTest do
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
 
-        # Long values wrap or scroll inside their own box. The Results table
-        # has an explicit horizontal scroll region rather than widening the page.
+        # Long values wrap or scroll inside their own box. Every table scrolls
+        # sideways inside its own region rather than widening the page: the
+        # Results table in its frame, and a Docs table by itself.
         refute html =~ ~r/style="[^"]*width:\s*\d{3,}px/
 
-        if html =~ "<table" do
-          document = LazyHTML.from_document(html)
-          refute Enum.empty?(LazyHTML.query(document, ".runs-index__table-frame table"))
-        end
+        document = LazyHTML.from_document(html)
+
+        assert Enum.count(LazyHTML.query(document, "table")) ==
+                 Enum.count(
+                   LazyHTML.query(document, ".runs-index__table-frame table, .docs-prose table")
+                 )
 
         refute html =~ ~r/white-space:\s*nowrap/
       end

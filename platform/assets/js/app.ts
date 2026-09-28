@@ -284,6 +284,13 @@ function pageAsMarkdown(root: Element) {
           lines.push(marker + " " + inline(item).replace(/\s+/g, " ").trim())
         })
         lines.push("")
+      } else if (tag === "table") {
+        const rows = Array.from(child.querySelectorAll("tr"), row =>
+          Array.from(row.children, cell => inline(cell).replace(/\s+/g, " ").trim()))
+        const line = (cells: string[]) => "| " + cells.join(" | ") + " |"
+        if (rows.length) {
+          lines.push(line(rows[0]), line(rows[0].map(() => "---")), ...rows.slice(1).map(line), "")
+        }
       } else if (tag === "dl") {
         let term: string | null = null
         for (const part of child.children) {

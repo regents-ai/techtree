@@ -232,6 +232,9 @@ code { font-size: .9em; }
 .docs-prose li + li { margin-top: var(--space-1); }
 .docs-prose h3 { margin-top: var(--space-3); }
 .docs-prose pre { margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
+.docs-prose table { display: block; max-width: 100%; margin-block: var(--space-3); overflow-x: auto; border-collapse: collapse; font-size: .875rem; }
+.docs-prose :where(th, td) { padding: var(--space-1) var(--space-2); border: 1px solid var(--hairline); text-align: left; vertical-align: top; }
+.docs-prose th { background: var(--color-surface); }
 .docs-code, .prompt__block { max-width: 100%; margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 
 /* Native copy menu is intentionally not a disclosure: it is a compact popup.

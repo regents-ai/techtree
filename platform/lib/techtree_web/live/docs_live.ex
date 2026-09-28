@@ -397,16 +397,7 @@ defmodule TechtreeWeb.DocsLive do
 
           <section id="browser-tools" class="doc-section">
             <h2>Let a browser's agent read Techtree</h2>
-            <p>
-              Every page offers the agent built into a browser these tools. Each only reads public
-              information, needs no account and spends nothing. Publishing a Result stays with the
-              CLI and its key. The <a href="/capabilities">tool manifest</a> describes them as JSON.
-            </p>
-            <.definition_list>
-              <:fact :for={tool <- Techtree.Capabilities.tools()} term={tool["title"]}>
-                <code>{tool["name"]}</code> reads <code>{tool["route"]}</code>
-              </:fact>
-            </.definition_list>
+            <div class="docs-prose">{raw(PublicDocuments.docs_section("Browser tools"))}</div>
           </section>
 
           <section
