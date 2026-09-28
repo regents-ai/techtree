@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-cli check-plugin check-plugin-integration check-platform check-required-fixes
+.PHONY: check check-cli check-plugin check-plugin-integration check-platform check-required-fixes release
 
 check: check-cli check-plugin check-plugin-integration check-platform check-required-fixes check-contracts
 
@@ -28,3 +28,10 @@ check-required-fixes:
 .PHONY: check-contracts
 check-contracts:
 	cd contracts && forge fmt --check && forge build --offline && forge test --offline
+
+# The release checks and builds exactly the committed tree, so every change must
+# be committed first. A failing gate stops it before anything is built.
+release:
+	@test -z "$$(git status --porcelain)" || { echo "Commit every change first: the release checks and builds the committed tree." >&2; exit 1; }
+	$(MAKE) check
+	scripts/release.sh
