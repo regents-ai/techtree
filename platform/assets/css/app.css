@@ -113,7 +113,7 @@ code { font-size: .9em; }
 .masthead__github-logo { width: 1rem; height: 1rem; fill: currentColor; flex: 0 0 auto; }
 .masthead__github-count {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
-  min-height: 2.75rem; margin-left: var(--space-1); padding: var(--space-1) var(--space-2);
+  min-height: 2.75rem; margin-left: calc(9.6px - var(--space-2)); padding: var(--space-1) var(--space-2);
   border: 1px solid var(--rule-strong); background: var(--page);
   font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none;
 }
