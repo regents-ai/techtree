@@ -148,7 +148,9 @@ for (const { path, method, operation } of operations) {
   const success = Object.entries(responses).find(([status]) => /^2/.test(status));
   check(`${method.toUpperCase()} ${path}: declares RateLimit headers on success`,
     Boolean(success && (resolve(success[1]).headers || {})["RateLimit"]));
-  if (method === "get") {
+  // A path that takes an id answers 404 for any id made up here, so only
+  // fixed paths are fetched.
+  if (method === "get" && !path.includes("{")) {
     const answer = await get(path, "application/json");
     const served = path === "/healthz" ? answer.status === 200 : answer.status !== 404 && answer.status < 500;
     check(`GET ${path} is served`, served, `${answer.status}`);
