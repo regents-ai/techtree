@@ -166,3 +166,51 @@ export const GRIDS: Record<string, (cards: Element[]) => JSAnimation> = {
   cascade: cards =>
     play(cards, {y: {from: 16}, opacity: {from: 0}, delay: stagger(45), duration: SLOW, ease: EASE_OUT}),
 }
+
+// The first cards of a list cascade in; later ones start below the fold and
+// are simply there.
+export const CASCADE = 12
+
+type CascadeHook = {el: HTMLElement; scope?: Scope}
+
+/**
+ * A list of cards on a live page that settles in as `data-variant` names in
+ * `GRIDS`, once, the first time it scrolls into view. One already in view when
+ * the page opens, or reached from the keyboard, is simply there. Pages the
+ * server draws once cascade their `data-cascade` lists from `motion.ts`.
+ */
+export const MotionCascade: Hook = {
+  mounted(this: CascadeHook) {
+    const list = this.el
+    const scope = createScope({root: list})
+
+    this.scope = scope.add(self => {
+      self!.add("cascade", () => GRIDS[list.dataset.variant ?? ""]([...list.children].slice(0, CASCADE)))
+
+      let first = true
+      const done = () => {
+        watch.disconnect()
+        list.removeEventListener("focusin", done)
+      }
+      const watch = new IntersectionObserver(([entry]) => {
+        const seen = entry.isIntersecting
+        if (first) {
+          first = false
+          if (seen) done()
+          return
+        }
+        if (!seen) return
+        done()
+        if (!still(list)) scope.methods.cascade()
+      })
+
+      watch.observe(list)
+      list.addEventListener("focusin", done)
+      return done
+    })
+  },
+
+  destroyed(this: CascadeHook) {
+    this.scope?.revert()
+  },
+}
