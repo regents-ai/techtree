@@ -219,6 +219,10 @@ defmodule TechtreeWeb.Layouts do
   defp description_for_path("/privacy"),
     do: "What Techtree keeps about a visitor, what it never sees, and how to ask about either."
 
+  defp description_for_path("/terms"),
+    do:
+      "The terms for using Techtree: runs, published Results, and what each side is responsible for."
+
   defp description_for_path("/results/" <> _digest),
     do: "Inspect one published Techtree Result and its task-level evidence."
 
@@ -238,6 +242,7 @@ defmodule TechtreeWeb.Layouts do
         <a href={~p"/about"}>About</a>
         <a href={~p"/contact"}>Contact</a>
         <a href={~p"/privacy"}>Privacy</a>
+        <a href={~p"/terms"}>Terms</a>
         <Regent.Primitives.disclosure id="related-products" summary="Regents Labs">
           <nav aria-label="Related products" class="product-links__related">
             <a href="https://regents.sh">Regents</a>

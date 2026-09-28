@@ -8,7 +8,7 @@ defmodule TechtreeWeb.Router do
 
   @theme_cookie "techtree_theme"
 
-  # Pages are HTML here. The home page, About, Contact, Privacy and the
+  # Pages are HTML here. The home page, About, Contact, Privacy, Terms and the
   # Changelog also answer `Accept: text/markdown`, from
   # `TechtreeWeb.PublicDocuments`, before the router. `/skill.md` is Markdown
   # whichever is asked for.
@@ -56,6 +56,7 @@ defmodule TechtreeWeb.Router do
     get "/about", PublicPagesController, :show
     get "/contact", PublicPagesController, :show
     get "/privacy", PublicPagesController, :show
+    get "/terms", PublicPagesController, :show
     get "/blog", BlogController, :index
     get "/blog/:slug", BlogController, :show
     live "/docs", DocsLive

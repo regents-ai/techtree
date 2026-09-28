@@ -1,5 +1,5 @@
 defmodule TechtreeWeb.PublicPagesHTML do
-  @moduledoc "About, Contact and Privacy, in the site's document layout."
+  @moduledoc "About, Contact, Privacy and Terms, in the site's document layout."
 
   use TechtreeWeb, :html
 

@@ -21,8 +21,8 @@ the person's own computer.
 - [Docs](https://techtree.sh/docs): install, run, verify, publish and integrate.
 - [OpenAPI description](https://techtree.sh/openapi.json): every public API address, typed.
 - [Sitemap](https://techtree.sh/sitemap.xml): every public page.
-- [About](https://techtree.sh/about), [Contact](https://techtree.sh/contact) and [Privacy](https://techtree.sh/privacy).
-- The home page, About, Contact, Privacy and the Changelog answer `Accept: text/markdown` with Markdown.
+- [About](https://techtree.sh/about), [Contact](https://techtree.sh/contact), [Privacy](https://techtree.sh/privacy) and [Terms](https://techtree.sh/terms).
+- The home page, About, Contact, Privacy, Terms and the Changelog answer `Accept: text/markdown` with Markdown.
 
 ## Local work and optional publication
 

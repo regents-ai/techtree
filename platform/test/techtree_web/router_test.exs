@@ -57,6 +57,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /sitemap.xml",
              "get /skill.md",
              "get /start",
+             "get /terms",
              "get /verify",
              "patch /api/v1/profile",
              "post /api/v1/profile/sync",

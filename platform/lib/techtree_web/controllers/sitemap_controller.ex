@@ -12,7 +12,7 @@ defmodule TechtreeWeb.SitemapController do
   alias Techtree.Network.Projection
   alias TechtreeWeb.Blog
 
-  @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /blog /about /contact /privacy)
+  @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /blog /about /contact /privacy /terms)
 
   def index(conn, _params) do
     conn

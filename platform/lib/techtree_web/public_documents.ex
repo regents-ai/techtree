@@ -4,27 +4,34 @@ defmodule TechtreeWeb.PublicDocuments do
 
   Each is committed Markdown in `priv/public`, and the changelog is
   `priv/changelog.md`, the same file the Changelog page shows. An agent that
-  asks `/`, `/about`, `/contact`, `/privacy` or `/changelog` for `text/markdown`
+  asks `/`, `/about`, `/contact`, `/privacy`, `/terms` or `/changelog` for
+  `text/markdown`
   receives it with one closing line, answered before the router by
-  `RegentAgentAccess.Plug`. About, Contact
-  and Privacy show the same words as pages, so the two never say different
+  `RegentAgentAccess.Plug`. About, Contact,
+  Privacy and Terms show the same words as pages, so the two never say different
   things; the home page's own design is its LiveView, and its Markdown is the
   same facts in words. `/llms.txt` is the agent guide with the browser tool
   table filled in. None of these reads the database.
   """
 
   @directory Application.app_dir(:techtree, "priv/public")
-  @names ~w(home about contact privacy llms)
+  @names ~w(home about contact privacy terms llms)
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
   @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
   @external_resource @changelog_file
   @sources @names
            |> Map.new(&{&1, File.read!(Path.join(@directory, &1 <> ".md"))})
            |> Map.put("changelog", File.read!(@changelog_file))
-  @pages %{"/about" => "about", "/contact" => "contact", "/privacy" => "privacy"}
+  @pages %{
+    "/about" => "about",
+    "/contact" => "contact",
+    "/privacy" => "privacy",
+    "/terms" => "terms"
+  }
   @paths Map.merge(@pages, %{"/" => "home", "/changelog" => "changelog"})
 
-  @trailer "\n---\n\nTechtree answers `/`, `/about`, `/contact`, `/privacy` and `/changelog` " <>
+  @trailer "\n---\n\nTechtree answers `/`, `/about`, `/contact`, `/privacy`, `/terms` and " <>
+             "`/changelog` " <>
              "as Markdown when asked with `Accept: text/markdown`. " <>
              "Public API: [/openapi.json](/openapi.json). " <>
              "Agent guide: [/llms.txt](/llms.txt).\n"
@@ -45,7 +52,7 @@ defmodule TechtreeWeb.PublicDocuments do
   def llms, do: @llms
 
   @doc """
-  About, Contact or Privacy split for its page layout: the title, the
+  About, Contact, Privacy or Terms split for its page layout: the title, the
   one-paragraph lede under it, and the rest rendered as HTML.
   """
   @spec page(String.t()) :: %{title: String.t(), lede: String.t(), body_html: String.t()}

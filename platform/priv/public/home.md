@@ -46,7 +46,7 @@ Techtree doesn't watch your runs. Your work stays local unless you choose to pub
 - [Changelog](/changelog): what changed in each release.
 - [Repo2RLEnv](/repo2rlenv): the planned hosted service for building tasks from a repository.
 - [Blog](/blog)
-- [About](/about), [Contact](/contact) and [Privacy](/privacy)
+- [About](/about), [Contact](/contact), [Privacy](/privacy) and [Terms](/terms)
 
 ## For agents and programs
 

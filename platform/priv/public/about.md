@@ -24,3 +24,4 @@ Techtree is built and run by Regents Labs, which also builds [Regents](https://r
 - [Verify](/verify): what verification establishes, and how to check a Result offline.
 - [Contact](/contact): how to reach the people who run Techtree.
 - [Privacy](/privacy): what Techtree keeps, and what it never sees.
+- [Terms](/terms): the terms for using Techtree.

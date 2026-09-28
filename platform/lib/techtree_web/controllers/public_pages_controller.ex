@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.PublicPagesController do
   @moduledoc """
-  About, Contact and Privacy as pages, and the agent guide at `/llms.txt`, all
+  About, Contact, Privacy and Terms as pages, and the agent guide at `/llms.txt`, all
   from `TechtreeWeb.PublicDocuments`. Their Markdown is answered before the
   router.
   """
