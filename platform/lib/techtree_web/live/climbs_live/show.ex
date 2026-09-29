@@ -34,6 +34,10 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           <p class="eyebrow">Climb</p>
           <h1>{@climb.title}</h1>
           <p :if={@copy} class="lede">{@copy.scope}</p>
+          <p :if={@copy && @copy.result_note} class="lede">
+            {@copy.result_note.text}
+            <.link navigate={~p"/results/#{@copy.result_note.bundle_digest}"}>See that Result</.link>
+          </p>
         </header>
 
         <dl class="climb-contract__facts">

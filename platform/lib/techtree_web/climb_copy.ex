@@ -22,7 +22,8 @@ defmodule TechtreeWeb.ClimbCopy do
           scoring: String.t(),
           held_fixed: String.t(),
           campaign_title: String.t(),
-          candidate_skill_label: String.t()
+          candidate_skill_label: String.t(),
+          result_note: %{text: String.t(), bundle_digest: String.t()} | nil
         }
 
   @copy %{
@@ -39,7 +40,8 @@ defmodule TechtreeWeb.ClimbCopy do
       held_fixed:
         "Task membership and order, model, Hermes harness, runtime, tools, sampling, and budget.",
       campaign_title: "Hello World Skill Uplift",
-      candidate_skill_label: "Hello World Skill"
+      candidate_skill_label: "Hello World Skill",
+      result_note: nil
     },
     "frontier-cs-open-ended-climb@1" => %{
       scope:
@@ -64,7 +66,14 @@ defmodule TechtreeWeb.ClimbCopy do
         "Problems and their order, test inputs, checkers, compiler, each problem's time and " <>
           "memory limits, model, Hermes harness, runtime, tools, sampling, and budget.",
       campaign_title: "Frontier-CS Open-Ended Skill Uplift",
-      candidate_skill_label: "Frontier-CS Skill"
+      candidate_skill_label: "Frontier-CS Skill",
+      result_note: %{
+        text:
+          "In the first published run, the original starter Skill scored lower than no " <>
+            "Skill: a mean of 0.043 with it against 0.128 without it. The starter Skill " <>
+            "was rewritten after that run.",
+        bundle_digest: "sha256:403e8c9ed26f63bbcfbe563bf84fa3e7b943a9d102f0777d68cc694f38938fab"
+      }
     }
   }
 
