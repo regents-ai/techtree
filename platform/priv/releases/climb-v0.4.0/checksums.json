@@ -1,12 +1,12 @@
 {
  "coordinates": {
   "catalog_index": "sha256:2dc4e58d0449671ae39e44be253578b9b0d67ee923dee58342739108e8aafe24",
-  "cli_wheel": "sha256:f9117b760098186cbb9745d004dc83284f59ebaa9b291c8aa04e2bc126e3ad41",
+  "cli_wheel": "sha256:129f953c6caf53281fe963178a4513b73afd7b59c701c7cc6d59b7f690004b65",
   "climbs": {
    "frontier-cs-open-ended-climb@1": {
     "engine": "sha256:b744c6ec878776c886d0c15569b5c02bc1e7c66039e3d959e1c27c1ee8271c05",
-    "starter_skill_file": "sha256:b843084ca3a4479d8c9c43d3fb36e16679cc209b3214ed1391def75a0fada6ed",
-    "starter_skill_tree": "sha256:2beb0cd9b67aa14ee281248b5a7f3a0151db4727f84d86b6f4e5d52e06665548"
+    "starter_skill_file": "sha256:d021056178ee313df600d99f765be34efccb2726c934dbb5a61de3cba32e0d0f",
+    "starter_skill_tree": "sha256:e2a6c529459c265e7470ed5bbf168d6ab3e1ee82ae0abfcd8b3abdf4c53e3087"
    },
    "hello-world-climb@1": {
     "engine": "sha256:cf358eae94a1922906247063a39abff4bfb941bf032ae6e9d1ca7e999b07af5b",
@@ -16,15 +16,15 @@
   }
  },
  "files": {
-  "bootstrap.json": "sha256:d7f979a88416f32da5de732818ae9902dc09eaedca9aae280ec0a72b925f2125",
-  "release-core.json": "sha256:85741bedc43903ce8669566130a247b269719131d1de743fb8ba3b62227c378f"
+  "bootstrap.json": "sha256:5814b8317b4c8bf3953b9505478a3cf28ae0abba523229327cb3a4f84592d593",
+  "release-core.json": "sha256:b4f1823697b153c677b852da54a6c474e45af26b58803deb8b116ad9a475f02a"
  },
  "release_id": "climb-v0.4.0",
  "schema_version": "techtree.release-checksums.v2",
  "sources": {
-  "cli_source_revision": "c3982f5c0e0e2dbbb64c76808722756d9bfd3874",
-  "hermes_plugin_commit": "7da0ef0ab524c6d40ab5aadcde10fcf3d07ad8f8",
+  "cli_source_revision": "54f97c05edb33165ff04b8a2fe9f6d9c699d1577",
+  "hermes_plugin_commit": "0ac972048dd2b36a7c0bfdb7990c70e1808d2f90",
   "hermes_plugin_repository": "github.com/regents-ai/techtree-hermes",
-  "release_core_digest": "sha256:85741bedc43903ce8669566130a247b269719131d1de743fb8ba3b62227c378f"
+  "release_core_digest": "sha256:b4f1823697b153c677b852da54a6c474e45af26b58803deb8b116ad9a475f02a"
  }
 }

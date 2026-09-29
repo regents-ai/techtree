@@ -16,8 +16,8 @@
 
 ### Changed
 
-- Install regents-cli 1.1.0 with
-  `uv tool install --python 3.12 regents-cli==1.1.0`. The Hermes plugin (0.4.0)
+- Install regents-cli 1.1.1 with
+  `uv tool install --python 3.12 regents-cli==1.1.1`. The Hermes plugin (0.4.0)
   prepares the starter Skill of the Climb it is running.
 
 ### Removed

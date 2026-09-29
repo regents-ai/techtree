@@ -42,9 +42,9 @@
       "text": "Nobody has independently reproduced this comparison, and no platform witnessed it."
     },
     {
-      "code": "introductory_task_family",
+      "code": "climb_scope",
       "severity": "warning",
-      "text": "This is a toy introductory Climb. Its task family is synthetic and demonstrates the mechanism; it measures no broad capability."
+      "text": "A toy Skill-uplift Climb. It runs the synthetic BranchCode v1 task family twice — once without a Skill, once with one — so you can see what writing a procedure down changes. This is an introductory demonstration of the mechanism, not a measure of broad capability."
     },
     {
       "code": "no_server_upload",
