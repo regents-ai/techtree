@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.3.1 (2026-09-29)
+
+### Changed
+
+- Techtree's command-line tool is now part of
+  [regents-cli](https://github.com/regents-ai/regents-cli). Install it with
+  `uv tool install --python 3.12 regents-cli==1.0.0`; every command that was
+  `techtree …` is now `regents techtree …`.
+- The Hermes plugin (0.3.1) runs `regents techtree` for every step. It stops
+  after the first comparison: it no longer proposes a revised Skill or runs a
+  second comparison. Its 13 tools keep their names and answers.
+- The Hello World Climb now tests Hermes v2026.7.20 (it was 0.19.0), and was
+  checked again on it: with the starter Skill the agent solved 23, 22 and 24
+  of 36 tasks across three runs, and none without it.
+
+### Removed
+
+- Building tasks from a repository on your own computer, and running an
+  exported Skill environment again from its folder.
+
 ## v0.3.0 (2026-09-27)
 
 This release folds in everything that was listed for 0.2.2, which was never
