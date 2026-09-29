@@ -45,27 +45,35 @@ by default and at most a hundred. The order is arrival order, newest first, by
 log sequence and by nothing else. A log sequence is not a position and not a
 rank, and it may have gaps.
 
-### The starter Skill
+### The starter Skills
 
-`GET /api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c`
+Every Climb has its own starter Skill, served by the digest of its file:
 
-returns the 1496 bytes of `hello-world-starter-v1/SKILL.md` as
+| Climb | File | Address | Bytes |
+| --- | --- | --- | --- |
+| `hello-world-climb@1` | `hello-world-starter-v1/SKILL.md` | `sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c` | 1496 |
+| `frontier-cs-open-ended-climb@1` | `frontier-cs-starter-v1/SKILL.md` | `sha256:b843084ca3a4479d8c9c43d3fb36e16679cc209b3214ed1391def75a0fada6ed` | 2386 |
+
+`GET /api/v1/objects/<address>` returns the file as
 `text/markdown; charset=utf-8`, cached `public, max-age=31536000, immutable`,
 tagged with an ETag that is the digest.
 
 The address is the digest of the **file**, because the address returns the file.
 The digest of the one-file Skill *tree* the CLI builds after fetching it
-(`sha256:596d1368…`) is a different number that names the mounted bundle; it is
-not resolvable at this endpoint and must never be used as a URL key.
+(for Hello World, `sha256:596d1368…`) is a different number that names the
+mounted bundle; it is not resolvable at this endpoint and must never be used as
+a URL key.
 
-The installation contract carries both, as `starter_skill.file_digest` and
-`starter_skill.tree_digest`. The file digest is what the address returns and
-what a fetcher checks the response against; the tree digest is what the CLI
-checks the Skill it built against before it will run anything.
+The installation contract lists every Climb the catalog ships under `climbs`,
+keyed by Climb reference, and carries both digests for each, as
+`climbs.<reference>.starter_skill.file_digest` and
+`climbs.<reference>.starter_skill.tree_digest`. The file digest is what the
+address returns and what a fetcher checks the response against; the tree digest
+is what the CLI checks the Skill it built against before it will run anything,
+and is the Climb's `starter_skill_digest` in the ReleaseCore.
 
-The file itself ships in `priv/release/skills/hello-world-starter-v1/SKILL.md`
-and is byte-identical to `release/skills/hello-world-starter-v1/SKILL.md` in
-`techtree-python`, which is its source of truth. It is hashed again on every
+The files ship in `priv/release/skills/<name>/SKILL.md`, and their digests are
+pinned in `Techtree.Release.StarterSkill`. Each is hashed again on every
 request: bytes that no longer match the pinned digest are refused with `503`
 rather than published.
 

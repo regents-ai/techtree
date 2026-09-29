@@ -21,7 +21,7 @@ defmodule Techtree.Catalog.Verifier do
   alias Techtree.Catalog.Error
 
   @catalog_schema_version "techtree.catalog.v2"
-  @bootstrap_schema_version "techtree.bootstrap.v1alpha1"
+  @bootstrap_schema_version "techtree.bootstrap.v1alpha2"
 
   # The two shapes the Climb graph is walked through. A v2 Campaign binds the
   # resolved execution plan it was defined against by digest, and the plan is
@@ -104,9 +104,9 @@ defmodule Techtree.Catalog.Verifier do
 
   @doc """
   The bootstrap release names an exact CLI version, an immutable plugin commit,
-  argument arrays rather than shell strings, a Climb this catalog ships, and
-  where the starter Skill may be fetched from along with the two digests it must
-  hash to.
+  argument arrays rather than shell strings, a Climb this catalog ships to start
+  with, and, for every Climb this catalog ships and no other, where its starter
+  Skill may be fetched from along with the two digests it must hash to.
 
   The address and the digests are separate halves of one coordinate and are
   checked separately, because they are decided separately: which bytes the
@@ -133,9 +133,10 @@ defmodule Techtree.Catalog.Verifier do
          :ok <- check_argv(bootstrap, ["hermes_plugin", "doctor_argv"]),
          :ok <- check_string(bootstrap, ["introductory_climb", "host_prompt"]),
          :ok <- check_string(bootstrap, ["introductory_climb", "reference"]),
-         :ok <- check_starter_skill(bootstrap),
-         :ok <- check_concrete_coordinates(bootstrap) do
-      check_introductory_climb(bundle)
+         :ok <- check_climbs(bootstrap),
+         :ok <- check_concrete_coordinates(bootstrap),
+         :ok <- check_introductory_climb(bundle) do
+      check_climbs_shipped(bundle)
     end
   end
 
@@ -297,19 +298,36 @@ defmodule Techtree.Catalog.Verifier do
   # exact bytes the address returns; `tree_digest` names the one-file Skill the
   # CLI builds out of them and checks before it will run anything. A contract
   # that carried only one of them would either address bytes nobody can verify
-  # or name a Skill nobody can fetch.
-  defp check_starter_skill(bootstrap) do
-    with :ok <- check_object_url(bootstrap, ["starter_skill", "object_url"]),
-         :ok <- check_string(bootstrap, ["starter_skill", "name"]),
-         :ok <- check_string(bootstrap, ["starter_skill", "media_type"]),
-         :ok <- check_byte_size(bootstrap, ["starter_skill", "size"]),
+  # or name a Skill nobody can fetch. Every Climb has its own starter Skill,
+  # listed under the Climb's reference.
+  defp check_climbs(bootstrap) do
+    case Map.get(bootstrap, "climbs") do
+      climbs when is_map(climbs) and map_size(climbs) > 0 ->
+        reduce_while_ok(climbs, fn {reference, _climb} ->
+          check_starter_skill(bootstrap, ["climbs", reference, "starter_skill"])
+        end)
+
+      other ->
+        {:error,
+         Error.bundle_invalid("the bootstrap release lists no Climbs", %{
+           "field" => "climbs",
+           "found" => inspect(other)
+         })}
+    end
+  end
+
+  defp check_starter_skill(bootstrap, path) do
+    with :ok <- check_object_url(bootstrap, path ++ ["object_url"]),
+         :ok <- check_string(bootstrap, path ++ ["name"]),
+         :ok <- check_string(bootstrap, path ++ ["media_type"]),
+         :ok <- check_byte_size(bootstrap, path ++ ["size"]),
          :ok <-
            check_digest_value(
-             get_in(bootstrap, ["starter_skill", "file_digest"]),
+             get_in(bootstrap, path ++ ["file_digest"]),
              "the starter Skill file"
            ) do
       check_digest_value(
-        get_in(bootstrap, ["starter_skill", "tree_digest"]),
+        get_in(bootstrap, path ++ ["tree_digest"]),
         "the starter Skill tree"
       )
     end
@@ -327,13 +345,7 @@ defmodule Techtree.Catalog.Verifier do
   defp check_introductory_climb(%Bundle{bootstrap: bootstrap} = bundle) do
     reference = get_in(bootstrap, ["introductory_climb", "reference"])
 
-    references =
-      bundle
-      |> Bundle.list_entries()
-      |> Enum.filter(&(&1.kind == :climb))
-      |> Enum.map(& &1.reference)
-
-    if reference in references do
+    if reference in climb_references(bundle) do
       :ok
     else
       {:error,
@@ -341,6 +353,32 @@ defmodule Techtree.Catalog.Verifier do
          "reference" => reference
        })}
     end
+  end
+
+  # The Climbs the bootstrap release gives starter Skills to are exactly the
+  # Climbs this catalog ships: a Climb without one cannot be started, and a
+  # starter Skill for a Climb nobody shipped is an address with nothing behind
+  # it.
+  defp check_climbs_shipped(%Bundle{bootstrap: %{"climbs" => climbs}} = bundle) do
+    listed = climbs |> Map.keys() |> Enum.sort()
+    shipped = bundle |> climb_references() |> Enum.uniq() |> Enum.sort()
+
+    if listed == shipped do
+      :ok
+    else
+      {:error,
+       Error.bundle_invalid(
+         "the bootstrap release does not list exactly the Climbs this catalog ships",
+         %{"listed" => listed, "shipped" => shipped}
+       )}
+    end
+  end
+
+  defp climb_references(bundle) do
+    bundle
+    |> Bundle.list_entries()
+    |> Enum.filter(&(&1.kind == :climb))
+    |> Enum.map(& &1.reference)
   end
 
   # -- Shared checks --------------------------------------------------------

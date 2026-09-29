@@ -55,7 +55,7 @@ defmodule TechtreeWeb.BootstrapControllerTest do
     test "the payload pins what an installer needs and nothing it does not", %{conn: conn} do
       payload = conn |> get(~p"/api/v1/bootstrap") |> json_response(200)
 
-      assert payload["schema_version"] == "techtree.bootstrap.v1alpha1"
+      assert payload["schema_version"] == "techtree.bootstrap.v1alpha2"
       assert payload["channel"] == "development"
       assert payload["minimums"]["hermes_version"] == "0.20.1"
       assert payload["minimums"]["docker_required"] == true

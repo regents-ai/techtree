@@ -25,7 +25,7 @@ defmodule Techtree.CatalogFixture do
 
   # Stand-ins with the shape of a real coordinate and none of its meaning.
   @commit String.duplicate("a", 40)
-  @object_url "https://techtree.test/api/v1/objects/" <> StarterSkill.file_digest()
+  @object_route "https://techtree.test/api/v1/objects/"
 
   @doc """
   The fixture bundle root (`catalog_root/sources/REV`), not the serving root.
@@ -209,10 +209,26 @@ defmodule Techtree.CatalogFixture do
       @commit,
       "--enable"
     ])
-    |> put_in(["starter_skill", "object_url"], @object_url)
-    |> put_in(["starter_skill", "file_digest"], StarterSkill.file_digest())
-    |> put_in(["starter_skill", "tree_digest"], StarterSkill.tree_digest())
+    |> put_in(starter_path("object_url"), @object_route <> starter().file_digest)
+    |> put_in(starter_path("file_digest"), starter().file_digest)
+    |> put_in(starter_path("tree_digest"), starter().tree_digest)
   end
+
+  @doc """
+  The starter Skill of the Climb the fixture catalog ships.
+  """
+  @spec starter() :: StarterSkill.t()
+  def starter do
+    {:ok, starter} = StarterSkill.for_climb(@climb_reference)
+    starter
+  end
+
+  @doc """
+  Where one field of the fixture Climb's starter Skill sits in a bootstrap
+  release.
+  """
+  @spec starter_path(String.t()) :: [String.t()]
+  def starter_path(field), do: ["climbs", @climb_reference, "starter_skill", field]
 
   @doc """
   The public reference of the Climb the fixture catalog ships.

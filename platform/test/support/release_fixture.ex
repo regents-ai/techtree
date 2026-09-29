@@ -2,10 +2,10 @@ defmodule Techtree.ReleaseFixture do
   @moduledoc """
   The release artifacts this application ships, and ways to damage a copy.
 
-  Unlike the catalog bundle, the starter Skill is not a fixture at all: the file
-  under test is the one the release publishes, in `priv/release`. Tests that
-  need it read it in place; tests that need it broken copy it into their own
-  temporary directory and point the application at that instead.
+  Unlike the catalog bundle, the starter Skills are not fixtures at all: the
+  files under test are the ones the release publishes, in `priv/release`. Tests
+  that need one read it in place; tests that need one broken copy the release
+  into their own temporary directory and point the application at that instead.
   """
 
   alias Techtree.Release
@@ -49,18 +49,18 @@ defmodule Techtree.ReleaseFixture do
   end
 
   @doc """
-  Replace the starter Skill inside a copied release directory.
+  Replace one starter Skill inside a copied release directory.
   """
-  @spec write_starter_skill!(Path.t(), binary()) :: :ok
-  def write_starter_skill!(release, bytes) do
-    File.write!(Path.join(release, StarterSkill.relative_path()), bytes)
+  @spec write_starter_skill!(Path.t(), StarterSkill.t(), binary()) :: :ok
+  def write_starter_skill!(release, starter, bytes) do
+    File.write!(Path.join(release, StarterSkill.relative_path(starter)), bytes)
   end
 
   @doc """
-  The exact bytes of the starter Skill this release publishes.
+  The exact bytes of one starter Skill this release publishes.
   """
-  @spec starter_skill_bytes() :: binary()
-  def starter_skill_bytes do
-    File.read!(Path.join(root(), StarterSkill.relative_path()))
+  @spec starter_skill_bytes(StarterSkill.t()) :: binary()
+  def starter_skill_bytes(starter) do
+    File.read!(Path.join(root(), StarterSkill.relative_path(starter)))
   end
 end

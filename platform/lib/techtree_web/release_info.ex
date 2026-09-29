@@ -26,7 +26,6 @@ defmodule TechtreeWeb.ReleaseInfo do
           plugin_install_argv: [String.t()],
           repository_url: String.t() | nil,
           source_revision: String.t() | nil,
-          starter_skill: map(),
           version: String.t() | nil
         }
 
@@ -98,7 +97,6 @@ defmodule TechtreeWeb.ReleaseInfo do
       plugin_install_argv: Map.get(hermes_plugin, "install_argv", []),
       repository_url: repository_url(instructions),
       source_revision: cli["source_revision"],
-      starter_skill: Map.get(instructions, "starter_skill", %{}),
       version: cli["version"]
     }
   end

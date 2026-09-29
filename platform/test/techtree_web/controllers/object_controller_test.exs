@@ -95,34 +95,36 @@ defmodule TechtreeWeb.ObjectControllerTest do
     end
   end
 
-  describe "the starter Skill" do
-    test "is served as the exact file bytes, addressed by the file digest", %{conn: conn} do
-      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.file_digest()}")
+  describe "the starter Skills" do
+    test "are served as the exact file bytes, addressed by the file digest", %{conn: conn} do
+      for starter <- StarterSkill.all() do
+        conn = get(conn, ~p"/api/v1/objects/#{starter.file_digest}")
 
-      assert conn.status == 200
-      assert conn.resp_body == ReleaseFixture.starter_skill_bytes()
-      assert Digest.hash_bytes(conn.resp_body) == StarterSkill.file_digest()
+        assert conn.status == 200
+        assert conn.resp_body == ReleaseFixture.starter_skill_bytes(starter)
+        assert Digest.hash_bytes(conn.resp_body) == starter.file_digest
+      end
     end
 
     test "declares markdown and the encoding its bytes are in", %{conn: conn} do
-      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.file_digest()}")
+      conn = get(conn, ~p"/api/v1/objects/#{starter().file_digest}")
 
       assert get_resp_header(conn, "content-type") == ["text/markdown; charset=utf-8"]
       assert get_resp_header(conn, "x-content-type-options") == ["nosniff"]
     end
 
     test "may be cached forever, and is tagged with its digest", %{conn: conn} do
-      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.file_digest()}")
+      conn = get(conn, ~p"/api/v1/objects/#{starter().file_digest}")
 
       assert get_resp_header(conn, "cache-control") == ["public, max-age=31536000, immutable"]
-      assert get_resp_header(conn, "etag") == [~s("#{StarterSkill.file_digest()}")]
+      assert get_resp_header(conn, "etag") == [~s("#{starter().file_digest}")]
     end
 
     test "tells a caller holding the digest that nothing changed", %{conn: conn} do
       conn =
         conn
-        |> put_req_header("if-none-match", ~s("#{StarterSkill.file_digest()}"))
-        |> get(~p"/api/v1/objects/#{StarterSkill.file_digest()}")
+        |> put_req_header("if-none-match", ~s("#{starter().file_digest}"))
+        |> get(~p"/api/v1/objects/#{starter().file_digest}")
 
       assert conn.status == 304
       assert conn.resp_body == ""
@@ -131,10 +133,10 @@ defmodule TechtreeWeb.ObjectControllerTest do
     test "is published whether or not a catalog release is being served", %{conn: conn} do
       CatalogFixture.use_bundle(CatalogFixture.root())
 
-      before_import = get(conn, ~p"/api/v1/objects/#{StarterSkill.file_digest()}")
+      before_import = get(conn, ~p"/api/v1/objects/#{starter().file_digest}")
 
       Importer.import!(CatalogFixture.root())
-      after_import = get(conn, ~p"/api/v1/objects/#{StarterSkill.file_digest()}")
+      after_import = get(conn, ~p"/api/v1/objects/#{starter().file_digest}")
 
       assert before_import.status == 200
       assert after_import.status == 200
@@ -145,9 +147,9 @@ defmodule TechtreeWeb.ObjectControllerTest do
     test "is refused rather than served when its bytes drifted", %{conn: conn, tmp_dir: tmp_dir} do
       release = ReleaseFixture.copy!(tmp_dir)
       ReleaseFixture.use_release(release)
-      ReleaseFixture.write_starter_skill!(release, "# not the approved Skill\n")
+      ReleaseFixture.write_starter_skill!(release, starter(), "# not the approved Skill\n")
 
-      conn = get(conn, ~p"/api/v1/objects/#{StarterSkill.file_digest()}")
+      conn = get(conn, ~p"/api/v1/objects/#{starter().file_digest}")
 
       assert conn.status == 503
       assert json_response(conn, 503)["error"]["code"] == "catalog_object_digest_mismatch"
@@ -157,9 +159,7 @@ defmodule TechtreeWeb.ObjectControllerTest do
       CatalogFixture.use_bundle(CatalogFixture.root())
       Importer.import!(CatalogFixture.root())
 
-      tree_digest = "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
-
-      assert get(conn, ~p"/api/v1/objects/#{tree_digest}").status == 404
+      assert get(conn, ~p"/api/v1/objects/#{starter().tree_digest}").status == 404
     end
   end
 
@@ -195,4 +195,6 @@ defmodule TechtreeWeb.ObjectControllerTest do
       assert conn.status == 503
     end
   end
+
+  defp starter, do: CatalogFixture.starter()
 end

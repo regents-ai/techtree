@@ -111,7 +111,7 @@ defmodule Techtree.Release do
 
   @doc """
   The directory holding the release artifacts this build serves beside the
-  catalog bundle — today, the starter Skill.
+  catalog bundle — today, the starter Skills.
 
   Configured the same way as the catalog root: `{:priv, subdirectory}` names a
   directory shipped inside the release, a plain path names one deployed beside

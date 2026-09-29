@@ -5,7 +5,6 @@ defmodule Techtree.Catalog.VerifierTest do
   alias Techtree.Catalog.Error
   alias Techtree.Catalog.Verifier
   alias Techtree.CatalogFixture
-  alias Techtree.Release.StarterSkill
 
   test "the generated catalog verifies as generated" do
     assert :ok == Verifier.verify_bundle(Bundle.load!(CatalogFixture.root()))
@@ -238,14 +237,14 @@ defmodule Techtree.Catalog.VerifierTest do
     end
 
     @tag :tmp_dir
-    test "a bundle that names no starter Skill at all is rejected", %{tmp_dir: tmp_dir} do
+    test "a bundle that lists no Climbs and their starter Skills is rejected", %{tmp_dir: tmp_dir} do
       bundle = CatalogFixture.copy!(tmp_dir)
 
-      CatalogFixture.rewrite_bootstrap!(bundle, &Map.delete(&1, "starter_skill"))
+      CatalogFixture.rewrite_bootstrap!(bundle, &Map.delete(&1, "climbs"))
 
       assert {:error, error} = verify(bundle)
       assert error.code == :catalog_bundle_invalid
-      assert error.details["field"] == "starter_skill.object_url"
+      assert error.details["field"] == "climbs"
     end
 
     @tag :tmp_dir
@@ -261,11 +260,11 @@ defmodule Techtree.Catalog.VerifierTest do
         bundle = CatalogFixture.copy!(Path.join(tmp_dir, Base.url_encode64(address)))
 
         CatalogFixture.rewrite_bootstrap!(bundle, fn bootstrap ->
-          put_in(bootstrap, ["starter_skill", "object_url"], address)
+          put_in(bootstrap, CatalogFixture.starter_path("object_url"), address)
         end)
 
         assert {:error, error} = verify(bundle), "#{inspect(address)} was accepted"
-        assert error.details["field"] == "starter_skill.object_url"
+        assert error.details["field"] == starter_field("object_url")
       end
     end
 
@@ -275,7 +274,7 @@ defmodule Techtree.Catalog.VerifierTest do
         bundle = CatalogFixture.copy!(Path.join(tmp_dir, field))
 
         CatalogFixture.rewrite_bootstrap!(bundle, fn bootstrap ->
-          put_in(bootstrap, ["starter_skill", field], "596d1368")
+          put_in(bootstrap, CatalogFixture.starter_path(field), "596d1368")
         end)
 
         assert {:error, error} = verify(bundle), "#{field} was accepted"
@@ -290,11 +289,11 @@ defmodule Techtree.Catalog.VerifierTest do
       bundle = CatalogFixture.copy!(tmp_dir)
 
       CatalogFixture.rewrite_bootstrap!(bundle, fn bootstrap ->
-        put_in(bootstrap, ["starter_skill", "size"], 0)
+        put_in(bootstrap, CatalogFixture.starter_path("size"), 0)
       end)
 
       assert {:error, error} = verify(bundle)
-      assert error.details["field"] == "starter_skill.size"
+      assert error.details["field"] == starter_field("size")
     end
 
     @tag :tmp_dir
@@ -306,9 +305,15 @@ defmodule Techtree.Catalog.VerifierTest do
 
       bootstrap = bundle |> CatalogFixture.read!("bootstrap.json") |> Jason.decode!()
 
-      assert bootstrap["starter_skill"]["object_url"] == "https://placeholder.invalid/unchosen"
-      assert bootstrap["starter_skill"]["file_digest"] == StarterSkill.file_digest()
-      assert bootstrap["starter_skill"]["tree_digest"] == StarterSkill.tree_digest()
+      assert get_in(bootstrap, CatalogFixture.starter_path("object_url")) ==
+               "https://placeholder.invalid/unchosen"
+
+      assert get_in(bootstrap, CatalogFixture.starter_path("file_digest")) ==
+               CatalogFixture.starter().file_digest
+
+      assert get_in(bootstrap, CatalogFixture.starter_path("tree_digest")) ==
+               CatalogFixture.starter().tree_digest
+
       assert bootstrap["placeholder_release"] == true
     end
   end
@@ -350,12 +355,12 @@ defmodule Techtree.Catalog.VerifierTest do
          "hermes_plugin.revision"},
         {["hermes_plugin", "repository"], "techtree-hermes", "hermes_plugin.repository"},
         {["minimums", "hermes_version"], "latest", "minimums.hermes_version"},
-        {["starter_skill", "object_url"], "https://placeholder.invalid/unchosen",
-         "starter_skill.object_url"},
-        {["starter_skill", "file_digest"], "sha256:" <> String.duplicate("0", 64),
-         "starter_skill.file_digest"},
-        {["starter_skill", "tree_digest"], "sha256:" <> String.duplicate("0", 64),
-         "starter_skill.tree_digest"}
+        {CatalogFixture.starter_path("object_url"), "https://placeholder.invalid/unchosen",
+         starter_field("object_url")},
+        {CatalogFixture.starter_path("file_digest"), "sha256:" <> String.duplicate("0", 64),
+         starter_field("file_digest")},
+        {CatalogFixture.starter_path("tree_digest"), "sha256:" <> String.duplicate("0", 64),
+         starter_field("tree_digest")}
       ]
 
       for {path, value, field} <- rejections do
@@ -419,13 +424,13 @@ defmodule Techtree.Catalog.VerifierTest do
         spoiled_bundle(tmp_dir, "tree-keyed", fn bootstrap ->
           put_in(
             bootstrap,
-            ["starter_skill", "object_url"],
-            "https://techtree.test/api/v1/objects/" <> StarterSkill.tree_digest()
+            CatalogFixture.starter_path("object_url"),
+            "https://techtree.test/api/v1/objects/" <> CatalogFixture.starter().tree_digest
           )
         end)
 
       assert {:error, error} = verify(bundle)
-      assert error.details["field"] == "starter_skill.object_url"
+      assert error.details["field"] == starter_field("object_url")
       assert error.message =~ "digest of the file it returns"
     end
 
@@ -439,9 +444,13 @@ defmodule Techtree.Catalog.VerifierTest do
 
       assert bootstrap["placeholder_release"] == true
       assert bootstrap["cli"]["version"] == "0.0.0-placeholder"
-      assert bootstrap["starter_skill"]["object_url"] == "https://placeholder.invalid/unchosen"
+
+      assert get_in(bootstrap, CatalogFixture.starter_path("object_url")) ==
+               "https://placeholder.invalid/unchosen"
     end
   end
+
+  defp starter_field(field), do: field |> CatalogFixture.starter_path() |> Enum.join(".")
 
   defp spoiled_bundle(tmp_dir, label, spoil) do
     bundle = CatalogFixture.copy!(Path.join(tmp_dir, Base.url_encode64(label, padding: false)))
