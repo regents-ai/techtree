@@ -1,7 +1,7 @@
 {
  "coordinates": {
   "catalog_index": "sha256:2dc4e58d0449671ae39e44be253578b9b0d67ee923dee58342739108e8aafe24",
-  "cli_wheel": "sha256:129f953c6caf53281fe963178a4513b73afd7b59c701c7cc6d59b7f690004b65",
+  "cli_wheel": "sha256:3a8d11f173f401ce6ca9792a8eb053864280e2d9c8d9a5ffbe1784cb1ded7b6b",
   "climbs": {
    "frontier-cs-open-ended-climb@1": {
     "engine": "sha256:b744c6ec878776c886d0c15569b5c02bc1e7c66039e3d959e1c27c1ee8271c05",
@@ -16,14 +16,14 @@
   }
  },
  "files": {
-  "bootstrap.json": "sha256:5814b8317b4c8bf3953b9505478a3cf28ae0abba523229327cb3a4f84592d593",
+  "bootstrap.json": "sha256:605480dbf166702b40d450562293e87467ce25178fe5a3e8ddc979e641f0b879",
   "release-core.json": "sha256:b4f1823697b153c677b852da54a6c474e45af26b58803deb8b116ad9a475f02a"
  },
  "release_id": "climb-v0.4.0",
  "schema_version": "techtree.release-checksums.v2",
  "sources": {
-  "cli_source_revision": "54f97c05edb33165ff04b8a2fe9f6d9c699d1577",
-  "hermes_plugin_commit": "0ac972048dd2b36a7c0bfdb7990c70e1808d2f90",
+  "cli_source_revision": "09924e98784df7734af8048c54da285dd25e6874",
+  "hermes_plugin_commit": "a3f52b62026688afb6e8fb7f12facc81c10832ee",
   "hermes_plugin_repository": "github.com/regents-ai/techtree-hermes",
   "release_core_digest": "sha256:b4f1823697b153c677b852da54a6c474e45af26b58803deb8b116ad9a475f02a"
  }
