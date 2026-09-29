@@ -37,7 +37,7 @@ def _installed_facts(**overrides: Any) -> dict[str, Any]:
         "package_version": CORE.cli_version,
         "protocol_version": CORE.protocol_version,
         "release_core_digest": release_core_digest(CORE),
-        "engine_digest": CORE.engine_digest,
+        "climbs": CORE.climbs_dict(),
         "catalog_digest": CORE.catalog_digest,
         "intro_climb_reference": CORE.intro_climb_reference,
         "source_commit": "a" * 40,
@@ -101,12 +101,10 @@ def test_the_release_names_no_artifact_of_its_own() -> None:
         "release_id",
         "cli_version",
         "protocol_version",
-        "engine_digest",
         "catalog_digest",
+        "climbs",
         "intro_climb_reference",
         "publication",
-        "starter_skill_digest",
-        "starter_skill_object_url",
         "minimum_host_hermes_version",
         "maximum_tested_host_hermes_version",
         "subject_hermes_version",
@@ -132,12 +130,12 @@ def test_a_different_release_digest_is_reported() -> None:
         ("release_id", "9.9.9"),
         ("cli_version", "9.9.9"),
         ("protocol_version", "v2"),
-        ("engine_digest", "sha256:" + "1" * 64),
+        ("climbs", {}),
         ("catalog_digest", "sha256:" + "2" * 64),
         ("intro_climb_reference", "something-else@1"),
     ],
 )
-def test_each_shared_coordinate_is_compared(field: str, value: str) -> None:
+def test_each_shared_coordinate_is_compared(field: str, value: object) -> None:
     mismatches = compare_cli_release(CORE, _installed_facts(**{field: value}))
 
     assert field in mismatches
@@ -149,7 +147,7 @@ def test_an_empty_answer_is_not_treated_as_agreement() -> None:
 
 def test_a_truncated_answer_is_reported() -> None:
     facts = _installed_facts()
-    del facts["engine_digest"]
+    del facts["climbs"]
 
     assert "installed_release_facts_missing" in compare_cli_release(CORE, facts)
 

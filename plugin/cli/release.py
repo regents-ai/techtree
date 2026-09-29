@@ -39,8 +39,8 @@ MISMATCH_RELEASE_CORE_DIGEST: Final = "release_core_digest"
 MISMATCH_RELEASE_ID: Final = "release_id"
 MISMATCH_CLI_VERSION: Final = "cli_version"
 MISMATCH_PROTOCOL_VERSION: Final = "protocol_version"
-MISMATCH_ENGINE_DIGEST: Final = "engine_digest"
 MISMATCH_CATALOG_DIGEST: Final = "catalog_digest"
+MISMATCH_CLIMBS: Final = "climbs"
 MISMATCH_INTRO_CLIMB_REFERENCE: Final = "intro_climb_reference"
 MISMATCH_PLUGIN_COMMIT: Final = "plugin_commit"
 MISMATCH_PLUGIN_REPOSITORY: Final = "plugin_repository"
@@ -54,8 +54,8 @@ _SHARED_COORDINATES: Final = (
     (MISMATCH_RELEASE_ID, "release_id"),
     (MISMATCH_CLI_VERSION, "cli_version"),
     (MISMATCH_PROTOCOL_VERSION, "protocol_version"),
-    (MISMATCH_ENGINE_DIGEST, "engine_digest"),
     (MISMATCH_CATALOG_DIGEST, "catalog_digest"),
+    (MISMATCH_CLIMBS, "climbs"),
     (MISMATCH_INTRO_CLIMB_REFERENCE, "intro_climb_reference"),
 )
 
@@ -134,9 +134,14 @@ def compare_cli_release(
     mismatches.extend(
         code
         for code, field in _SHARED_COORDINATES
-        if field in installed and installed[field] != getattr(embedded, field)
+        if field in installed and installed[field] != _coordinate(embedded, field)
     )
     return mismatches
+
+
+def _coordinate(core: ReleaseCore, field: str) -> Any:
+    """Return one coordinate as ``release info`` spells it."""
+    return core.climbs_dict() if field == "climbs" else getattr(core, field)
 
 
 def compare_bootstrap_release(

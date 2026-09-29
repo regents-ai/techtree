@@ -26,9 +26,16 @@ from techtree_hermes.services.models import DemoStage
 from techtree_hermes.tools import TOOL_HANDLERS
 
 CORE = load_embedded_release_core()
+STARTER_DIGEST = "sha256:" + "7" * 64
 PUBLISHED = dataclasses.replace(
     CORE,
-    starter_skill_digest="sha256:" + "7" * 64,
+    climbs={
+        **CORE.climbs,
+        CORE.intro_climb_reference: dataclasses.replace(
+            CORE.climbs[CORE.intro_climb_reference],
+            starter_skill_digest=STARTER_DIGEST,
+        ),
+    },
 )
 RUN_ID = "run_" + "0" * 32
 DRAFT_ID = "draft_" + "0" * 32
@@ -40,7 +47,7 @@ POLICY = "sha256:" + "b" * 64
 #: file inside a cache directory regents names by the digest it verified.
 STARTER_SKILL_PATH = (
     "/tmp/techtree-home/cache/skills/"
-    + PUBLISHED.starter_skill_digest.replace(":", "-", 1)
+    + STARTER_DIGEST.replace(":", "-", 1)
     + "/SKILL.md"
 )
 STARTER_SKILL_LABEL = "hello-world-v1"
@@ -54,7 +61,7 @@ def _answers() -> dict[str, dict[str, Any]]:
             "package_version": PUBLISHED.cli_version,
             "protocol_version": PUBLISHED.protocol_version,
             "release_core_digest": release_core_digest(PUBLISHED),
-            "engine_digest": PUBLISHED.engine_digest,
+            "climbs": PUBLISHED.climbs_dict(),
             "catalog_digest": PUBLISHED.catalog_digest,
             "intro_climb_reference": PUBLISHED.intro_climb_reference,
             "source_commit": "a" * 40,
@@ -62,7 +69,8 @@ def _answers() -> dict[str, dict[str, Any]]:
         "doctor": {"checks": [], "blocking_failures": []},
         "skill starter": {
             "release_id": PUBLISHED.release_id,
-            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "climb_reference": PUBLISHED.intro_climb_reference,
+            "skill_root_digest": STARTER_DIGEST,
             "skill_path": STARTER_SKILL_PATH,
             "skill_name": "hello-world-starter-v1",
             "skill_purpose": "intentionally incomplete introductory Skill",
@@ -70,7 +78,6 @@ def _answers() -> dict[str, dict[str, Any]]:
             "file_count": 1,
             "total_bytes": 1496,
             "origin": "cache",
-            "intro_climb_reference": PUBLISHED.intro_climb_reference,
         },
         "climb list": {
             "climbs": [{"reference": PUBLISHED.intro_climb_reference}],
@@ -86,7 +93,7 @@ def _answers() -> dict[str, dict[str, Any]]:
             "draft_id": DRAFT_ID,
             "draft_digest": DRAFT_DIGEST,
             "data_policy_digest": POLICY,
-            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "skill_root_digest": STARTER_DIGEST,
             "estimated_episodes": 72,
         },
         "climb start": {
@@ -201,10 +208,17 @@ def test_the_guided_preparation_gets_its_skill_from_techtree(
     prepared = _call("techtree_demo_prepare", services, {})
 
     assert prepared["ok"] is True
-    assert prepared["starter_skill_digest"] == PUBLISHED.starter_skill_digest
+    assert prepared["starter_skill_digest"] == STARTER_DIGEST
 
     recorded = cli.recorded_argv()
-    assert ["techtree", "skill", "starter", "--json"] in recorded
+    assert [
+        "techtree",
+        "skill",
+        "starter",
+        "--climb",
+        PUBLISHED.intro_climb_reference,
+        "--json",
+    ] in recorded
 
     prepare = next(call for call in recorded if call[1:3] == ["climb", "prepare"])
     assert prepare == [

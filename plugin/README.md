@@ -387,9 +387,9 @@ not the plugin's to delete:
 ## Release status
 
 This directory carries the release contract in `release-core.json`, release
-`climb-v0.3.1`, with host Hermes 0.21.3 as its minimum. It names the
-starter Skill, so the installed plugin can prepare Techtree Hello World and run
-its comparison. Earlier records required Hermes 0.20.1, and each record's own
+`climb-v0.4.0`, with host Hermes 0.21.3 as its minimum. It names the
+starter Skill for each Climb, so the installed plugin can prepare Techtree Hello
+World and run its comparison. Earlier records required Hermes 0.20.1, and each record's own
 minimum applies to the plugin commit it installs.
 Which plugin commit is installable is decided by the active
 release that [techtree.sh/start](https://techtree.sh/start) publishes;

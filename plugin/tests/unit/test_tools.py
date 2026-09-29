@@ -22,9 +22,16 @@ from techtree_hermes.services.models import DemoStage
 from techtree_hermes.tools import TOOL_HANDLERS
 
 CORE = load_embedded_release_core()
+STARTER_DIGEST = "sha256:" + "7" * 64
 PUBLISHED = dataclasses.replace(
     CORE,
-    starter_skill_digest="sha256:" + "7" * 64,
+    climbs={
+        **CORE.climbs,
+        CORE.intro_climb_reference: dataclasses.replace(
+            CORE.climbs[CORE.intro_climb_reference],
+            starter_skill_digest=STARTER_DIGEST,
+        ),
+    },
 )
 DIGEST = release_core_digest(CORE)
 RUN_ID = "run_" + "0" * 32
@@ -76,10 +83,11 @@ class FakeBridge:
 class StarterSkillDouble:
     """A release whose starter Skill exists and materializes cleanly."""
 
-    def materialize(self, services: Any) -> dict[str, Any]:
+    def materialize(self, services: Any, climb_reference: str) -> dict[str, Any]:
         return {
+            "climb_reference": climb_reference,
             "skill_path": "/tmp/starter-skill/SKILL.md",
-            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "skill_root_digest": STARTER_DIGEST,
             "candidate_label": "hello-world-v1",
         }
 
@@ -447,7 +455,7 @@ def _demo_bridge() -> FakeBridge:
             "draft_digest": DRAFT_DIGEST,
             "data_policy_digest": POLICY,
             "campaign_spec_digest": "sha256:" + "c" * 64,
-            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "skill_root_digest": STARTER_DIGEST,
             "estimated_episodes": 72,
         },
     )

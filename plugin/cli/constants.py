@@ -13,7 +13,7 @@ from typing import Final
 # Identity ------------------------------------------------------------------
 
 PLUGIN_ID: Final = "techtree"
-PLUGIN_VERSION: Final = "0.3.1"
+PLUGIN_VERSION: Final = "0.4.0"
 TOOLSET_NAME: Final = "techtree"
 
 # Repository layout ---------------------------------------------------------
@@ -102,7 +102,7 @@ DEMO_SESSION_TTL_SECONDS: Final = 604_800
 
 # Release contract ----------------------------------------------------------
 
-SUPPORTED_RELEASE_CORE_SCHEMA: Final = "techtree.release-core.v2"
+SUPPORTED_RELEASE_CORE_SCHEMA: Final = "techtree.release-core.v3"
 
 # Host lifecycle hooks this plugin takes part in. Both do local bookkeeping
 # only: no network, no installation, no Docker, no model call.

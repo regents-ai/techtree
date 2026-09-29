@@ -21,23 +21,28 @@ from techtree_hermes.cli.release import (
     render_release_core,
 )
 from techtree_hermes.services.models import (
-    _RELEASE_CORE_DIGEST_FIELDS,
-    RELEASE_CORE_FIELDS,
+    CLIMB_COORDINATE_FIELDS,
     parse_bootstrap_install_plan,
     parse_cli_answer,
     parse_release_core,
 )
 
 VALID_RELEASE_CORE: dict[str, Any] = {
-    "schema_version": "techtree.release-core.v2",
+    "schema_version": "techtree.release-core.v3",
     "release_id": "test-release",
     "cli_version": "0.1.0",
     "protocol_version": "v1alpha1",
-    "engine_digest": "sha256:" + "1" * 64,
     "catalog_digest": "sha256:" + "2" * 64,
+    "climbs": {
+        "hello-world-climb@1": {
+            "engine_digest": "sha256:" + "1" * 64,
+            "starter_skill_digest": "sha256:" + "3" * 64,
+            "starter_skill_object_url": (
+                "https://objects.example/objects/sha256:" + "4" * 64
+            ),
+        },
+    },
     "intro_climb_reference": "hello-world-climb@1",
-    "starter_skill_digest": "sha256:" + "3" * 64,
-    "starter_skill_object_url": "https://objects.example/objects/sha256:" + "4" * 64,
     "minimum_host_hermes_version": "0.21.3",
     "maximum_tested_host_hermes_version": "0.21.3",
     "subject_hermes_version": "v2026.7.20",
@@ -61,7 +66,7 @@ VALID_RELEASE_CORE: dict[str, Any] = {
 #: The digest the release above is published under, taken over its one stored
 #: spelling. A change here means the release document contract changed.
 RELEASE_DIGEST_GOLDEN = (
-    "sha256:4dbccc05cdfdd2bafd66b84bf96205b5d4a4a76731d4efaaa0486f0a121f19ac"
+    "sha256:640bc40af1b9d37de2b4ba21678bd0c094d797878907d6349e424567f82854b1"
 )
 
 VALID_ANSWER: dict[str, Any] = {
@@ -91,6 +96,15 @@ def _release_bytes(**overrides: Any) -> bytes:
     return json.dumps(document).encode("utf-8")
 
 
+def _climb_bytes(**overrides: Any) -> bytes:
+    """The valid release, with the introductory Climb's entry changed."""
+    entry = {**VALID_RELEASE_CORE["climbs"]["hello-world-climb@1"], **overrides}
+    for key, value in overrides.items():
+        if value is None:
+            del entry[key]
+    return _release_bytes(climbs={"hello-world-climb@1": entry})
+
+
 # Release ----------------------------------------------------------------------
 
 
@@ -117,7 +131,7 @@ def test_the_release_digest_does_not_depend_on_how_the_file_was_written() -> Non
 def test_the_embedded_release_is_valid() -> None:
     core = load_embedded_release_core()
 
-    assert core.schema_version == "techtree.release-core.v2"
+    assert core.schema_version == "techtree.release-core.v3"
     assert release_core_digest(core).startswith("sha256:")
 
 
@@ -125,10 +139,29 @@ def test_the_embedded_release_is_valid() -> None:
     ("overrides", "expected"),
     [
         ({"schema_version": "a-release-core"}, "schema version"),
-        ({"engine_digest": "not-a-digest"}, "sha256 digest"),
-        ({"intro_climb_reference": "hello-world-climb"}, "slug@version"),
+        ({"catalog_digest": "not-a-digest"}, "sha256 digest"),
+        ({"intro_climb_reference": "frontier-cs-open-ended-climb@1"}, "one of"),
+        ({"climbs": {}}, "non-empty JSON object"),
+        ({"climbs": {"hello-world-climb": {}}}, "slug@version"),
         ({"cli_version": ""}, "non-empty string"),
         ({"cli_version": None}, "missing fields"),
+        ({"upload_endpoint": "https://example.test"}, "unknown fields"),
+    ],
+)
+def test_a_release_that_breaks_the_contract_is_rejected(
+    overrides: dict[str, Any], expected: str
+) -> None:
+    with pytest.raises(PluginError, match=expected) as raised:
+        parse_release_core(_release_bytes(**overrides))
+
+    assert raised.value.code == "plugin_release_core_invalid"
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected"),
+    [
+        ({"engine_digest": "not-a-digest"}, "is not a digest"),
+        ({"starter_skill_digest": None}, "missing fields"),
         ({"upload_endpoint": "https://example.test"}, "unknown fields"),
         # The starter Skill's address: https only, keyed by the digest of the
         # file it returns, and never with a credential in the authority.
@@ -154,11 +187,11 @@ def test_the_embedded_release_is_valid() -> None:
         ({"starter_skill_object_url": None}, "missing fields"),
     ],
 )
-def test_a_release_that_breaks_the_contract_is_rejected(
+def test_a_climb_entry_that_breaks_the_contract_is_rejected(
     overrides: dict[str, Any], expected: str
 ) -> None:
     with pytest.raises(PluginError, match=expected) as raised:
-        parse_release_core(_release_bytes(**overrides))
+        parse_release_core(_climb_bytes(**overrides))
 
     assert raised.value.code == "plugin_release_core_invalid"
 
@@ -299,12 +332,13 @@ def test_an_error_is_relayed_unchanged() -> None:
 def test_the_starter_url_is_carried_but_is_not_a_digest() -> None:
     """It is one half of a coordinate, and it is not hashed like the other."""
     core = parse_release_core(_release_bytes())
+    expected = VALID_RELEASE_CORE["climbs"]["hello-world-climb@1"]
 
     assert (
-        core.starter_skill_object_url == VALID_RELEASE_CORE["starter_skill_object_url"]
+        core.climbs["hello-world-climb@1"].starter_skill_object_url
+        == expected["starter_skill_object_url"]
     )
-    assert "starter_skill_object_url" in RELEASE_CORE_FIELDS
-    assert "starter_skill_object_url" not in _RELEASE_CORE_DIGEST_FIELDS
+    assert "starter_skill_object_url" in CLIMB_COORDINATE_FIELDS
 
 
 def test_the_release_round_trips_through_its_one_spelling() -> None:
@@ -312,7 +346,4 @@ def test_the_release_round_trips_through_its_one_spelling() -> None:
     core = parse_release_core(_release_bytes())
 
     assert parse_release_core(render_release_core(core)) == core
-    assert (
-        core.to_dict()["starter_skill_object_url"]
-        == (VALID_RELEASE_CORE["starter_skill_object_url"])
-    )
+    assert core.to_dict()["climbs"] == VALID_RELEASE_CORE["climbs"]

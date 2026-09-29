@@ -14,6 +14,8 @@ from techtree_hermes.cli.release import load_embedded_release_core
 from techtree_hermes.services.assets import materialize_starter_skill
 
 CORE = load_embedded_release_core()
+INTRO = CORE.intro_climb_reference
+INTRO_STARTER_DIGEST = CORE.climbs[INTRO].starter_skill_digest
 
 
 # The starter Skill this release pins -----------------------------------------------
@@ -31,7 +33,8 @@ def _starter_payload(**overrides: object) -> dict[str, object]:
     """Return what ``regents techtree skill starter`` says when it succeeded."""
     return {
         "release_id": CORE.release_id,
-        "skill_root_digest": CORE.starter_skill_digest,
+        "climb_reference": INTRO,
+        "skill_root_digest": INTRO_STARTER_DIGEST,
         "skill_path": STARTER_SKILL_PATH,
         "skill_name": "hello-world-starter-v1",
         "skill_purpose": "intentionally incomplete introductory Skill",
@@ -39,7 +42,6 @@ def _starter_payload(**overrides: object) -> dict[str, object]:
         "file_count": 1,
         "total_bytes": 1496,
         "origin": "cache",
-        "intro_climb_reference": CORE.intro_climb_reference,
         **overrides,
     }
 
@@ -71,11 +73,11 @@ def test_the_starter_skill_comes_from_the_command_techtree_publishes() -> None:
     """The guided first run can prepare: one regents call, and the Skill comes back."""
     services = _starter_services(_starter_payload())
 
-    result = materialize_starter_skill(services)
+    result = materialize_starter_skill(services, INTRO)
 
-    assert services.bridge.calls == [["skill", "starter"]]
+    assert services.bridge.calls == [["skill", "starter", "--climb", INTRO]]
     assert result["skill_path"] == STARTER_SKILL_PATH
-    assert result["skill_root_digest"] == CORE.starter_skill_digest
+    assert result["skill_root_digest"] == INTRO_STARTER_DIGEST
     assert result["candidate_label"] == "hello-world-v1"
 
 
@@ -86,7 +88,7 @@ def test_a_skill_that_is_not_the_one_this_release_names_is_refused() -> None:
     )
 
     with pytest.raises(PluginError, match="not the one this release names") as raised:
-        materialize_starter_skill(services)
+        materialize_starter_skill(services, INTRO)
 
     assert raised.value.code == "starter_skill_digest_mismatch"
 
@@ -95,7 +97,7 @@ def test_a_skill_returned_without_a_digest_is_refused() -> None:
     services = _starter_services(_starter_payload(skill_root_digest=""))
 
     with pytest.raises(PluginError, match="without a digest") as raised:
-        materialize_starter_skill(services)
+        materialize_starter_skill(services, INTRO)
 
     assert raised.value.code == "starter_skill_digest_mismatch"
 
@@ -110,7 +112,7 @@ def test_a_skill_missing_what_preparing_needs_is_refused(
     services = _starter_services(_starter_payload(**{field: ""}))
 
     with pytest.raises(PluginError, match=expected) as raised:
-        materialize_starter_skill(services)
+        materialize_starter_skill(services, INTRO)
 
     assert raised.value.code == "starter_skill_unavailable"
 
@@ -136,7 +138,7 @@ def test_a_refusal_from_regents_is_reported_in_its_own_words() -> None:
     )
 
     with pytest.raises(PluginError, match="no such skill path") as raised:
-        materialize_starter_skill(services)
+        materialize_starter_skill(services, INTRO)
 
     assert raised.value.code == "starter_skill_source_refused"
     assert raised.value.repair is None

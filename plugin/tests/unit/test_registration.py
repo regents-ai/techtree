@@ -111,4 +111,4 @@ def test_registration_exposes_the_verified_release_digest(
     services = build_services(ctx)
 
     assert services.release_core_digest.startswith("sha256:")
-    assert services.release_core.schema_version == "techtree.release-core.v2"
+    assert services.release_core.schema_version == "techtree.release-core.v3"

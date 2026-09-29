@@ -29,8 +29,8 @@ def test_readme_names_the_supported_host_and_open_release_path() -> None:
 
     for required in (
         "This directory carries the release contract in `release-core.json`, "
-        "release\n`climb-v0.3.1`",
-        "It names the\nstarter Skill, so the installed plugin",
+        "release\n`climb-v0.4.0`",
+        "It names the\nstarter Skill for each Climb, so the installed plugin",
         "Which plugin commit is installable is decided by the active\nrelease",
     ):
         assert required in README

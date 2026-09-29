@@ -131,32 +131,32 @@ NETWORK_KEY_FIELDS: Final = (
     "public_key",
 )
 
+#: What a release pins for each Climb it ships: the engine that runs it and
+#: the starter Skill that goes with it.
+CLIMB_COORDINATE_FIELDS: Final = (
+    "engine_digest",
+    "starter_skill_digest",
+    "starter_skill_object_url",
+)
+
 RELEASE_CORE_FIELDS: Final = (
     "schema_version",
     "release_id",
     "cli_version",
     "protocol_version",
-    "engine_digest",
     "catalog_digest",
+    "climbs",
     "intro_climb_reference",
-    "starter_skill_digest",
-    "starter_skill_object_url",
     "minimum_host_hermes_version",
     "maximum_tested_host_hermes_version",
     "subject_hermes_version",
     "publication",
 )
 
-#: Every field but the nested one. ``publication`` is an object and is checked
-#: on its own terms below.
+#: Every field but the nested ones. ``climbs`` and ``publication`` are objects
+#: and are checked on their own terms below.
 _RELEASE_CORE_STRING_FIELDS: Final = tuple(
-    name for name in RELEASE_CORE_FIELDS if name != "publication"
-)
-
-_RELEASE_CORE_DIGEST_FIELDS: Final = (
-    "engine_digest",
-    "catalog_digest",
-    "starter_skill_digest",
+    name for name in RELEASE_CORE_FIELDS if name not in ("climbs", "publication")
 )
 
 _RELEASE_CORE_VERSION_FIELDS: Final = (
@@ -205,6 +205,19 @@ class PublicationCoordinates:
 
 
 @dataclass(frozen=True)
+class ClimbCoordinates:
+    """The engine and starter Skill a release pins for one Climb."""
+
+    engine_digest: str
+    starter_skill_digest: str
+    starter_skill_object_url: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return the coordinates as JSON-ready values in declaration order."""
+        return {name: getattr(self, name) for name in CLIMB_COORDINATE_FIELDS}
+
+
+@dataclass(frozen=True)
 class ReleaseCore:
     """The frozen release the plugin was built against. Section 6.6.
 
@@ -218,15 +231,13 @@ class ReleaseCore:
     repeats it, and compares digests.
     """
 
-    schema_version: Literal["techtree.release-core.v2"]
+    schema_version: Literal["techtree.release-core.v3"]
     release_id: str
     cli_version: str
     protocol_version: str
-    engine_digest: str
     catalog_digest: str
+    climbs: Mapping[str, ClimbCoordinates]
     intro_climb_reference: str
-    starter_skill_digest: str
-    starter_skill_object_url: str
     minimum_host_hermes_version: str
     maximum_tested_host_hermes_version: str
     subject_hermes_version: str
@@ -234,13 +245,16 @@ class ReleaseCore:
 
     def to_dict(self) -> dict[str, Any]:
         """Return the release as JSON-ready values in declaration order."""
+        values = {name: getattr(self, name) for name in RELEASE_CORE_FIELDS}
+        values["climbs"] = self.climbs_dict()
+        values["publication"] = self.publication.to_dict()
+        return values
+
+    def climbs_dict(self) -> dict[str, Any]:
+        """Return each Climb's coordinates as JSON-ready values."""
         return {
-            name: (
-                self.publication.to_dict()
-                if name == "publication"
-                else getattr(self, name)
-            )
-            for name in RELEASE_CORE_FIELDS
+            reference: coordinates.to_dict()
+            for reference, coordinates in self.climbs.items()
         }
 
 
@@ -287,15 +301,8 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
         if not isinstance(value, str) or not value:
             raise invalid(f"field {name!r} is not a non-empty string")
 
-    for name in _RELEASE_CORE_DIGEST_FIELDS:
-        if not DIGEST_PATTERN.match(decoded[name]):
-            raise invalid(f"field {name!r} is not a sha256 digest")
-
-    if not OBJECT_URL_PATTERN.match(decoded["starter_skill_object_url"]):
-        raise invalid(
-            "field 'starter_skill_object_url' is not an https content address "
-            "without credentials in it"
-        )
+    if not DIGEST_PATTERN.match(decoded["catalog_digest"]):
+        raise invalid("field 'catalog_digest' is not a sha256 digest")
 
     for name in _RELEASE_CORE_VERSION_FIELDS:
         if not VERSION_PATTERN.match(decoded[name]):
@@ -307,11 +314,50 @@ def parse_release_core(raw: bytes) -> ReleaseCore:
     if not IDENTIFIER_PATTERN.match(decoded["release_id"]):
         raise invalid("field 'release_id' is not a bounded identifier")
 
-    if not CLIMB_REFERENCE_PATTERN.match(decoded["intro_climb_reference"]):
-        raise invalid("field 'intro_climb_reference' is not a pinned slug@version")
+    climbs = _parse_climbs(decoded["climbs"], invalid)
+    if decoded["intro_climb_reference"] not in climbs:
+        raise invalid("field 'intro_climb_reference' is not one of its Climbs")
 
     publication = _parse_publication(decoded["publication"], invalid)
-    return ReleaseCore(**{**decoded, "publication": publication})
+    return ReleaseCore(**{**decoded, "climbs": climbs, "publication": publication})
+
+
+def _parse_climbs(
+    value: object, invalid: Callable[[str], PluginError]
+) -> dict[str, ClimbCoordinates]:
+    """Return each Climb's coordinates, or refuse the release document.
+
+    Every key is a pinned Climb reference, and every entry carries exactly
+    the engine digest, the starter Skill's tree digest, and the content
+    address its file is served from.
+    """
+    if not isinstance(value, dict) or not value:
+        raise invalid("field 'climbs' is not a non-empty JSON object")
+
+    climbs: dict[str, ClimbCoordinates] = {}
+    for reference, entry in value.items():
+        if not CLIMB_REFERENCE_PATTERN.match(reference):
+            raise invalid(f"Climb {reference!r} is not a pinned slug@version")
+        if not isinstance(entry, dict):
+            raise invalid(f"Climb {reference!r} is not a JSON object")
+        unknown = sorted(set(entry) - set(CLIMB_COORDINATE_FIELDS))
+        if unknown:
+            raise invalid(f"Climb {reference!r} has unknown fields {unknown}")
+        missing = sorted(set(CLIMB_COORDINATE_FIELDS) - set(entry))
+        if missing:
+            raise invalid(f"Climb {reference!r} is missing fields {missing}")
+        for name in ("engine_digest", "starter_skill_digest"):
+            digest = entry[name]
+            if not isinstance(digest, str) or not DIGEST_PATTERN.match(digest):
+                raise invalid(f"Climb {reference!r} field {name!r} is not a digest")
+        url = entry["starter_skill_object_url"]
+        if not isinstance(url, str) or not OBJECT_URL_PATTERN.match(url):
+            raise invalid(
+                f"Climb {reference!r} field 'starter_skill_object_url' is not an "
+                "https content address without credentials in it"
+            )
+        climbs[reference] = ClimbCoordinates(**entry)
+    return climbs
 
 
 def _parse_publication(

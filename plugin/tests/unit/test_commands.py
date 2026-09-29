@@ -30,11 +30,18 @@ from techtree_hermes.services.models import DemoStage
 from techtree_hermes.services.session import create_demo_session
 
 CORE = load_embedded_release_core()
+STARTER_DIGEST = "sha256:" + "7" * 64
 PUBLISHED = dataclasses.replace(
     CORE,
     release_id="0.1.0",
     cli_version="0.1.0",
-    starter_skill_digest="sha256:" + "7" * 64,
+    climbs={
+        **CORE.climbs,
+        CORE.intro_climb_reference: dataclasses.replace(
+            CORE.climbs[CORE.intro_climb_reference],
+            starter_skill_digest=STARTER_DIGEST,
+        ),
+    },
 )
 DIGEST = release_core_digest(CORE)
 RUN_ID = "run_" + "0" * 32
@@ -78,10 +85,11 @@ class FakeBridge:
 
 
 class SkillDouble:
-    def materialize(self, services: Any) -> dict[str, Any]:
+    def materialize(self, services: Any, climb_reference: str) -> dict[str, Any]:
         return {
+            "climb_reference": climb_reference,
             "skill_path": "/tmp/skill/SKILL.md",
-            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "skill_root_digest": STARTER_DIGEST,
             "candidate_label": "hello-world-v1",
         }
 
@@ -139,7 +147,7 @@ def test_nothing_a_user_types_becomes_a_command() -> None:
 def test_setup_reports_the_build_and_the_next_step() -> None:
     answer = handle_slash_command("setup", _services(bridge=FakeBridge()))
 
-    assert "Plugin 0.3.1" in answer
+    assert "Plugin 0.4.0" in answer
     assert "regents:" in answer
 
 
@@ -159,7 +167,7 @@ def test_demo_says_it_has_not_spent_anything() -> None:
             "confirmation_token": "token-value",
             "data_policy_digest": "sha256:" + "b" * 64,
             "estimated_episodes": 72,
-            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "skill_root_digest": STARTER_DIGEST,
         },
     )
     bridge = FakeBridge(
@@ -196,7 +204,7 @@ _PREPARED: dict[str, Any] = {
     "data_policy_digest": "sha256:" + "b" * 64,
     "estimated_episodes": 72,
     "campaign_maximum_usd": 2.5,
-    "skill_root_digest": PUBLISHED.starter_skill_digest,
+    "skill_root_digest": STARTER_DIGEST,
 }
 
 
@@ -376,7 +384,7 @@ SUCCESSFUL_ANSWERS: dict[str, dict[str, Any]] = {
             "draft_id": "draft_" + "0" * 32,
             "data_policy_digest": "sha256:" + "b" * 64,
             "estimated_episodes": 72,
-            "skill_root_digest": PUBLISHED.starter_skill_digest,
+            "skill_root_digest": STARTER_DIGEST,
         },
     ),
     "run status": _answer(

@@ -391,7 +391,7 @@ def _installed_cli(
         "package_version": release.cli_version,
         "protocol_version": release.protocol_version,
         "release_core_digest": release_core_digest(release),
-        "engine_digest": release.engine_digest,
+        "climbs": release.climbs_dict(),
         "catalog_digest": release.catalog_digest,
         "intro_climb_reference": release.intro_climb_reference,
         "source_commit": "a" * 40,

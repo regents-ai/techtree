@@ -68,8 +68,9 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
             channel,
         )
 
+    reference = services.release_core.intro_climb_reference
     try:
-        skill = materialize_starter_skill(services)
+        skill = materialize_starter_skill(services, reference)
     except PluginError as error:
         return tool_result(
             {
@@ -83,7 +84,6 @@ def techtree_demo_prepare(services: Any, args: dict[str, Any], **kwargs: Any) ->
             channel,
         )
 
-    reference = services.release_core.intro_climb_reference
     inspection = services.bridge.invoke(["climb", "show", reference])
     # The label is stated rather than left to default. Techtree keeps a
     # materialized Skill in a directory named by the digest it was verified
