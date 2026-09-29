@@ -13,6 +13,7 @@ defmodule Techtree.Application do
         Techtree.Repo,
         {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Techtree.PubSub},
+        RegentAgents.Listener,
         Techtree.RateLimit,
         # Start a worker by calling: Techtree.Worker.start_link(arg)
         # {Techtree.Worker, arg},
