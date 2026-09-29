@@ -1,12 +1,12 @@
 {
   "climbs": [
     {
-      "digest": "sha256:fc30fbe6d9876c848b31e185340967b7d04c2b96fcc4bc7287b4e0e9c19bf4c2",
+      "digest": "sha256:1e1c4198574d467bc92e3b4d31255e32bdaecaef902fafcf82d252a6f0b93f19",
       "path": "climbs/hello-world-climb.json",
       "reference": "hello-world-climb@1"
     },
     {
-      "digest": "sha256:9d822ba9eeafb9333717b00caf708e68b71d95de345026cc6009bf069b7dfd25",
+      "digest": "sha256:cf49e58911ef98e20223c5d57763751b9eace348c0627ce720e9e01f1771376f",
       "path": "climbs/frontier-cs-open-ended-climb.json",
       "reference": "frontier-cs-open-ended-climb@1"
     }
