@@ -4,16 +4,16 @@ defmodule TechtreeWeb.ClimbCopy do
   carries.
 
   A ClimbManifest has a title and a summary. A CampaignSpec has neither, and
-  nothing in the protocol names the task family in words or the Skill a
-  newcomer starts from. Those are decisions about how a published Climb is
-  described, so they are written once, here, against the reference they belong
-  to, and never inferred from a package name or a file path.
+  nothing in the protocol says in words what a Climb asks, what its tasks take
+  and give back, or where its tasks came from. Those are decisions about how a
+  published Climb is described, so they are written once, here, against the
+  reference they belong to, and never inferred from a package name or a file
+  path.
 
   A Climb with no entry is described from its own documents and nothing else.
   """
 
   @type t :: %{
-          subtitle: String.t(),
           scope: String.t(),
           introduction: String.t(),
           question: String.t(),
@@ -22,14 +22,11 @@ defmodule TechtreeWeb.ClimbCopy do
           scoring: String.t(),
           held_fixed: String.t(),
           campaign_title: String.t(),
-          task_family: String.t(),
-          starter_skill: String.t(),
           candidate_skill_label: String.t()
         }
 
   @copy %{
     "hello-world-climb@1" => %{
-      subtitle: "A toy Skill-uplift Climb",
       scope:
         "A toy introductory demonstration of the mechanism, not a measure of broad capability.",
       introduction:
@@ -42,9 +39,31 @@ defmodule TechtreeWeb.ClimbCopy do
       held_fixed:
         "Task membership and order, model, Hermes harness, runtime, tools, sampling, and budget.",
       campaign_title: "Hello World Skill Uplift",
-      task_family: "BranchCode v1",
-      starter_skill: "hello-world-starter-v1",
       candidate_skill_label: "Hello World Skill"
+    },
+    "frontier-cs-open-ended-climb@1" => %{
+      scope:
+        "Ten open-ended optimisation problems with no known best answer, from Frontier-CS " <>
+          "(MIT licence) as chosen by the FrontierSmith authors. With thanks to both.",
+      introduction:
+        "ten open-ended programming problems with no known best answer, where every " <>
+          "better answer scores higher",
+      question:
+        "Does adding the Frontier-CS Skill raise the mean score across 10 open-ended " <>
+          "optimisation problems?",
+      input:
+        "A problem statement. The agent writes a C++17 program that reads each of the " <>
+          "problem's 10 test files.",
+      output: "For each test file, an answer that keeps every rule of the problem.",
+      scoring:
+        "Each test file scores from 0 to 1 by the problem's own checker, and 0 when a rule " <>
+          "is broken. A problem scores the mean of its 10 files; the Climb, the mean of its " <>
+          "10 problems.",
+      held_fixed:
+        "Problems and their order, test files, checkers, compiler, time and memory limits, " <>
+          "model, Hermes harness, runtime, tools, sampling, and budget.",
+      campaign_title: "Frontier-CS Open-Ended Skill Uplift",
+      candidate_skill_label: "Frontier-CS Skill"
     }
   }
 

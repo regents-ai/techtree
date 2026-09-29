@@ -1,8 +1,8 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
   Why Techtree exists, how testing a Skill works, a quick look at the Hello
-  World Climb, what works today, and one copyable instruction for getting
-  started.
+  World Climb, every published Climb, what works today, and one copyable
+  instruction for getting started.
   """
 
   use TechtreeWeb, :live_view
@@ -18,7 +18,9 @@ defmodule TechtreeWeb.HomeLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    campaign = Query.list_climbs() |> List.first()
+    release = ReleaseInfo.current()
+    climbs = Query.list_climbs()
+    campaign = release && Enum.find(climbs, &(&1.reference == release.introductory_reference))
 
     {:ok,
      assign(socket,
@@ -27,8 +29,9 @@ defmodule TechtreeWeb.HomeLive do
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
        campaign_facts: CampaignFacts.for_climb(campaign),
+       climbs: Enum.map(climbs, &{&1, ClimbCopy.for_reference(&1.reference)}),
        capabilities: Capabilities.all(),
-       release: ReleaseInfo.current(),
+       release: release,
        preview_label: @preview_label
      )}
   end
@@ -167,6 +170,18 @@ defmodule TechtreeWeb.HomeLive do
             Published Results <span aria-hidden="true">→</span>
           </a>
         </p>
+      </section>
+
+      <section :if={@climbs != []} id="climbs" class="home-section" aria-labelledby="climbs-title">
+        <Regent.Structure.section_bar class="section-heading rg-support-band">
+          <h2 id="climbs-title" class="rg-section-bar__label">Published Climbs</h2>
+        </Regent.Structure.section_bar>
+        <ul class="climb-list">
+          <li :for={{climb, copy} <- @climbs} class="climb-list__item">
+            <a class="text-link" href={~p"/climbs/#{climb.projection["slug"]}"}>{climb.title}</a>
+            <p :if={copy}>{copy.scope}</p>
+          </li>
+        </ul>
       </section>
 
       <section id="capabilities" class="home-section" aria-labelledby="capabilities-title">
