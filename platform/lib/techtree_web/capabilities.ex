@@ -28,6 +28,11 @@ defmodule TechtreeWeb.Capabilities do
       status: :available
     },
     %{
+      id: :frontier_climb,
+      name: "Improve a Skill on ten open-ended Frontier-CS programming problems",
+      status: :experimental
+    },
+    %{
       id: :browser_tools,
       name: "Tools for agents built into a browser (WebMCP)",
       status: :available

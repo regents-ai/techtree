@@ -44,6 +44,7 @@ defmodule TechtreeWeb.DocsLive do
                 {"Test your Skill", "#test-skill"},
                 {"Compare two versions", "#two-versions"},
                 {"Take a quick look", "#first-climb"},
+                {"Frontier-CS problems", "#frontier-climb"},
                 {"Use Hermes", "#hermes"}
               ]}
             />
@@ -310,6 +311,41 @@ defmodule TechtreeWeb.DocsLive do
               command printed by
               preparation. Closing the terminal does not stop a started Run.
             </p>
+          </section>
+
+          <section id="frontier-climb" class="doc-section">
+            <h2>Improve a Skill on Frontier-CS problems</h2>
+            <p>
+              The Frontier-CS Open-Ended Climb has ten open-ended programming problems from <a href="https://github.com/FrontierCS/Frontier-CS">Frontier-CS</a>, created with <a href="https://github.com/FrontierCS/FrontierSmith">FrontierSmith</a>, where no
+              perfect answer is known. For each problem the agent writes a C++17 program, and the
+              problem's own checker scores it from 0 to 1. Every problem runs once without your
+              Skill and once with it. Start from its starter Skill, or from your own.
+            </p>
+            <.command_block
+              id="copy-docs-frontier"
+              lines={[
+                {:command,
+                 [
+                   "regents",
+                   "techtree",
+                   "skill",
+                   "starter",
+                   "--climb",
+                   "frontier-cs-open-ended-climb@1"
+                 ]},
+                {:command,
+                 [
+                   "regents",
+                   "techtree",
+                   "climb",
+                   "prepare",
+                   "frontier-cs-open-ended-climb@1",
+                   "--skill",
+                   "path/to/skill"
+                 ]}
+              ]}
+              label="Prepare the Frontier-CS Open-Ended Climb"
+            />
           </section>
 
           <section id="hermes" class="doc-section">

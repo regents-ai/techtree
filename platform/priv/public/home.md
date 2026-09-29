@@ -18,6 +18,11 @@ Techtree makes practice tasks from what your Skill teaches. Your agent then work
 
 The Hello World Climb ships with every release: a small, fixed set of tasks run once without a starter Skill and once with it. It shows how a run is approved, what it records and what a Result looks like. Its toy tasks say nothing about your own Skill.
 
+## Published Climbs
+
+- [Techtree Hello World](/climbs/hello-world-climb): a toy introductory demonstration of the mechanism, not a measure of broad capability.
+- [Frontier-CS Open-Ended](/climbs/frontier-cs-open-ended-climb): ten open-ended optimisation problems with no known best answer, from Frontier-CS (MIT licence) as chosen by the FrontierSmith authors. With thanks to both.
+
 Techtree is a working technical preview built from three independent parts: Prime Intellect's Verifiers scores the tasks, Nous Research's Hermes runs the agent, and Techtree runs the comparison and keeps the evidence. Every finished Climb ends in a signed Result that anyone can check offline.
 
 ## When to use it

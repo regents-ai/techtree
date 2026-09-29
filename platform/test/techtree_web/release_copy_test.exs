@@ -180,6 +180,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @informational_addresses [
     "https://github.com/PrimeIntellect-ai/verifiers",
     "https://github.com/NousResearch/hermes-agent",
+    "https://github.com/FrontierCS/Frontier-CS",
+    "https://github.com/FrontierCS/FrontierSmith",
     "https://github.com/NVIDIA-NeMo",
     "https://github.com/NVIDIA/NeMo-Fabric",
     "https://github.com/NVIDIA/NeMo-Relay",

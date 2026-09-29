@@ -25,6 +25,10 @@ Both runs use the same provider and model. The comparison calls no model: it pai
 
 The Hello World Climb is a small, fixed comparison that ships with the release, run with a starter Skill (`regents techtree skill starter`). `regents techtree climb prepare` prints the exact one-time start command and the most the run may spend before anything runs. Its toy tasks say nothing about your own Skill.
 
+## Improve a Skill on Frontier-CS problems
+
+The Frontier-CS Open-Ended Climb has ten open-ended programming problems from [Frontier-CS](https://github.com/FrontierCS/Frontier-CS), created with [FrontierSmith](https://github.com/FrontierCS/FrontierSmith), where no perfect answer is known. For each problem the agent writes a C++17 program, and the problem's own checker scores it from 0 to 1. Every problem runs once without your Skill and once with it. Start from its starter Skill (`regents techtree skill starter --climb frontier-cs-open-ended-climb@1`), or from your own, then prepare it with `regents techtree climb prepare frontier-cs-open-ended-climb@1 --skill path/to/skill`.
+
 ## Verify and publish a Result
 
 `regents techtree proof verify path/to/result-bundle` reads a Result bundle, recomputes its checks and makes no model call. [Verify](/verify) says exactly what verification establishes.

@@ -9,6 +9,7 @@
 - Deciding whether a change to a Skill is worth keeping: make tasks from the Skill, then compare the earlier version with the new one (experimental).
 - Comparing an agent with and without a Skill on tasks made from it (experimental).
 - A quick look at how a comparison runs, with the Hello World Climb and a starter Skill.
+- Improving a Skill for hard programming problems, with the Frontier-CS Open-Ended Climb: ten open-ended problems, each scored from 0 to 1 by its own checker (experimental).
 - Verifying someone else's published Result offline, without trusting this site.
 
 When not to use it: Techtree is not a general benchmark of a model's broad
