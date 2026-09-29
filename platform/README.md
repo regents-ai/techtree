@@ -26,7 +26,7 @@ the append-only log of the runs participants have published.
    Hermes (operator) ······ plugin/
          │  fixed argv · one JSON envelope
          ▼
-   Techtree CLI ··········· cli/
+   regents techtree ······· regents-cli
          │  pinned engine, detached runs
          ▼
    Verifiers evaluation ··· (Prime Intellect, pinned to an exact commit)
@@ -42,10 +42,11 @@ the append-only log of the runs participants have published.
 
 ## Other components in this monorepo
 
-- **[CLI and campaign kernel](../cli/)** — the
-  Techtree CLI and evaluation substrate: campaigns, detached runs, signed
-  comparison reports, and offline proof verification. Everything a comparison
-  measures and records happens there, on the participant's own machine.
+- **[regents-cli](https://github.com/regents-ai/regents-cli)** — its
+  `regents techtree` commands are the evaluation substrate: campaigns, detached
+  runs, signed comparison reports, and offline proof verification. Everything a
+  comparison measures and records happens there, on the participant's own
+  machine. It lives in its own repository.
 - **[Hermes plugin](../plugin/)** — the
   Hermes plugin that gives that CLI a conversational operator: it explains,
   prepares, asks for approval, and relays results. It invokes fixed command
@@ -63,7 +64,7 @@ letting a reader find them.
 | Agent host | Nous Research's Hermes, the operator | host Hermes 0.20.1 or newer |
 | Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
 | Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
-| Campaign kernel and evidence | the Techtree CLI | Python 3.12, managed with uv |
+| Campaign kernel and evidence | regents-cli | Python 3.12, managed with uv |
 
 > [!NOTE]
 > This application does not run evaluations, accept Skills, store Episodes or
@@ -72,7 +73,7 @@ letting a reader find them.
 > published earlier. Results are ordered by arrival and never ranked.
 > A separate owner-only profile API signs its reader in through the Regents
 > identity; it grants no publication-key authority.
-> The local scientific loop in [`cli/`](../cli/) keeps working when
+> The local scientific loop in regents-cli keeps working when
 > this site is offline — the site is discovery, onboarding and the log, never a
 > runtime dependency.
 
@@ -165,8 +166,7 @@ release that forgot to say would be read as real.
 
 ## Exact bytes
 
-Protocol objects are served byte-for-byte as the [`cli/`](../cli/) component
-generated them.
+Protocol objects are served byte-for-byte as regents-cli generated them.
 They are never decoded and re-encoded here: an alternate JSON serialization
 would be an alternate scientific representation with a different digest. The
 database holds projections and release state; the bytes stay in the bundle and
@@ -182,20 +182,18 @@ Published v2 reports must name that same Campaign and execution plan. The HTTP
 route and publication-submission envelope versions are unchanged.
 
 Publication tests use a synthetic v2 proof and CLI-produced submission in
-`test/support/fixtures/proof-v2/` and `test/support/fixtures/publication/`.
-Regenerate them with `uv run --project ../cli python scripts/build_v2_proof_fixture.py`.
-The generator verifies its output with the CLI and creates a fresh disposable
-signing key, so signatures change on regeneration. This is protocol conformance,
-not a paid evaluation or release certification. The archived v0.1 proof under
+`test/support/fixtures/proof-v2/` and `test/support/fixtures/publication/`,
+committed as fixtures. This is protocol conformance, not a paid evaluation or
+release certification. The archived v0.1 proof under
 `test/support/fixtures/proof/` remains unchanged.
 
-`priv/catalog` holds the generated export rather than committed source. The
-`cli/` component is the single owner of those artifacts.
-Sync one in before importing:
+`priv/catalog` holds the generated export rather than committed source.
+regents-cli is the single owner of those artifacts. Sync one in before
+importing:
 
 ```bash
 mix run --no-start scripts/sync_catalog.exs \
-  --source ../cli/src/techtree/resources/catalog \
+  --source ../../regents-cli/src/regents_cli/techtree/resources/catalog \
   --source-revision <full-commit> \
   --generator-version <generator-version> \
   --bootstrap priv/bootstrap/development.json

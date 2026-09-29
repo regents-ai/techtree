@@ -1,3 +1,0 @@
-branch      a named line of work in the repository
-callers     every place that invokes the function being changed
-guard       an early return that removes an impossible case

@@ -9,14 +9,12 @@ Install the toolchains required by the component you are changing, then run its
 gate from the repository root:
 
 ```sh
-make check-cli
 make check-plugin
 make check-platform
 ```
 
 The `regents techtree` command-line tool is developed in
-[regents-cli](https://github.com/regents-ai/regents-cli); `cli/` holds the
-`techtree` command that earlier release records install.
+[regents-cli](https://github.com/regents-ai/regents-cli).
 
 Run `make check` before opening a pull request. The full gate is model-free: it
 must not start paid inference, publish a result, deploy the platform, or release

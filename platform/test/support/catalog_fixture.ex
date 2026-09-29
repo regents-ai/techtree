@@ -2,8 +2,8 @@ defmodule Techtree.CatalogFixture do
   @moduledoc """
   The real generated catalog, and ways to damage a copy of it.
 
-  `test/support/fixtures/catalog` is the `techtree.catalog.v2` export the CLI
-  ships in `cli/src/techtree/resources/catalog`, copied byte for byte, plus the
+  `test/support/fixtures/catalog` is the `techtree.catalog.v2` export regents-cli
+  ships in `regents_cli/techtree/resources/catalog`, copied byte for byte, plus the
   two documents a release adds beside it: the provenance record and the
   bootstrap release. Tests that need a valid bundle read it in place; tests
   that need a broken one copy it into the test's own temporary directory

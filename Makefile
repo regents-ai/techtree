@@ -1,11 +1,8 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-cli check-plugin plugin-release-core check-platform check-required-fixes release readiness
+.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes release readiness
 
-check: check-cli check-plugin check-platform check-required-fixes check-contracts
-
-check-cli:
-	$(MAKE) -C cli check
+check: check-plugin check-platform check-required-fixes check-contracts
 
 check-plugin:
 	$(MAKE) -C plugin check

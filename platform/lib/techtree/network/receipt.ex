@@ -15,9 +15,9 @@ defmodule Techtree.Network.Receipt do
   `payload`, and `payload` is one object with a boundary.
 
   The two payloads are fixed by
-  `techtree-python/schemas/v1alpha1/publication-receipt.schema.json` and
-  `publication-withdrawal-receipt.schema.json`, which the participant's CLI
-  validates against strictly. This module builds exactly those members and no
+  `test/support/fixtures/schemas/publication-receipt.schema.json` and
+  `publication-withdrawal-receipt.schema.json`, the member sets the
+  participant's regents-cli validates against strictly. This module builds exactly those members and no
   others.
 
   Four things about the publication receipt deserve saying out loud.

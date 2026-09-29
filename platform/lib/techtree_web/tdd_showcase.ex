@@ -109,7 +109,7 @@ defmodule TechtreeWeb.TddShowcase do
         }
 
   # Fewer graded pairs than this and no verdict is given: the CLI's
-  # `VERDICT_MINIMUM_PAIRS` (cli/src/techtree/forge/models.py).
+  # `VERDICT_MINIMUM_PAIRS` (regents_cli/techtree/forge/models.py).
   @verdict_minimum_pairs 3
 
   # Where the release's copy of this folder is committed in the repository.
@@ -137,7 +137,7 @@ defmodule TechtreeWeb.TddShowcase do
   }
 
   # What a local comparison cannot establish, as the CLI words it
-  # (`NOT_ESTABLISHED`, cli/src/techtree/forge/experiment.py).
+  # (`NOT_ESTABLISHED`, regents_cli/techtree/forge/experiment.py).
   @not_established %{
     "which model the provider actually served: Hermes' usage report is the only witness, and it is self-reported" =>
       :served_model,
@@ -299,7 +299,7 @@ defmodule TechtreeWeb.TddShowcase do
 
   # One run's specification, which must be the one the comparison names by
   # its fingerprint: the digest of its canonical JSON, as the CLI's
-  # `run_spec_digest` works it out (cli/src/techtree/forge/experiment.py).
+  # `run_spec_digest` works it out (regents_cli/techtree/forge/experiment.py).
   defp spec!(folder, arm, digest) do
     %{"schema_version" => "techtree.forge-run-spec.v1alpha2"} =
       spec = read_json!(folder, Path.join(["runs", arm, "spec.json"]))
@@ -356,7 +356,7 @@ defmodule TechtreeWeb.TddShowcase do
   end
 
   # A pair is scored only when both runs were graded; then the Skill made the
-  # task better, worse or no different (`_pair`, cli/src/techtree/forge/compare.py).
+  # task better, worse or no different (`_pair`, regents_cli/techtree/forge/compare.py).
   defp outcome(baseline, candidate) when is_nil(baseline) or is_nil(candidate), do: :not_scored
   defp outcome(baseline, candidate) when candidate > baseline, do: :better
   defp outcome(baseline, candidate) when candidate < baseline, do: :worse
@@ -373,7 +373,7 @@ defmodule TechtreeWeb.TddShowcase do
   defp part("held_out"), do: :held_out
 
   # One part added up and judged again from its tasks' scores by the CLI's
-  # rules (`_part`, cli/src/techtree/forge/compare.py), which must agree with
+  # rules (`_part`, regents_cli/techtree/forge/compare.py), which must agree with
   # what the comparison stored for it.
   defp part!(stored, part, tasks) do
     own = Enum.filter(tasks, &(&1.part == part))
@@ -414,7 +414,7 @@ defmodule TechtreeWeb.TddShowcase do
   end
 
   # The verdict rules, in their order (`forge_verdict`,
-  # cli/src/techtree/forge/models.py).
+  # regents_cli/techtree/forge/models.py).
   defp verdict(_wins, _losses, graded, unresolved)
        when unresolved > 0 or graded < @verdict_minimum_pairs,
        do: :inconclusive
@@ -450,7 +450,7 @@ defmodule TechtreeWeb.TddShowcase do
   # the folder and matched against its recorded fingerprint and size, and
   # nothing more. The Skill's own fingerprint is the digest of that file list,
   # as the CLI's `skill_content_digest` works it out
-  # (cli/src/techtree/manifests/builder.py).
+  # (regents_cli/techtree/manifests/builder.py).
   # sobelow_skip ["Traversal.FileModule"]
   defp skill_files!(folder, name, digest, recorded_skill) do
     %{"name" => ^name, "root_digest" => ^digest, "files" => recorded} = recorded_skill

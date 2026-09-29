@@ -22,7 +22,9 @@ with the Hello World Climb as the quick look.
 
 ## What you can use today
 
-The live release is **0.3.1**: Techtree's commands now come from
+The live release is **0.4.0**. It adds a second Climb, the Frontier-CS
+Open-Ended Climb: ten open-ended programming problems, each scored from 0 to 1
+by its own checker. Techtree's commands come from
 [regents-cli](https://github.com/regents-ai/regents-cli) as `regents techtree …`.
 Its main feature, from 0.3.0, is creating an environment from a Skill. Techtree
 looks at a Skill without running it, plans tasks from it with your approval,
@@ -72,10 +74,13 @@ are read from those records (`bootstrap.json`, `release-core.json`,
 | [`climb-v0.2.1`](platform/priv/releases/climb-v0.2.1/) | `techtree` 0.2.1 | `a1b9c05` (tag `v0.2.1`) | `d891b3b` | `a1b9c05` | `sha256:4d216571…` | 0.20.1 | 2026-09-21 |
 | [`climb-v0.3.0`](platform/priv/releases/climb-v0.3.0/) | `techtree` 0.3.0 | `74d87d3` (tag `v0.3.0`) | `e0765e6` | `74d87d3` | `sha256:4d216571…` | 0.21.3 | 2026-09-27 |
 | [`climb-v0.3.1`](platform/priv/releases/climb-v0.3.1/) | `regents-cli` 1.0.0 | `fdddd9f` (regents-cli tag `v1.0.0`) | `8f7831a` | `fdddd9f` | `sha256:9c20fb90…` | 0.21.3 | 2026-09-29 |
+| [`climb-v0.4.0`](platform/priv/releases/climb-v0.4.0/) | `regents-cli` 1.1.0 | `c3982f5` | `7da0ef0` | `c3982f5` | `sha256:2dc4e58d…` | 0.21.3 | 2026-09-29 |
 
 The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0` and Hermes
 v2026.7.20 from `climb-v0.3.1`, and each record names
-the Hello World Climb (`hello-world-climb@1`) as its introduction. The full
+the Hello World Climb (`hello-world-climb@1`) as its introduction. From
+`climb-v0.4.0` a record also names the starter Skill of every Climb it
+publishes. The full
 40-character revisions and digests are in the records themselves.
 
 Host Hermes is the minimum Hermes version each published record accepts, and
@@ -265,7 +270,6 @@ contracts own the registry.
 | Part | Role | What it owns | Guide |
 | --- | --- | --- | --- |
 | [regents-cli](https://github.com/regents-ai/regents-cli) | **Executes** | Everything that runs, builds or verifies, on your own machine, under `regents techtree`: Climbs and runs, Skill environments (`regents techtree forge`), signing and offline proof checks, and publication. | [regents-cli](https://github.com/regents-ai/regents-cli#techtree) |
-| [`cli/`](cli/) | **Earlier releases** | The `techtree` command that the release records up to `climb-v0.3.0` install. | [CLI](cli/README.md) |
 | [`plugin/`](plugin/) | **Adapts** | A thin Hermes adapter over regents-cli: it runs `regents techtree` with fixed arguments, reads one JSON answer back, and asks the person before anything that spends or publishes. No evaluation logic, and no network of its own. | [Plugin](plugin/README.md) |
 | [`platform/`](platform/) | **Publishes** | techtree.sh: the install guide and bootstrap, the catalog, publication intake, Results and verification pages, and the changelog. | [Platform](platform/README.md) |
 | [`contracts/`](contracts/) | **Registry** | The `TechtreeGraphRegistryV1` Solidity contract, its deployment scripts and Foundry tests. | [Contracts](contracts/README.md) |

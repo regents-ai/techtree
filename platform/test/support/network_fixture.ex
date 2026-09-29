@@ -6,8 +6,8 @@ defmodule Techtree.NetworkFixture do
   `test/support/fixtures/proof-v2` is one complete v0.2 proof of the
   hello-world Campaign the fixture catalog ships — eighty-five files, every
   digest and every signature as the CLI's bundle writer sealed them, and every
-  one of the CLI's own offline checks passing over it. It was written by
-  `scripts/build_v2_proof_fixture.py` out of the real Campaign graph, the real
+  one of the CLI's own offline checks passing over it. It was written by the
+  CLI's own code out of the real Campaign graph, the real
   manifest builder and the real report aggregation, under a key made for the
   purpose, with synthetic rewards where a run would have evidence: a proof
   that verifies, of a comparison nobody ran. This site never reads the

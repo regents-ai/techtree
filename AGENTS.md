@@ -3,15 +3,15 @@
 This monorepo is the source of truth for Techtree development. Keep changes scoped
 to the component that owns the behavior:
 
-- `cli/` owns campaign execution, local results, publication transport, and
-  the plugin's automated test suite.
 - `contracts/` owns registry Solidity, scripts and tests; run Foundry checks there.
 - `plugin/` owns the Hermes integration and Skills.
 - `platform/` owns techtree.sh, publication ingestion, and public result views.
 
-The root instructions apply everywhere. Before editing `cli/`, also read
-`cli/CLAUDE.md`. For `platform/`, use the Regent template's skills, starting
-with `ash-stack` (in `ash-template/skills`, linked into the workspace).
+The root instructions apply everywhere. Campaign execution, local results and
+publication transport live in
+[regents-cli](https://github.com/regents-ai/regents-cli). For `platform/`, use
+the Regent template's skills, starting with `ash-stack` (in
+`ash-template/skills`, linked into the workspace).
 `plugin/` has no separate instruction file. Do not invent duplicate component
 `AGENTS.md` files.
 

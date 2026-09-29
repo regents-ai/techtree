@@ -11,22 +11,19 @@ defmodule Techtree.Network.ConformanceTest do
   publishing path produces for the 36-task fixture is accepted here, unmodified,
   byte for byte.
 
-  The CLI's committed conformance submission,
-  `cli/tests/fixtures/publication/conformance-submission.json`, is the v0.1
-  certification run, and its Campaign is not one the v0.2 catalog publishes,
-  so new ingestion against the v2 catalog cannot accept it. The historical fixture
-  remains unchanged. The document tested here is built by the same CLI code path
-  — `PublicationService.submission_bytes` — over the v0.2 proof fixture, by
-  `scripts/build_v2_proof_fixture.py`, and committed at
-  `test/support/fixtures/publication/v2-submission.json`. It is still the
-  CLI's own bytes rather than this repository's reading of them, which is
-  what makes it a conformance check.
+  The document tested here was built by the CLI's own publishing path —
+  `PublicationService.submission_bytes`, which regents-cli carries — over the
+  v0.2 proof fixture, and committed at
+  `test/support/fixtures/publication/v2-submission.json`. It is the CLI's own
+  bytes rather than this repository's reading of them, which is what makes it
+  a conformance check.
 
   The same is done in the other direction for what this site sends back. The
-  two receipts and the withdrawal request are exported as JSON Schemas in
-  `cli/schemas/v1alpha1`, with `additionalProperties: false` and an
-  explicit `required` list, so the member set of each document is fixed there
-  rather than described here. These tests read those files and check the
+  two receipts and the withdrawal request are fixed as JSON Schemas in
+  `test/support/fixtures/schemas`, with `additionalProperties: false` and an
+  explicit `required` list, member for member the models regents-cli validates
+  them against, so the member set of each document is fixed there rather than
+  described here. These tests read those files and check the
   documents this site actually produces against them, member for member. That
   is what caught the last disagreement: the receipt was a flat document on one
   side and a signed envelope on the other, and either would have passed a test
@@ -52,7 +49,7 @@ defmodule Techtree.Network.ConformanceTest do
   alias Techtree.Network.Seed
   alias Techtree.NetworkFixture
 
-  @schemas Path.expand("../../../../cli/schemas/v1alpha1", __DIR__)
+  @schemas Path.expand("../../support/fixtures/schemas", __DIR__)
 
   setup do
     CatalogFixture.use_bundle(CatalogFixture.root())

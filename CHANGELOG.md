@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.4.0 (2026-09-29)
+
+### Added
+
+- A second Climb, the Frontier-CS Open-Ended Climb
+  (`frontier-cs-open-ended-climb@1`, experimental): ten open-ended programming
+  problems from [Frontier-CS](https://github.com/FrontierCS/Frontier-CS),
+  created with [FrontierSmith](https://github.com/FrontierCS/FrontierSmith),
+  where no perfect answer is known. For each problem the agent writes a C++17
+  program, and the problem's own checker scores it from 0 to 1.
+- Each Climb now has its own starter Skill:
+  `regents techtree skill starter --climb <climb>`.
+- The home page lists every published Climb.
+
+### Changed
+
+- Install regents-cli 1.1.0 with
+  `uv tool install --python 3.12 regents-cli==1.1.0`. The Hermes plugin (0.4.0)
+  prepares the starter Skill of the Climb it is running.
+
+### Removed
+
+- The source of the old `techtree` command is gone from this repository. It is
+  developed in [regents-cli](https://github.com/regents-ai/regents-cli).
+
 ## v0.3.1 (2026-09-29)
 
 ### Changed

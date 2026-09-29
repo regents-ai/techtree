@@ -1,1 +1,0 @@
-../valid-procedure/SKILL.md
