@@ -25,7 +25,7 @@ image="techtree:${commit:0:12}"
 run="techtree-smoke-$$"
 context="$(mktemp -d)"
 database_url="postgres://smoke:smoke@db/techtree_smoke"
-catalog="$(git log -1 --diff-filter=A --name-only --format= "$commit" -- platform/priv/catalog/sources | head -n 1 | cut -d/ -f5)"
+catalog="$(git log -1 --no-renames --diff-filter=A --name-only --format= "$commit" -- platform/priv/catalog/sources | head -n 1 | cut -d/ -f5)"
 
 cleanup() {
   status=$?
