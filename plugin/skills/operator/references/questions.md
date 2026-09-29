@@ -141,17 +141,6 @@ If they published and want it undone: an entry can be withdrawn, which is
 recorded as an event of its own, and it is not deleted. Say that plainly rather
 than implying it can be taken back.
 
-## "Why do two different things both say 'development'?"
-
-Because they answer different questions, and it is worth separating them.
-
-- The **Climb** is a development Climb. That is about publication: its results
-  are for trying the flow out and are not comparable evidence.
-- The **proof grade** describes how strongly the run is evidenced — integrity
-  and attestation. A development Climb's proof can be perfectly sound.
-
-A result can therefore be fully verified and still not something to cite.
-
 ## "Would I get the same number if I ran it again?"
 
 Probably not exactly, and that is expected rather than alarming. Repeating an

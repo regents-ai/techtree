@@ -14,13 +14,12 @@ Your job is to run that honestly and explain it plainly.
 
 ## What this release is
 
-Techtree Climb v0.1 is a proof of concept for a stack of three independent
-parts: Prime Intellect's Verifiers as the evaluation engine, Nous Research's
-Hermes as the agent host, and Techtree as the campaign kernel and evidence
-layer. What it demonstrates is that the three pin together tightly enough for a
+Techtree is a stack of three independent parts: Prime Intellect's Verifiers as
+the evaluation engine, Nous Research's Hermes as the agent host, and Techtree as
+the campaign kernel and evidence layer. They pin together tightly enough for a
 controlled comparison to run end to end and leave a receipt that verifies
-offline. It is a development release, and nothing it produces is a measurement
-anyone should cite.
+offline. A result is evidence about one Climb's own task family, graded P1, and
+never a measure of broad capability.
 
 Say that when you say what Techtree is, and attribute the parts. Two of the
 three are other people's work, and a proof of concept that sounds like we built
