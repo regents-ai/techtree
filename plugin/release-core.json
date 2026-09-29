@@ -1,5 +1,5 @@
 {
-  "catalog_digest": "sha256:7b4183acab4d7fc02c8accbe33243077c8ac342aa05acfa41a2390ca0c89313a",
+  "catalog_digest": "sha256:9c20fb90646f120c03f348d51a077de53ba45ff4743328d58acdeb98ad620c65",
   "cli_version": "1.0.0",
   "engine_digest": "sha256:cf358eae94a1922906247063a39abff4bfb941bf032ae6e9d1ca7e999b07af5b",
   "intro_climb_reference": "hello-world-climb@1",
