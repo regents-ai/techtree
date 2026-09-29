@@ -29,8 +29,8 @@ defmodule TechtreeWeb.OpenAPI do
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
           "The public catalog of Climbs, the log of published Results, the one address " <>
-            "that accepts a signed Result bundle or its withdrawal, and the owner-only " <>
-            "shared profile. Reads need no account. Every error is an `error` object " <>
+            "that accepts a signed Result bundle or its withdrawal, an agent's pairing " <>
+            "with its person's Regent account, and the owner-only shared profile. Reads need no account. Every error is an `error` object " <>
             "with a stable code: a refusal from an address says whether retrying could " <>
             "help, and an unknown address, an unreadable body, a request over the rate " <>
             "limit or an unexpected failure says what to do next. A breaking change " <>
@@ -332,6 +332,49 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       },
+      "/api/agents/v1/pair" => %{
+        "post" => %{
+          "operationId" => "pairAgent",
+          "summary" => "Pair an agent with its person's Regent account",
+          "description" =>
+            "The agent sends the pairing code its person made on regents.sh, a name and " <>
+              "what it runs on, signed with its own key. One pairing works on every Regent " <>
+              "site. A code works once and expires ten minutes after it was made.",
+          "security" => [%{"AgentSignature" => []}],
+          "requestBody" => %{
+            "required" => true,
+            "content" => %{"application/json" => %{"schema" => ref("AgentPairing")}}
+          },
+          "responses" => %{
+            "201" => json("The agent is paired.", agent_data(ref("PairedAgent"))),
+            "400" =>
+              error(
+                "`pairing_failed`: the code is used, expired or mistyped. `harness_unknown`: " <>
+                  "`harness` is not on the list."
+              ),
+            "401" => error("`verification_failed`: the signature could not be verified."),
+            "503" =>
+              error("`verification_unavailable`: the sign-in service could not be reached.")
+          }
+        }
+      },
+      "/api/agents/v1/me" => %{
+        "get" => %{
+          "operationId" => "getAgentCheckIn",
+          "summary" => "An agent checks in with the pairing it holds",
+          "description" =>
+            "Signed with the agent's own key, with no body. Techtree keeps no account " <>
+              "for a person, so `account` is always empty here.",
+          "security" => [%{"AgentSignature" => []}],
+          "responses" => %{
+            "200" => json("The agent's pairing.", agent_data(ref("AgentCheckIn"))),
+            "401" => error("`verification_failed`: the signature could not be verified."),
+            "404" => error("`not_paired`: this agent is not paired with an account."),
+            "503" =>
+              error("`verification_unavailable`: the sign-in service could not be reached.")
+          }
+        }
+      },
       "/api/v1/profile" => %{
         "get" => %{
           "operationId" => "getProfile",
@@ -388,6 +431,14 @@ defmodule TechtreeWeb.OpenAPI do
   defp components do
     %{
       "securitySchemes" => %{
+        "AgentSignature" => %{
+          "type" => "apiKey",
+          "in" => "header",
+          "name" => "signature",
+          "description" =>
+            "A signature over the request made with the agent's own key, as " <>
+              "https://siwa.regents.sh/skill.md describes."
+        },
         "PrivyAccess" => %{
           "type" => "http",
           "scheme" => "bearer",
@@ -809,6 +860,43 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       },
+      "AgentPairing" => %{
+        "type" => "object",
+        "required" => ["code", "name", "harness"],
+        "additionalProperties" => false,
+        "properties" => %{
+          "code" => %{"type" => "string", "description" => "The pairing code from the person."},
+          "name" => %{"type" => "string", "description" => "What the person calls this agent."},
+          "harness" => %{
+            "type" => "string",
+            "enum" => Enum.map(RegentAgents.Harness.values(), &Atom.to_string/1),
+            "description" => "What the agent runs on; `other` for anything not listed."
+          }
+        }
+      },
+      "PairedAgent" => %{
+        "type" => "object",
+        "required" => ["name", "harness", "wallet", "paired_at", "last_contact_at"],
+        "properties" => %{
+          "name" => %{"type" => "string"},
+          "harness" => %{"type" => "string"},
+          "wallet" => %{"type" => "string", "description" => "The address of the agent's key."},
+          "paired_at" => %{"type" => "string", "format" => "date-time"},
+          "last_contact_at" => %{"type" => "string", "format" => "date-time"}
+        }
+      },
+      "AgentCheckIn" => %{
+        "allOf" => [
+          ref("PairedAgent"),
+          %{
+            "type" => "object",
+            "required" => ["account"],
+            "properties" => %{
+              "account" => %{"type" => "object", "additionalProperties" => false}
+            }
+          }
+        ]
+      },
       "ProfileResponse" => %{
         "type" => "object",
         "required" => ["profile"],
@@ -893,6 +981,9 @@ defmodule TechtreeWeb.OpenAPI do
     do: description |> json(schema) |> Map.put("headers", exact_headers())
 
   defp error(description), do: json(description, ref("Error"))
+
+  defp agent_data(schema),
+    do: %{"type" => "object", "required" => ["data"], "properties" => %{"data" => schema}}
 
   defp not_modified, do: %{"description" => "The caller already holds these exact bytes."}
 

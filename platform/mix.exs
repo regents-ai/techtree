@@ -4,11 +4,11 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "55080723b20d57297855a23ee6e3e50ded77da9a"
+  @elixir_utils_ref "0b4496ece5359ff93288cf695715e703b7c25a87"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "42a439b9e5980e1174e3da85b24f0f60c2e78339"
   @regents "https://github.com/regents-ai/regents.git"
-  @regents_ref "baeffb12b2b64faf1d678ff64741c0b111a07288"
+  @regents_ref "1ca659170ee7470f9ecf000e2d202c8db6d62aac"
 
   def project do
     [
@@ -70,6 +70,7 @@ defmodule Techtree.MixProject do
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
       {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
       {:regent_identity, git: @regents, ref: @regents_ref, sparse: "identity"},
+      {:regent_agents, git: @regents, ref: @regents_ref, sparse: "agents"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},

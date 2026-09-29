@@ -47,6 +47,7 @@ Reads need no account. The [OpenAPI description](/openapi.json) types every addr
 - `GET /api/v1/publications/{bundle_digest}`: one published Result, and `/bundle` for the exact bytes it was submitted as.
 - `GET /api/v1/publication-keys/{key_id}`: the key this site signs receipts with.
 - `POST /api/v1/publications`: publish or withdraw a Result. The CLI does this for you.
+- `POST /api/agents/v1/pair` and `GET /api/agents/v1/me`: an agent pairs with its person's Regent account and checks in, signing each request with its own key. The [agent sign-in guide](https://siwa.regents.sh/skill.md) shows how.
 - `GET /healthz`: whether the site is serving a release.
 
 The CLI's `--json` flag prints one machine-readable answer per command.

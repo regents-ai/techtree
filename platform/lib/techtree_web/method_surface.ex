@@ -17,7 +17,10 @@ defmodule TechtreeWeb.MethodSurface do
   @impl Plug
   def init(opts), do: opts
 
+  # An agent's pairing and check-in answer their own methods (`RegentAgents.HTTP`).
   @impl Plug
+  def call(%Plug.Conn{path_info: ["api", "agents", "v1" | _]} = conn, _opts), do: conn
+
   def call(%Plug.Conn{method: method} = conn, _opts) when method in @mutations do
     case answered(conn) do
       [] ->

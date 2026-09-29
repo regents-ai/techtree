@@ -112,6 +112,16 @@ defmodule TechtreeWeb.Router do
     post "/publications", PublicationController, :create
   end
 
+  # An agent pairs with its person's Regent account and checks in, signing each
+  # request with its SIWA key. Both count against the `/api` budget in
+  # `TechtreeWeb.Endpoint`, and a pairing's exact bytes are kept by
+  # `TechtreeWeb.PublicationBody`.
+  scope "/api" do
+    pipe_through :api
+
+    forward "/agents/v1", RegentAgents.HTTP
+  end
+
   defp put_public_api_headers(conn, _opts), do: TechtreeWeb.ExactResponse.put_api_headers(conn)
 
   defp put_theme(conn, _opts) do

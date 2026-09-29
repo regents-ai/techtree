@@ -1,20 +1,22 @@
 defmodule TechtreeWeb.RouterTest do
   @moduledoc """
   Pins the published route surface and method refusals. Private profile writes
-  are distinct from publication documents and retain independent authorization.
+  and agent pairing are distinct from publication documents and retain
+  independent authorization.
   """
 
   use TechtreeWeb.ConnCase, async: true
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "writes are limited to publication and private profile actions" do
+  test "writes are limited to publication, agent pairing and private profile actions" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
       |> Enum.map(&"#{&1.verb} #{&1.path}")
 
     assert Enum.sort(writes) == [
+             "* /api/agents/v1",
              "patch /api/v1/profile",
              "post /api/v1/profile/sync",
              "post /api/v1/publications"
@@ -28,6 +30,7 @@ defmodule TechtreeWeb.RouterTest do
       |> Enum.sort()
 
     assert paths == [
+             "* /api/agents/v1",
              "get /",
              "get /.well-known/api-catalog",
              "get /.well-known/security.txt",
