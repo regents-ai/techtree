@@ -1,6 +1,6 @@
 {
   "catalog_digest": "sha256:2dc4e58d0449671ae39e44be253578b9b0d67ee923dee58342739108e8aafe24",
-  "cli_version": "1.1.1",
+  "cli_version": "1.2.0",
   "climbs": {
     "frontier-cs-open-ended-climb@1": {
       "engine_digest": "sha256:b744c6ec878776c886d0c15569b5c02bc1e7c66039e3d959e1c27c1ee8271c05",
