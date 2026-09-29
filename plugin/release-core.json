@@ -1,11 +1,11 @@
 {
   "catalog_digest": "sha256:2dc4e58d0449671ae39e44be253578b9b0d67ee923dee58342739108e8aafe24",
-  "cli_version": "1.1.0",
+  "cli_version": "1.1.1",
   "climbs": {
     "frontier-cs-open-ended-climb@1": {
       "engine_digest": "sha256:b744c6ec878776c886d0c15569b5c02bc1e7c66039e3d959e1c27c1ee8271c05",
-      "starter_skill_digest": "sha256:2beb0cd9b67aa14ee281248b5a7f3a0151db4727f84d86b6f4e5d52e06665548",
-      "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:b843084ca3a4479d8c9c43d3fb36e16679cc209b3214ed1391def75a0fada6ed"
+      "starter_skill_digest": "sha256:e2a6c529459c265e7470ed5bbf168d6ab3e1ee82ae0abfcd8b3abdf4c53e3087",
+      "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:d021056178ee313df600d99f765be34efccb2726c934dbb5a61de3cba32e0d0f"
     },
     "hello-world-climb@1": {
       "engine_digest": "sha256:cf358eae94a1922906247063a39abff4bfb941bf032ae6e9d1ca7e999b07af5b",
