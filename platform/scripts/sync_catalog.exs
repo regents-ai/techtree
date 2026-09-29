@@ -1,15 +1,16 @@
-# Copy a generated CLI catalog export into the platform.
+# Copy a generated regents-cli catalog export into the platform.
 #
 #     mix run scripts/sync_catalog.exs \
-#       --source ../cli/src/techtree/resources/catalog \
-#       --source-revision <full-commit> \
+#       --source ../../regents-cli/src/regents_cli/techtree/resources/catalog \
+#       --source-revision <full-regents-cli-commit> \
 #       --generator-version <generator-version> \
 #       --bootstrap path/to/bootstrap.json
 #
-# This is release engineering, not runtime behavior. The Python repository owns
-# catalog generation; this script never generates anything scientific. It copies
-# an export that already exists, writes the operational provenance beside it,
-# verifies the raw bytes, and adds one immutable source snapshot.
+# This is release engineering, not runtime behavior. regents-cli owns catalog
+# generation, including `catalog.json`, whose digest its ReleaseCore pins; this
+# script never generates anything scientific. It copies an export that
+# already exists, writes the operational provenance beside it, verifies the raw
+# bytes, and adds one immutable source snapshot.
 #
 # `--source-revision`, `--generator-version`, and `--bootstrap` are release
 # inputs and are always supplied explicitly: the pinned CLI version and the
