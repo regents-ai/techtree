@@ -1,0 +1,67 @@
+{
+  "climbs": [
+    {
+      "digest": "sha256:1e1c4198574d467bc92e3b4d31255e32bdaecaef902fafcf82d252a6f0b93f19",
+      "path": "climbs/hello-world-climb.json",
+      "reference": "hello-world-climb@1"
+    },
+    {
+      "digest": "sha256:cf49e58911ef98e20223c5d57763751b9eace348c0627ce720e9e01f1771376f",
+      "path": "climbs/frontier-cs-open-ended-climb.json",
+      "reference": "frontier-cs-open-ended-climb@1"
+    }
+  ],
+  "objects": {
+    "sha256:0223bf26f8069849cd1191ab23299aab1fe4f2f691e319df94a401f7742a2cd4": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:2ba3d41f114d0d601686a887d923d7b74547806a54ac07fcf13409643d865acb": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/hello-world-climb.json"
+    },
+    "sha256:36d2689f1e0971456f98b65b2bf853f742f596e8559c611ba406683ad7b0315f": {
+      "kind": "data_policy",
+      "media_type": "application/json",
+      "path": "data-policies/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:4d824c0f24f226fc0156194b766dc4abef15ed8eae08966dad1c5dbd52c60d3c": {
+      "kind": "execution_plan",
+      "media_type": "application/json",
+      "path": "execution-plans/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9": {
+      "kind": "data_policy",
+      "media_type": "application/json",
+      "path": "data-policies/hello-world-climb.json"
+    },
+    "sha256:7a170f9634b4d9407d1c3817189f4f8c69f0ba314d1cbce41fd8e66571e48c83": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:7f3b74085e0d9ab8d04c857dcf702f5189afc5f266c28af01a6cf86500a570e5": {
+      "kind": "execution_plan",
+      "media_type": "application/json",
+      "path": "execution-plans/hello-world-climb.json"
+    },
+    "sha256:93ee4627a7885aa90550d2bdccb1ebdce24f4a9232afd56fc5b8a8fc189187a1": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/hello-world-climb.json"
+    },
+    "sha256:d2e6e609d3ad1465e36f52a52758c343383a0441d3328331e82ff2d2b9f2225f": {
+      "kind": "validation_evidence",
+      "media_type": "application/json",
+      "path": "validation-evidence/hello-world-climb.json"
+    },
+    "sha256:fd62d3ead3d01b2e2930565f0811186c3438b26ce52929f4a1129ac951b738a4": {
+      "kind": "validation_evidence",
+      "media_type": "application/json",
+      "path": "validation-evidence/frontier-cs-open-ended-climb.json"
+    }
+  },
+  "schema_version": "techtree.catalog.v2"
+}
