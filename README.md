@@ -74,7 +74,7 @@ are read from those records (`bootstrap.json`, `release-core.json`,
 | [`climb-v0.2.1`](platform/priv/releases/climb-v0.2.1/) | `techtree` 0.2.1 | `a1b9c05` (tag `v0.2.1`) | `d891b3b` | `a1b9c05` | `sha256:4d216571…` | 0.20.1 | 2026-09-21 |
 | [`climb-v0.3.0`](platform/priv/releases/climb-v0.3.0/) | `techtree` 0.3.0 | `74d87d3` (tag `v0.3.0`) | `e0765e6` | `74d87d3` | `sha256:4d216571…` | 0.21.3 | 2026-09-27 |
 | [`climb-v0.3.1`](platform/priv/releases/climb-v0.3.1/) | `regents-cli` 1.0.0 | `fdddd9f` (regents-cli tag `v1.0.0`) | `8f7831a` | `fdddd9f` | `sha256:9c20fb90…` | 0.21.3 | 2026-09-29 |
-| [`climb-v0.4.0`](platform/priv/releases/climb-v0.4.0/) | `regents-cli` 1.1.1 | `09924e9` (regents-cli tag `v1.1.1`) | `a3f52b6` | `09924e9` | `sha256:2dc4e58d…` | 0.21.3 | 2026-09-29 |
+| [`climb-v0.4.0`](platform/priv/releases/climb-v0.4.0/) | `regents-cli` 1.2.0 | `1d34dd0` (regents-cli tag `v1.2.0`) | `f1d5cfa` | `1d34dd0` | `sha256:2dc4e58d…` | 0.21.3 | 2026-09-29 |
 
 The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0` and Hermes
 v2026.7.20 from `climb-v0.3.1`, and each record names
