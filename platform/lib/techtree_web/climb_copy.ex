@@ -52,16 +52,17 @@ defmodule TechtreeWeb.ClimbCopy do
         "Does adding the Frontier-CS Skill raise the mean score across 10 open-ended " <>
           "optimisation problems?",
       input:
-        "A problem statement. The agent writes a C++17 program that reads each of the " <>
-          "problem's 10 test files.",
-      output: "For each test file, an answer that keeps every rule of the problem.",
+        "A problem statement. The agent writes a C++17 program, which is run on each of the " <>
+          "problem's 10 test inputs.",
+      output: "For each test input, an answer that keeps every rule of the problem.",
       scoring:
-        "Each test file scores from 0 to 1 by the problem's own checker, and 0 when a rule " <>
-          "is broken. A problem scores the mean of its 10 files; the Climb, the mean of its " <>
-          "10 problems.",
+        "Each test input scores from 0 to 1 by the problem's own checker, and 0 when the " <>
+          "program breaks a rule, fails to compile, crashes or runs over the problem's time " <>
+          "or memory limit. A problem scores the mean of its 10 inputs; the Climb, the mean " <>
+          "of its 10 problems.",
       held_fixed:
-        "Problems and their order, test files, checkers, compiler, time and memory limits, " <>
-          "model, Hermes harness, runtime, tools, sampling, and budget.",
+        "Problems and their order, test inputs, checkers, compiler, each problem's time and " <>
+          "memory limits, model, Hermes harness, runtime, tools, sampling, and budget.",
       campaign_title: "Frontier-CS Open-Ended Skill Uplift",
       candidate_skill_label: "Frontier-CS Skill"
     }
