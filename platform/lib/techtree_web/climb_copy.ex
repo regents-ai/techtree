@@ -69,9 +69,10 @@ defmodule TechtreeWeb.ClimbCopy do
       candidate_skill_label: "Frontier-CS Skill",
       result_note: %{
         text:
-          "In the first published run, the original starter Skill scored lower than no " <>
-            "Skill: a mean of 0.043 with it against 0.128 without it. The starter Skill " <>
-            "was rewritten after that run.",
+          "With the rewritten starter Skill, a second run still scored lower than no " <>
+            "Skill, though by less: a mean of 0.100 with it against 0.131 without it, " <>
+            "better on two problems and worse on three. The first run, with the original " <>
+            "starter Skill, scored 0.043 with it against 0.128 without it.",
         bundle_digest: "sha256:403e8c9ed26f63bbcfbe563bf84fa3e7b943a9d102f0777d68cc694f38938fab"
       }
     }
