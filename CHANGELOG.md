@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.4.4 (2026-09-30)
+
+### Changed
+
+- The [Verify](https://techtree.sh/verify) page now explains, in plain words,
+  how a Result is made: Nous Research's Hermes runs the tasks,
+  [Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers)
+  scores every task, and the record is signed. It then says what checking a
+  Result tells you, what it can't, and why it matters.
+- The theme button in the header has slightly rounded corners.
+- The agent guide at [/llms.txt](https://techtree.sh/llms.txt) links
+  Autolaunch's source at [regents-ai/autolaunch](https://github.com/regents-ai/autolaunch).
+
 ## v0.4.3 (2026-09-30)
 
 ### Changed
