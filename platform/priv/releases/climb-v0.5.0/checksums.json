@@ -1,0 +1,30 @@
+{
+ "coordinates": {
+  "catalog_index": "sha256:86f62d0fda8ffc5a7f33458027bc4435cfe15130874a1c0b3e7e827c7a7ccbe1",
+  "cli_wheel": "sha256:92367aded507ccaf7117d740f70a2947ac8f34ca2f1861568767c27170e94e03",
+  "climbs": {
+   "frontier-cs-open-ended-climb@1": {
+    "engine": "sha256:b744c6ec878776c886d0c15569b5c02bc1e7c66039e3d959e1c27c1ee8271c05",
+    "starter_skill_file": "sha256:e6e7c9d85125bfc48966659ab31b55f8970faca6a4e60a2d56a7dbe62c66c68b",
+    "starter_skill_tree": "sha256:38cca019042309673445abf3e59a4334638f19311d9434d1d4acfb0c74a3de6c"
+   },
+   "hello-world-climb@1": {
+    "engine": "sha256:cf358eae94a1922906247063a39abff4bfb941bf032ae6e9d1ca7e999b07af5b",
+    "starter_skill_file": "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
+    "starter_skill_tree": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
+   }
+  }
+ },
+ "files": {
+  "bootstrap.json": "sha256:5adc1e2b3c103c878a93510bf5f6ab7e1c2a05738481c370132d2648ea83a269",
+  "release-core.json": "sha256:9a2d6eae4d1c1e0d7d14a12ea0bb78048a608e57f67d8c25e71341a08fa5492e"
+ },
+ "release_id": "climb-v0.5.0",
+ "schema_version": "techtree.release-checksums.v2",
+ "sources": {
+  "cli_source_revision": "9bc532d863883f1ff5c722444a56df4aa6119816",
+  "hermes_plugin_commit": "c46a588df73846495f919398b443aa8a6f20f9a1",
+  "hermes_plugin_repository": "github.com/regents-ai/techtree",
+  "release_core_digest": "sha256:9a2d6eae4d1c1e0d7d14a12ea0bb78048a608e57f67d8c25e71341a08fa5492e"
+ }
+}

@@ -77,9 +77,11 @@ records name commits of the archived `regents-ai/techtree-hermes`.
 | [`climb-v0.3.0`](platform/priv/releases/climb-v0.3.0/) | `techtree` 0.3.0 | `74d87d3` (tag `v0.3.0`) | `e0765e6` | `74d87d3` | `sha256:4d216571…` | 0.21.3 | 2026-09-27 |
 | [`climb-v0.3.1`](platform/priv/releases/climb-v0.3.1/) | `regents-cli` 1.0.0 | `fdddd9f` (regents-cli tag `v1.0.0`) | `8f7831a` | `fdddd9f` | `sha256:9c20fb90…` | 0.21.3 | 2026-09-29 |
 | [`climb-v0.4.0`](platform/priv/releases/climb-v0.4.0/) | `regents-cli` 1.2.1 | `1b10a38` (regents-cli tag `v1.2.1`) | `149f4bf` (`plugin/`) | `1b10a38` | `sha256:0fd83a73…` | 0.21.3 | 2026-09-29 |
+| [`climb-v0.5.0`](platform/priv/releases/climb-v0.5.0/) | `regents-cli` 1.3.0 | `9bc532d` (regents-cli tag `v1.3.0`) | `c46a588` (`plugin/`) | `9bc532d` | `sha256:86f62d0f…` | 0.21.3 | 2026-09-30 |
 
-The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0` and Hermes
-v2026.7.20 from `climb-v0.3.1`, and each record names
+The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0`, Hermes
+v2026.7.20 from `climb-v0.3.1`, and Hermes v2026.9.24 with GPT-6 Luna at high
+reasoning from `climb-v0.5.0`, and each record names
 the Hello World Climb (`hello-world-climb@1`) as its introduction. From
 `climb-v0.4.0` a record also names the starter Skill of every Climb it
 publishes. The full
