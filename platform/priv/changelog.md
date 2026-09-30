@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.4.2 (2026-09-30)
+
+### Changed
+
+- The About page now says what Techtree does, what makes it different, who
+  uses it, who builds it, and its key facts. The agent guide at
+  [/llms.txt](https://techtree.sh/llms.txt) carries the same key facts.
+- The theme button in the header is smaller, sits apart from the GitHub
+  button, and shows the other theme's colours when you point at it.
+- Tables on the About, Contact, Privacy and Terms pages wrap long values to
+  fit a phone.
+
 ## v0.4.1 (2026-09-29)
 
 ### Added
