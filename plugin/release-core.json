@@ -1,11 +1,11 @@
 {
   "catalog_digest": "sha256:86f62d0fda8ffc5a7f33458027bc4435cfe15130874a1c0b3e7e827c7a7ccbe1",
-  "cli_version": "1.3.0",
+  "cli_version": "1.3.1",
   "climbs": {
     "frontier-cs-open-ended-climb@1": {
       "engine_digest": "sha256:b744c6ec878776c886d0c15569b5c02bc1e7c66039e3d959e1c27c1ee8271c05",
-      "starter_skill_digest": "sha256:38cca019042309673445abf3e59a4334638f19311d9434d1d4acfb0c74a3de6c",
-      "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:e6e7c9d85125bfc48966659ab31b55f8970faca6a4e60a2d56a7dbe62c66c68b"
+      "starter_skill_digest": "sha256:c93c985b1017d976408239b2583bff7248507032cb32c7aeb20edd685fbc86a6",
+      "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669"
     },
     "hello-world-climb@1": {
       "engine_digest": "sha256:cf358eae94a1922906247063a39abff4bfb941bf032ae6e9d1ca7e999b07af5b",
@@ -26,7 +26,7 @@
     "public_log_url": "https://techtree.sh/results",
     "submission_endpoint": "https://techtree.sh/api/v1/publications"
   },
-  "release_id": "climb-v0.5.0",
+  "release_id": "climb-v0.5.1",
   "schema_version": "techtree.release-core.v3",
   "subject_hermes_version": "v2026.9.24"
 }
