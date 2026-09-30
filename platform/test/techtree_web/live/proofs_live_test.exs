@@ -1,43 +1,44 @@
 defmodule TechtreeWeb.ProofsLiveTest do
   @moduledoc """
-  The secondary verifier reference states both sides of the proof boundary.
+  The Verify page explains how a Result is made and states both what a check
+  establishes and what it cannot.
   """
 
   use TechtreeWeb.ConnCase, async: false
 
   import Phoenix.LiveViewTest
 
-  test "balances verified evidence with what remains unproven", %{conn: conn} do
+  test "balances what a check tells you with what it can't", %{conn: conn} do
     {:ok, live, html} = live(conn, ~p"/proofs")
     text = visible_text(html)
 
-    assert text =~ "How verification works"
-    assert text =~ "What Techtree verifies"
-    assert text =~ "What remains unproven"
-    assert text =~ "Internally checkable evidence"
-    assert text =~ "Verification is not observation"
-    assert text =~ "The site did not witness the execution."
-    assert text =~ "not independently attested"
-    assert text =~ "does not establish generalization beyond the Climb"
-    assert text =~ "Nobody else reproduced it"
+    assert text =~ "Check a Result yourself"
+    assert text =~ "What a check tells you"
+    assert text =~ "What a check can’t tell you"
+    assert text =~ "Techtree did not watch the run happen."
+    assert text =~ "not that the computer behind it was honest"
+    assert text =~ "doesn’t mean better at everything"
+    assert text =~ "Only a separate rerun shows that it repeats."
+    assert text =~ "Why it matters"
     assert has_element?(live, ~s|a[href="/results"]|, "Browse Results")
   end
 
-  test "explains the controlled comparison and shows every verifier check", %{conn: conn} do
+  test "names who runs and scores the tasks and shows every check", %{conn: conn} do
     {:ok, live, _html} = live(conn, ~p"/proofs")
     count = Techtree.Network.Bundle.check_count()
 
-    assert has_element?(live, "#comparison h2", "The controlled comparison")
-    assert has_element?(live, "#comparison", "Only the Skill may change.")
+    assert has_element?(live, "#how-made h2", "How a Result is made")
+    assert has_element?(live, "#local-results", "The Skill is the only difference.")
 
     assert has_element?(
              live,
-             ~s|#comparison a[href="https://github.com/PrimeIntellect-ai/verifiers"]|
+             ~s|#how-made a[href="https://github.com/PrimeIntellect-ai/verifiers"]|,
+             "Read Prime Intellect’s Verifiers"
            )
 
     assert has_element?(
              live,
-             ~s|#comparison a[href="https://github.com/NousResearch/hermes-agent"]|
+             ~s|#how-made a[href="https://github.com/NousResearch/hermes-agent"]|
            )
 
     assert has_element?(live, "#verifier-checks summary", "#{count} checks")
@@ -47,7 +48,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
     end
   end
 
-  test "offers the offline verifier without obsolete release promises", %{conn: conn} do
+  test "offers the offline check without obsolete release promises", %{conn: conn} do
     {:ok, live, html} = live(conn, ~p"/proofs")
     text = visible_text(html)
 

@@ -190,7 +190,7 @@ defmodule TechtreeWeb.Layouts do
 
   defp description_for_path(path) when path in ["/proofs", "/verify"],
     do:
-      "Understand what Techtree verifies, what remains unproven, and how to check a Result offline."
+      "How a Result is made, what checking one tells you and what it can’t, and how to check one yourself."
 
   defp description_for_path("/repo2rlenv"),
     do:

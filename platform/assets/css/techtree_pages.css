@@ -42,6 +42,7 @@
 .verification-page .verification-boundary { grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr); align-items: start; margin-block: var(--space-4); }
 .verification-page .verification-boundary > div > h2 { margin-block: var(--space-3); font-size: 1.75rem; }
 .verify-check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; }
+.verify-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block: var(--space-3) 0; padding: 0; list-style: none; }
 .verify-check.rg-panel { padding: var(--space-3); display: flex; flex-direction: column; align-items: start; }
 .verify-check__index { font: .75rem var(--font-family-mono); color: var(--rg-local-ink); }
 .verify-check h3 { margin-top: var(--space-2); }
@@ -51,7 +52,7 @@
 .verification-page .boundary__side li { font-size: .875rem; }
 .verification-page .offline-verify { margin-block: var(--space-4); scroll-margin-top: var(--space-3); }
 .verification-page .offline-verify h2 { font-size: 1.75rem; }
-.verification-page .verification-method { margin-top: var(--space-4); }
+.verification-page .verification-why { max-width: 62ch; margin-top: var(--space-2); }
 .verification-page .rg-disclosure-body > p { max-width: 70ch; }
 
 /* Service copy always exposes its planned state. No placeholder checkout. */
@@ -156,6 +157,7 @@
   .verification-page .verification-boundary, .service-intro__body { grid-template-columns: 1fr; }
   .service-intro__body { gap: var(--space-3); }
   .start-guide__next { flex-wrap: wrap; }
+  .verify-steps { grid-template-columns: 1fr; }
 }
 @media (max-width: 47.99rem) {
   .editorial-heading h1 { font-size: clamp(2rem, 8vw, 3.5rem); }

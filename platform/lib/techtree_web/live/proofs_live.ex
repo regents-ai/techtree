@@ -1,9 +1,9 @@
 defmodule TechtreeWeb.ProofsLive do
   @moduledoc """
-  A compact reference for what bundle verification establishes and what it does not.
+  How a Result is made, what checking one establishes and what it does not, and
+  how to check one offline.
 
-  Published proofs live at `/results`. This secondary page explains the verifier
-  without competing with the evidence itself.
+  Published Results live at `/results`; this page explains the check.
   """
 
   use TechtreeWeb, :live_view
@@ -14,7 +14,7 @@ defmodule TechtreeWeb.ProofsLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "How verification works",
+       page_title: "Verify a Result",
        checks: Bundle.checks(),
        check_count: Bundle.check_count()
      )}
@@ -26,39 +26,85 @@ defmodule TechtreeWeb.ProofsLive do
     <Layouts.page wide>
       <div class="verification-page">
         <header class="editorial-heading">
-          <p class="eyebrow">Verifier reference</p>
-          <h1>How verification works</h1>
+          <p class="eyebrow">Verify</p>
+          <h1>Check a Result yourself</h1>
           <p class="lede">
-            Techtree checks a published Result bundle’s integrity, controlled comparison, score
-            consistency, and publication policy. Verification makes the bundle internally
-            checkable; it is not independent observation of the run.
+            When someone says a Skill made their agent better, you shouldn’t have to take their
+            word for it. Every Result on Techtree is a signed record you can download and check on
+            your own computer, without trusting this site.
           </p>
-          <a href="#offline-verifier" class="text-link">Verify a bundle on your machine →</a>
+          <a href="#offline-verifier" class="text-link">Check a Result now →</a>
         </header>
+
+        <section id="how-made" class="section" aria-labelledby="how-made-title">
+          <h2 id="how-made-title">How a Result is made</h2>
+          <ol class="verify-check-grid verify-steps">
+            <li class="verify-check rg-panel">
+              <span class="verify-check__index">01</span>
+              <h3>The agent works the same tasks twice</h3>
+              <p>
+                An agent run by Nous Research’s Hermes works a Climb’s fixed tasks once without
+                the Skill and once with it. The model, the tools and the limits stay the same.
+              </p>
+              <a
+                href="https://github.com/NousResearch/hermes-agent"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-link"
+              >
+                Hermes on GitHub ↗
+              </a>
+            </li>
+            <li class="verify-check rg-panel">
+              <span class="verify-check__index">02</span>
+              <h3>Prime Intellect’s Verifiers scores every task</h3>
+              <p>
+                Prime Intellect’s Verifiers, an open-source library for testing AI agents, gives
+                the agent each task and scores its answer by that task’s own rules.
+              </p>
+              <a
+                href="https://github.com/PrimeIntellect-ai/verifiers"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-link"
+              >
+                Read Prime Intellect’s Verifiers ↗
+              </a>
+            </li>
+            <li class="verify-check rg-panel">
+              <span class="verify-check__index">03</span>
+              <h3>The record is signed</h3>
+              <p>
+                The tasks, every score, the Skill and the settings go into one signed record: the
+                Result. Changing any of it afterwards breaks the signature.
+              </p>
+              <a href={~p"/results"} class="text-link">See published Results →</a>
+            </li>
+          </ol>
+        </section>
 
         <section
           id="local-results"
           class="verification-boundary section"
-          aria-label="Verification boundary"
+          aria-label="What a check tells you"
         >
           <div>
-            <Regent.Structure.section_bar class="rg-support-band">
-              <p class="rg-section-bar__label boundary__title">What Techtree verifies</p>
-            </Regent.Structure.section_bar>
-            <h2>Internally checkable evidence</h2>
+            <h2>What a check tells you</h2>
             <div class="verify-check-grid">
               <Regent.Structure.panel
                 :for={
                   {index, title, description, href} <- [
-                    {"01", "Integrity", "Stored files match their digests and signatures.",
+                    {"01", "Nothing changed after signing",
+                     "Every part of the Result still matches the signature made when the run finished.",
                      "/docs#proof-bundle"},
-                    {"02", "Controlled comparison",
-                     "Both branches use the same published Climb and ordered tasks, with only the permitted Skill changed.",
+                    {"02", "Only the Skill changed",
+                     "Both runs used the same tasks in the same order, the same model and the same settings. The Skill is the only difference.",
                      "/docs#method"},
-                    {"03", "Score consistency", "The summary recomputes from task-level results.",
+                    {"03", "The verdict adds up",
+                     "Better, worse or no different follows from the task scores, by the rule the Climb set before the run.",
                      "/docs#proof-bundle"},
-                    {"04", "Publication policy",
-                     "The bundle contains no episodes, transcripts, or machine-local paths.",
+                    {"04", "Nothing private is inside",
+                     "A Result holds scores, not the agent’s conversations or anything from the computer it ran on.",
                      "/docs#data-boundary"}
                   ]
                 }
@@ -67,72 +113,52 @@ defmodule TechtreeWeb.ProofsLive do
                 <span class="verify-check__index">{index}</span>
                 <h3>{title}</h3>
                 <p>{description}</p>
-                <a href={href} class="text-link">Read the method →</a>
+                <a href={href} class="text-link">How this is checked →</a>
               </Regent.Structure.panel>
             </div>
           </div>
           <Regent.Structure.panel class="boundary__side rg-panel__body rg-support-panel">
-            <p class="boundary__title">What remains unproven</p>
-            <h2>Verification is not observation</h2>
+            <h2>What a check can’t tell you</h2>
             <ul class="verification-summary">
-              <li>The site did not witness the execution.</li>
-              <li>The participant’s machine is not independently attested.</li>
-              <li>The result does not establish generalization beyond the Climb.</li>
-              <li>Nobody else reproduced it unless a separate reproduction says so.</li>
+              <li>Techtree did not watch the run happen.</li>
+              <li>
+                The signature shows which key signed, not that the computer behind it was honest.
+              </li>
+              <li>A better score on these tasks doesn’t mean better at everything.</li>
+              <li>One Result is one run. Only a separate rerun shows that it repeats.</li>
             </ul>
           </Regent.Structure.panel>
         </section>
 
-        <Regent.Primitives.disclosure
-          id="comparison"
-          class="verification-method"
-          summary="What stays fixed in a controlled comparison"
-        >
-          <p class="eyebrow">Method</p>
-          <h2>The controlled comparison</h2>
-          <p>Techtree runs the same fixed tasks twice.</p>
-          <p>
-            The model stays the same. The
-            <a href="https://github.com/NousResearch/hermes-agent">Hermes</a>
-            harness stays the same. The runtime, tools, scorer, task membership, sampling, and
-            budget stay the same. Only the Skill may change.
+        <section id="why-it-matters" class="section">
+          <h2>Why it matters</h2>
+          <p class="verification-why">
+            Skills are easy to claim and hard to compare. A Result anyone can check turns “this
+            Skill helps” into something you can test for yourself, and it stays checkable without
+            this site: all you need is the Result and the free command below.
           </p>
-          <pre class="docs-code"><code>Same agent
-    Same tasks
-    Same evaluation
-
-    Skill v1 → Skill v2</code></pre>
-          <p>
-            Prime Intellect’s <a href="https://github.com/PrimeIntellect-ai/verifiers">Verifiers</a>
-            library runs and scores the tasks. Techtree checks that the comparison stayed
-            controlled and packages the Result into a signed proof bundle.
-          </p>
-          <p>
-            The Result may be an uplift, a tie, a regression, a failed Run, or an invalid
-            comparison. Techtree does not turn every attempt into a success.
-          </p>
-        </Regent.Primitives.disclosure>
+        </section>
 
         <section id="offline-verifier" class="offline-verify">
           <div>
             <p class="eyebrow">Check it yourself</p>
-            <h2>Verify a Result offline.</h2>
+            <h2>Check a Result on your computer.</h2>
             <p class="small quiet">
-              Every published Result offers its bundle for download on its own page. Anyone
-              holding a bundle can run the same verifier on their own machine.
+              Download the Result from its page, then run this command. It repeats every check on
+              your own computer, runs no model and costs nothing.
             </p>
           </div>
           <.command_block
             id="copy-proof-verify"
             argv={["regents", "techtree", "proof", "verify", "path/to/result-bundle"]}
-            label="Verify offline"
+            label="Check a Result"
           />
         </section>
 
         <Regent.Primitives.disclosure
           class="integrity-details"
           id="verifier-checks"
-          summary={"Full verifier checklist · #{@check_count} checks"}
+          summary={"Every check, in order · #{@check_count} checks"}
         >
           <ol class="checks">
             <li :for={{_name, words} <- @checks}>{words}</li>
@@ -140,13 +166,13 @@ defmodule TechtreeWeb.ProofsLive do
         </Regent.Primitives.disclosure>
 
         <p class="small quiet section">
-          For detailed information, read the <a href={~p"/docs#method"}>Docs</a>, copyable as
+          For the full method, read the <a href={~p"/docs#method"}>Docs</a>, copyable as
           Markdown to your agent.
         </p>
 
         <p class="small quiet section">
           <a href={~p"/results"}>Browse Results</a>
-          · <a href={~p"/docs#verify"}>Operate the verifier</a>
+          · <a href={~p"/docs#verify"}>How to run the check</a>
         </p>
       </div>
     </Layouts.page>
