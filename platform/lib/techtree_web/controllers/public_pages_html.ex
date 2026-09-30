@@ -12,7 +12,7 @@ defmodule TechtreeWeb.PublicPagesHTML do
         <h1>{@page.title}</h1>
         <p class="lede">{@page.lede}</p>
       </header>
-      <article class="rg-blog__prose">
+      <article class="public-document rg-blog__prose">
         {raw(@page.body_html)}
       </article>
     </Layouts.page>

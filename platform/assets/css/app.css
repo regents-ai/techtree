@@ -78,7 +78,8 @@ code { font-size: .9em; }
 .masthead__inner {
   min-height: 6rem; padding: var(--space-2) var(--rg-panel-padding);
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center; gap: var(--space-3);
+  /* The prism sits .5rem inside its press target, so an 8px column gap leaves 16px beside it. */
+  align-items: center; gap: var(--space-3) var(--space-1);
 }
 .masthead__name { display: inline-flex; align-items: center; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
 .masthead__mark { width: 1.5rem; flex: 0 0 auto; }
@@ -96,7 +97,7 @@ code { font-size: .9em; }
   border: 1px solid var(--hairline-strong); background: var(--color-surface);
   font-weight: 600; text-decoration: none;
 }
-.masthead__github-logo { width: 1rem; height: 1rem; fill: currentColor; flex: 0 0 auto; }
+.masthead__github-logo { width: 1.5rem; height: 1.5rem; fill: currentColor; flex: 0 0 auto; }
 .masthead__github-count {
   display: inline-flex; align-items: center; gap: var(--space-1);
   align-self: stretch; margin: calc(-1 * var(--space-1)) 0; padding-left: var(--space-2);
@@ -105,7 +106,7 @@ code { font-size: .9em; }
 .masthead__github-count[hidden] { display: none; }
 .masthead__github-star { width: 1rem; height: 1rem; fill: #eab308; flex: 0 0 auto; }
 .masthead__github:hover { background: var(--color-surface-elevated); }
-.theme-toggle { justify-self: end; min-width: 2.75rem; min-height: 2.75rem; }
+.theme-toggle { justify-self: end; }
 .page { min-width: 0; width: 100%; padding: var(--space-6) var(--rg-panel-padding); }
 .page--flush { padding-top: 0; padding-bottom: 0; }
 .page > *, .docs-content, .hero > *, .hero__stage > *, .climb-contract > *, .facts > * { min-width: 0; }
@@ -242,6 +243,8 @@ code { font-size: .9em; }
 /* Names and addresses stay whole; the description column keeps a readable measure and the table scrolls instead. */
 .docs-prose td code { overflow-wrap: normal; white-space: nowrap; }
 .docs-prose td:last-child { min-width: 18rem; }
+/* About, Contact, Privacy and Terms: a long value in a table's last column wraps to fit a phone. */
+.public-document td:last-child { overflow-wrap: anywhere; }
 .docs-code, .prompt__block { max-width: 100%; margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 
 /* Native copy menu is intentionally not a disclosure: it is a compact popup.
