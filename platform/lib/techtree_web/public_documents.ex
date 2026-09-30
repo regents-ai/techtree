@@ -11,7 +11,7 @@ defmodule TechtreeWeb.PublicDocuments do
   and the Docs page's own designs are their LiveViews, and their Markdown is the
   same facts in words. The Docs page shows its reference sections from the
   Markdown itself (`docs_section/1`). `/llms.txt` is the agent guide with the
-  browser tool table filled in. `robots.txt`, `security.txt` and the API
+  browser tool table and the About page's Key facts filled in. `robots.txt`, `security.txt` and the API
   catalog are built here too. None of these reads the database.
   """
 
@@ -58,7 +58,12 @@ defmodule TechtreeWeb.PublicDocuments do
   # each last changed. security.txt expires a year after it.
   @released_at DateTime.utc_now() |> DateTime.truncate(:second)
 
-  @llms @sources["llms"]
+  # The About page's Key facts, down to the next `##` heading, are the agent
+  # guide's `{{key_facts}}`, so the two never say different things.
+  [_about, facts] = String.split(@sources["about"], "\n## Key facts\n")
+  @key_facts "## Key facts\n" <> String.trim_trailing(hd(String.split(facts, "\n## ", parts: 2)))
+
+  @llms String.replace(@sources["llms"], "{{key_facts}}", @key_facts)
 
   # The Docs page's reference sections, as HTML, by their `##` heading.
   @docs_sections @sources["docs"]

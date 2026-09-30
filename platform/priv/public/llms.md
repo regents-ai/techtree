@@ -4,6 +4,8 @@
 
 [Website](https://techtree.sh) · [Source](https://github.com/regents-ai/techtree)
 
+{{key_facts}}
+
 ## When to use Techtree
 
 - Deciding whether a change to a Skill is worth keeping: make tasks from the Skill, then compare the earlier version with the new one (experimental).
