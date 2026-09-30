@@ -24,12 +24,9 @@ defmodule TechtreeWeb.ReleaseInfo do
           minimums: map(),
           plugin_doctor_argv: [String.t()],
           plugin_install_argv: [String.t()],
-          repository_url: String.t() | nil,
           source_revision: String.t() | nil,
           version: String.t() | nil
         }
-
-  @unset_revision String.duplicate("0", 40)
 
   @doc """
   The active release as display data, or `nil` when nothing is published.
@@ -69,20 +66,6 @@ defmodule TechtreeWeb.ReleaseInfo do
   @spec label(t()) :: String.t()
   def label(release), do: "v#{release.version} · #{short(release.digest)}"
 
-  # The plugin release as an address: the repository's plugin/ folder at the
-  # pinned revision, or nothing at all. A stand-in revision and a branch name
-  # are both addresses that either point at nothing or point somewhere
-  # different tomorrow, so neither is ever shown.
-  defp repository_url(instructions) do
-    repository = get_in(instructions, ["hermes_plugin", "repository"])
-    revision = get_in(instructions, ["hermes_plugin", "revision"])
-
-    if instructions["placeholder_release"] == false and is_binary(repository) and
-         pinned?(revision) do
-      "https://github.com/" <> repository <> "/tree/" <> revision <> "/plugin"
-    end
-  end
-
   defp describe(instructions, digest) do
     cli = Map.get(instructions, "cli", %{})
     hermes_plugin = Map.get(instructions, "hermes_plugin", %{})
@@ -96,17 +79,10 @@ defmodule TechtreeWeb.ReleaseInfo do
       minimums: Map.get(instructions, "minimums", %{}),
       plugin_doctor_argv: Map.get(hermes_plugin, "doctor_argv", []),
       plugin_install_argv: Map.get(hermes_plugin, "install_argv", []),
-      repository_url: repository_url(instructions),
       source_revision: cli["source_revision"],
       version: cli["version"]
     }
   end
-
-  defp pinned?(revision) when is_binary(revision) do
-    String.match?(revision, ~r/\A[0-9a-f]{40}\z/) and revision != @unset_revision
-  end
-
-  defp pinned?(_revision), do: false
 
   defp python_words(nil), do: nil
   defp python_words(version), do: "Python #{version}, provided by the installer"
