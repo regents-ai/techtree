@@ -69,16 +69,17 @@ defmodule TechtreeWeb.ReleaseInfo do
   @spec label(t()) :: String.t()
   def label(release), do: "v#{release.version} · #{short(release.digest)}"
 
-  # The plugin release as an address, or nothing at all. A stand-in revision
-  # and a branch name are both addresses that either point at nothing or point
-  # somewhere different tomorrow, so neither is ever shown.
+  # The plugin release as an address: the repository's plugin/ folder at the
+  # pinned revision, or nothing at all. A stand-in revision and a branch name
+  # are both addresses that either point at nothing or point somewhere
+  # different tomorrow, so neither is ever shown.
   defp repository_url(instructions) do
     repository = get_in(instructions, ["hermes_plugin", "repository"])
     revision = get_in(instructions, ["hermes_plugin", "revision"])
 
     if instructions["placeholder_release"] == false and is_binary(repository) and
          pinned?(revision) do
-      "https://github.com/" <> repository <> "/tree/" <> revision
+      "https://github.com/" <> repository <> "/tree/" <> revision <> "/plugin"
     end
   end
 

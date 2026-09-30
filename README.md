@@ -65,16 +65,18 @@ coordinate with an arbitrary branch.
 Each release record under [`platform/priv/releases/`](platform/priv/releases/)
 pins one CLI build, one Hermes plugin commit and one catalog. The values below
 are read from those records (`bootstrap.json`, `release-core.json`,
-`checksums.json`) and from `platform/priv/catalog/sources/`.
+`checksums.json`) and from `platform/priv/catalog/sources/`. From `climb-v0.4.0`
+the plugin is installed from this repository's `plugin/` folder; earlier
+records name commits of the archived `regents-ai/techtree-hermes`.
 
-| Release record | CLI on PyPI | CLI source revision | Hermes plugin (`regents-ai/techtree-hermes`) | Catalog source revision | Catalog index | Host Hermes | Published to the stable channel |
+| Release record | CLI on PyPI | CLI source revision | Hermes plugin commit | Catalog source revision | Catalog index | Host Hermes | Published to the stable channel |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | [`climb-v0.1.0`](platform/priv/releases/climb-v0.1.0/) | `techtree` 0.1.1 | `614daff` (former `regents-ai/techtree-python`) | `ca22ee7` | `614daff` | `sha256:10a7fcc5…` | 0.20.1 | 2026-08-20 |
 | [`climb-v0.2.0`](platform/priv/releases/climb-v0.2.0/) | `techtree` 0.2.0 | `70e75c7` (tag `v0.2.0`) | `4567937` | `70e75c7` | `sha256:4d216571…` | 0.20.1 | 2026-09-18 |
 | [`climb-v0.2.1`](platform/priv/releases/climb-v0.2.1/) | `techtree` 0.2.1 | `a1b9c05` (tag `v0.2.1`) | `d891b3b` | `a1b9c05` | `sha256:4d216571…` | 0.20.1 | 2026-09-21 |
 | [`climb-v0.3.0`](platform/priv/releases/climb-v0.3.0/) | `techtree` 0.3.0 | `74d87d3` (tag `v0.3.0`) | `e0765e6` | `74d87d3` | `sha256:4d216571…` | 0.21.3 | 2026-09-27 |
 | [`climb-v0.3.1`](platform/priv/releases/climb-v0.3.1/) | `regents-cli` 1.0.0 | `fdddd9f` (regents-cli tag `v1.0.0`) | `8f7831a` | `fdddd9f` | `sha256:9c20fb90…` | 0.21.3 | 2026-09-29 |
-| [`climb-v0.4.0`](platform/priv/releases/climb-v0.4.0/) | `regents-cli` 1.2.1 | `1b10a38` (regents-cli tag `v1.2.1`) | `a1ac5b5` | `1b10a38` | `sha256:0fd83a73…` | 0.21.3 | 2026-09-29 |
+| [`climb-v0.4.0`](platform/priv/releases/climb-v0.4.0/) | `regents-cli` 1.2.1 | `1b10a38` (regents-cli tag `v1.2.1`) | `149f4bf` (`plugin/`) | `1b10a38` | `sha256:0fd83a73…` | 0.21.3 | 2026-09-29 |
 
 The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0` and Hermes
 v2026.7.20 from `climb-v0.3.1`, and each record names

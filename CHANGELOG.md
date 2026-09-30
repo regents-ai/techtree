@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.4.3 (2026-09-30)
+
+### Changed
+
+- The Hermes plugin now installs from the `plugin` folder of
+  [regents-ai/techtree](https://github.com/regents-ai/techtree/tree/main/plugin):
+  `hermes plugins install regents-ai/techtree/plugin --ref <commit> --enable`,
+  with the exact commit on the Start page. The plugin itself is unchanged
+  (0.4.1). The separate `techtree-hermes` repository is archived.
+
 ## v0.4.2 (2026-09-30)
 
 ### Changed

@@ -353,7 +353,7 @@ defmodule Techtree.Catalog.VerifierTest do
         {["hermes_plugin", "revision"], "main", "hermes_plugin.revision"},
         {["hermes_plugin", "revision"], String.upcase(String.duplicate("a", 40)),
          "hermes_plugin.revision"},
-        {["hermes_plugin", "repository"], "techtree-hermes", "hermes_plugin.repository"},
+        {["hermes_plugin", "repository"], "techtree", "hermes_plugin.repository"},
         {["minimums", "hermes_version"], "latest", "minimums.hermes_version"},
         {CatalogFixture.starter_path("object_url"), "https://placeholder.invalid/unchosen",
          starter_field("object_url")},
@@ -380,7 +380,7 @@ defmodule Techtree.Catalog.VerifierTest do
             "hermes",
             "plugins",
             "install",
-            "regents-ai/techtree-hermes",
+            "regents-ai/techtree/plugin",
             "--ref",
             "main",
             "--enable"

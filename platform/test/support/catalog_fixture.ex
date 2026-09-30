@@ -204,7 +204,7 @@ defmodule Techtree.CatalogFixture do
       "hermes",
       "plugins",
       "install",
-      "regents-ai/techtree-hermes",
+      "regents-ai/techtree/plugin",
       "--ref",
       @commit,
       "--enable"
