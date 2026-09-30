@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.5.1 (2026-09-30)
+
+### Changed
+
+- A new Frontier-CS starter Skill, `frontier-cs-starter-v4`. It asks the
+  agent to plan a few methods before coding, build its own test inputs and
+  scorer, and keep improving its answer until most of the time is used. In
+  two test runs with GPT-6 Luna it scored 0.542 on average against 0.508
+  without a Skill, higher on 7 of the 9 problems that could be scored. It
+  replaces `frontier-cs-starter-v3`. Install regents-cli 1.3.1 with
+  `uv tool install --python 3.12 regents-cli==1.3.1`. The Hermes plugin is
+  0.5.1.
+
 ## v0.5.0 (2026-09-30)
 
 ### Changed
