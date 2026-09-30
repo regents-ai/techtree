@@ -83,6 +83,7 @@ defmodule TechtreeWeb.RunsLive.Index do
     with {:ok, selection} <- AgentVersions.select(families, params),
          {:ok, filters} <- ResultFilters.select(selection, params) do
       page = Query.page(page_options(options, selection, filters))
+      climb = chosen_climb(filters.challenge)
 
       socket
       |> assign(
@@ -92,7 +93,8 @@ defmodule TechtreeWeb.RunsLive.Index do
         page_limit: Map.get(params, "limit"),
         entries: page.entries,
         next_before_sequence: page.next_before_sequence,
-        score_name: score_name(filters.challenge),
+        score_name: climb && climb.projection["scoring"]["primary_reward"],
+        climb_slug: climb && climb.projection["slug"],
         empty: empty(page.entries, families, Map.has_key?(params, "before_sequence")),
         asked_for: []
       )
@@ -111,6 +113,7 @@ defmodule TechtreeWeb.RunsLive.Index do
       entries: [],
       next_before_sequence: nil,
       score_name: nil,
+      climb_slug: nil,
       empty: empty,
       asked_for: asked_for
     )
@@ -208,6 +211,15 @@ defmodule TechtreeWeb.RunsLive.Index do
                 >Older →</.link>
               </div>
             </div>
+            <a
+              :if={@selection && harness_page(@selection.family.id)}
+              class="text-link results-filter-about"
+              href={harness_page(@selection.family.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              About {@selection.family.label} ↗
+            </a>
           </div>
           <div class="results-filter-row">
             <h2 class="results-filter-label"><span>02</span> Model</h2>
@@ -220,6 +232,15 @@ defmodule TechtreeWeb.RunsLive.Index do
               >{model}</.link>
               <p :if={@filters.models == []} class="quiet small">Choose a submitted harness first</p>
             </nav>
+            <a
+              :if={@filters.model}
+              class="text-link results-filter-about"
+              href={model_page(@filters.model)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              About this model ↗
+            </a>
           </div>
           <div class="results-filter-row">
             <h2 class="results-filter-label"><span>03</span> Challenge</h2>
@@ -247,6 +268,15 @@ defmodule TechtreeWeb.RunsLive.Index do
                 Choose a submitted model first
               </p>
             </nav>
+            <a
+              :if={@climb_slug}
+              class="text-link results-filter-about"
+              href={~p"/climbs/#{@climb_slug}"}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              About this Climb ↗
+            </a>
           </div>
         </section>
 
@@ -413,12 +443,18 @@ defmodule TechtreeWeb.RunsLive.Index do
   # The score a Campaign decides on, by the name it gives it. Ingest only
   # publishes a Result whose Campaign this site publishes, and a Climb is
   # retired rather than removed, so a chosen challenge always has one.
-  defp score_name(nil), do: nil
+  defp chosen_climb(nil), do: nil
 
-  defp score_name(challenge) do
+  defp chosen_climb(challenge) do
     {:ok, climb} = Catalog.get_any_climb_by_campaign_digest(challenge)
-    climb.projection["scoring"]["primary_reward"]
+    climb
   end
+
+  defp harness_page("hermes-agent"), do: "https://github.com/NousResearch/hermes-agent"
+  defp harness_page("codex"), do: "https://github.com/openai/codex"
+  defp harness_page(_id), do: nil
+
+  defp model_page(model), do: "https://openrouter.ai/" <> URI.encode(model)
 
   # Which empty page a readable selection is, if any: nothing published at
   # all, a page past the oldest entry of a selection that has entries, or a

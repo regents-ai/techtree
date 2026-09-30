@@ -62,6 +62,14 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert text =~ "Hermes 0.19.0"
       assert text =~ "qwen/qwen3.7-flash"
 
+      for href <- [
+            "https://github.com/NousResearch/hermes-agent",
+            "https://openrouter.ai/qwen/qwen3.7-flash",
+            "/climbs/hello-world-climb"
+          ] do
+        assert has_element?(live, ~s|.results-filter-about[href="#{href}"][target="_blank"]|)
+      end
+
       assert has_element?(
                live,
                ~s|.results-ledger__tasks span[title="#{entry.wins} better, #{entry.ties} same, #{entry.losses} worse"]|,
