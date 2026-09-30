@@ -75,7 +75,7 @@ credentials, sign anything or broaden a task. The
 ## Related Regent products
 
 - [Regents](https://regents.sh/llms.txt): Agent identity, operations, staking and redemption. [Website](https://regents.sh) · [Source](https://github.com/regents-ai/regents).
-- [Autolaunch](https://autolaunch.sh/llms.txt): Token auctions, launch operations and market reads on Base. [Website](https://autolaunch.sh) · [Source](https://github.com/regents-ai/autolaunch-contracts).
+- [Autolaunch](https://autolaunch.sh/llms.txt): Token auctions, launch operations and market reads on Base. [Website](https://autolaunch.sh) · [Source](https://github.com/regents-ai/autolaunch).
 - [Patchbay](https://patchbay.help/llms.txt): Reports about agent tools and bounded browser-tool repairs. [Website](https://patchbay.help) · [Source](https://github.com/regents-ai/patchbay).
 
 Each product owns its authorization and tool contract. Cross-product links are

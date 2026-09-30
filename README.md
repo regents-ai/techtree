@@ -306,7 +306,7 @@ and [LICENSE](LICENSE) for terms.
 | Product | Purpose | Source |
 | --- | --- | --- |
 | [Regents](https://regents.sh) | Agent identity and operations | [regents](https://github.com/regents-ai/regents) |
-| [Autolaunch](https://autolaunch.sh) | Token auctions and launch operations | [autolaunch-contracts](https://github.com/regents-ai/autolaunch-contracts) |
+| [Autolaunch](https://autolaunch.sh) | Token auctions and launch operations | [autolaunch](https://github.com/regents-ai/autolaunch) |
 | [Patchbay](https://patchbay.help) | Agent tool reports and bounded browser-tool repairs | [patchbay](https://github.com/regents-ai/patchbay) |
 
 Shared presentation lives in [design-system](https://github.com/regents-ai/design-system);
