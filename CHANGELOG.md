@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0 (2026-09-30)
+
+### Changed
+
+- Both Climbs now run GPT-6 Luna (`openai/gpt-6-luna`) at high reasoning,
+  on Hermes v2026.9.24. Install regents-cli 1.3.0 with
+  `uv tool install --python 3.12 regents-cli==1.3.0`. The Hermes plugin is
+  0.5.0.
+- The Frontier-CS starter Skill is now `frontier-cs-starter-v3`: it sets out
+  GPT-6 Luna's reply and attempt limits and when to think hard. It
+  replaces `frontier-cs-starter-v2`.
+
 ## v0.4.5 (2026-09-30)
 
 ### Changed
