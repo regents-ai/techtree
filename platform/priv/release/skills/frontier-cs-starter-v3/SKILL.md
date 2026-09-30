@@ -1,7 +1,7 @@
 ---
-name: frontier-cs-starter-v2
+name: frontier-cs-starter-v3
 description: Load first - output budget rules for any solution.cpp task. Write the problem's own scoring baseline as a valid program straight away, compile and test it, then improve it in small patches while budget remains.
-version: 0.2.0
+version: 0.3.0
 author: Regents Labs
 license: MIT
 platforms: [linux, macos, windows]
@@ -20,13 +20,16 @@ compile, breaks a limit or prints an answer that breaks a rule.
 
 ## Your budget
 
-- Each reply stops after about 8,000 tokens, thinking included. A reply that is
+- Each reply stops after about 32,000 tokens, thinking included. A reply that is
   cut off does nothing: no file is written and no command runs.
-- The whole attempt stops after about 32,000 output tokens. Whatever is in
-  `/app/solution.cpp` at that moment is what gets scored.
-- So think briefly and act early: keep the thinking in each reply to about
-  2,000 tokens. Do not work out the best algorithm before you have a file. A
-  plain valid answer beats a clever one that never gets written.
+- The whole attempt stops after about 96,000 output tokens or one hour,
+  whichever comes first. Whatever is in `/app/solution.cpp` at that moment is
+  what gets scored.
+- You think at high effort, and that thinking counts against both limits: three
+  replies that think to the limit end the attempt with nothing written. So get
+  a valid file first. Keep the thinking in your first two replies short, a few
+  thousand tokens, and save deeper thinking for one improvement at a time, once
+  a valid answer is already on disk.
 
 ## Procedure
 

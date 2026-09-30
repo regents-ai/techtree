@@ -16,7 +16,10 @@ def _bash_blocks(document: str) -> tuple[str, ...]:
 
 def test_readme_names_the_supported_host_and_open_release_path() -> None:
     assert "Supported host: Hermes 0.21.3." in README
-    assert "evaluated subject remains the separately\npinned Hermes 0.19.0" in README
+    assert (
+        "evaluated subject remains the separately\npinned Hermes v2026.9.24 (0.21.5)"
+        in README
+    )
 
     for stale in (
         "Supported host: Hermes 0.20.0.",

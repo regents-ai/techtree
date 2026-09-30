@@ -66,8 +66,8 @@ Paste this into Hermes:
 | --- | --- | --- |
 | Evaluation engine | Prime Intellect's Verifiers | pinned to an exact commit |
 | Agent host | Nous Research's Hermes, the operator | host Hermes 0.21.3 or newer |
-| Evaluated subject | hermes-agent, in a pinned container | 0.19.0 |
-| Subject model | qwen/qwen3.7-flash, reached through prime | named by the Campaign |
+| Evaluated subject | hermes-agent, in a pinned container | v2026.9.24 (0.21.5) |
+| Subject model | openai/gpt-6-luna at high reasoning, reached through prime | named by the Campaign |
 | Campaign kernel and evidence | `regents techtree`, from regents-cli | Python 3.12, managed with uv |
 
 Techtree runs a neutral agent and a Skill-enabled agent against the
@@ -127,7 +127,7 @@ step past it is a decision you make after reading what the scan found — see
 [Install-time security scanning](#install-time-security-scanning) below.
 
 Supported host: Hermes 0.21.3. The evaluated subject remains the separately
-pinned Hermes 0.19.0 named by the Campaign. The release this plugin belongs to
+pinned Hermes v2026.9.24 (0.21.5) named by the Campaign. The release this plugin belongs to
 is recorded in `release-core.json`.
 
 Installing the plugin does not install regents, the command that runs
