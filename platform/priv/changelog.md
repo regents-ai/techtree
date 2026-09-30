@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.5 (2026-09-30)
+
+### Changed
+
+- On [Results](https://techtree.sh/results), each filter row has a link that
+  opens in a new tab: the harness's project page, the model's page on
+  OpenRouter, and the Climb's own page.
+
 ## v0.4.4 (2026-09-30)
 
 ### Changed
