@@ -52,10 +52,10 @@ defmodule Techtree.Release.StarterSkill do
     },
     %{
       climb_reference: "frontier-cs-open-ended-climb@1",
-      name: "frontier-cs-starter-v3",
-      file_digest: "sha256:e6e7c9d85125bfc48966659ab31b55f8970faca6a4e60a2d56a7dbe62c66c68b",
-      size: 3031,
-      tree_digest: "sha256:38cca019042309673445abf3e59a4334638f19311d9434d1d4acfb0c74a3de6c"
+      name: "frontier-cs-starter-v4",
+      file_digest: "sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669",
+      size: 4675,
+      tree_digest: "sha256:c93c985b1017d976408239b2583bff7248507032cb32c7aeb20edd685fbc86a6"
     }
   ]
 

@@ -52,7 +52,7 @@ Every Climb has its own starter Skill, served by the digest of its file:
 | Climb | File | Address | Bytes |
 | --- | --- | --- | --- |
 | `hello-world-climb@1` | `hello-world-starter-v1/SKILL.md` | `sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c` | 1496 |
-| `frontier-cs-open-ended-climb@1` | `frontier-cs-starter-v3/SKILL.md` | `sha256:e6e7c9d85125bfc48966659ab31b55f8970faca6a4e60a2d56a7dbe62c66c68b` | 3031 |
+| `frontier-cs-open-ended-climb@1` | `frontier-cs-starter-v4/SKILL.md` | `sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669` | 4675 |
 
 `GET /api/v1/objects/<address>` returns the file as
 `text/markdown; charset=utf-8`, cached `public, max-age=31536000, immutable`,
