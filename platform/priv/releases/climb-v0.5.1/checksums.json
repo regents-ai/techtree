@@ -16,7 +16,7 @@
   }
  },
  "files": {
-  "bootstrap.json": "sha256:27a6f2497e192a1ffb0e54c47002f122466cfdd9aacd8f5d01a5f715067b411b",
+  "bootstrap.json": "sha256:bf08ef7251dce608589fec71df199581b153348293521cf49120834d3fa3b6f2",
   "release-core.json": "sha256:4cac17bd52c0b0e37ccc79a0500b5f1eb80a5251d01b33ce929118b05df0126c"
  },
  "release_id": "climb-v0.5.1",
