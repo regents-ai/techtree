@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.2 (2026-10-01)
+
+### Changed
+
+- A run now stops once its spend reaches the most its Campaign allows. While
+  it runs, Techtree adds up the cost the model provider reports for each
+  finished task, and when the total reaches the Campaign's maximum it stops
+  both sides. A stopped run has no score. Tasks still under way when it stops
+  can add a little to the total. If the provider does not report a cost, the
+  run stops too. Runs are no longer turned away before they start. Install
+  regents-cli 1.3.2 with
+  `uv tool install --python 3.12 regents-cli==1.3.2`. The Hermes plugin is
+  0.5.2.
+
 ## v0.5.1 (2026-10-01)
 
 ### Changed
