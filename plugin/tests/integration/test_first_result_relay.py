@@ -260,7 +260,7 @@ def test_a_phone_gets_the_result_and_not_an_apology_for_its_size(
     assert answer["presentation"]["baseline_tasks_scored_full"] == 0
     assert answer["presentation"]["candidate_tasks_scored_full"] == 24
     assert answer["presentation"]["task_count"] == 36
-    assert answer["presentation"]["derived_cost"]["usd"] == 4.87
+    assert answer["presentation"]["cost_usd"] == 4.87
     assert answer["presentation"]["candidate_model_turns"] == 412
     assert answer["presentation"]["candidate_rate_limited_calls"] == 11
     assert "not provably the same model build" in json.dumps(answer)

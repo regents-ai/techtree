@@ -4,7 +4,7 @@
     "cancelled": false,
     "cost": {
       "cost_usd": null,
-      "detail": "no cost figure was reported for this variant, and this build pins no price to compute one from",
+      "detail": "the provider did not report what at least one of this side's model calls cost, so its total is unknown",
       "provenance": "unavailable"
     },
     "elapsed_seconds": 612.0,
@@ -36,7 +36,7 @@
     "cancelled": false,
     "cost": {
       "cost_usd": null,
-      "detail": "no cost figure was reported for this variant, and this build pins no price to compute one from",
+      "detail": "the provider did not report what at least one of this side's model calls cost, so its total is unknown",
       "provenance": "unavailable"
     },
     "elapsed_seconds": 598.0,

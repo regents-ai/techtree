@@ -1295,24 +1295,27 @@ def test_a_reward_with_no_such_count_has_none_invented_for_it() -> None:
     assert "Mean score 0.000 → 0.667 (+0.667)" in text
 
 
-def test_the_relay_carries_the_cost_and_the_kind_of_figure_it_is() -> None:
-    """Decision 0007 R6: the word that tells them apart travels with the figure."""
+def test_the_relay_carries_the_cost_and_where_it_came_from() -> None:
+    """Decision 0007 R6: the word saying where it came from travels with it."""
     text = _relayed_text(founder_result_payload())
 
-    assert "Cost: about $4.87, worked out here, not billed" in text
-    assert "Computed from 1,900,000 input and 542,125 output tokens" in text
-    assert "Your provider's bill is what you actually pay." in text
-    assert "410,000 of those input tokens came back from the provider's cache" in text
+    assert "Cost: $4.87, reported by the provider" in text
+    assert (
+        "The sum of what the provider reported for every model call on both "
+        "sides of this comparison." in text
+    )
 
 
 def test_a_run_with_no_cost_says_which_half_of_one_it_is_missing() -> None:
     """ "Unavailable" alone leaves a reader unable to tell what went missing."""
     reason = (
-        "This run wrote no signed execution record, so there is no signed "
-        "token total to work a cost out from."
+        "This run wrote no signed execution record, so there is no reported "
+        "cost to show."
     )
     text = _relayed_text(
-        founder_result_payload(derived_cost=None, cost_unavailable_reason=reason)
+        founder_result_payload(
+            cost_usd=None, cost_provenance="unavailable", cost_unavailable_reason=reason
+        )
     )
 
     assert "Cost: unavailable" in text
@@ -1403,7 +1406,8 @@ def test_the_phone_is_shown_the_counts_the_turns_the_throttling_and_the_cost() -
     assert compact["baseline_rate_limited_calls"] == 3
     assert compact["candidate_rate_limited_calls"] == 11
     assert compact["every_rollout_completed"] is True
-    assert compact["derived_cost"]["usd"] == 4.87  # type: ignore[index]
+    assert compact["cost_usd"] == 4.87
+    assert compact["cost_provenance"] == "provider_reported"
 
 
 def test_the_phone_carries_the_qualifications_and_never_a_note_instead() -> None:

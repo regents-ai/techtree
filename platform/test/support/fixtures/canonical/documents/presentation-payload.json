@@ -59,16 +59,15 @@
     {
       "code": "cost_unavailable",
       "severity": "warning",
-      "text": "Timing and token counts come from this run's signed execution record. No cost was reported for it and none could be worked out from what it recorded. What the comparison measured is unaffected."
+      "text": "Timing and token counts come from this run's signed execution record. The provider did not report a cost for every model call, so no total is shown. What the comparison measured is unaffected."
     }
   ],
   "change_label": "No tested Skill → Skill v1",
   "comparison_label": "Hello World Uplift Receipt",
   "cost_provenance": "unavailable",
-  "cost_unavailable_reason": "This release recorded no provider prices for development-placeholder, so the tokens this run recorded cannot be turned into a cost.",
+  "cost_unavailable_reason": "No cost can be shown: for the baseline, the provider did not report what at least one of this side's model calls cost, so its total is unknown.",
   "cost_usd": null,
   "decision": "accepted",
-  "derived_cost": null,
   "economics_source": "comparison_execution_record",
   "every_rollout_completed": null,
   "losses": 2,

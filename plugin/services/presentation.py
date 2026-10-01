@@ -146,8 +146,8 @@ def describe_outcome(payload: Mapping[str, Any]) -> dict[str, Any]:
 def usage_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     """Report tokens, time, and cost with where each number came from.
 
-    Decision 0007 R6: cost is shown with explicit provenance, and a figure that
-    was worked out is never presented as one the provider reported. Every value
+    Decision 0007 R6: cost is shown with explicit provenance: the figure is
+    the one the provider reported, or there is none. Every value
     here is read off Techtree's payload, including the word for where the
     economics came from and, when no figure exists, Techtree's own sentence
     saying which half of a cost this run is missing. Nothing is computed here
@@ -160,7 +160,8 @@ def usage_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "candidate_tokens": payload.get("candidate_tokens"),
         "baseline_seconds": payload.get("baseline_seconds"),
         "candidate_seconds": payload.get("candidate_seconds"),
-        "derived_cost": payload.get("derived_cost"),
+        "cost_usd": payload.get("cost_usd"),
+        "cost_provenance": payload.get("cost_provenance"),
         "cost_unavailable_reason": payload.get("cost_unavailable_reason"),
     }
 
@@ -261,11 +262,11 @@ COMPACT_PRESENTATION_FIELDS: Final[tuple[str, ...]] = (
     "baseline_rate_limited_calls",
     "candidate_rate_limited_calls",
     "every_rollout_completed",
-    # What it cost and, inseparably, what kind of figure that is: one worked
-    # out while rendering, with its basis, or none with the reason there is
-    # none. Decision 0007 R6 forbids the figure without its basis, so the
-    # reason field is part of the same widening.
-    "derived_cost",
+    # What it cost and, inseparably, where that figure came from: the one the
+    # provider reported, or none with the reason there is none. Decision 0007
+    # R6 forbids the figure without its provenance, so both travel together.
+    "cost_usd",
+    "cost_provenance",
     "cost_unavailable_reason",
     "decision",
     "proof_grade",

@@ -53,10 +53,11 @@ def _presentation(**overrides: Any) -> dict[str, Any]:
         "baseline_seconds": 30.0,
         "candidate_seconds": 31.0,
         "economics_source": "episode_receipts",
-        "derived_cost": None,
+        "cost_usd": None,
+        "cost_provenance": "unavailable",
         "cost_unavailable_reason": (
-            "This run wrote no signed execution record, so there is no signed "
-            "token total to work a cost out from."
+            "This run wrote no signed execution record, so there is no reported "
+            "cost to show."
         ),
         "caveats": [],
     }
@@ -208,7 +209,8 @@ def test_usage_is_reported_with_where_it_came_from(journey: PluginServices) -> N
     usage = result["usage"]
     assert usage["source"] == "episode_receipts"
     assert usage["baseline_tokens"] == 1000
-    assert usage["derived_cost"] is None
+    assert usage["cost_usd"] is None
+    assert usage["cost_provenance"] == "unavailable"
     assert "no signed execution record" in usage["cost_unavailable_reason"]
 
 

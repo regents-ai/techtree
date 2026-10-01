@@ -339,44 +339,27 @@ def _is_count(value: Any) -> TypeGuard[int]:
 
 
 def _cost_line(presentation: Mapping[str, Any]) -> str:
-    """Return what the run cost and, in the same breath, what kind of figure it is.
+    """Return what the run cost and, in the same breath, where the figure came from.
 
-    Decision 0007 R6: a figure that was worked out and a figure that was billed
-    are different claims, and the word telling them apart travels with the
-    number rather than somewhere below it.
+    Decision 0007 R6: the word saying where a figure came from travels with
+    the number rather than somewhere below it.
     """
-    derived = presentation.get("derived_cost")
-    if isinstance(derived, Mapping):
-        figure = _number(derived.get("usd"), ".2f")
+    if presentation.get("cost_provenance") == "provider_reported":
+        figure = _number(presentation.get("cost_usd"), ".2f")
         if figure is not None:
-            return f"about ${figure}, worked out here, not billed"
+            return f"${figure}, reported by the provider"
     return "unavailable"
 
 
 def _cost_basis_lines(presentation: Mapping[str, Any]) -> list[str]:
     """Return what a reader needs in order to judge the figure above it."""
-    derived = presentation.get("derived_cost")
-    if not isinstance(derived, Mapping):
-        reason = presentation.get("cost_unavailable_reason")
-        return [reason] if isinstance(reason, str) and reason else []
-    lines = []
-    tokens_in = _number(derived.get("input_tokens"), ",")
-    tokens_out = _number(derived.get("output_tokens"), ",")
-    if tokens_in is not None and tokens_out is not None:
-        lines.append(
-            f"Computed from {tokens_in} input and {tokens_out} output tokens "
-            "at the prices this release recorded. Your provider's bill is what "
-            "you actually pay."
-        )
-    cached = _number(derived.get("cached_input_tokens"), ",")
-    if cached is not None and not derived.get("prices_name_a_cached_rate"):
-        lines.append(
-            f"{cached} of those input tokens came back from the provider's "
-            "cache. The recorded prices name no separate rate for those, so "
-            "every token is priced at the full rate and the figure above is "
-            "on the high side."
-        )
-    return lines
+    if presentation.get("cost_provenance") == "provider_reported":
+        return [
+            "The sum of what the provider reported for every model call on "
+            "both sides of this comparison."
+        ]
+    reason = presentation.get("cost_unavailable_reason")
+    return [reason] if isinstance(reason, str) and reason else []
 
 
 def _work_line(presentation: Mapping[str, Any]) -> str:
