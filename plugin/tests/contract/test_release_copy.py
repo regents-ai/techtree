@@ -16,12 +16,12 @@ that an agent will make a Skill better.
 
 Decision 0025 adds two more, and they are the same mistake twice. The Campaign
 declares a maximum spend and a per-episode timeout; nothing works out what a
-run will come to before it starts, nothing watches the spending while it runs,
-and nothing ends a run when the declared time is up. A declared figure is a
-contract value, and copy that phrases one as a meter or a cut-off is telling
-the reader a protection exists. So the copy may not promise a price in advance,
-may not promise that spending stops a run, and may not promise that a run is
-over by any particular time.
+run will come to before it starts, and nothing ends a run when the declared
+time is up. While a run is under way Techtree adds up the cost the provider
+reports for each finished task and stops both sides once the total reaches the
+declared maximum, but tasks still under way can add a little past it. So the
+copy may not promise a price in advance, may not promise the bill stays under
+any figure, and may not promise that a run is over by any particular time.
 
 One scan here runs the other way round. Decision 0035 settles what v0.1 *is* —
 a proof of concept for a stack of three independent parts — and the danger with
@@ -206,15 +206,16 @@ FORBIDDEN_EXACT_SCORE: re.Pattern[str] = re.compile(
 #: containing the dishonest one would be a check that punishes candour.
 PERMITTED_BAND: re.Pattern[str] = re.compile("\\b20\\s*[-\\u2013]\\s*27\\s*/\\s*36\\b")
 
-#: Decisions 0025 and 0029. What a Campaign declares as a maximum is checked
-#: before a run starts and a run that could go past it is refused, so copy may
-#: say that much. What still does not exist is a price for the run and a
-#: cut-off during it: nothing works out what a run will come to, nothing counts
-#: the spending while it goes, and nothing ends one part-way through over
-#: money. Every pattern here is a protection the reader would be told about and
-#: would not get. Each bans the claim in the affirmative only: saying that none
-#: of it happens is the whole point of the honest copy, and a guard that could
-#: not tell the two apart would forbid the sentences it exists to require.
+#: Decisions 0025 and 0029, amended by regents-cli 1.3.2. Techtree adds up the
+#: cost the provider reports while a run is under way and stops both sides at
+#: the Campaign's declared maximum, so copy may say that much. What still does
+#: not exist is a price for the run or a promise about the bill: nothing works
+#: out what a run will come to, and tasks still under way when it stops can add
+#: a little past the maximum. Every pattern here is a protection the reader
+#: would be told about and would not get. Each bans the claim in the
+#: affirmative only: saying that none of it happens is the whole point of the
+#: honest copy, and a guard that could not tell the two apart would forbid the
+#: sentences it exists to require.
 FORBIDDEN_COST_PROMISE: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("a cost bound", re.compile(r"\bcost\s+(bound|ceiling|cap|limit)s?\b", re.I)),
     (
@@ -235,16 +236,6 @@ FORBIDDEN_COST_PROMISE: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "an estimated cost",
         re.compile(r"\bestimated\s+(cost|spend|spending|price|bill|budget)\b", re.I),
-    ),
-    (
-        "a run that stops itself over money",
-        re.compile(
-            r"\b(abort|aborts|aborted|halt|halts|halted|kill|kills|stop|stops"
-            r"|stopped|cut\s+off|cuts\s+off)\b[^.]{0,50}"
-            r"\b(budget|ceiling|spending\s+limit|cost\s+limit|spending\s+cap"
-            r"|overspend|over\s+budget)\b",
-            re.I,
-        ),
     ),
     (
         "a promise about the bill",
@@ -292,13 +283,13 @@ FORBIDDEN_TIME_PROMISE: tuple[tuple[str, re.Pattern[str]], ...] = (
 #: to say nothing at all, which is how a promise gets deleted and the reader
 #: still walks away expecting one. Wherever the plugin tells a host agent to
 #: spend somebody's money, it also has to say that no price is worked out and
-#: nothing is watching the spending.
+#: what does stop the spending.
 NO_PRICE_FRAMING: re.Pattern[str] = re.compile(
     r"works?\s+out\s+no\s+figure|no\s+price\s+is\s+worked\s+out|names\s+no\s+price",
     re.I,
 )
-NO_METER_FRAMING: re.Pattern[str] = re.compile(
-    r"keeps\s+no\s+running\s+total|no\s+running\s+total\s+is\s+kept", re.I
+SPEND_STOP_FRAMING: re.Pattern[str] = re.compile(
+    r"adds\s+up\s+the\s+cost\s+the\s+provider\s+reports", re.I
 )
 
 #: Founder directive, 2026-08-26. What a run spends is model tokens on
@@ -482,10 +473,10 @@ def test_no_copy_claims_an_exact_score() -> None:
     FORBIDDEN_COST_PROMISE,
     ids=[described for described, _ in FORBIDDEN_COST_PROMISE],
 )
-def test_no_copy_promises_a_price_or_a_spending_cut_off(
+def test_no_copy_promises_a_price_or_the_bill(
     described: str, pattern: re.Pattern[str]
 ) -> None:
-    """Decision 0025. Neither the figure nor the cut-off exists."""
+    """Decision 0025. No price is worked out, and the bill has no promise."""
     offenders = _offenders(pattern)
 
     assert not offenders, f"copy promises {described!r}: {offenders}"
@@ -510,18 +501,19 @@ def test_the_surfaces_that_spend_money_say_no_price_is_worked_out() -> None:
 
     The tool that spends somebody's money and the command surface that offers
     it are the places a person decides, so each of them says
-    what does not happen rather than leaving the reader to assume it does.
+    what does not happen and what stops the spending, rather than leaving the
+    reader to assume either.
     """
     schemas = all_tool_schemas()
 
     description = schemas["techtree_climb_start"]["description"]
     assert NO_PRICE_FRAMING.search(description)
-    assert NO_METER_FRAMING.search(description)
+    assert SPEND_STOP_FRAMING.search(description)
 
     assert NO_PRICE_FRAMING.search(PUBLIC_COPY["host/commands.py"])
-    assert NO_METER_FRAMING.search(PUBLIC_COPY["host/commands.py"])
+    assert SPEND_STOP_FRAMING.search(PUBLIC_COPY["host/commands.py"])
     assert NO_PRICE_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
-    assert NO_METER_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
+    assert SPEND_STOP_FRAMING.search(PUBLIC_COPY["skills/operator/SKILL.md"])
 
 
 def test_the_surfaces_that_spend_tokens_say_where_a_charge_lands() -> None:
@@ -564,15 +556,14 @@ def test_the_billing_guard_catches_copy_that_only_names_the_tokens() -> None:
 def test_the_honest_money_and_clock_wording_is_still_allowed() -> None:
     """The guards must not forbid the sentences they exist to require."""
     permitted = (
-        "Techtree checks a Campaign's declared maximum before a run and "
-        "refuses one whose enforced limits could add up past it, but that "
-        "maximum is a ceiling and never a prediction of the bill.",
-        "it works out no figure for what this run will actually come to and "
-        "keeps no running total while one is under way",
+        "While it runs, Techtree adds up the cost the provider reports for "
+        "each finished task, and once the total reaches the $X maximum this "
+        "Campaign declares, it stops both sides; a stopped run has no score.",
+        "Tasks still under way when it stops can add a little to the total.",
+        "Techtree works out no figure for what this run will actually come to.",
         "It names no price: what a run costs is settled by the user's own "
         "model provider.",
-        "no price is worked out in advance and no running total is kept "
-        "while the run goes",
+        "no price is worked out in advance",
         "no finishing time is published for a run",
         "This spends model tokens on inference.",
         "A provider that charges for tokens bills those episodes to the "
@@ -599,7 +590,6 @@ def test_the_money_and_clock_guards_catch_what_they_are_for() -> None:
         "the episode and budget estimate",
         "review the Skill-only change and the estimated cost",
         "It estimates the cost before anything starts.",
-        "The run aborts when it goes over budget.",
         "It will never cost more than the ceiling.",
         "Each run may take up to 600 seconds.",
         "Every run is time-bounded.",
@@ -861,9 +851,10 @@ def test_the_review_that_offers_the_first_paid_run_names_the_declared_maximum() 
 
     assert "$2.50" in declared
     assert "declares no maximum" in undeclared
+    assert SPEND_STOP_FRAMING.search(declared), declared
+    assert "does not stop the run" in undeclared
     for line in (declared, undeclared):
         assert NO_PRICE_FRAMING.search(line), line
-        assert NO_METER_FRAMING.search(line), line
         for described, pattern in FORBIDDEN_COST_PROMISE + FORBIDDEN_TIME_PROMISE:
             assert not pattern.search(line), (described, line)
 

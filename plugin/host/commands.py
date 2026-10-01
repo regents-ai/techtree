@@ -206,22 +206,21 @@ def _declared_maximum_line(answer: Mapping[str, Any]) -> str:
     maximum = answer.get("campaign_maximum_usd")
     if not isinstance(maximum, int | float) or isinstance(maximum, bool):
         return (
-            "This Campaign declares no maximum, so there is no figure to hold "
-            "it to. Techtree works out no figure for the bill first and keeps "
-            "no running total as it goes. The tokens go to the model provider "
-            "you configured: a provider that charges for tokens bills them to "
-            "your own account, and a model you run yourself sends no bill."
+            "This Campaign declares no maximum, so Techtree does not stop the "
+            "run for what it spends, and it works out no figure for the bill "
+            "first. The tokens go to the model provider you configured: a "
+            "provider that charges for tokens bills them to your own account, "
+            "and a model you run yourself sends no bill."
         )
     return (
         f"The most this Campaign declares it may cost is ${maximum:.2f}. "
-        "Techtree checks before it starts that the limits the "
-        "Campaign enforces on each episode cannot add up past that, and "
-        "refuses the run if they could. That figure is a ceiling the Campaign "
-        "declares and never a prediction: Techtree works out no figure for the "
-        "bill first and keeps no running total as it goes. The tokens go to "
-        "the model provider you configured: a provider that charges for tokens "
-        "bills them to your own account, and a model you run yourself sends "
-        "no bill."
+        "Techtree works out no figure for the bill first. While it runs, "
+        "Techtree adds up the cost the provider reports for each finished "
+        "task, and once the total reaches that maximum, it stops both sides; "
+        "a stopped run has no score. Tasks still under way when it stops can "
+        "add a little to the total. The tokens go to the model provider you "
+        "configured: a provider that charges for tokens bills them to your own "
+        "account, and a model you run yourself sends no bill."
     )
 
 

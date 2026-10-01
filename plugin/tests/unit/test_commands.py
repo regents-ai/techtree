@@ -213,8 +213,8 @@ def test_demo_shows_the_maximum_the_campaign_declares() -> None:
     answer = handle_slash_command("demo", _services(bridge=_demo_bridge(_PREPARED)))
 
     assert "$2.50" in answer
-    assert "never a prediction" in answer
-    assert "keeps no running total" in answer
+    assert "works out no figure" in answer
+    assert "stops both sides" in answer
 
 
 def test_demo_reads_the_maximum_off_the_draft_rather_than_remembering_one() -> None:

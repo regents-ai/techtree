@@ -117,11 +117,12 @@ configured, a provider that charges for tokens bills that use to their own
 account, and a model they run themselves sends no bill.
 
 Two things you cannot tell them, so do not try. **How much it will come to:**
-Techtree checks a Campaign's declared maximum before a run and refuses one
-whose enforced limits could add up past it, but that maximum is a ceiling the
-Campaign states in US dollars — it works out no figure for the bill and keeps
-no running total while one is under way, so what those episodes come to is
-settled at the model provider they configured and nowhere else. **How long it
+Techtree works out no figure for the bill. While a run is under way, Techtree
+adds up the cost the provider reports for each finished task, and once the
+total reaches the maximum the Campaign declares in US dollars, it stops both
+sides; a stopped run has no score. Tasks still under way when it stops can add
+a little to the total, and what those episodes come to is settled at the model
+provider they configured. **How long it
 will take:** no finishing time is published for a run.
 Say both plainly rather than offering a guess; a number you invented is the
 one they will hold you to.
@@ -133,8 +134,10 @@ conversation continue. Check on it with `techtree_run_status` when it is worth
 checking — a few times, not in a loop. Nothing you do makes it finish faster,
 and nothing ends it at a set time.
 
-`techtree_run_cancel` is the way a run ends early, and you use it only when
-the person asks you to.
+A run ends early in two ways. Techtree stops it once its spend reaches the
+Campaign's maximum, and then it has no score; say so plainly rather than
+reading anything into the partial results. `techtree_run_cancel` is the other,
+and you use it only when the person asks you to.
 
 ## Reading a result
 
