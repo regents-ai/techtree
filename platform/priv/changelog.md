@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.3 (2026-10-01)
+
+### Changed
+
+- A result now shows what the model provider reported the run cost, added
+  up over every model call on both sides, in place of a figure worked out
+  from a price list. If the provider did not report a cost for every call,
+  no total is shown and the result says why. Install regents-cli 1.3.3 with
+  `uv tool install --python 3.12 regents-cli==1.3.3`. The Hermes plugin is
+  0.5.3.
+
 ## v0.5.2 (2026-10-01)
 
 ### Changed
