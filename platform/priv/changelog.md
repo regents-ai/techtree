@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.4 (2026-10-02)
+
+### Changed
+
+- Techtree now names regents-cli 1.3.4, which adds Patchbay's commands for
+  known fixes and free fixes. Climbs, Campaigns and starter Skills are
+  unchanged. Install it with
+  `uv tool install --python 3.12 regents-cli==1.3.4`. The Hermes plugin is
+  0.5.4.
+
 ## v0.5.3 (2026-10-01)
 
 ### Changed
