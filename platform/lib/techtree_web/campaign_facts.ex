@@ -49,22 +49,21 @@ defmodule TechtreeWeb.CampaignFacts do
   empty values when this release publishes neither.
   """
   @spec for_climb(map() | nil) :: t()
-  def for_climb(nil), do: @empty
-
-  def for_climb(%{projection: facts}) do
-    case object(facts["campaign_spec_digest"]) do
-      nil ->
-        @empty
-
-      campaign ->
-        %{
-          membership: membership(campaign),
-          validation: validation(facts["validation_receipt_digest"])
-        }
-    end
-  end
-
+  def for_climb(%{projection: facts}), do: for_campaign(object(facts["campaign_spec_digest"]))
   def for_climb(_climb), do: @empty
+
+  @doc """
+  The published task membership and validation outcome of one Campaign.
+  """
+  @spec for_campaign(map() | nil) :: t()
+  def for_campaign(nil), do: @empty
+
+  def for_campaign(campaign) do
+    %{
+      membership: membership(campaign),
+      validation: validation(get_in(campaign, ["taskset", "validation_receipt_digest"]))
+    }
+  end
 
   @doc """
   How many of the published tasks the publisher's check found valid, in words.
@@ -94,7 +93,15 @@ defmodule TechtreeWeb.CampaignFacts do
   The Campaign one Climb runs, decoded from the exact bytes this site serves.
   """
   @spec campaign!(map()) :: map()
-  def campaign!(%{projection: %{"campaign_spec_digest" => digest}}) do
+  def campaign!(%{projection: %{"campaign_spec_digest" => digest}}),
+    do: campaign_by_digest!(digest)
+
+  @doc """
+  The Campaign one fingerprint addresses, decoded from the exact bytes this
+  site serves.
+  """
+  @spec campaign_by_digest!(String.t()) :: map()
+  def campaign_by_digest!(digest) do
     {:ok, bytes, _entry} = Query.object_bytes(digest)
     Jason.decode!(bytes)
   end

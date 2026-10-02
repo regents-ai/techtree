@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- A new Climb, HF Tasksmith, asks whether a Skill helps an agent make 6 real
+  changes to Hugging Face code. Each task brings its own working and grading
+  images, and grading happens in a fresh box that sees only the files the task
+  names. Six more tasks are kept apart: they are run once, on the winning
+  Skill, reported beside its result, and never decide the winner. Run pages
+  and the Climb page say when a result comes from those held-out tasks.
+
+### Changed
+
+- Hello World and Frontier-CS move to `@2`. Only the file format changed:
+  same tasks, model, limits and starter Skills. Results published for `@1`
+  keep their pages.
+
 ## v0.5.4 (2026-10-02)
 
 ### Changed

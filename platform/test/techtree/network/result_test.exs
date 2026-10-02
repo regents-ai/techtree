@@ -13,7 +13,7 @@ defmodule Techtree.Network.ResultTest do
   alias Techtree.Network.Result
   alias Techtree.NetworkFixture
 
-  @campaign "test/support/fixtures/proof-v2/campaign.json" |> File.read!() |> Jason.decode!()
+  @campaign "test/support/fixtures/proof-v3/campaign.json" |> File.read!() |> Jason.decode!()
 
   test "a rejected report with no change at all is not enough evidence, never a regression" do
     report =

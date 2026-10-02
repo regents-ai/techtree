@@ -36,7 +36,7 @@ defmodule TechtreeWeb.HealthControllerTest do
       assert body["catalog_digest"] == release.catalog_digest
       assert body["source_revision"] == release.source_revision
       assert body["deployed_source_revision"] == "development"
-      assert body["climb_count"] == 1
+      assert body["climb_count"] == 3
       assert get_resp_header(conn, "cache-control") == ["no-store"]
       assert get_resp_header(conn, "x-techtree-revision") == ["development"]
     end

@@ -62,7 +62,8 @@ defmodule Techtree.Catalog.Query do
   say about the comparison — the tasks, the harness, the model, the ceiling —
   is on the Climb that Campaign belongs to. This is the one lookup that gets
   from the first to the second, so the ingest and the pages ask the same
-  question in the same words.
+  question in the same words. A Climb owns two Campaigns when it keeps tasks
+  apart, and either fingerprint finds it.
   """
   @spec get_climb_by_campaign_digest(String.t()) :: {:ok, CatalogEntry.t()} | {:error, Error.t()}
   def get_climb_by_campaign_digest(digest) when is_binary(digest) do
@@ -80,7 +81,7 @@ defmodule Techtree.Catalog.Query do
 
   defp find_climb_by_campaign_digest(climbs, digest) do
     climbs
-    |> Enum.find(&(&1.projection["campaign_spec_digest"] == digest))
+    |> Enum.find(&(digest in campaign_digests(&1)))
     |> case do
       nil ->
         {:error,
@@ -91,6 +92,20 @@ defmodule Techtree.Catalog.Query do
       climb ->
         {:ok, climb}
     end
+  end
+
+  @doc """
+  Whether this fingerprint is the Campaign of the tasks a Climb keeps apart: run
+  once, on the winning Skill, and never deciding the winner.
+  """
+  @spec held_out_campaign?(CatalogEntry.t(), String.t()) :: boolean()
+  def held_out_campaign?(%CatalogEntry{projection: projection}, digest) do
+    projection["held_out_campaign_spec_digest"] == digest
+  end
+
+  defp campaign_digests(%CatalogEntry{projection: projection}) do
+    [projection["campaign_spec_digest"], projection["held_out_campaign_spec_digest"]]
+    |> Enum.reject(&is_nil/1)
   end
 
   @doc """

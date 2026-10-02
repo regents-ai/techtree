@@ -32,8 +32,11 @@ defmodule Techtree.Catalog.QueryTest do
     end
 
     test "climbs are listed by reference" do
-      assert [climb] = Query.list_climbs()
-      assert climb.reference == CatalogFixture.climb_reference()
+      assert Enum.map(Query.list_climbs(), & &1.reference) == [
+               "frontier-cs-open-ended-climb@2",
+               CatalogFixture.climb_reference(),
+               "tasksmith-climb@1"
+             ]
     end
 
     test "a bare slug resolves to the Climb it names" do
@@ -69,7 +72,7 @@ defmodule Techtree.Catalog.QueryTest do
       assert summary.catalog_import_status == :complete
       assert summary.catalog_digest == release.catalog_digest
       assert summary.source_revision == release.source_revision
-      assert summary.climb_count == 1
+      assert summary.climb_count == 3
 
       refute summary |> inspect() |> String.contains?(CatalogFixture.root())
     end

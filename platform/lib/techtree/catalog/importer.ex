@@ -283,6 +283,8 @@ defmodule Techtree.Catalog.Importer do
     policy_digest = fetch!(campaign, ["data_policy_digest"], entry)
     data_policy = decode_object!(bundle, policy_digest)
     validation_digest = fetch!(campaign, ["taskset", "validation_receipt_digest"], entry)
+    held_out_digest = climb["held_out_campaign_spec_digest"]
+    require_held_out_trial!(bundle, held_out_digest, entry)
 
     %{
       title: fetch!(metadata, ["title"], entry),
@@ -295,6 +297,7 @@ defmodule Techtree.Catalog.Importer do
           metadata: metadata,
           campaign: campaign,
           campaign_digest: campaign_digest,
+          held_out_digest: held_out_digest,
           execution_plan: execution_plan,
           plan_digest: plan_digest,
           data_policy: data_policy,
@@ -305,6 +308,14 @@ defmodule Techtree.Catalog.Importer do
   end
 
   defp describe(_bundle, _entry, _bytes), do: %{title: nil, summary: nil, status: nil}
+
+  # The Campaign of the tasks a Climb keeps apart is run on its own, so it has
+  # to state what a run needs just as the Climb's own Campaign does.
+  defp require_held_out_trial!(_bundle, nil, _entry), do: :ok
+
+  defp require_held_out_trial!(bundle, digest, entry) do
+    bundle |> decode_object!(digest) |> require_trial!(entry)
+  end
 
   # The harness a run measures and who orchestrates the comparison are facts of
   # the plan the Campaign binds, not of the Campaign, and are projected from
@@ -323,6 +334,7 @@ defmodule Techtree.Catalog.Importer do
       "closes_at" => metadata["closes_at"],
       "climb_digest" => entry.digest,
       "campaign_spec_digest" => parts.campaign_digest,
+      "held_out_campaign_spec_digest" => parts.held_out_digest,
       "execution_plan_digest" => parts.plan_digest,
       "data_policy_digest" => parts.policy_digest,
       "validation_receipt_digest" => parts.validation_digest,
@@ -335,6 +347,7 @@ defmodule Techtree.Catalog.Importer do
       "subject_runtime" =>
         take(campaign, ["agents", "subject", "runtime"], [
           "type",
+          "image_source",
           "image",
           "cpu",
           "memory_gb",

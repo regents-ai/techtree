@@ -47,17 +47,25 @@ defmodule TechtreeWeb.ClimbController do
     |> Map.put("objects", linked_objects(entry.projection))
   end
 
+  # The Campaign of the tasks a Climb keeps apart is linked when the Climb
+  # names one.
   defp linked_objects(projection) do
-    Map.new(@linked_objects, fn {name, key} ->
-      digest = Map.fetch!(projection, key)
+    @linked_objects
+    |> Map.new(fn {name, key} -> {name, linked_object(Map.fetch!(projection, key))} end)
+    |> put_held_out_campaign(projection["held_out_campaign_spec_digest"])
+  end
 
-      {name,
-       %{
-         "digest" => digest,
-         "media_type" => Bundle.json_media_type(),
-         "url" => object_url(digest)
-       }}
-    end)
+  defp put_held_out_campaign(objects, nil), do: objects
+
+  defp put_held_out_campaign(objects, digest),
+    do: Map.put(objects, "held_out_campaign", linked_object(digest))
+
+  defp linked_object(digest) do
+    %{
+      "digest" => digest,
+      "media_type" => Bundle.json_media_type(),
+      "url" => object_url(digest)
+    }
   end
 
   # Links are relative, and spell the digest the way the catalog spells it: a

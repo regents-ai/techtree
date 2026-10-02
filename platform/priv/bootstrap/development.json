@@ -31,11 +31,11 @@
     "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]
   },
   "introductory_climb": {
-    "reference": "hello-world-climb@1",
+    "reference": "hello-world-climb@2",
     "host_prompt": "Set up Techtree and run the Hello World Climb."
   },
   "climbs": {
-    "hello-world-climb@1": {
+    "hello-world-climb@2": {
       "starter_skill": {
         "name": "hello-world-starter-v1",
         "object_url": "https://placeholder.invalid/unchosen",
@@ -43,6 +43,26 @@
         "tree_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
         "media_type": "text/markdown",
         "size": 1496
+      }
+    },
+    "frontier-cs-open-ended-climb@2": {
+      "starter_skill": {
+        "name": "frontier-cs-starter-v4",
+        "object_url": "https://placeholder.invalid/unchosen",
+        "file_digest": "sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669",
+        "tree_digest": "sha256:c93c985b1017d976408239b2583bff7248507032cb32c7aeb20edd685fbc86a6",
+        "media_type": "text/markdown",
+        "size": 4675
+      }
+    },
+    "tasksmith-climb@1": {
+      "starter_skill": {
+        "name": "tasksmith-starter-v1",
+        "object_url": "https://placeholder.invalid/unchosen",
+        "file_digest": "sha256:6e36be766e6d2ac16f5d8feda3a09f5b1337a6d9f7d1b306cdd44dbe456377d4",
+        "tree_digest": "sha256:974fafc5bce1d489fe332c7bdc8e9b9ecb38b873d407ac7d38c70f098362b595",
+        "media_type": "text/markdown",
+        "size": 1308
       }
     }
   }

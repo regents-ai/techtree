@@ -743,7 +743,7 @@ defmodule Techtree.Network.Bundle do
       {:ok, climb} ->
         with {:ok, campaign} <- published_object(digest),
              {:ok, execution_plan} <- published_object(campaign["execution_plan_digest"]) do
-          {:ok, campaign, execution_plan, climb.reference, climb.title}
+          {:ok, campaign, execution_plan, climb.reference, campaign_name(climb, digest)}
         else
           _other ->
             {:error,
@@ -754,6 +754,14 @@ defmodule Techtree.Network.Bundle do
              )}
         end
     end
+  end
+
+  # A run on the tasks a Climb keeps apart is filed under a name of its own, so
+  # the list of Results never shows it as one more run of the Climb's tasks.
+  defp campaign_name(climb, digest) do
+    if Query.held_out_campaign?(climb, digest),
+      do: climb.title <> ", held-out tasks",
+      else: climb.title
   end
 
   defp report_context(report, manifest, campaign) do

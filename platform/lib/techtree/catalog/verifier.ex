@@ -23,11 +23,11 @@ defmodule Techtree.Catalog.Verifier do
   @catalog_schema_version "techtree.catalog.v2"
   @bootstrap_schema_version "techtree.bootstrap.v1alpha2"
 
-  # The two shapes the Climb graph is walked through. A v2 Campaign binds the
+  # The two shapes the Climb graph is walked through. A v3 Campaign binds the
   # resolved execution plan it was defined against by digest, and the plan is
   # a catalog object in its own right; both are named here so that a graph
   # built from any other shape is refused before a page is built from it.
-  @campaign_schema_version "techtree.campaign.v2"
+  @campaign_schema_version "techtree.campaign.v3"
   @execution_plan_schema_version "techtree.execution-plan.v1"
   @commit_length 40
 
@@ -145,11 +145,13 @@ defmodule Techtree.Catalog.Verifier do
 
   The Climb graph is walked the way a reader walks it: Climb to Campaign,
   Campaign to the execution plan it binds, to its DataPolicy and to the
-  publisher validation, validation to its normalized evidence. The Campaign
-  and the plan are also held to the one shape each has — a Campaign that binds
-  no plan, or a plan of another shape, is a graph no page here can describe. A
-  public catalog with a dangling reference is a page that cannot be rendered,
-  so it is refused at import rather than at request time.
+  publisher validation, validation to its normalized evidence. A Climb that
+  keeps tasks apart names a second Campaign for them, which is walked the same
+  way and must be a different Campaign from the one the Climb runs. The
+  Campaign and the plan are also held to the one shape each has — a Campaign
+  that binds no plan, or a plan of another shape, is a graph no page here can
+  describe. A public catalog with a dangling reference is a page that cannot
+  be rendered, so it is refused at import rather than at request time.
   """
   @spec verify_no_dangling_refs(Bundle.t()) :: :ok | {:error, Error.t()}
   def verify_no_dangling_refs(%Bundle{} = bundle) do
@@ -162,7 +164,31 @@ defmodule Techtree.Catalog.Verifier do
   defp verify_climb_graph(bundle, entry) do
     with {:ok, climb} <- decode_object(bundle, entry.digest, entry.relative_path),
          {:ok, campaign_digest} <- fetch_digest(climb, ["campaign_spec_digest"], entry),
-         {:ok, campaign} <-
+         :ok <- verify_campaign_graph(bundle, campaign_digest, entry) do
+      verify_held_out_campaign(bundle, climb, campaign_digest, entry)
+    end
+  end
+
+  defp verify_held_out_campaign(bundle, climb, campaign_digest, entry) do
+    case Map.get(climb, "held_out_campaign_spec_digest") do
+      nil ->
+        :ok
+
+      ^campaign_digest ->
+        {:error,
+         Error.bundle_invalid("a Climb keeps apart the same Campaign it runs", %{
+           "path" => entry.relative_path
+         })}
+
+      _held_out ->
+        with {:ok, digest} <- fetch_digest(climb, ["held_out_campaign_spec_digest"], entry) do
+          verify_campaign_graph(bundle, digest, entry)
+        end
+    end
+  end
+
+  defp verify_campaign_graph(bundle, campaign_digest, entry) do
+    with {:ok, campaign} <-
            decode_shipped(bundle, campaign_digest, :campaign, @campaign_schema_version),
          {:ok, plan_digest} <- fetch_digest(campaign, ["execution_plan_digest"], entry),
          {:ok, _plan} <-

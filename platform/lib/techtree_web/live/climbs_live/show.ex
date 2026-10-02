@@ -6,6 +6,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.Providers
 
@@ -17,7 +18,8 @@ defmodule TechtreeWeb.ClimbsLive.Show do
          assign(socket,
            page_title: climb.title,
            climb: climb,
-           copy: ClimbCopy.for_reference(climb.reference)
+           copy: ClimbCopy.for_reference(climb.reference),
+           held_out_count: held_out_count(climb.projection["held_out_campaign_spec_digest"])
          )}
 
       {:error, _error} ->
@@ -53,6 +55,13 @@ defmodule TechtreeWeb.ClimbsLive.Show do
             <dt>Tasks</dt>
             <dd>{@climb.projection["task_count"]}, fixed before either Run</dd>
           </div>
+          <div :if={@held_out_count}>
+            <dt>Held-out tasks</dt>
+            <dd>
+              {@held_out_count} more, kept apart. They are run once, on the winning Skill,
+              and never decide the winner.
+            </dd>
+          </div>
           <div>
             <dt>Input</dt>
             <dd>{(@copy && @copy.input) || "Defined by the published task set."}</dd>
@@ -78,6 +87,15 @@ defmodule TechtreeWeb.ClimbsLive.Show do
       </article>
     </Layouts.page>
     """
+  end
+
+  defp held_out_count(nil), do: nil
+
+  defp held_out_count(digest) do
+    digest
+    |> CampaignFacts.campaign_by_digest!()
+    |> CampaignFacts.for_campaign()
+    |> get_in([:membership, "count"])
   end
 
   defp held_fixed_words(climb) do

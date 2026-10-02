@@ -33,17 +33,17 @@ defmodule Techtree.Catalog.ImporterTest do
     test "stages one active entry per shipped object" do
       entries = Ash.read!(CatalogEntry)
 
-      assert length(entries) == 6
+      assert length(entries) == 21
       assert Enum.all?(entries, & &1.active)
 
-      assert entries |> Enum.map(& &1.kind) |> Enum.sort() == [
-               :campaign,
-               :climb,
-               :data_policy,
-               :execution_plan,
-               :taskset_validation,
-               :validation_evidence
-             ]
+      assert entries |> Enum.map(& &1.kind) |> Enum.frequencies() == %{
+               campaign: 4,
+               climb: 3,
+               data_policy: 3,
+               execution_plan: 3,
+               taskset_validation: 4,
+               validation_evidence: 4
+             }
 
       for entry <- entries do
         bytes = CatalogFixture.read!(CatalogFixture.root(), entry.relative_path)
@@ -54,25 +54,26 @@ defmodule Techtree.Catalog.ImporterTest do
     end
 
     test "describes the public Climb from the graph it points at" do
-      assert [climb] = Query.list_climbs()
+      climb = Query.get_climb_by_reference!(CatalogFixture.climb_reference())
 
       assert climb.reference == CatalogFixture.climb_reference()
       assert climb.title == "Techtree Hello World"
-      assert climb.status == "development"
+      assert climb.status == "open"
       assert climb.summary =~ "A toy Skill-uplift Climb"
 
       assert %{
                "slug" => "hello-world-climb",
-               "version" => 1,
+               "version" => 2,
                "campaign_spec_digest" => campaign_digest,
+               "held_out_campaign_spec_digest" => nil,
                "execution_plan_digest" => plan_digest,
                "purpose" => "component_uplift",
                "task_count" => 36,
                "taskset_id" => "procedure-transfer-v1",
                "subject_harness" => "hermes-agent",
-               "subject_harness_version" => "0.19.0",
+               "subject_harness_version" => "v2026.9.24",
                "execution_backend_kind" => "local",
-               "proof_grade" => "development_only",
+               "proof_grade" => "P1",
                "leaderboard_enabled" => false,
                "data_policy" => data_policy,
                "mutation_contract" => mutation_contract
@@ -91,9 +92,9 @@ defmodule Techtree.Catalog.ImporterTest do
     end
 
     test "carries no credential into the public projection" do
-      assert [climb] = Query.list_climbs()
-
-      refute climb.projection |> Jason.encode!() |> String.contains?("credential_env")
+      for climb <- Query.list_climbs() do
+        refute climb.projection |> Jason.encode!() |> String.contains?("credential_env")
+      end
     end
 
     test "stores the bootstrap payload as the exact bytes it verified" do
@@ -164,7 +165,7 @@ defmodule Techtree.Catalog.ImporterTest do
       CatalogFixture.use_bundle(bundle)
       Importer.import!(bundle)
 
-      assert [climb] = Query.list_climbs()
+      climb = Query.get_climb_by_reference!(CatalogFixture.climb_reference())
       assert climb.protocol_digest == replacement
       assert climb.reference == CatalogFixture.climb_reference()
 
@@ -207,7 +208,7 @@ defmodule Techtree.Catalog.ImporterTest do
       assert active.id == first.id
       assert active.catalog_digest == CatalogFixture.catalog_digest()
 
-      assert length(Ash.read!(CatalogEntry)) == 6
+      assert length(Ash.read!(CatalogEntry)) == 21
       assert Enum.all?(Ash.read!(CatalogEntry), & &1.active)
       assert Enum.count(Ash.read!(CatalogRelease), & &1.active) == 1
 
@@ -256,7 +257,7 @@ defmodule Techtree.Catalog.ImporterTest do
       assert error.code == :catalog_bundle_invalid
 
       assert Ash.read!(CatalogRelease) |> Enum.map(& &1.id) == [first.id]
-      assert length(Ash.read!(CatalogEntry)) == 6
+      assert length(Ash.read!(CatalogEntry)) == 21
       assert {:ok, active} = Query.active_catalog_release()
       assert active.id == first.id
     end
@@ -267,7 +268,7 @@ defmodule Techtree.Catalog.ImporterTest do
   # is exactly the failure the staging transaction has to survive.
   defp duplicate_reference!(bundle) do
     original = CatalogFixture.read!(bundle, CatalogFixture.climb_path())
-    duplicate = String.replace(original, "\"version\":1", "\"version\":1 ")
+    duplicate = String.replace(original, "\"version\":2", "\"version\":2 ")
     CatalogFixture.write!(bundle, "climbs/duplicate.json", duplicate)
 
     CatalogFixture.rewrite_index!(bundle, fn index ->

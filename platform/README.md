@@ -174,8 +174,9 @@ are hashed again on every read.
 
 ## The catalog bundle
 
-The live importer accepts `techtree.catalog.v2` and `techtree.campaign.v2`.
-Each Campaign must bind a shipped `techtree.execution-plan.v1` object by its
+The live importer accepts `techtree.catalog.v2` and `techtree.campaign.v3`.
+A Climb may name a second, held-out Campaign; the importer checks it the same
+way as the Climb's own. Each Campaign must bind a shipped `techtree.execution-plan.v1` object by its
 raw-byte digest. Imports reject absent, wrong-kind, or unsupported-schema plans;
 the API serves their exact bytes like every other content-addressed object.
 Published v2 reports must name that same Campaign and execution plan. The HTTP

@@ -13,14 +13,14 @@ defmodule Techtree.CatalogFixture do
   alias Techtree.Catalog.Digest
   alias Techtree.Release.StarterSkill
 
-  @climb_reference "hello-world-climb@1"
+  @climb_reference "hello-world-climb@2"
   @climb_path "climbs/hello-world-climb.json"
   @campaign_path "campaigns/hello-world-climb.json"
   @execution_plan_path "execution-plans/hello-world-climb.json"
-  @campaign_digest "sha256:d5e91926076b69401c25c29868d00dad5c057ca4151a141b58186bb811b9f07c"
-  @execution_plan_digest "sha256:6e3443231e0605c2a07b100507c72bd3c49fa848cf454f79f70666ab922f8eb3"
-  @catalog_digest "sha256:edf773ee561c09413d9704046b2d53edff19bc04c0cfbe7d6efee646670a26f3"
-  @taskset_validation_digest "sha256:4944bd71caa1a295e03325b18a7af753d0d8fcf787189c89244209171cda1302"
+  @campaign_digest "sha256:08d06839870d6cb7deaa29653e0506eabe9c3f4c94aff5e184e5c6962a9c3dde"
+  @execution_plan_digest "sha256:626e31e0939288726a2fa86d76faec7ce7f4b2bec06bf0b5c614a1f97b368d7c"
+  @catalog_digest "sha256:776dd570a97caa4266d1e06f30d2c1f5e5a2961b9b18b6ab45caab1bea0120bf"
+  @taskset_validation_digest "sha256:41646dc7b4044b1f3305df7434516c1515b7e27755c64d3c32f7993e5ecf802f"
   @data_policy_digest "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9"
 
   # Stand-ins with the shape of a real coordinate and none of its meaning.
@@ -179,7 +179,8 @@ defmodule Techtree.CatalogFixture do
 
   @doc """
   The fixture bootstrap release, rewritten as a release that claims every
-  coordinate is real.
+  coordinate is real, with each Climb's starter Skill at the address this
+  release serves it from.
 
   These are test values, not release coordinates: what they are for is to make
   a document that passes decision 0007 R10, so that a test can spoil exactly one
@@ -209,9 +210,20 @@ defmodule Techtree.CatalogFixture do
       @commit,
       "--enable"
     ])
-    |> put_in(starter_path("object_url"), @object_route <> starter().file_digest)
-    |> put_in(starter_path("file_digest"), starter().file_digest)
-    |> put_in(starter_path("tree_digest"), starter().tree_digest)
+    |> Map.update!(
+      "climbs",
+      &Map.new(&1, fn {reference, climb} -> concrete_starter(reference, climb) end)
+    )
+  end
+
+  defp concrete_starter(reference, climb) do
+    {:ok, starter} = StarterSkill.for_climb(reference)
+
+    {reference,
+     climb
+     |> put_in(["starter_skill", "object_url"], @object_route <> starter.file_digest)
+     |> put_in(["starter_skill", "file_digest"], starter.file_digest)
+     |> put_in(["starter_skill", "tree_digest"], starter.tree_digest)}
   end
 
   @doc """

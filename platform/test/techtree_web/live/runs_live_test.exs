@@ -59,12 +59,12 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "Hermes 0.19.0"
-      assert text =~ "qwen/qwen3.7-flash"
+      assert text =~ "Hermes v2026.9.24"
+      assert text =~ "openai/gpt-6-luna"
 
       for href <- [
             "https://github.com/NousResearch/hermes-agent",
-            "https://openrouter.ai/qwen/qwen3.7-flash",
+            "https://openrouter.ai/openai/gpt-6-luna",
             "/climbs/hello-world-climb"
           ] do
         assert has_element?(live, ~s|.results-filter-about[href="#{href}"][target="_blank"]|)
@@ -313,17 +313,17 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert text =~ "36 tasks, fixed before either run"
 
       assert text =~
-               "Stops starting model calls at 44 calls, 900,000 input tokens or 16,000 output tokens"
+               "Stops starting model calls at 44 calls, 500,000 input tokens or 32,000 output tokens"
 
       assert text =~
                "36 tasks, each tried once without the Skill and once with it: up to 72 tries. " <>
                  "At most 3,168 model calls."
 
-      assert text =~ "add up to 64,800,000 input tokens and 1,152,000 output tokens"
+      assert text =~ "add up to 36,000,000 input tokens and 2,304,000 output tokens"
       assert text =~ entry.campaign_spec_digest
       assert text =~ entry.data_policy_digest
       assert text =~ entry.run_id
-      assert text =~ "qwen/qwen3.7-flash from Prime Intellect"
+      assert text =~ "openai/gpt-6-luna from Prime Intellect"
       refute text =~ ~r/\bprime\b/
       assert html =~ ~s|href="/climbs/hello-world-climb"|
     end
@@ -430,14 +430,14 @@ defmodule TechtreeWeb.RunsLiveTest do
       refute has_element?(live, "#run-skill-change", "Skill 1")
       assert has_element?(live, "#run-skill-change", "No Skill")
       assert has_element?(live, "#run-skill-change", skill["digest"])
-      assert has_element?(live, "#run-skill-change", "4,096 bytes")
+      assert has_element?(live, "#run-skill-change", "1,496 bytes")
       assert has_element?(live, "#run-skill-change", "found only this difference")
 
       # The Campaign names no build of its model, so the report carries the caveat.
       assert has_element?(
                live,
                "#run-model-build",
-               "Prime Intellect does not publish a build number for qwen/qwen3.7-flash"
+               "Prime Intellect does not publish a build number for openai/gpt-6-luna"
              )
     end
 
@@ -521,7 +521,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert text =~ Calendar.strftime(marked.withdrawn_at, "%-d %B %Y")
 
       # It is marked, not emptied: everything it published is still there.
-      assert text =~ "qwen/qwen3.7-flash"
+      assert text =~ "openai/gpt-6-luna"
       assert text =~ entry.run_id
       assert html =~ hd(entry.task_deltas)["task_hash"]
     end
@@ -554,10 +554,10 @@ defmodule TechtreeWeb.RunsLiveTest do
         live(
           conn,
           "/results?" <>
-            URI.encode_query(agent: "hermes-agent", agent_version: "0.19.0", model: planted)
+            URI.encode_query(agent: "hermes-agent", agent_version: "v2026.9.24", model: planted)
         )
 
-      assert has_element?(live, "#results-no-match", "Hermes 0.19.0 · that model")
+      assert has_element?(live, "#results-no-match", "Hermes v2026.9.24 · that model")
       refute html =~ "evil.example"
 
       {:ok, live, html} =

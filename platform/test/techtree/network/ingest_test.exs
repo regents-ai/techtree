@@ -55,8 +55,8 @@ defmodule Techtree.Network.IngestTest do
       assert entry.participant_key_id == manifest["executor_identity"]["key_id"]
       assert entry.participant_public_key == manifest["executor_identity"]["public_key"]
       assert entry.subject_harness == "hermes-agent"
-      assert entry.subject_harness_version == "0.19.0"
-      assert entry.subject_model == "qwen/qwen3.7-flash"
+      assert entry.subject_harness_version == "v2026.9.24"
+      assert entry.subject_model == "openai/gpt-6-luna"
       assert entry.subject_provider == "prime"
       assert entry.wins == report["primary_result"]["wins"]
       assert entry.losses == report["primary_result"]["losses"]

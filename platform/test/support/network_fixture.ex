@@ -3,7 +3,7 @@ defmodule Techtree.NetworkFixture do
   A proof bundle of the Campaign this catalog publishes, and ways to damage a
   copy of it.
 
-  `test/support/fixtures/proof-v2` is one complete v0.2 proof of the
+  `test/support/fixtures/proof-v3` is one complete v3 proof of the
   hello-world Campaign the fixture catalog ships — eighty-five files, every
   digest and every signature as the CLI's bundle writer sealed them, and every
   one of the CLI's own offline checks passing over it. It was written by the
@@ -28,8 +28,8 @@ defmodule Techtree.NetworkFixture do
   alias Techtree.Catalog.Digest
   alias Techtree.Network.Key
 
-  @root Path.expand("fixtures/proof-v2", __DIR__)
-  @cli_submission Path.expand("fixtures/publication/v2-submission.json", __DIR__)
+  @root Path.expand("fixtures/proof-v3", __DIR__)
+  @cli_submission Path.expand("fixtures/publication/v3-submission.json", __DIR__)
   @schema_version "techtree.publication-submission.v1alpha1"
   @withdrawal_schema_version "techtree.publication-withdrawal.v1alpha1"
   @report_schema_version "techtree.uplift-report.v2"
@@ -359,14 +359,14 @@ defmodule Techtree.NetworkFixture do
         run_id: payload["run_id"],
         campaign_spec_digest: payload["campaign_spec_digest"],
         data_policy_digest: payload["data_policy_digest"],
-        climb_reference: "hello-world-climb@1",
+        climb_reference: "hello-world-climb@2",
         participant_kind: :local_ed25519,
         participant_key_id: payload["executor_identity"]["key_id"],
         participant_public_key: payload["executor_identity"]["public_key"],
         subject_provider: "prime",
-        subject_model: "qwen/qwen3.7-flash",
+        subject_model: "openai/gpt-6-luna",
         subject_harness: "hermes-agent",
-        subject_harness_version: "0.19.0",
+        subject_harness_version: "v2026.9.24",
         skill_digest: Digest.hash_bytes("skill"),
         baseline_mean: 0.0,
         candidate_mean: 1.0,

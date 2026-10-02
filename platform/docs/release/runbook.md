@@ -51,8 +51,9 @@ Every Climb has its own starter Skill, served by the digest of its file:
 
 | Climb | File | Address | Bytes |
 | --- | --- | --- | --- |
-| `hello-world-climb@1` | `hello-world-starter-v1/SKILL.md` | `sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c` | 1496 |
-| `frontier-cs-open-ended-climb@1` | `frontier-cs-starter-v4/SKILL.md` | `sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669` | 4675 |
+| `hello-world-climb@2` | `hello-world-starter-v1/SKILL.md` | `sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c` | 1496 |
+| `frontier-cs-open-ended-climb@2` | `frontier-cs-starter-v4/SKILL.md` | `sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669` | 4675 |
+| `tasksmith-climb@1` | `tasksmith-starter-v1/SKILL.md` | `sha256:6e36be766e6d2ac16f5d8feda3a09f5b1337a6d9f7d1b306cdd44dbe456377d4` | 1308 |
 
 `GET /api/v1/objects/<address>` returns the file as
 `text/markdown; charset=utf-8`, cached `public, max-age=31536000, immutable`,

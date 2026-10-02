@@ -85,6 +85,13 @@ defmodule TechtreeWeb.RunsLive.Show do
         </p>
       </.warning_callout>
 
+      <.warning_callout :if={@held_out?} title="Held-out tasks">
+        <p id="run-held-out">
+          These are the tasks this Climb keeps apart. A run on them is reported beside the
+          winning Skill's result and never decides the winner.
+        </p>
+      </.warning_callout>
+
       <header class="page-heading">
         <p class="eyebrow">{@campaign_name} · {arrived(@entry.accepted_at)}</p>
         <h1 id="run-comparison">{@skill_name} vs No Skill</h1>
@@ -468,10 +475,13 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   # Ingest only publishes a Result whose Campaign this site publishes, and
   # stores its assessment with it, and a Climb is retired rather than removed,
-  # so each of these holds for every published Result.
+  # so each of these holds for every published Result. The Campaign is the one
+  # the Result ran, which for the tasks a Climb keeps apart is not the Climb's
+  # own.
   defp assigns_for(entry) do
     {:ok, climb} = Catalog.get_any_climb_by_campaign_digest(entry.campaign_spec_digest)
-    campaign = CampaignFacts.campaign!(climb)
+    campaign = CampaignFacts.campaign_by_digest!(entry.campaign_spec_digest)
+    held_out? = Catalog.held_out_campaign?(climb, entry.campaign_spec_digest)
 
     campaign_name = campaign_name(entry, climb)
     tasks = ResultAssessment.tasks(entry.task_deltas)
@@ -486,15 +496,16 @@ defmodule TechtreeWeb.RunsLive.Show do
       publisher_words: publisher_words(entry),
       score_name: climb.projection["scoring"]["primary_reward"],
       withdrawn?: Query.withdrawn?(entry),
+      held_out?: held_out?,
       assessment: entry.assessment,
       groups: groups,
       examples: ResultAssessment.examples(groups),
       one_skill?: campaign["mutation_contract"]["maximum_skills"] == 1,
       tasks: tasks,
       task_filter: :all,
-      published: CampaignFacts.for_climb(climb),
+      published: CampaignFacts.for_campaign(campaign),
       limits: limits(campaign),
-      rerun: rerun(entry),
+      rerun: rerun(entry, held_out?),
       slug: climb.projection["slug"]
     }
   end
@@ -539,14 +550,15 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   # The commands only exist when the release served now installs and still
   # carries this Result's Climb; a retired Climb cannot be run by it.
-  defp rerun(entry) do
+  defp rerun(entry, held_out?) do
     case ReleaseInfo.current() do
       %{installable?: true, install_argv: [_ | _] = install_argv, minimums: minimums} ->
         case Catalog.get_climb_by_campaign_digest(entry.campaign_spec_digest) do
           {:ok, climb} ->
             %{
               minimums: minimums,
-              commands: rerun_commands(install_argv, climb.reference, entry.skill_digest)
+              commands:
+                rerun_commands(install_argv, climb.reference, entry.skill_digest, held_out?)
             }
 
           {:error, _retired} ->
@@ -558,14 +570,15 @@ defmodule TechtreeWeb.RunsLive.Show do
     end
   end
 
-  defp rerun_commands(install_argv, reference, fingerprint) do
+  defp rerun_commands(install_argv, reference, fingerprint, held_out?) do
+    prepare = ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]
+
     [
       {:command, install_argv},
       {:command, ["regents", "techtree", "setup"]},
       {:command, ["regents", "techtree", "doctor", "--climb", reference]},
       {:comment, "Put the Skill's files in a folder, then prepare it:"},
-      {:command,
-       ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]},
+      {:command, if(held_out?, do: prepare ++ ["--held-out"], else: prepare)},
       {:comment, "Check that the Skill content digest it prints is #{fingerprint}"},
       {:comment, "Start the draft it names. Techtree shows the most it may spend first:"},
       {:command, ["regents", "techtree", "climb", "start", "DRAFT_ID"]},

@@ -546,6 +546,12 @@ defmodule TechtreeWeb.OpenAPI do
           "status" => %{"type" => ["string", "null"]},
           "climb_digest" => ref("Digest"),
           "campaign_spec_digest" => ref("Digest"),
+          "held_out_campaign_spec_digest" => %{
+            "description" =>
+              "The Campaign of the tasks this Climb keeps apart: run once, on the winning " <>
+                "Skill, and never deciding the winner. Null when it keeps none apart.",
+            "oneOf" => [ref("Digest"), %{"type" => "null"}]
+          },
           "execution_plan_digest" => ref("Digest"),
           "data_policy_digest" => ref("Digest"),
           "validation_receipt_digest" => ref("Digest"),

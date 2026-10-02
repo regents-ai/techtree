@@ -2,7 +2,7 @@ defmodule Techtree.Network.ConformanceTest do
   @moduledoc """
   The bytes the other half of this feature actually sends.
 
-  Everything else in this suite builds a submission out of the synthetic v2 proof fixture
+  Everything else in this suite builds a submission out of the synthetic v3 proof fixture
   using this repository's own fixture helper, which proves that the ingest
   agrees with this repository's reading of the wire contract. That is the one
   thing it was never in doubt about. The two halves of publishing were built at
@@ -13,8 +13,8 @@ defmodule Techtree.Network.ConformanceTest do
 
   The document tested here was built by the CLI's own publishing path —
   `PublicationService.submission_bytes`, which regents-cli carries — over the
-  v0.2 proof fixture, and committed at
-  `test/support/fixtures/publication/v2-submission.json`. It is the CLI's own
+  v3 proof fixture, and committed at
+  `test/support/fixtures/publication/v3-submission.json`. It is the CLI's own
   bytes rather than this repository's reading of them, which is what makes it
   a conformance check.
 

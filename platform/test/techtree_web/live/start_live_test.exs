@@ -127,7 +127,7 @@ defmodule TechtreeWeb.StartLiveTest do
     assert text =~ "OTHER_PROVIDER_KEY"
     assert text =~ "after 7 calls, 1,234,567 input tokens or 8,000 output tokens"
     assert text =~ "With 5 tasks, a run can make up to 70 model calls"
-    refute text =~ "qwen/qwen3.7-flash"
+    refute text =~ "openai/gpt-6-luna"
     refute text =~ "PRIME_API_KEY"
   end
 

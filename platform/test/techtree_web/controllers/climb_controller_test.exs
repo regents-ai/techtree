@@ -17,11 +17,11 @@ defmodule TechtreeWeb.ClimbControllerTest do
       assert summary["kind"] == "climb_summary_projection"
       assert summary["reference"] == CatalogFixture.climb_reference()
       assert summary["title"] == "Techtree Hello World"
-      assert summary["status"] == "development"
+      assert summary["status"] == "open"
       assert summary["purpose"] == "component_uplift"
       assert summary["task_count"] == 36
       assert summary["subject_harness"] == "hermes-agent"
-      assert summary["proof_grade"] == "development_only"
+      assert summary["proof_grade"] == "P1"
       assert summary["leaderboard_enabled"] == false
       assert summary["mutation_contract"]["kind"] == "skill_insertion"
 

@@ -35,23 +35,25 @@ defmodule Techtree.Catalog.BundleTest do
     test "lists every Climb and every content-addressed object" do
       entries = Bundle.list_entries(Bundle.load!(CatalogFixture.root()))
 
-      # The Climb comes first and the content-addressed objects follow in
-      # digest order, which is the index's own order and not a meaning anybody
-      # assigned. It changes whenever an object's bytes change.
-      assert Enum.map(entries, & &1.kind) == [
-               :climb,
-               :taskset_validation,
-               :data_policy,
-               :execution_plan,
-               :validation_evidence,
-               :campaign
+      # The Climbs come first, in the index's order, and the content-addressed
+      # objects follow in digest order, which is the index's own order and not a
+      # meaning anybody assigned. It changes whenever an object's bytes change.
+      {climbs, objects} = Enum.split(entries, 3)
+
+      assert Enum.map(climbs, & &1.reference) == [
+               CatalogFixture.climb_reference(),
+               "frontier-cs-open-ended-climb@2",
+               "tasksmith-climb@1"
              ]
 
-      climb = hd(entries)
-      assert climb.reference == CatalogFixture.climb_reference()
+      assert Enum.all?(climbs, &(&1.kind == :climb))
+      digests = Enum.map(objects, & &1.digest)
+      assert digests == Enum.sort(digests)
+
+      climb = hd(climbs)
       assert climb.relative_path == CatalogFixture.climb_path()
       assert climb.media_type == "application/json"
-      assert Enum.all?(tl(entries), &is_nil(&1.reference))
+      assert Enum.all?(objects, &(is_nil(&1.reference) and &1.kind != :climb))
     end
   end
 
