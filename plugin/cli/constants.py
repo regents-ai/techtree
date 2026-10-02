@@ -13,7 +13,7 @@ from typing import Final
 # Identity ------------------------------------------------------------------
 
 PLUGIN_ID: Final = "techtree"
-PLUGIN_VERSION: Final = "0.5.3"
+PLUGIN_VERSION: Final = "0.5.4"
 TOOLSET_NAME: Final = "techtree"
 
 # Repository layout ---------------------------------------------------------
