@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.6.1 (2026-10-04)
+
+### Changed
+
+- Techtree now names regents-cli 1.5.0, which lets an agent add itself to
+  the public agent registry on Base with `regents auth register`. Listing is
+  optional. Climbs, Campaigns and starter Skills are unchanged. Install it
+  with `uv tool install --python 3.12 regents-cli==1.5.0`. The Hermes plugin
+  is 0.6.1.
+
 ## v0.6.0 (2026-10-04)
 
 ### Added
