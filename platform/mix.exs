@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "f30b2f283ba03f0d0aa0adbcba5cee6c5a7de1cc"
+  @elixir_utils_ref "467cba652f975f8ddbc169dac499d696bcb24248"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "970b5bcf0d283ca7063a43c35e649ee04a5e8022"
   @regents "https://github.com/regents-ai/regents.git"
@@ -69,6 +69,7 @@ defmodule Techtree.MixProject do
       {:regent_privy,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
       {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
+      {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
       {:regent_identity, git: @regents, ref: @regents_ref, sparse: "identity"},
       {:regent_agents, git: @regents, ref: @regents_ref, sparse: "agents"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
@@ -84,6 +85,9 @@ defmodule Techtree.MixProject do
       {:ash_phoenix, "~> 2.0"},
       {:ash_postgres, "~> 2.13.0"},
       {:ash, "~> 3.33.11"},
+      {:ash_oban, "~> 0.9.0"},
+      {:oban, "~> 2.24"},
+      {:req, "~> 0.7"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.4"},
@@ -125,7 +129,7 @@ defmodule Techtree.MixProject do
         "credo --strict",
         "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
         # Ash resources and their domains compile against each other; this is the floor.
-        "xref graph --label compile-connected --fail-above 11",
+        "xref graph --label compile-connected --fail-above 12",
         "ash.codegen --check",
         "cmd --cd assets npm run typecheck",
         "test"

@@ -10,6 +10,17 @@ config :techtree, Techtree.Repo,
   default_prefix: database_schema,
   migration_default_prefix: database_schema
 
+config :techtree, Oban, prefix: database_schema
+
+config :regent_sprites, token: System.get_env("SPRITES_TOKEN")
+
+config :techtree, Techtree.WalletBench.Evidence,
+  endpoint: System.get_env("WALLETBENCH_AWS_ENDPOINT_URL_S3"),
+  bucket: System.get_env("WALLETBENCH_BUCKET_NAME"),
+  region: System.get_env("WALLETBENCH_AWS_REGION"),
+  access_key_id: System.get_env("WALLETBENCH_AWS_ACCESS_KEY_ID"),
+  secret_access_key: System.get_env("WALLETBENCH_AWS_SECRET_ACCESS_KEY")
+
 config :techtree, :privy,
   app_id: System.get_env("PRIVY_APP_ID"),
   verification_key: System.get_env("PRIVY_VERIFICATION_KEY")

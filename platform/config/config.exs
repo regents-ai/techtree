@@ -67,8 +67,19 @@ config :spark,
 
 config :techtree,
   ecto_repos: [Techtree.Repo],
-  ash_domains: [Techtree.Catalog, Techtree.Network],
+  ash_domains: [Techtree.Catalog, Techtree.Network, Techtree.WalletBench],
   generators: [timestamp_type: :utc_datetime]
+
+# Background jobs. The schema they live in is set in `config/runtime.exs`, beside
+# the repo's. `sprites` holds the AgentWalletBench machine steps, which wait on
+# Fly Sprites.
+config :techtree, Oban,
+  repo: Techtree.Repo,
+  notifier: Oban.Notifiers.PG,
+  queues: [sprites: 10],
+  cron: [crontab: []],
+  pruner: [max_age: {7, :days}],
+  lifeline: [rescue_after: {10, :minutes}]
 
 # The catalog bundle this build serves, and the release channel it belongs to.
 # `catalog_root` holds the generated `techtree-python` export; it is populated

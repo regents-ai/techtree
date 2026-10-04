@@ -13,6 +13,11 @@ defmodule Techtree.Application do
         Techtree.Repo,
         {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Techtree.PubSub},
+        {Oban,
+         AshOban.config(
+           Application.fetch_env!(:techtree, :ash_domains),
+           Application.fetch_env!(:techtree, Oban)
+         )},
         RegentAgents.Listener,
         Techtree.RateLimit,
         # Start a worker by calling: Techtree.Worker.start_link(arg)

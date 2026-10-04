@@ -35,6 +35,8 @@ config :techtree, TechtreeWeb.TddShowcase,
 # request budget within a minute.
 config :techtree, :request_rate_limit, limit: 1_000_000, window_seconds: 60
 
+config :techtree, Oban, testing: :manual
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 
