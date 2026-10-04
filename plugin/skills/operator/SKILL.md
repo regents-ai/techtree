@@ -45,7 +45,7 @@ result come out better. If you could, the result would mean nothing.
 ## Techtree Hello World
 
 The guided introduction is **Techtree Hello World**, a toy Skill-uplift Climb
-(`hello-world-climb@1`). It runs the synthetic BranchCode v1 task family twice
+(`hello-world-climb@2`). It runs the synthetic BranchCode v1 task family twice
 — once without a Skill, once with `hello-world-starter-v1` — so someone can
 watch what writing a procedure down changes.
 

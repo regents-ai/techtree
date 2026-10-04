@@ -101,7 +101,7 @@ are listed on the agent page at
 The evaluated agent is never the Hermes you are talking to. It is a separate,
 pinned agent in a container that receives only what the Climb declares.
 
-The guided introduction is **Techtree Hello World** (`hello-world-climb@1`), a
+The guided introduction is **Techtree Hello World** (`hello-world-climb@2`), a
 toy Skill-uplift Climb: it runs the synthetic BranchCode v1 task family with
 and without the `hello-world-starter-v1` Skill. It shows how the mechanism
 works. It is not a measure of broad capability.
@@ -387,7 +387,7 @@ not the plugin's to delete:
 ## Release status
 
 This directory carries the release contract in `release-core.json`, release
-`climb-v0.5.4`, with host Hermes 0.21.3 as its minimum. It names the
+`climb-v0.6.0`, with host Hermes 0.21.3 as its minimum. It names the
 starter Skill for each Climb, so the installed plugin can prepare Techtree Hello
 World and run its comparison. Earlier records required Hermes 0.20.1, and each record's own
 minimum applies to the plugin commit it installs.
