@@ -882,13 +882,26 @@ defmodule TechtreeWeb.OpenAPI do
       },
       "PairedAgent" => %{
         "type" => "object",
-        "required" => ["name", "harness", "wallet", "paired_at", "last_contact_at"],
+        "required" => [
+          "name",
+          "harness",
+          "wallet",
+          "paired_at",
+          "last_contact_at",
+          "registry_listing"
+        ],
         "properties" => %{
           "name" => %{"type" => "string"},
           "harness" => %{"type" => "string"},
           "wallet" => %{"type" => "string", "description" => "The address of the agent's key."},
           "paired_at" => %{"type" => "string", "format" => "date-time"},
-          "last_contact_at" => %{"type" => "string", "format" => "date-time"}
+          "last_contact_at" => %{"type" => "string", "format" => "date-time"},
+          "registry_listing" => %{
+            "type" => ["string", "null"],
+            "format" => "uri",
+            "description" =>
+              "The page of the agent's listing in the agent registry, or null when it has none."
+          }
         }
       },
       "AgentCheckIn" => %{

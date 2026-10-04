@@ -8,7 +8,7 @@ defmodule Techtree.MixProject do
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "970b5bcf0d283ca7063a43c35e649ee04a5e8022"
   @regents "https://github.com/regents-ai/regents.git"
-  @regents_ref "4b46ba2a71f0a9445a0ef27874a8fa4436e35d17"
+  @regents_ref "d12166405169e09bb558333fc3478799c293c446"
 
   def project do
     [
