@@ -16,6 +16,9 @@
 - Hello World and Frontier-CS move to `@2`. Only the file format changed:
   same tasks, model, limits and starter Skills. Results published for `@1`
   keep their pages.
+- Techtree now names regents-cli 1.4.0. Install it with
+  `uv tool install --python 3.12 regents-cli==1.4.0`. The Hermes plugin is
+  0.6.0.
 
 ## v0.5.4 (2026-10-02)
 
