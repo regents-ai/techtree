@@ -418,6 +418,12 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert has_element?(live, "#badge-no-rerun", "No reruns yet")
       refute has_element?(live, "#badge-reproduced")
       refute visible_text(render(live)) =~ "Independently reproduced"
+
+      # Patchbay keys the Result's one discussion to its bundle digest, exactly.
+      assert has_element?(
+               live,
+               ~s|a#discuss-result[href="https://patchbay.help/discuss/techtree/#{entry.bundle_digest}"]|
+             )
     end
 
     test "shows the Skill change the signed report found", %{conn: conn, entry: entry} do

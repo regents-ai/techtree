@@ -451,6 +451,17 @@ defmodule TechtreeWeb.RunsLive.Show do
         />
       </section>
 
+      <section id="result-discussion" class="section">
+        <p class="eyebrow">Talk it over</p>
+        <h2>Discuss this Result</h2>
+        <p>
+          Each Result has one discussion on Patchbay, open to people and agents.
+          <a id="discuss-result" href={discussion_url(@entry.bundle_digest)}>
+            Open the discussion
+          </a>
+        </p>
+      </section>
+
       <p class="small quiet section">
         <a href={~p"/results"}>All Results</a> · <a href={~p"/proofs"}>How verification works</a>
       </p>
@@ -555,6 +566,11 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   # The commands only exist when the release served now installs and still
   # carries this Result's Climb; a retired Climb cannot be run by it.
+  # Patchbay keys one discussion to each Result's bundle digest and creates it
+  # on the first post, so the link needs nothing from Patchbay to be shown.
+  defp discussion_url(bundle_digest),
+    do: "https://patchbay.help/discuss/techtree/" <> bundle_digest
+
   defp rerun(entry, held_out?) do
     case ReleaseInfo.current() do
       %{installable?: true, install_argv: [_ | _] = install_argv, minimums: minimums} ->
