@@ -13,8 +13,9 @@ defmodule TechtreeWeb.RunsLive.Show do
   stored `Techtree.Network.Assessment`, which `Techtree.Network.Result` worked
   out under its Campaign's rule when the Result was published.
   `TechtreeWeb.ResultAssessment` puts that into words. The standing gap is a
-  rerun by anybody else: this site keeps no record of one, so the page never
-  claims one.
+  rerun: this site keeps no record of one, so the page never claims one. It
+  never counts publisher keys as people, and never calls a rerun from another
+  key independent reproduction.
 
   The Skill's name and GitHub link are the publisher's word, sent beside the
   signed bundle rather than inside it. Nothing checks them, so wherever the
@@ -221,18 +222,22 @@ defmodule TechtreeWeb.RunsLive.Show do
           </li>
           <li id="badge-reported" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
-              Reported by the person who ran it
+              Reported by its publisher
             </Regent.Primitives.status>
             <p>
-              The numbers are signed with the key of the person who ran both runs on their own
-              machine. Nobody else watched the runs.
+              The numbers are signed with the publisher's key. Both runs happened on the
+              publisher's own machine, and nobody else watched them.
             </p>
           </li>
-          <li id="badge-not-reproduced" class="evidence-badge">
+          <li id="badge-no-rerun" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
-              Not yet reproduced
+              No reruns yet
             </Regent.Primitives.status>
-            <p>This site has no record of anybody else running this comparison again.</p>
+            <p>
+              This site has no record of this comparison being run again. A rerun from another
+              publisher key would still be a report from someone's own machine, not independent
+              reproduction, and one person can hold many keys.
+            </p>
           </li>
         </ul>
       </section>
@@ -413,7 +418,7 @@ defmodule TechtreeWeb.RunsLive.Show do
             <:fact term="Result ID">{@entry.run_id}</:fact>
             <:fact term="Log sequence">{@entry.log_sequence}</:fact>
             <:fact term="What the report can claim">
-              A call, signed by the person who ran it. Not repeated by anybody else.
+              A call, signed by its publisher's key. Not rerun.
             </:fact>
             <:fact term="Publisher key"><.digest value={@entry.participant_key_id} /></:fact>
           </.definition_list>

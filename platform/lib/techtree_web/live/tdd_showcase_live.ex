@@ -160,11 +160,11 @@ defmodule TechtreeWeb.TddShowcaseLive do
               a published Result, nothing about it is signed, and nobody else watched the runs.
             </p>
           </li>
-          <li id="badge-not-reproduced" class="evidence-badge">
+          <li id="badge-no-rerun" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
-              Not yet reproduced
+              No reruns yet
             </Regent.Primitives.status>
-            <p>This site has no record of anybody else running this comparison again.</p>
+            <p>This site has no record of this comparison being run again.</p>
           </li>
         </ul>
       </section>

@@ -412,10 +412,10 @@ defmodule TechtreeWeb.RunsLiveTest do
                  "and the decision again from the task scores"
              )
 
-      assert has_element?(live, "#badge-reported", "Reported by the person who ran it")
+      assert has_element?(live, "#badge-reported", "Reported by its publisher")
 
       # Nothing on this site records a rerun, so the Result is never shown as reproduced.
-      assert has_element?(live, "#badge-not-reproduced", "Not yet reproduced")
+      assert has_element?(live, "#badge-no-rerun", "No reruns yet")
       refute has_element?(live, "#badge-reproduced")
       refute visible_text(render(live)) =~ "Independently reproduced"
     end
