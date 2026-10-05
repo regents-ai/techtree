@@ -65,6 +65,12 @@ defmodule Techtree.Network.Projection do
   end
 
   @doc """
+  One published Skill, as the bytes `GET /api/v1/skills/:root_digest` returns.
+  """
+  @spec skill(%{String.t() => term()}) :: binary()
+  def skill(answer), do: Canonical.encode!(answer)
+
+  @doc """
   The address one entry is read at by a person rather than by a program.
   """
   @spec entry_url(PublicationEntry.t(), String.t()) :: String.t()
@@ -91,6 +97,7 @@ defmodule Techtree.Network.Projection do
       "skill_digest" => entry.skill_digest,
       "skill_name" => entry.skill_name,
       "skill_github_url" => entry.skill_github_url,
+      "rerun_of" => entry.assessment.rerun_of,
       "subject" => %{
         "harness" => entry.subject_harness,
         "harness_version" => entry.subject_harness_version,

@@ -42,8 +42,8 @@ defmodule Techtree.Catalog.BundleTest do
 
       assert Enum.map(climbs, & &1.reference) == [
                CatalogFixture.climb_reference(),
-               "frontier-cs-open-ended-climb@2",
-               "tasksmith-climb@1"
+               "frontier-cs-open-ended-climb@3",
+               "tasksmith-climb@2"
              ]
 
       assert Enum.all?(climbs, &(&1.kind == :climb))

@@ -1,0 +1,1 @@
+{"files":[{"digest":"sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c","media_type":"text/markdown","path":"SKILL.md","size":1496}],"name":"hello-world-v1","parent_skill_digest":null,"root_digest":"sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b","schema_version":"techtree.skill.v1alpha1","source_kind":"manual"}

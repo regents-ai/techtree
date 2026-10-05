@@ -31,11 +31,11 @@
     "doctor_argv": ["hermes", "plugins", "doctor", "techtree", "--ci"]
   },
   "introductory_climb": {
-    "reference": "hello-world-climb@2",
+    "reference": "hello-world-climb@3",
     "host_prompt": "Set up Techtree and run the Hello World Climb."
   },
   "climbs": {
-    "hello-world-climb@2": {
+    "hello-world-climb@3": {
       "starter_skill": {
         "name": "hello-world-starter-v1",
         "object_url": "https://placeholder.invalid/unchosen",
@@ -45,7 +45,7 @@
         "size": 1496
       }
     },
-    "frontier-cs-open-ended-climb@2": {
+    "frontier-cs-open-ended-climb@3": {
       "starter_skill": {
         "name": "frontier-cs-starter-v4",
         "object_url": "https://placeholder.invalid/unchosen",
@@ -55,7 +55,7 @@
         "size": 4675
       }
     },
-    "tasksmith-climb@1": {
+    "tasksmith-climb@2": {
       "starter_skill": {
         "name": "tasksmith-starter-v1",
         "object_url": "https://placeholder.invalid/unchosen",

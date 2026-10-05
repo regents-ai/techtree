@@ -3,11 +3,11 @@ defmodule Techtree.NetworkFixture do
   A proof bundle of the Campaign this catalog publishes, and ways to damage a
   copy of it.
 
-  `test/support/fixtures/proof-v3` is one complete v3 proof of the
-  hello-world Campaign the fixture catalog ships — eighty-five files, every
-  digest and every signature as the CLI's bundle writer sealed them, and every
-  one of the CLI's own offline checks passing over it. It was written by the
-  CLI's own code out of the real Campaign graph, the real
+  `test/support/fixtures/proof-v4` is one complete proof of the hello-world
+  Campaign the fixture catalog ships — eighty-seven files, its Skill among
+  them, every digest and every signature as the CLI's bundle writer sealed
+  them, and every one of the CLI's own offline checks passing over it. It was
+  written by the CLI's own code out of the real Campaign graph, the real
   manifest builder and the real report aggregation, under a key made for the
   purpose, with synthetic rewards where a run would have evidence: a proof
   that verifies, of a comparison nobody ran. This site never reads the
@@ -28,11 +28,13 @@ defmodule Techtree.NetworkFixture do
   alias Techtree.Catalog.Digest
   alias Techtree.Network.Key
 
-  @root Path.expand("fixtures/proof-v3", __DIR__)
+  @root Path.expand("fixtures/proof-v4", __DIR__)
   @cli_submission Path.expand("fixtures/publication/v3-submission.json", __DIR__)
+  @cli_rerun_submission Path.expand("fixtures/publication/v3-submission-rerun.json", __DIR__)
+  @cli_skill_answer Path.expand("fixtures/publication/get-skill-answer.json", __DIR__)
   @schema_version "techtree.publication-submission.v1alpha1"
   @withdrawal_schema_version "techtree.publication-withdrawal.v1alpha1"
-  @report_schema_version "techtree.uplift-report.v2"
+  @report_schema_version "techtree.uplift-report.v3"
   @manifest "bundle.json"
 
   @doc """
@@ -41,8 +43,9 @@ defmodule Techtree.NetworkFixture do
   @spec files() :: %{String.t() => binary()}
   def files do
     @root
-    |> Path.join("**/*.json")
+    |> Path.join("**/*")
     |> Path.wildcard()
+    |> Enum.filter(&File.regular?/1)
     |> Map.new(&{Path.relative_to(&1, @root), File.read!(&1)})
   end
 
@@ -91,6 +94,21 @@ defmodule Techtree.NetworkFixture do
   def cli_submission, do: File.read!(@cli_submission)
 
   @doc """
+  The bytes the CLI's publishing path puts on the wire for a rerun of the
+  fixture proof: the same Campaign and the same Skill, new runs, and a report
+  whose `rerun_of` names the fixture bundle's digest.
+  """
+  @spec cli_rerun_submission() :: binary()
+  def cli_rerun_submission, do: File.read!(@cli_rerun_submission)
+
+  @doc """
+  The answer to `GET /api/v1/skills/{root_digest}` that `skill fetch` accepts
+  for the Skill both fixture proofs carry.
+  """
+  @spec cli_skill_answer() :: map()
+  def cli_skill_answer, do: @cli_skill_answer |> File.read!() |> Jason.decode!()
+
+  @doc """
   The honest submission, with one file's member written a second time.
 
   A repeated member cannot be built out of a map, because the second one has
@@ -127,7 +145,7 @@ defmodule Techtree.NetworkFixture do
     root = manifest()["payload"]["root_report_digest"]
 
     files()
-    |> Enum.map(fn {_path, bytes} -> Jason.decode!(bytes) end)
+    |> Enum.map(fn {_path, bytes} -> decoded(bytes) end)
     |> Enum.find(&(is_map(&1) and &1["payload_digest"] == root))
   end
 
@@ -152,24 +170,57 @@ defmodule Techtree.NetworkFixture do
   end
 
   @doc """
-  The same bundle with the first `dropped` tasks scoring nothing with the
-  Skill, and the report's result written as the CLI would write it for those
-  scores. The files still need `resign/2` before they verify.
+  The same bundle with its tasks scored the way a Skill that helps would score
+  them: 9 tasks better with the Skill, 26 the same and 1 worse, means 0.25
+  without it and 0.472 with it. The CLI's stand-in runs score every task the
+  same, which leaves a Result's page nothing to tell apart. The report's result
+  is written as the CLI would write it for these scores, and the files still
+  need `resign/2` before they verify.
+  """
+  @spec scored() :: %{String.t() => binary()}
+  def scored, do: rescored(&helped/1)
+
+  @doc """
+  `scored/0` with the first `dropped` tasks scoring nothing with the Skill.
+  The files still need `resign/2` before they verify.
 
   The fixture's Campaign requires the Skill to score higher and sets no
   minimum change, so any rise is accepted and anything else rejected.
   """
   @spec worse_by(non_neg_integer()) :: %{String.t() => binary()}
-  def worse_by(dropped) do
+  def worse_by(dropped), do: rescored(&(&1 |> helped() |> lose_first(dropped)))
+
+  defp rescored(transform) do
     Map.update!(files(), "uplift-report.json", fn bytes ->
       bytes
       |> Jason.decode!()
       |> update_in(["payload"], fn report ->
         report
-        |> Map.update!("task_deltas", &lose_first(&1, dropped))
+        |> Map.update!("task_deltas", transform)
         |> rescore()
       end)
       |> Jason.encode!()
+    end)
+  end
+
+  defp helped(deltas) do
+    deltas
+    |> Enum.with_index()
+    |> Enum.map(fn {delta, index} ->
+      {baseline, candidate} =
+        case {index, rem(index, 4)} do
+          {0, _} -> {1, 0}
+          {_, 0} -> {1, 1}
+          {_, 2} -> {0, 1}
+          _other -> {0, 0}
+        end
+
+      %{
+        delta
+        | "baseline_reward" => baseline,
+          "candidate_reward" => candidate,
+          "delta" => candidate - baseline
+      }
     end)
   end
 
@@ -359,7 +410,7 @@ defmodule Techtree.NetworkFixture do
         run_id: payload["run_id"],
         campaign_spec_digest: payload["campaign_spec_digest"],
         data_policy_digest: payload["data_policy_digest"],
-        climb_reference: "hello-world-climb@2",
+        climb_reference: "hello-world-climb@3",
         participant_kind: :local_ed25519,
         participant_key_id: payload["executor_identity"]["key_id"],
         participant_public_key: payload["executor_identity"]["public_key"],
@@ -410,7 +461,7 @@ defmodule Techtree.NetworkFixture do
   end
 
   defp seal(bytes, key_id, private) do
-    envelope = Jason.decode!(bytes)
+    envelope = decoded(bytes)
 
     if is_map(envelope) and
          Enum.sort(Map.keys(envelope)) == ["payload", "payload_digest", "signature"] do
@@ -448,7 +499,7 @@ defmodule Techtree.NetworkFixture do
     report_path =
       Enum.find_value(manifest["payload"]["artifacts"], fn artifact ->
         path = artifact["relative_path"]
-        envelope = files |> Map.fetch!(path) |> Jason.decode!()
+        envelope = files |> Map.fetch!(path) |> decoded()
 
         if is_map(envelope) and is_map(envelope["payload"]) and
              envelope["payload"]["schema_version"] == @report_schema_version,
@@ -474,6 +525,14 @@ defmodule Techtree.NetworkFixture do
     case path && Map.get(files, path) do
       nil -> named
       bytes -> Digest.hash_bytes(bytes)
+    end
+  end
+
+  # The Skill's own files are the bundle's only members that are not JSON.
+  defp decoded(bytes) do
+    case Jason.decode(bytes) do
+      {:ok, document} -> document
+      {:error, _error} -> nil
     end
   end
 end

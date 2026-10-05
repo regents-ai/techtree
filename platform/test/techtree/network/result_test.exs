@@ -13,7 +13,7 @@ defmodule Techtree.Network.ResultTest do
   alias Techtree.Network.Result
   alias Techtree.NetworkFixture
 
-  @campaign "test/support/fixtures/proof-v3/campaign.json" |> File.read!() |> Jason.decode!()
+  @campaign "test/support/fixtures/proof-v4/campaign.json" |> File.read!() |> Jason.decode!()
 
   test "a rejected report with no change at all is not enough evidence, never a regression" do
     report =
@@ -33,14 +33,14 @@ defmodule Techtree.Network.ResultTest do
   end
 
   test "a lower score is a regression only when it falls by the Campaign's minimum" do
-    swapped = swapped_sides(report())
+    lower = lower_on(report(), 8)
 
-    assert {:ok, %{reason: :fell_past_rule}} = Result.assess(swapped, @campaign)
+    assert {:ok, %{reason: :fell_past_rule}} = Result.assess(lower, @campaign)
 
     # The Skill scored 22.2 points lower, short of a 30-point minimum.
     campaign = put_in(@campaign, ["scoring", "minimum_absolute_delta"], 0.3)
 
-    assert {:ok, %{reason: :fell_short_of_rule}} = Result.assess(swapped, campaign)
+    assert {:ok, %{reason: :fell_short_of_rule}} = Result.assess(lower, campaign)
   end
 
   test "an improvement exactly at the Campaign's minimum is accepted" do
@@ -139,20 +139,22 @@ defmodule Techtree.Network.ResultTest do
 
   defp report, do: NetworkFixture.report()["payload"]
 
-  defp swapped_sides(report) do
+  # The Skill solves `count` fewer of the tasks than the run without it, and
+  # the two runs score the rest the same.
+  defp lower_on(report, count) do
+    tasks = length(report["task_deltas"])
+
     report
     |> Map.update!("task_deltas", fn deltas ->
-      Enum.map(deltas, fn delta ->
-        %{
-          delta
-          | "baseline_reward" => delta["candidate_reward"],
-            "candidate_reward" => delta["baseline_reward"],
-            "delta" => -delta["delta"]
-        }
+      deltas
+      |> Enum.with_index()
+      |> Enum.map(fn {delta, index} ->
+        baseline = if index < count, do: 1, else: 0
+        %{delta | "baseline_reward" => baseline, "candidate_reward" => 0, "delta" => -baseline}
       end)
     end)
     |> Map.update!("primary_result", fn result ->
-      %{result | "wins" => result["losses"], "losses" => result["wins"]}
+      %{result | "wins" => 0, "losses" => count, "ties" => tasks - count}
     end)
     |> Map.put("decision", "rejected")
   end

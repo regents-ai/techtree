@@ -9,7 +9,7 @@ defmodule Techtree.Network.Bundle do
   did not hold. `Techtree.Network.Ingest` cannot write without one, and there
   is no other way to get one.
 
-  Eighteen checks run, in the order below, and each of them refuses a
+  Twenty checks run, in the order below, and each of them refuses a
   different lie. Nine of them are marked *proof*: the eight the founder
   settled on as the verification depth of this service, with the recount of
   the wins, losses and ties widened into a recomputation of the whole result,
@@ -40,7 +40,8 @@ defmodule Techtree.Network.Bundle do
        to the identical string, so no second spelling of the same bytes exists
        — and no file is empty. An empty file is not a document, and it is not
        what any artifact list here describes.
-    6. **The manifest.** The bundle carries a signed `bundle.json` at its root.
+    6. **The manifest.** The bundle carries a signed `bundle.json` at its root,
+       in the current proof format, which carries the Skill it measured.
        Everything after this is read out of it.
     7. *Proof.* Every file hashes to the digest the bundle's own artifact list
        claims for it, and the bundle carries exactly the files that list names
@@ -75,17 +76,31 @@ defmodule Techtree.Network.Bundle do
 
   What checks 13 and 14 work out is stored with the entry as its
   `Techtree.Network.Assessment`, which is what the Result's page reads.
-   15. *Proof.* Those task rows are the Campaign's committed task list, in the
+   15. **The Skill.** The bundle carries the Skill it measured: `skill.json`,
+       and under `skill/` exactly the files it lists, which give the
+       fingerprint the run with the Skill was set up with. Publishing a Result
+       makes its Skill public, so the Skill is refused if a path could land
+       outside its folder, if it is larger than a Skill may be, or if any file
+       in it looks like a private key or an API key. The CLI runs the same list,
+       with the same codes, before anything leaves the machine.
+   16. *Proof.* Those task rows are the Campaign's committed task list, in the
        same order, exactly — not a subset, not a superset, not a reordering.
-   16. **The terms.** The DataPolicy the run cites is carried in the bundle and
-       permits exactly this: a public uplift report and public aggregate
-       scores. A run carried out under terms that do not permit publication is
-       refused rather than published against its owner's own stated wishes.
-   17. **The content.** No submitted file carries a raw episode, a transcript, a
+   17. **The terms.** The DataPolicy the run cites is carried in the bundle and
+       permits exactly this: a public uplift report, public aggregate scores
+       and a public Skill. A run carried out under terms that do not permit
+       publication is refused rather than published against its owner's own
+       stated wishes.
+   18. **The content.** No submitted file carries a raw episode, a transcript, a
        prompt, a reply, a worker log, or a path on somebody's own machine. The
        proof format has nowhere to put one, which is exactly why a submission
-       carrying one is not a proof bundle and is not stored here.
-   18. *Proof.* What the submission claims about the bundle is what the bundle
+       carrying one is not a proof bundle and is not stored here. The Skill's
+       own files are the one exception: they are the Skill's text, and check 15
+       has already read them.
+   19. **The rerun.** A report that says it reruns a published Result names one
+       this log holds, withdrawn or not, of the same Campaign and the same
+       Skill. Nothing more is claimed for it: a rerun is another report from
+       someone's own machine, not an independent reproduction.
+   20. *Proof.* What the submission claims about the bundle is what the bundle
        says. `run_id` and `bundle_digest` are read for nothing else — every
        column the site records comes from the signed bytes — but a submission
        whose declared digest is not the manifest's own payload digest, or whose
@@ -143,7 +158,11 @@ defmodule Techtree.Network.Bundle do
   alias Techtree.Network.Result
 
   @schema_version "techtree.publication-submission.v1alpha1"
+  @bundle_schema_version "techtree.local-proof-bundle.v1alpha2"
   @manifest_path "bundle.json"
+  @skill_path "skill.json"
+  @skill_folder "skill/"
+  @skill_entry "SKILL.md"
   @envelope_keys ~w(payload payload_digest signature)
 
   @maximum_files 256
@@ -175,6 +194,37 @@ defmodule Techtree.Network.Bundle do
     "/Volumes/"
   ]
 
+  # A Skill is text a person wrote, and it becomes public with its Result. The
+  # limits and kinds of file are the CLI's, so a Skill the CLI prepared is one
+  # this site accepts.
+  @skill_maximum_files 32
+  @skill_maximum_file_bytes 131_072
+  @skill_maximum_total_bytes 262_144
+  @skill_media_types %{
+    ".md" => "text/markdown",
+    ".txt" => "text/plain",
+    ".json" => "application/json",
+    ".yaml" => "application/yaml",
+    ".yml" => "application/yaml"
+  }
+  @skill_artifact_keys ~w(files name parent_skill_digest root_digest schema_version source_kind)
+  @skill_file_keys ~w(digest media_type path size)
+
+  # What a private key or an API key looks like, the CLI's list exactly. A
+  # transaction hash looks exactly like a private key, so a Skill may hold
+  # neither. Read as bytes: every pattern is ASCII, so a byte that is not UTF-8
+  # matches nothing here, just as the replacement character it decodes to would.
+  @secret_patterns [
+    {"a private key block", ~r/-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----/},
+    {"an API key (sk-)", ~r/(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}/},
+    {"a GitHub token (ghp_)", ~r/(?<![A-Za-z0-9_])ghp_[A-Za-z0-9]{36}/},
+    {"a GitHub token (github_pat_)", ~r/(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{22,}/},
+    {"an AWS access key", ~r/(?<![A-Za-z0-9])AKIA[0-9A-Z]{16}(?![A-Za-z0-9])/},
+    {"a Slack token", ~r/(?<![A-Za-z0-9])xox[abprs]-[A-Za-z0-9-]{10,}/},
+    {"a 32-byte hex value (a private key or a transaction hash)",
+     ~r/(?<![A-Za-z0-9])0x[0-9a-fA-F]{64}(?![A-Za-z0-9])/}
+  ]
+
   @home_relative ~r|~[/\\]|
   @windows_drive ~r|[A-Za-z]:[\\/]|
   @unc_prefix "\\\\"
@@ -185,7 +235,7 @@ defmodule Techtree.Network.Bundle do
     {:file_count, "the bundle carries no more files than a proof bundle has"},
     {:file_paths, "every path is one relative path inside the bundle, written once"},
     {:file_bytes, "every file is canonical base64, and none of them is empty"},
-    {:manifest, "the bundle carries the signed list of its own files"},
+    {:manifest, "the bundle carries the signed list of its own files, in the current format"},
     {:artifacts, "every file hashes to the digest the bundle claims for it"},
     {:payload_digests, "every signed document hashes to the digest written beside it"},
     {:signatures, "every signature verifies under the key the bundle carries"},
@@ -198,9 +248,13 @@ defmodule Techtree.Network.Bundle do
     {:skill_change,
      "the only setting the two runs differ in is the Skill the campaign lets differ, " <>
        "and the run with it was set up with that Skill"},
+    {:skill,
+     "the bundle carries the Skill it measured, and that Skill holds no secret and is " <>
+       "small enough to publish"},
     {:membership, "the tasks are the list the campaign committed to, in order"},
     {:data_policy, "the terms the run was carried out under permit publishing this"},
     {:content, "no file in it holds an episode, a transcript, or a path on a machine"},
+    {:rerun, "a rerun names a published Result of the same campaign and the same Skill"},
     {:declarations, "what the submission claims about the bundle is what the bundle says"}
   ]
 
@@ -279,9 +333,11 @@ defmodule Techtree.Network.Bundle do
          :ok <- report_context(report, manifest, campaign),
          {:ok, assessment, [%{"digest" => skill_digest} | _skills]} <-
            assessment(report, campaign, files),
+         :ok <- skill(files, skill_digest),
          :ok <- membership(report, campaign),
          {:ok, policy} <- data_policy(manifest, files),
          :ok <- content(files),
+         {:ok, rerun_of} <- rerun(report, manifest, skill_digest),
          :ok <- declarations(document, manifest, report) do
       {:ok,
        %__MODULE__{
@@ -294,7 +350,7 @@ defmodule Techtree.Network.Bundle do
          skill_digest: skill_digest,
          climb_reference: reference,
          data_policy: policy,
-         assessment: assessment
+         assessment: Map.put(assessment, :rerun_of, rerun_of)
        }}
     end
   end
@@ -499,7 +555,7 @@ defmodule Techtree.Network.Bundle do
   defp manifest(files) do
     with {:ok, bytes} <- Map.fetch(files, @manifest_path),
          {:ok, decoded} <- signed_envelope(bytes) do
-      {:ok, decoded}
+      bundle_version(decoded)
     else
       _other ->
         {:error,
@@ -510,6 +566,25 @@ defmodule Techtree.Network.Bundle do
            %{"path" => @manifest_path}
          )}
     end
+  end
+
+  # A bundle made before the proof carried its Skill has nothing for a Result
+  # page to show as the change it measured, so only the current format is a
+  # proof here.
+  defp bundle_version(%{"payload" => %{"schema_version" => @bundle_schema_version}} = manifest),
+    do: {:ok, manifest}
+
+  defp bundle_version(manifest) do
+    {:error,
+     Error.new(
+       :submission_bundle_version_unsupported,
+       "this site publishes #{@bundle_schema_version} proof bundles, which carry the " <>
+         "Skill they measured, and this bundle is not one",
+       %{
+         "expected" => @bundle_schema_version,
+         "found" => get_in(manifest, ["payload", "schema_version"])
+       }
+     )}
   end
 
   # -- 7. Artifacts ---------------------------------------------------------
@@ -858,7 +933,230 @@ defmodule Techtree.Network.Bundle do
     end
   end
 
-  # -- 15. The committed task list -------------------------------------------
+  # -- 15. The Skill ----------------------------------------------------------
+  #
+  # The same list, in the same order and with the same codes, as the CLI runs
+  # before anything leaves the machine; the first that fails is the answer.
+  # Every file here already hashes to the digest the signed manifest lists for
+  # it, so this reads verified bytes.
+
+  defp skill(files, expected_root) do
+    sent =
+      for {@skill_folder <> path, bytes} <- files, into: %{}, do: {path, bytes}
+
+    with {:ok, artifact} <- skill_artifact(files),
+         listed = Enum.map(artifact["files"], & &1["path"]),
+         :ok <- skill_paths(listed, sent),
+         :ok <- skill_sizes(listed, sent),
+         :ok <- skill_fingerprint(artifact, sent, expected_root) do
+      skill_secrets(sent)
+    end
+  end
+
+  defp skill_artifact(files) do
+    with {:ok, bytes} <- Map.fetch(files, @skill_path),
+         {:ok, artifact} <- Jason.decode(bytes),
+         true <- skill_artifact?(artifact) do
+      {:ok, artifact}
+    else
+      _other ->
+        {:error,
+         Error.new(
+           :skill_artifact_invalid,
+           "a proof bundle carries its Skill's file list as a techtree.skill.v1alpha1 " <>
+             "document at #{@skill_path}, and this bundle does not",
+           %{"path" => @skill_path}
+         )}
+    end
+  end
+
+  defp skill_artifact?(
+         %{
+           "schema_version" => "techtree.skill.v1alpha1",
+           "name" => name,
+           "root_digest" => root,
+           "files" => [_ | _] = entries,
+           "source_kind" => "manual",
+           "parent_skill_digest" => parent
+         } = artifact
+       )
+       when is_binary(name) and name != "" do
+    Enum.sort(Map.keys(artifact)) == @skill_artifact_keys and Digest.valid?(root) and
+      (is_nil(parent) or Digest.valid?(parent)) and Enum.all?(entries, &skill_file?/1)
+  end
+
+  defp skill_artifact?(_artifact), do: false
+
+  defp skill_file?(
+         %{"path" => path, "media_type" => media_type, "size" => size, "digest" => digest} =
+           entry
+       )
+       when is_binary(path) and path != "" and is_binary(media_type) and media_type != "" and
+              is_integer(size) and size >= 0 do
+    Enum.sort(Map.keys(entry)) == @skill_file_keys and Digest.valid?(digest)
+  end
+
+  defp skill_file?(_entry), do: false
+
+  defp skill_paths(listed, sent) do
+    with :ok <- reduce_while_ok(listed ++ Enum.sort(Map.keys(sent)), &skill_path/1),
+         :ok <- skill_entry(listed) do
+      if Enum.sort(Map.keys(sent)) == listed do
+        :ok
+      else
+        {:error,
+         Error.new(
+           :skill_fingerprint_mismatch,
+           "the Skill's files are not exactly the ones its fingerprint lists, in order",
+           %{
+             "unlisted" => Enum.sort(Map.keys(sent) -- listed),
+             "missing" => Enum.sort(listed -- Map.keys(sent))
+           }
+         )}
+      end
+    end
+  end
+
+  defp skill_path(path) do
+    cond do
+      path != String.trim(path) or String.starts_with?(path, "/") or
+        String.at(path, 1) == ":" or String.contains?(path, "\\") or
+          Enum.any?(String.split(path, "/"), &(&1 in ["", ".", ".."])) ->
+        {:error,
+         Error.new(
+           :skill_path_invalid,
+           "a Skill path would land outside the Skill's folder",
+           %{"path" => path}
+         )}
+
+      not Map.has_key?(@skill_media_types, skill_suffix(path)) ->
+        {:error,
+         Error.new(
+           :skill_path_invalid,
+           "a Skill holds only .md, .txt, .json, .yaml and .yml files",
+           %{"path" => path}
+         )}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp skill_entry(listed) do
+    if @skill_entry in listed do
+      :ok
+    else
+      {:error,
+       Error.new(:skill_path_invalid, "the Skill has no #{@skill_entry}", %{
+         "path" => @skill_entry
+       })}
+    end
+  end
+
+  defp skill_suffix(path), do: path |> Path.extname() |> String.downcase()
+
+  defp skill_sizes(listed, sent) do
+    oversized =
+      Enum.find(Enum.sort(sent), fn {_path, bytes} ->
+        byte_size(bytes) > @skill_maximum_file_bytes
+      end)
+
+    total = sent |> Map.values() |> Enum.map(&byte_size/1) |> Enum.sum()
+
+    cond do
+      length(listed) > @skill_maximum_files ->
+        skill_too_large(%{
+          "file_count" => length(listed),
+          "maximum_files" => @skill_maximum_files
+        })
+
+      oversized ->
+        skill_too_large(%{
+          "path" => elem(oversized, 0),
+          "maximum_file_bytes" => @skill_maximum_file_bytes
+        })
+
+      total > @skill_maximum_total_bytes ->
+        skill_too_large(%{
+          "total_bytes" => total,
+          "maximum_total_bytes" => @skill_maximum_total_bytes
+        })
+
+      true ->
+        :ok
+    end
+  end
+
+  defp skill_too_large(details) do
+    {:error,
+     Error.new(
+       :skill_too_large,
+       "a Skill holds at most #{@skill_maximum_files} files, each at most 128 KiB and " <>
+         "256 KiB in all, and this one is larger",
+       details
+     )}
+  end
+
+  defp skill_fingerprint(artifact, sent, expected_root) do
+    computed = artifact["files"] |> Canonical.encode!() |> Digest.hash_bytes()
+
+    if artifact["root_digest"] == expected_root and computed == expected_root do
+      reduce_while_ok(artifact["files"], &skill_file_matches(&1, sent))
+    else
+      {:error,
+       Error.new(
+         :skill_fingerprint_mismatch,
+         "the Skill's file list does not give the fingerprint the run with the Skill was set up with",
+         %{
+           "expected" => expected_root,
+           "stated" => artifact["root_digest"],
+           "computed" => computed
+         }
+       )}
+    end
+  end
+
+  defp skill_file_matches(%{"path" => path} = entry, sent) do
+    bytes = Map.fetch!(sent, path)
+
+    if byte_size(bytes) == entry["size"] and Digest.hash_bytes(bytes) == entry["digest"] and
+         @skill_media_types[skill_suffix(path)] == entry["media_type"] do
+      :ok
+    else
+      {:error,
+       Error.new(
+         :skill_fingerprint_mismatch,
+         "a Skill file is not the file its fingerprint lists",
+         %{"path" => path}
+       )}
+    end
+  end
+
+  defp skill_secrets(sent) do
+    sent
+    |> Enum.sort()
+    |> reduce_while_ok(fn {path, bytes} -> skill_secret(path, secret_kind(bytes)) end)
+  end
+
+  defp secret_kind(bytes) do
+    Enum.find_value(@secret_patterns, fn {kind, pattern} ->
+      if Regex.match?(pattern, bytes), do: kind
+    end)
+  end
+
+  defp skill_secret(_path, nil), do: :ok
+
+  defp skill_secret(path, kind) do
+    {:error,
+     Error.new(
+       :skill_contains_secret,
+       "a Skill file contains what looks like #{kind}, and a Skill becomes public " <>
+         "with its Result",
+       %{"path" => path, "found" => kind}
+     )}
+  end
+
+  # -- 16. The committed task list -------------------------------------------
 
   defp membership(report, campaign) do
     committed = get_in(campaign, ["taskset", "membership", "ordered_task_hashes"])
@@ -879,12 +1177,14 @@ defmodule Techtree.Network.Bundle do
     end
   end
 
-  # -- 16. The terms the run was carried out under ---------------------------
+  # -- 17. The terms the run was carried out under ---------------------------
 
   # The policy is found the way everything else in a bundle is found: by its
   # digest. The manifest names the DataPolicy the run was carried out under,
   # and the file carrying it is whichever one hashes to that — which check 7
   # has already shown is the file the artifact list says it is.
+  # Publishing a Result publishes its Skill, so the terms have to say the Skill
+  # is public for a Climb too.
   defp data_policy(manifest, files) do
     named = get_in(manifest, ["payload", "data_policy_digest"])
 
@@ -906,10 +1206,11 @@ defmodule Techtree.Network.Bundle do
 
   defp permits(policy, digest) do
     derived = policy["derived_artifacts"]
+    skill_release = get_in(policy, ["candidate_skill", "public_release"])
 
     permitted =
       is_map(derived) and derived["uplift_report"] == "public" and
-        derived["aggregate_scores"] == "public"
+        derived["aggregate_scores"] == "public" and skill_release == "required_for_climb"
 
     if permitted do
       {:ok, policy}
@@ -917,12 +1218,13 @@ defmodule Techtree.Network.Bundle do
       {:error,
        Error.new(
          :submission_data_policy_forbids_publication,
-         "the terms this run was carried out under do not make its result and " <>
-           "its scores public, and this site publishes neither against them",
+         "the terms this run was carried out under do not make its result, its " <>
+           "scores and its Skill public, and this site publishes none of them against them",
          %{
            "data_policy_digest" => digest,
            "uplift_report" => derived_term(derived, "uplift_report"),
-           "aggregate_scores" => derived_term(derived, "aggregate_scores")
+           "aggregate_scores" => derived_term(derived, "aggregate_scores"),
+           "candidate_skill" => skill_release
          }
        )}
     end
@@ -931,17 +1233,20 @@ defmodule Techtree.Network.Bundle do
   defp derived_term(derived, member) when is_map(derived), do: derived[member]
   defp derived_term(_derived, _member), do: nil
 
-  # -- 17. What is in the files ----------------------------------------------
+  # -- 18. What is in the files ----------------------------------------------
 
   # A proof bundle has nowhere to put an episode, a transcript, a prompt, a
   # reply or a worker log: it carries digests, task hashes and scores, and the
   # eleven megabytes of raw episodes stay on the participant's own machine by
-  # the same DataPolicy check 16 just read. So this looks for the two shapes
+  # the same DataPolicy check 17 just read. So this looks for the two shapes
   # that would mean the format had been stretched — a member named for content
   # the format does not carry, and a string that is a path on somebody's own
-  # machine rather than a path inside the bundle.
+  # machine rather than a path inside the bundle. The Skill's own files are
+  # its text rather than documents of the proof format, and check 15 has
+  # already read every one of them.
   defp content(files) do
     files
+    |> Enum.reject(fn {path, _bytes} -> String.starts_with?(path, @skill_folder) end)
     |> Enum.sort()
     |> reduce_while_ok(fn {path, bytes} -> file_content(path, bytes) end)
   end
@@ -1004,7 +1309,56 @@ defmodule Techtree.Network.Bundle do
     )
   end
 
-  # -- 18. What the submitter said they were sending -------------------------
+  # -- 19. The rerun ----------------------------------------------------------
+  #
+  # A rerun is the same Campaign and the same Skill, run again and signed by
+  # whoever ran it. The original may since have been withdrawn: the rerun
+  # still reran it.
+
+  defp rerun(%{"rerun_of" => nil}, _manifest, _skill_digest), do: {:ok, nil}
+
+  defp rerun(%{"rerun_of" => original}, manifest, skill_digest) when is_binary(original) do
+    campaign = get_in(manifest, ["payload", "campaign_spec_digest"])
+
+    case Network.Query.get_entry(original) do
+      :error ->
+        rerun_refused(
+          :rerun_original_unknown,
+          "this report says it reruns a Result this site has not published",
+          original
+        )
+
+      {:ok, %{campaign_spec_digest: ^campaign, skill_digest: ^skill_digest}} ->
+        {:ok, original}
+
+      {:ok, %{campaign_spec_digest: ^campaign}} ->
+        rerun_refused(
+          :rerun_skill_mismatch,
+          "a rerun measures the same Skill as the Result it reruns, and this one does not",
+          original
+        )
+
+      {:ok, _entry} ->
+        rerun_refused(
+          :rerun_campaign_mismatch,
+          "a rerun is of the same Campaign as the Result it reruns, and this one is not",
+          original
+        )
+    end
+  end
+
+  defp rerun(_report, _manifest, _skill_digest) do
+    rerun_refused(
+      :rerun_original_unknown,
+      "a report names the Result it reruns by its bundle digest, or names none",
+      nil
+    )
+  end
+
+  defp rerun_refused(code, message, original),
+    do: {:error, Error.new(code, message, %{"rerun_of" => original})}
+
+  # -- 20. What the submitter said they were sending -------------------------
 
   defp declarations(document, manifest, report) do
     with :ok <- declared_digest(document["bundle_digest"], manifest["payload_digest"]) do

@@ -63,7 +63,7 @@ defmodule Techtree.Catalog.ImporterTest do
 
       assert %{
                "slug" => "hello-world-climb",
-               "version" => 2,
+               "version" => 3,
                "campaign_spec_digest" => campaign_digest,
                "held_out_campaign_spec_digest" => nil,
                "execution_plan_digest" => plan_digest,
@@ -268,7 +268,7 @@ defmodule Techtree.Catalog.ImporterTest do
   # is exactly the failure the staging transaction has to survive.
   defp duplicate_reference!(bundle) do
     original = CatalogFixture.read!(bundle, CatalogFixture.climb_path())
-    duplicate = String.replace(original, "\"version\":2", "\"version\":2 ")
+    duplicate = String.replace(original, "\"version\":3", "\"version\":3 ")
     CatalogFixture.write!(bundle, "climbs/duplicate.json", duplicate)
 
     CatalogFixture.rewrite_index!(bundle, fn index ->

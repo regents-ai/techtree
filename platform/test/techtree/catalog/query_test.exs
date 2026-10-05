@@ -33,9 +33,9 @@ defmodule Techtree.Catalog.QueryTest do
 
     test "climbs are listed by reference" do
       assert Enum.map(Query.list_climbs(), & &1.reference) == [
-               "frontier-cs-open-ended-climb@2",
+               "frontier-cs-open-ended-climb@3",
                CatalogFixture.climb_reference(),
-               "tasksmith-climb@1"
+               "tasksmith-climb@2"
              ]
     end
 

@@ -54,7 +54,7 @@ defmodule Techtree.Release.StarterSkillTest do
     @describetag :tmp_dir
 
     setup do
-      {:ok, starter} = StarterSkill.for_climb("hello-world-climb@2")
+      {:ok, starter} = StarterSkill.for_climb("hello-world-climb@3")
       %{starter: starter}
     end
 

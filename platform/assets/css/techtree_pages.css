@@ -145,6 +145,7 @@
 .evidence-badges { display: grid; gap: var(--space-2); margin-top: var(--space-3); }
 .evidence-badge { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 1fr); gap: var(--space-2); align-items: baseline; padding-bottom: var(--space-2); border-bottom: 1px solid var(--hairline); }
 .evidence-badge p { font-size: .875rem; }
+.reruns { font-size: .875rem; margin: var(--space-1) 0 0; padding-left: 1.25rem; }
 .rerun { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--rg-track-gap); align-items: start; margin-top: var(--space-3); }
 .rerun .command { margin: 0; }
 .rerun__needs h3 { margin-bottom: var(--space-2); }

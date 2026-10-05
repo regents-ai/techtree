@@ -64,9 +64,12 @@ defmodule Techtree.Network.IngestTest do
       assert entry.task_count == 36
       assert length(entry.task_deltas) == 36
       assert entry.statuses == report["statuses"]
-      assert entry.decision == "accepted"
-      assert entry.assessment.reason == :cleared_rule
+      # The fixture's stand-in runs score every task the same with and without
+      # the Skill, so the Campaign's rule rejects it as no change at all.
+      assert entry.decision == report["decision"]
+      assert entry.assessment.reason == :unchanged
       assert entry.assessment.wins == entry.wins
+      assert is_nil(entry.assessment.rerun_of)
 
       [%{"candidate" => candidate}] = report["manifest_comparison"]["differences"]
       assert entry.skill_digest == candidate["digest"]
@@ -364,6 +367,7 @@ defmodule Techtree.Network.IngestTest do
           ["primary_result"],
           &Map.merge(&1, %{"wins" => 0, "losses" => 36, "ties" => 0})
         )
+        |> Map.put("decision", "accepted")
       end
 
       files = rewritten_report(every_task_worse)

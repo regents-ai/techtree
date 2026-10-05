@@ -44,21 +44,21 @@ defmodule Techtree.Release.StarterSkill do
   # Climb's `starter_skill_digest` in the ReleaseCore every repository copies.
   @starters [
     %{
-      climb_reference: "hello-world-climb@2",
+      climb_reference: "hello-world-climb@3",
       name: "hello-world-starter-v1",
       file_digest: "sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c",
       size: 1496,
       tree_digest: "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b"
     },
     %{
-      climb_reference: "frontier-cs-open-ended-climb@2",
+      climb_reference: "frontier-cs-open-ended-climb@3",
       name: "frontier-cs-starter-v4",
       file_digest: "sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669",
       size: 4675,
       tree_digest: "sha256:c93c985b1017d976408239b2583bff7248507032cb32c7aeb20edd685fbc86a6"
     },
     %{
-      climb_reference: "tasksmith-climb@1",
+      climb_reference: "tasksmith-climb@2",
       name: "tasksmith-starter-v1",
       file_digest: "sha256:6e36be766e6d2ac16f5d8feda3a09f5b1337a6d9f7d1b306cdd44dbe456377d4",
       size: 1308,

@@ -331,7 +331,7 @@ defmodule TechtreeWeb.DocsLive do
                    "skill",
                    "starter",
                    "--climb",
-                   "frontier-cs-open-ended-climb@1"
+                   "frontier-cs-open-ended-climb@3"
                  ]},
                 {:command,
                  [
@@ -339,7 +339,7 @@ defmodule TechtreeWeb.DocsLive do
                    "techtree",
                    "climb",
                    "prepare",
-                   "frontier-cs-open-ended-climb@1",
+                   "frontier-cs-open-ended-climb@3",
                    "--skill",
                    "path/to/skill"
                  ]}

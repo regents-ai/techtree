@@ -103,6 +103,7 @@ defmodule TechtreeWeb.Router do
     get "/publications/:bundle_digest", PublicationController, :show
     get "/publications/:bundle_digest/bundle", PublicationController, :bundle
     get "/publication-keys/:key_id", PublicationKeyController, :show
+    get "/skills/:root_digest", PublishedSkillController, :show
   end
 
   # The one public write address. Its rate limit and exact-byte reader stand

@@ -96,9 +96,11 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   ]
 
   # The calibrated public claim is a band, described in words. A number pinned
-  # to the task count reads as a promise about the next run.
+  # to the task count reads as a promise about the next run. A Result's own
+  # better / same / worse counts are three numbers, not a score, so a count
+  # followed by another one is not read as a claim.
   @exact_score_claim [
-    ~r/\b\d{1,3}\s*(\/|out of)\s*36\b/i,
+    ~r/\b\d{1,3}\s*(\/|out of)\s*36\b(?!\s*\/)/i,
     ~r/\b\d{1,3}\s*%\s*(of\s+)?(the\s+)?(toy\s+)?tasks\b/i,
     ~r/\bscores?\s+\d{1,3}\b/i
   ]

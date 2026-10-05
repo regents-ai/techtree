@@ -44,6 +44,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/publications",
              "get /api/v1/publications/:bundle_digest",
              "get /api/v1/publications/:bundle_digest/bundle",
+             "get /api/v1/skills/:root_digest",
              "get /blog",
              "get /blog/:slug",
              "get /capabilities",
@@ -83,7 +84,8 @@ defmodule TechtreeWeb.RouterTest do
       |> Enum.uniq()
       |> Enum.sort()
 
-    assert parameters == ["bundle_digest", "digest", "file", "id", "key_id", "slug", "turn"]
+    assert parameters ==
+             ["bundle_digest", "digest", "file", "id", "key_id", "root_digest", "slug", "turn"]
   end
 
   test "no artifact, proof, bundle, or login route exists", %{conn: conn} do
@@ -122,7 +124,8 @@ defmodule TechtreeWeb.RouterTest do
           "/api/v1/objects/sha256:#{String.duplicate("a", 64)}",
           "/api/v1/publications/sha256:#{String.duplicate("a", 64)}",
           "/api/v1/publications/sha256:#{String.duplicate("a", 64)}/bundle",
-          "/api/v1/publication-keys/sha256:#{String.duplicate("a", 64)}"
+          "/api/v1/publication-keys/sha256:#{String.duplicate("a", 64)}",
+          "/api/v1/skills/sha256:#{String.duplicate("a", 64)}"
         ] do
       for refused <- [
             post(conn, path, %{}),

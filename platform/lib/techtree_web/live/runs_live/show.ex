@@ -12,10 +12,12 @@ defmodule TechtreeWeb.RunsLive.Show do
   The verdict, the means and the counts are this site's own: the Result's
   stored `Techtree.Network.Assessment`, which `Techtree.Network.Result` worked
   out under its Campaign's rule when the Result was published.
-  `TechtreeWeb.ResultAssessment` puts that into words. The standing gap is a
-  rerun: this site keeps no record of one, so the page never claims one. It
-  never counts publisher keys as people, and never calls a rerun from another
-  key independent reproduction.
+  `TechtreeWeb.ResultAssessment` puts that into words. A rerun is another
+  Result that says, in its signed report, that it reruns this one; the site
+  checked it is of the same Campaign and the same Skill. The page names the
+  Result a rerun reruns, lists an original's reruns and counts them as Results.
+  It never counts publisher keys as people, and never calls a rerun from
+  another key independent reproduction.
 
   The Skill's name and GitHub link are the publisher's word, sent beside the
   signed bundle rather than inside it. Nothing checks them, so wherever the
@@ -228,15 +230,48 @@ defmodule TechtreeWeb.RunsLive.Show do
               publisher's own machine, and nobody else watched them.
             </p>
           </li>
-          <li id="badge-no-rerun" class="evidence-badge">
+          <li :if={@rerun_of} id="badge-rerun-of" class="evidence-badge">
+            <Regent.Primitives.status tone="neutral" class="badge">
+              A rerun
+            </Regent.Primitives.status>
+            <p>
+              This Result reruns <a href={~p"/results/#{@rerun_of.bundle_digest}"}>an earlier Result</a>: the same Climb and the same Skill, run again and signed by {key_words(
+                @rerun_of,
+                @entry
+              )}. A rerun from another
+              publisher key is still a report from someone's own machine, not independent
+              reproduction, and one person can hold many keys.
+            </p>
+          </li>
+          <li :if={@reruns == []} id="badge-no-rerun" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
               No reruns yet
             </Regent.Primitives.status>
             <p>
-              This site has no record of this comparison being run again. A rerun from another
+              No published Result reruns this one yet. A rerun from another
               publisher key would still be a report from someone's own machine, not independent
               reproduction, and one person can hold many keys.
             </p>
+          </li>
+          <li :if={@reruns != []} id="badge-reruns" class="evidence-badge">
+            <Regent.Primitives.status tone="neutral" class="badge">
+              {rerun_count(@reruns)}
+            </Regent.Primitives.status>
+            <div>
+              <p>
+                Published Results that rerun this one, with the same Climb and the same Skill.
+                Each is a report from its publisher's own machine, not independent reproduction,
+                and one person can hold many keys.
+              </p>
+              <ul class="reruns">
+                <li :for={rerun <- @reruns}>
+                  <a href={~p"/results/#{rerun.bundle_digest}"}>Result {rerun.log_sequence}</a>, signed by {key_words(
+                    rerun,
+                    @entry
+                  )}<span :if={Query.withdrawn?(rerun)}>, since withdrawn</span>
+                </li>
+              </ul>
+            </div>
           </li>
         </ul>
       </section>
@@ -250,16 +285,6 @@ defmodule TechtreeWeb.RunsLive.Show do
             <.requirements minimums={@rerun.minimums} provider={false} hermes={false}>
               <li>
                 An API key for {@limits.provider}, set as <code>{@limits.credential_env}</code>; the model calls are charged to your account
-              </li>
-              <li :if={@github_url}>
-                The Skill's files. The publisher pointed to <a
-                  href={@github_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >this GitHub page</a>, which this site has not checked; the fingerprint check in the commands tells you whether you have the files that ran
-              </li>
-              <li :if={!@github_url}>
-                The Skill's files. This Result does not say where to get them.
               </li>
             </.requirements>
           </div>
@@ -298,8 +323,8 @@ defmodule TechtreeWeb.RunsLive.Show do
             numbers can differ from these.
           </li>
           <li>
-            Whether yours agrees is for you to judge. This site keeps no record that ties a new
-            run to this Result.
+            Publish yours and this page lists it as a rerun. Whether it agrees is for you to
+            judge.
           </li>
         </ul>
       </section>
@@ -417,7 +442,7 @@ defmodule TechtreeWeb.RunsLive.Show do
             <:fact term="Result ID">{@entry.run_id}</:fact>
             <:fact term="Log sequence">{@entry.log_sequence}</:fact>
             <:fact term="What the report can claim">
-              A call, signed by its publisher's key. Not rerun.
+              A call, signed by its publisher's key.
             </:fact>
             <:fact term="Publisher key"><.digest value={@entry.participant_key_id} /></:fact>
           </.definition_list>
@@ -519,7 +544,9 @@ defmodule TechtreeWeb.RunsLive.Show do
       task_filter: :all,
       published: CampaignFacts.for_campaign(campaign),
       limits: limits(campaign),
-      rerun: rerun(entry, held_out?),
+      rerun: rerun(entry),
+      rerun_of: rerun_of(entry),
+      reruns: Query.reruns(entry),
       slug: climb.projection["slug"]
     }
   end
@@ -569,15 +596,14 @@ defmodule TechtreeWeb.RunsLive.Show do
   defp discussion_url(bundle_digest),
     do: "https://patchbay.help/discuss/techtree/" <> bundle_digest
 
-  defp rerun(entry, held_out?) do
+  defp rerun(entry) do
     case ReleaseInfo.current() do
       %{installable?: true, install_argv: [_ | _] = install_argv, minimums: minimums} ->
         case Catalog.get_climb_by_campaign_digest(entry.campaign_spec_digest) do
           {:ok, climb} ->
             %{
               minimums: minimums,
-              commands:
-                rerun_commands(install_argv, climb.reference, entry.skill_digest, held_out?)
+              commands: rerun_commands(install_argv, climb.reference, entry.bundle_digest)
             }
 
           {:error, _retired} ->
@@ -589,22 +615,37 @@ defmodule TechtreeWeb.RunsLive.Show do
     end
   end
 
-  defp rerun_commands(install_argv, reference, fingerprint, held_out?) do
-    prepare = ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]
-
+  defp rerun_commands(install_argv, reference, bundle_digest) do
     [
       {:command, install_argv},
       {:command, ["regents", "techtree", "setup"]},
       {:command, ["regents", "techtree", "doctor", "--climb", reference]},
-      {:comment, "Put the Skill's files in a folder, then prepare it:"},
-      {:command, if(held_out?, do: prepare ++ ["--held-out"], else: prepare)},
-      {:comment, "Check that the Skill content digest it prints is #{fingerprint}"},
+      {:comment,
+       "Prepare a rerun. Techtree downloads this Result and its Skill and checks both:"},
+      {:command, ["regents", "techtree", "climb", "prepare", "--rerun-of", bundle_digest]},
       {:comment, "Start the draft it names. Techtree shows the most it may spend first:"},
       {:command, ["regents", "techtree", "climb", "start", "DRAFT_ID"]},
       {:comment, "When it finishes, check the run and read its result:"},
       {:command, ["regents", "techtree", "run", "result", "RUN_ID"]}
     ]
   end
+
+  # The Result this one reruns. The site refused any rerun naming a Result it
+  # does not hold, so the original is always here, withdrawn or not.
+  defp rerun_of(%{assessment: %{rerun_of: nil}}), do: nil
+
+  defp rerun_of(%{assessment: %{rerun_of: digest}}) do
+    {:ok, original} = Query.get_entry(digest)
+    original
+  end
+
+  defp key_words(%{participant_key_id: key}, %{participant_key_id: key}),
+    do: "the same publisher key"
+
+  defp key_words(_other, _entry), do: "another publisher key"
+
+  defp rerun_count([_one]), do: "1 rerun"
+  defp rerun_count(reruns), do: "#{length(reruns)} reruns"
 
   defp campaign_name(entry, climb) do
     copy = ClimbCopy.for_reference(climb.reference)

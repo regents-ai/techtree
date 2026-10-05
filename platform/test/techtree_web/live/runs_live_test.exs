@@ -628,7 +628,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
   defp publish_a_run(_context) do
     keys = NetworkFixture.key_pair()
-    files = NetworkFixture.resign(NetworkFixture.files(), keys: keys)
+    files = NetworkFixture.resign(NetworkFixture.scored(), keys: keys)
 
     {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
 
@@ -637,7 +637,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
   defp publish_a_run_with_metadata(_context) do
     keys = NetworkFixture.key_pair()
-    files = NetworkFixture.resign(NetworkFixture.files(), keys: keys)
+    files = NetworkFixture.resign(NetworkFixture.scored(), keys: keys)
 
     {:ok, entry, :recorded} =
       NetworkFixture.publish(
@@ -673,7 +673,7 @@ defmodule TechtreeWeb.RunsLiveTest do
   # hurts, and the signed report says so, with the decision the Campaign's rule
   # reaches on a lower score.
   defp swapped_sides_files do
-    Map.update!(NetworkFixture.files(), "uplift-report.json", fn bytes ->
+    Map.update!(NetworkFixture.scored(), "uplift-report.json", fn bytes ->
       bytes
       |> Jason.decode!()
       |> update_in(["payload", "task_deltas"], fn deltas -> Enum.map(deltas, &swap_sides/1) end)

@@ -44,6 +44,14 @@ defmodule Techtree.Network do
         action: :for_campaign,
         args: [:campaign_spec_digest]
 
+      define :list_publication_entries_for_skill,
+        action: :for_skill,
+        args: [:skill_digest]
+
+      define :list_reruns_of_publication_entry,
+        action: :reruns_of,
+        args: [:bundle_digest]
+
       define :get_publication_entry_by_run,
         action: :get_by_run,
         args: [:participant_key_id, :run_id]

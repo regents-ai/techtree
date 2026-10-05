@@ -13,13 +13,13 @@ defmodule Techtree.CatalogFixture do
   alias Techtree.Catalog.Digest
   alias Techtree.Release.StarterSkill
 
-  @climb_reference "hello-world-climb@2"
+  @climb_reference "hello-world-climb@3"
   @climb_path "climbs/hello-world-climb.json"
   @campaign_path "campaigns/hello-world-climb.json"
   @execution_plan_path "execution-plans/hello-world-climb.json"
-  @campaign_digest "sha256:08d06839870d6cb7deaa29653e0506eabe9c3f4c94aff5e184e5c6962a9c3dde"
+  @campaign_digest "sha256:f1f45ca0c6fe0c85890e7c27bf3621bf900fd67b0153ce99d55fc9c606ab63c3"
   @execution_plan_digest "sha256:626e31e0939288726a2fa86d76faec7ce7f4b2bec06bf0b5c614a1f97b368d7c"
-  @catalog_digest "sha256:776dd570a97caa4266d1e06f30d2c1f5e5a2961b9b18b6ab45caab1bea0120bf"
+  @catalog_digest "sha256:8e4f2e94ba47942839c714233a4f6452b29d84e85f84b2ee9a0fa7a3ac2e6e21"
   @taskset_validation_digest "sha256:41646dc7b4044b1f3305df7434516c1515b7e27755c64d3c32f7993e5ecf802f"
   @data_policy_digest "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9"
 

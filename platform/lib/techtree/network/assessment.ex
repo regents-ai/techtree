@@ -89,6 +89,11 @@ defmodule Techtree.Network.Assessment do
       public? true
     end
 
+    attribute :rerun_of, :string do
+      description "The bundle digest of the published Result this one reruns, if it reruns one."
+      public? true
+    end
+
     attribute :skill_changes, {:array, SkillChange} do
       description "Every difference the signed report found between the two runs' settings."
       allow_nil? false

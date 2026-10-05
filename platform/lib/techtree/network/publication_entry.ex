@@ -175,6 +175,29 @@ defmodule Techtree.Network.PublicationEntry do
               )
     end
 
+    read :for_skill do
+      description "The Results still standing that measured one Skill, newest arrival first."
+
+      argument :skill_digest, :string, allow_nil?: false
+
+      filter expr(skill_digest == ^arg(:skill_digest) and is_nil(withdrawn_at))
+
+      prepare build(sort: [log_sequence: :desc], select: [:bundle_digest, :log_sequence])
+    end
+
+    read :reruns_of do
+      description "The Results that say they rerun one published Result, in arrival order."
+
+      argument :bundle_digest, :string, allow_nil?: false
+
+      filter expr(assessment[:rerun_of] == ^arg(:bundle_digest))
+
+      prepare build(
+                sort: [log_sequence: :asc],
+                select: [:bundle_digest, :log_sequence, :participant_key_id, :withdrawn_at]
+              )
+    end
+
     read :get_by_run do
       description "One entry, by the participant and run it belongs to."
       get? true

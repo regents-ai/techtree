@@ -108,9 +108,12 @@ defmodule TechtreeWeb.ClimbCopy do
   @copy %{
     "hello-world-climb@1" => @hello_world,
     "hello-world-climb@2" => @hello_world,
+    "hello-world-climb@3" => @hello_world,
     "frontier-cs-open-ended-climb@1" => @frontier_cs,
     "frontier-cs-open-ended-climb@2" => @frontier_cs,
-    "tasksmith-climb@1" => @tasksmith
+    "frontier-cs-open-ended-climb@3" => @frontier_cs,
+    "tasksmith-climb@1" => @tasksmith,
+    "tasksmith-climb@2" => @tasksmith
   }
 
   @doc """

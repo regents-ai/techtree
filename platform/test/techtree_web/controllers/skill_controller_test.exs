@@ -30,7 +30,7 @@ defmodule TechtreeWeb.SkillControllerTest do
     assert conn.resp_body =~ "Never approve anything on\n   the person's behalf"
 
     assert conn.resp_body =~
-             "regents techtree setup\nregents techtree doctor --climb hello-world-climb@2\nregents techtree skill starter"
+             "regents techtree setup\nregents techtree doctor --climb hello-world-climb@3\nregents techtree skill starter"
 
     assert conn.resp_body =~ "macOS or Linux · Python 3.12, provided by the installer"
     assert conn.resp_body =~ "regents techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID"

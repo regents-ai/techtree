@@ -79,6 +79,19 @@ defmodule Techtree.Network.ConformanceTest do
     assert entry.task_count == 36
     assert entry.verification_checks_passed == Bundle.check_count()
     assert entry.submission_bytes == submitted
+
+    # The CLI's rerun of that Result names it, and is of the same Campaign and
+    # the same Skill.
+    assert {:ok, rerun, :recorded} = NetworkFixture.publish(NetworkFixture.cli_rerun_submission())
+    assert rerun.assessment.rerun_of == entry.bundle_digest
+    assert rerun.skill_digest == entry.skill_digest
+
+    # And the Skill both carried is served as the answer `skill fetch` accepts.
+    accepted = NetworkFixture.cli_skill_answer()
+    assert {:ok, answer} = Techtree.Network.Query.skill(entry.skill_digest)
+    assert Map.take(answer, ["skill", "files"]) == Map.take(accepted, ["skill", "files"])
+    assert answer["results"] == [rerun.bundle_digest, entry.bundle_digest]
+    assert Enum.sort(accepted["results"]) == Enum.sort(answer["results"])
   end
 
   test "the submission this site builds for a proof directory is the one the CLI sends" do

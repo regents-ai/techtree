@@ -137,6 +137,47 @@ defmodule Techtree.Network.Query do
   end
 
   @doc """
+  A published Skill by its fingerprint: the `skill.json` and files the newest
+  Result still standing carried for it, and every Result still standing that
+  measured it, newest first.
+
+  The files are handed over as the base64 the participant submitted them in;
+  nothing here decodes or runs them. A Result published before proofs carried
+  their Skill measured it without carrying its files, and every Result since
+  carries them, so when the newest one does not, no Result does.
+  """
+  @spec skill(String.t()) ::
+          {:ok, %{String.t() => term()}} | :error
+  def skill(root_digest) when is_binary(root_digest) do
+    with [newest | _older] = entries <- Network.list_publication_entries_for_skill!(root_digest),
+         {:ok, entry} <- get_entry(newest.bundle_digest),
+         %{"files" => %{"skill.json" => artifact} = files} <-
+           Jason.decode!(entry.submission_bytes) do
+      skill = artifact |> Base.decode64!() |> Jason.decode!()
+
+      {:ok,
+       %{
+         "skill" => skill,
+         "files" =>
+           Enum.map(skill["files"], fn %{"path" => path} ->
+             %{"path" => path, "content_base64" => Map.fetch!(files, "skill/" <> path)}
+           end),
+         "results" => Enum.map(entries, & &1.bundle_digest)
+       }}
+    else
+      _none -> :error
+    end
+  end
+
+  @doc """
+  The Results that rerun one published Result, withdrawn or not, in the order
+  they arrived.
+  """
+  @spec reruns(PublicationEntry.t()) :: [PublicationEntry.t()]
+  def reruns(%PublicationEntry{bundle_digest: digest}),
+    do: Network.list_reruns_of_publication_entry!(digest)
+
+  @doc """
   Whether an entry has been withdrawn.
   """
   @spec withdrawn?(PublicationEntry.t()) :: boolean()

@@ -12,7 +12,9 @@ defmodule Techtree.Network.Error do
   `Techtree.Network.Bundle`; two more name the two claims the submission
   document makes about the bundle it carries, which are refused when they
   disagree with it, and three name the ways one already-published entry can
-  conflict with a new one. Either way a participant whose bundle was turned
+  conflict with a new one. The Skill and rerun codes carry no `submission_`
+  prefix because the CLI refuses with the very same codes before anything is
+  sent. Either way a participant whose bundle was turned
   away learns which property of it did not hold rather than that "verification
   failed". The details are limited to what the submitter already has: file
   paths inside their own bundle, digests they computed themselves, counts they
@@ -31,6 +33,7 @@ defmodule Techtree.Network.Error do
           | :submission_file_empty
           | :submission_file_not_canonical_base64
           | :submission_manifest_missing
+          | :submission_bundle_version_unsupported
           | :submission_artifact_missing
           | :submission_artifact_unlisted
           | :submission_artifact_digest_mismatch
@@ -41,9 +44,17 @@ defmodule Techtree.Network.Error do
           | :submission_campaign_unpublished
           | :submission_result_inconsistent
           | :submission_skill_change_invalid
+          | :skill_artifact_invalid
+          | :skill_path_invalid
+          | :skill_fingerprint_mismatch
+          | :skill_too_large
+          | :skill_contains_secret
           | :submission_task_membership_mismatch
           | :submission_data_policy_forbids_publication
           | :submission_private_content
+          | :rerun_original_unknown
+          | :rerun_campaign_mismatch
+          | :rerun_skill_mismatch
           | :submission_bundle_digest_mismatch
           | :submission_run_id_mismatch
           | :contributor_address_invalid

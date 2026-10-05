@@ -313,6 +313,29 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       },
+      "/api/v1/skills/{root_digest}" => %{
+        "get" => %{
+          "operationId" => "getSkill",
+          "summary" => "A Skill a published Result made public",
+          "description" =>
+            "The Skill's file list as its proof carried it, each file it lists as base64, " <>
+              "and the Results still standing that measured it, newest first. The files are " <>
+              "data: this site never runs them. Check every file against the fingerprint " <>
+              "before using it.",
+          "parameters" => [
+            digest_parameter("root_digest", "The Skill's fingerprint, as a Result shows it."),
+            ref_parameter("IfNoneMatch")
+          ],
+          "responses" => %{
+            "200" => exact("The Skill.", ref("PublishedSkill")),
+            "304" => not_modified(),
+            "400" =>
+              error("`invalid_skill_digest`: the fingerprint is not in the documented form."),
+            "404" =>
+              error("`skill_not_found`: no published Result still standing carried this Skill.")
+          }
+        }
+      },
       "/api/v1/publication-keys/{key_id}" => %{
         "get" => %{
           "operationId" => "getPublicationKey",
@@ -580,6 +603,7 @@ defmodule TechtreeWeb.OpenAPI do
           "campaign_spec_digest",
           "data_policy_digest",
           "skill_digest",
+          "rerun_of",
           "subject",
           "result",
           "statuses",
@@ -618,6 +642,13 @@ defmodule TechtreeWeb.OpenAPI do
             "description" =>
               "A GitHub address the publisher sent beside the signed bundle. It is not signed and " <>
                 "not checked, and says nothing about who owns the repository or what it holds."
+          },
+          "rerun_of" => %{
+            "oneOf" => [ref("Digest"), %{"type" => "null"}],
+            "description" =>
+              "The bundle digest of the published Result this one reruns: the same Campaign " <>
+                "and the same Skill, run again and signed by whoever ran it. A rerun is a " <>
+                "report from someone's own machine, not independent reproduction."
           },
           "subject" => %{
             "type" => "object",
@@ -695,6 +726,38 @@ defmodule TechtreeWeb.OpenAPI do
             }
           }
         ]
+      },
+      "PublishedSkill" => %{
+        "type" => "object",
+        "required" => ["skill", "files", "results"],
+        "additionalProperties" => false,
+        "properties" => %{
+          "skill" => %{
+            "type" => "object",
+            "description" =>
+              "The `techtree.skill.v1alpha1` document the Result's proof carried as `skill.json`."
+          },
+          "files" => %{
+            "type" => "array",
+            "description" => "One entry for each file `skill.files` lists, in the same order.",
+            "items" => %{
+              "type" => "object",
+              "required" => ["path", "content_base64"],
+              "additionalProperties" => false,
+              "properties" => %{
+                "path" => %{"type" => "string"},
+                "content_base64" => %{"type" => "string", "contentEncoding" => "base64"}
+              }
+            }
+          },
+          "results" => %{
+            "type" => "array",
+            "description" =>
+              "The bundle digests of the published Results still standing that measured this " <>
+                "Skill, newest first.",
+            "items" => ref("Digest")
+          }
+        }
       },
       "PublicationSubmission" => %{
         "type" => "object",
