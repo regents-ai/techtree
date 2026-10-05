@@ -89,9 +89,8 @@ defmodule Techtree.Network.ConformanceTest do
     # And the Skill both carried is served as the answer `skill fetch` accepts.
     accepted = NetworkFixture.cli_skill_answer()
     assert {:ok, answer} = Techtree.Network.Query.skill(entry.skill_digest)
-    assert Map.take(answer, ["skill", "files"]) == Map.take(accepted, ["skill", "files"])
+    assert answer == accepted
     assert answer["results"] == [rerun.bundle_digest, entry.bundle_digest]
-    assert Enum.sort(accepted["results"]) == Enum.sort(answer["results"])
   end
 
   test "the submission this site builds for a proof directory is the one the CLI sends" do
