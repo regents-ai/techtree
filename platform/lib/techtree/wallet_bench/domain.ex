@@ -23,13 +23,25 @@ defmodule Techtree.WalletBench do
 
   resources do
     resource Techtree.WalletBench.Machine do
-      define :request_machine, action: :request, args: [:name]
+      define :request_machine, action: :request, args: [:name, :harness_id]
       define :get_machine, action: :read, get_by: [:id]
-      define :retire_machine, action: :retire
+      define :retire_machine, action: :retire, args: [:reason]
     end
 
     resource Techtree.WalletBench.MachineEvent do
       define :list_machine_events, action: :for_machine, args: [:machine_id]
+    end
+
+    resource Techtree.WalletBench.Attempt do
+      define :request_attempt, action: :request, args: [:harness_id, :wallet_id]
+      define :get_attempt, action: :read, get_by: [:id]
+      define :list_attempts, action: :recent
+    end
+
+    resource Techtree.WalletBench.Turn
+
+    resource Techtree.WalletBench.AttemptEvent do
+      define :list_attempt_events, action: :for_attempt, args: [:attempt_id]
     end
   end
 end

@@ -67,6 +67,9 @@ defmodule TechtreeWeb.Router do
     live "/results", RunsLive.Index
     live "/results/:bundle_digest", RunsLive.Show
     live "/examples/tdd", TddShowcaseLive
+    live "/wallet-bench", WalletBenchLive.Index
+    live "/wallet-bench/:id", WalletBenchLive.Show
+    get "/wallet-bench/:id/evidence/:turn/:file", WalletBenchEvidenceController, :show
 
     # The addresses release documents already point at, unchanged.
     live "/start", StartLive

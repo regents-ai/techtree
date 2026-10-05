@@ -2,13 +2,18 @@ defmodule Techtree.WalletBench.Machine do
   @moduledoc """
   One Fly Sprites machine the bench owns, and the step it has reached.
 
-  `state` moves forward one step per job: `requested`, `created` (the machine
-  exists on Sprites), `checkpointed` (its disk is saved as the baseline),
-  `restored` (put back to the baseline), `settling` (its boot id is noted) and
-  `ready`. A machine whose boot id changed, whose upload did not come back
-  exactly, or whose image changed is `failed` at once, with the reason; a step
-  that keeps failing to reach Sprites is `failed` when its retries run out.
-  `retired` means the machine was deleted on Sprites.
+  A machine serves one harness. `state` moves forward one step per job:
+  `requested`, `created` (the machine exists on Sprites), `built` (the
+  harness's baseline is installed, `Techtree.WalletBench.Machine.Changes.BuildBaseline`),
+  `checkpointed` (its disk is saved as the baseline), `restored` (put back to
+  the baseline), `settling` (its boot id is noted) and `ready`. An attempt
+  takes a ready machine (`leased`) and gives it back for a reset (`resetting`),
+  which goes through restore and readiness again. A machine whose build failed,
+  whose boot id changed, whose upload did not come back exactly, whose image
+  changed or whose tested account can reach the bench is `failed` at once, with
+  the reason; a step that keeps failing to reach Sprites is `failed` when its
+  retries run out. `retiring` asks for the machine to be deleted on Sprites;
+  `retired` means it was.
 
   Each step calls Sprites before its transaction opens, then writes the new
   state, its `Techtree.WalletBench.MachineEvent` and the next step's job in one
@@ -24,7 +29,10 @@ defmodule Techtree.WalletBench.Machine do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshOban]
 
+  alias Techtree.WalletBench.Catalog
+
   alias Techtree.WalletBench.Machine.Changes.{
+    BuildBaseline,
     CheckpointBaseline,
     ConfirmReady,
     CreateSprite,
@@ -52,9 +60,20 @@ defmodule Techtree.WalletBench.Machine do
         worker_module_name(Techtree.WalletBench.Machine.Workers.CreateSprite)
       end
 
+      trigger :build_baseline do
+        action :build_baseline
+        where expr(state == :created)
+        queue(:sprites)
+        max_attempts(5)
+        on_error(:mark_failed)
+        lock_for_update?(false)
+        scheduler_cron(false)
+        worker_module_name(Techtree.WalletBench.Machine.Workers.BuildBaseline)
+      end
+
       trigger :checkpoint_baseline do
         action :checkpoint_baseline
-        where expr(state == :created)
+        where expr(state == :built)
         queue(:sprites)
         max_attempts(5)
         on_error(:mark_failed)
@@ -65,7 +84,7 @@ defmodule Techtree.WalletBench.Machine do
 
       trigger :restore_baseline do
         action :restore_baseline
-        where expr(state == :checkpointed)
+        where expr(state in [:checkpointed, :resetting])
         queue(:sprites)
         max_attempts(5)
         on_error(:mark_failed)
@@ -95,6 +114,17 @@ defmodule Techtree.WalletBench.Machine do
         scheduler_cron(false)
         worker_module_name(Techtree.WalletBench.Machine.Workers.ConfirmReady)
       end
+
+      trigger :delete_sprite do
+        action :delete_sprite
+        where expr(state == :retiring)
+        queue(:sprites)
+        max_attempts(5)
+        on_error(:mark_failed)
+        lock_for_update?(false)
+        scheduler_cron(false)
+        worker_module_name(Techtree.WalletBench.Machine.Workers.DeleteSprite)
+      end
     end
   end
 
@@ -102,8 +132,9 @@ defmodule Techtree.WalletBench.Machine do
     defaults [:read]
 
     create :request do
-      description "Ask for a new machine; jobs take it from here. Operator only."
-      accept [:name]
+      description "Ask for a new machine for a harness; jobs take it from here. Operator only."
+      accept [:name, :harness_id]
+      validate one_of(:harness_id, Catalog.harness_ids())
       change set_attribute(:state, :requested)
       change RecordEvent
       change run_oban_trigger(:create_sprite)
@@ -115,12 +146,21 @@ defmodule Techtree.WalletBench.Machine do
       change CreateSprite
       change set_attribute(:state, :created)
       change RecordEvent
+      change run_oban_trigger(:build_baseline)
+    end
+
+    update :build_baseline do
+      description "Built, or failed with the end of the build's log."
+      require_atomic? false
+      change filter(expr(state == :created))
+      change BuildBaseline
+      change RecordEvent
       change run_oban_trigger(:checkpoint_baseline)
     end
 
     update :checkpoint_baseline do
       require_atomic? false
-      change filter(expr(state == :created))
+      change filter(expr(state == :built))
       change CheckpointBaseline
       change set_attribute(:state, :checkpointed)
       change RecordEvent
@@ -129,7 +169,7 @@ defmodule Techtree.WalletBench.Machine do
 
     update :restore_baseline do
       require_atomic? false
-      change filter(expr(state == :checkpointed))
+      change filter(expr(state in [:checkpointed, :resetting]))
       change RestoreBaseline
       change set_attribute(:state, :restored)
       change RecordEvent
@@ -153,11 +193,45 @@ defmodule Techtree.WalletBench.Machine do
       change RecordEvent
     end
 
+    update :lease do
+      description "An attempt takes the ready machine. Attempt steps only."
+      require_atomic? false
+      argument :attempt_id, :uuid, allow_nil?: false
+      change filter(expr(state == :ready))
+      change set_attribute(:state, :leased)
+      change {RecordEvent, argument: :attempt_id}
+    end
+
+    update :reset do
+      description "The attempt is over and its key is gone; put the machine back. Attempt steps only."
+      require_atomic? false
+      argument :attempt_id, :uuid, allow_nil?: false
+      change filter(expr(state == :leased))
+      change set_attribute(:state, :resetting)
+      change {RecordEvent, argument: :attempt_id}
+      change run_oban_trigger(:restore_baseline)
+    end
+
     update :mark_failed do
       description "A step ran out of retries."
       require_atomic? false
       argument :error, :term
-      change filter(expr(state in [:requested, :created, :checkpointed, :restored, :settling]))
+
+      change filter(
+               expr(
+                 state in [
+                   :requested,
+                   :created,
+                   :built,
+                   :checkpointed,
+                   :resetting,
+                   :restored,
+                   :settling,
+                   :retiring
+                 ]
+               )
+             )
+
       change set_attribute(:state, :failed)
 
       change fn changeset, _context ->
@@ -172,9 +246,22 @@ defmodule Techtree.WalletBench.Machine do
     end
 
     update :retire do
-      description "Delete the machine on Sprites. Operator only."
+      description """
+      Ask for the machine to be deleted on Sprites: by an operator, or by an
+      attempt whose key could not be confirmed removed.
+      """
+
       require_atomic? false
-      change filter(expr(state != :retired))
+      argument :reason, :string, allow_nil?: false
+      change filter(expr(state not in [:retiring, :retired]))
+      change set_attribute(:state, :retiring)
+      change {RecordEvent, argument: :reason}
+      change run_oban_trigger(:delete_sprite)
+    end
+
+    update :delete_sprite do
+      require_atomic? false
+      change filter(expr(state == :retiring))
       change DeleteSprite
       change set_attribute(:state, :retired)
       change RecordEvent
@@ -212,14 +299,32 @@ defmodule Techtree.WalletBench.Machine do
       constraints one_of: [
                     :requested,
                     :created,
+                    :built,
                     :checkpointed,
                     :restored,
                     :settling,
                     :ready,
+                    :leased,
+                    :resetting,
                     :failed,
+                    :retiring,
                     :retired
                   ]
     end
+
+    attribute :harness_id, :string do
+      description "The harness this machine's baseline holds."
+      allow_nil? false
+      public? true
+    end
+
+    attribute :recipe_digest, :string,
+      public?: true,
+      description: "The digest of the bench scripts the baseline carries."
+
+    attribute :manifest, :map,
+      public?: true,
+      description: "The baseline's `manifest.json`: harness, translator, model and image facts."
 
     attribute :sprite_id, :string, public?: true
     attribute :sprite_version, :string, public?: true, description: "Sprites' image version."
@@ -242,6 +347,8 @@ defmodule Techtree.WalletBench.Machine do
 
   @doc "A failed step's error, as one line."
   @spec describe_error(term()) :: String.t()
+  def describe_error(error) when is_binary(error), do: String.slice(error, 0, 2000)
+
   def describe_error(%{__exception__: true} = error),
     do: error |> Exception.message() |> String.slice(0, 2000)
 

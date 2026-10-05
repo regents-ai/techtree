@@ -14,6 +14,12 @@ config :techtree, Oban, prefix: database_schema
 
 config :regent_sprites, token: System.get_env("SPRITES_TOKEN")
 
+# One OpenAI key for AgentWalletBench: the tested harness's model calls (sent to
+# the machine per attempt) and the judge's.
+wallet_bench_openai_key = System.get_env("WALLETBENCH_OPENAI_API_KEY")
+config :techtree, Techtree.WalletBench, model_key: wallet_bench_openai_key
+config :regent_openai, api_key: wallet_bench_openai_key
+
 config :techtree, Techtree.WalletBench.Evidence,
   endpoint: System.get_env("WALLETBENCH_AWS_ENDPOINT_URL_S3"),
   bucket: System.get_env("WALLETBENCH_BUCKET_NAME"),

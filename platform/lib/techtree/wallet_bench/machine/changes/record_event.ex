@@ -2,13 +2,20 @@ defmodule Techtree.WalletBench.Machine.Changes.RecordEvent do
   @moduledoc """
   Appends the machine's new state to its events, in the same transaction.
 
-  A step puts what it saw under the changeset context's `:event_detail`.
+  A step puts what it saw under the changeset context's `:event_detail`. With
+  `argument: name`, the action's argument of that name is added to it.
   """
 
   use Ash.Resource.Change
 
   @impl true
-  def change(changeset, _opts, _context) do
+  def change(changeset, opts, _context) do
+    changeset =
+      case opts[:argument] do
+        nil -> changeset
+        name -> put_detail(changeset, %{name => Ash.Changeset.get_argument(changeset, name)})
+      end
+
     Ash.Changeset.after_action(changeset, fn changeset, machine ->
       Techtree.WalletBench.MachineEvent
       |> Ash.Changeset.for_create(:record, %{
@@ -26,8 +33,10 @@ defmodule Techtree.WalletBench.Machine.Changes.RecordEvent do
     end)
   end
 
-  @doc "Puts what a step saw where `RecordEvent` finds it."
+  @doc "Adds what a step saw where `RecordEvent` finds it."
   @spec put_detail(Ash.Changeset.t(), map()) :: Ash.Changeset.t()
-  def put_detail(changeset, detail),
-    do: Ash.Changeset.set_context(changeset, %{event_detail: detail})
+  def put_detail(changeset, detail) do
+    detail = changeset.context |> Map.get(:event_detail, %{}) |> Map.merge(detail)
+    Ash.Changeset.set_context(changeset, %{event_detail: detail})
+  end
 end

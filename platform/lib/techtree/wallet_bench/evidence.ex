@@ -9,6 +9,10 @@ defmodule Techtree.WalletBench.Evidence do
   a `Req.Test` plug, under `:req_options`.
   """
 
+  @doc "Where one file of an attempt's turn is stored."
+  @spec turn_key(Ecto.UUID.t(), String.t(), String.t()) :: String.t()
+  def turn_key(attempt_id, turn_name, file), do: "attempts/#{attempt_id}/#{turn_name}/#{file}"
+
   @doc "Stores `body` under `key`, replacing anything there."
   @spec put(String.t(), iodata(), String.t()) :: :ok | {:error, term()}
   def put(key, body, content_type) do

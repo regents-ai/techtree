@@ -70,6 +70,14 @@ defmodule Techtree.MixProject do
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
       {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
       {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
+      {:regent_openai, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "openai"},
+      # regent_openai names regent_http by a sibling path; this pin replaces it.
+      {:regent_http, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "http", override: true},
+      # The ref regent_agents already brings; the bench recovers signatures with it.
+      {:siwa,
+       git: @elixir_utils,
+       ref: "f30b2f283ba03f0d0aa0adbcba5cee6c5a7de1cc",
+       sparse: "siwa/siwa-elixir/apps/siwa"},
       {:regent_identity, git: @regents, ref: @regents_ref, sparse: "identity"},
       {:regent_agents, git: @regents, ref: @regents_ref, sparse: "agents"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},

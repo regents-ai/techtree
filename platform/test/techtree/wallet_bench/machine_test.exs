@@ -1,8 +1,8 @@
 defmodule Techtree.WalletBench.MachineTest do
-  # The readiness rules of plan D18: a machine is ready only after its boot id
-  # has held for 30 seconds and a file reads back exactly; a machine that
-  # restarted in between is failed at once, never retried. Every step leaves
-  # its event.
+  # The readiness rules of plan D18: a machine is ready only after its baseline
+  # is built and has settled a minute after its checkpoint, its boot id has held for 30 seconds, a file reads back exactly and
+  # the tested account cannot reach the bench; a machine that restarted in
+  # between is failed at once, never retried. Every step leaves its event.
   use Techtree.DataCase, async: false
   use Oban.Testing, repo: Techtree.Repo
 
@@ -17,6 +17,7 @@ defmodule Techtree.WalletBench.MachineTest do
     Application.put_env(:regent_sprites, :req_options, plug: {Req.Test, __MODULE__})
     Req.Test.stub(__MODULE__, &sprites/1)
     Process.put(:boot_ids, ["boot-1"])
+    Process.put(:baseline, "missing")
 
     on_exit(fn ->
       Application.delete_env(:regent_sprites, :token)
@@ -27,12 +28,12 @@ defmodule Techtree.WalletBench.MachineTest do
     end)
   end
 
-  test "a requested machine is created, checkpointed, restored and ready, one event per step" do
-    machine = WalletBench.request_machine!(@name, authorize?: false)
+  test "a requested machine is created, built, checkpointed, restored and ready, one event per step" do
+    machine = WalletBench.request_machine!(@name, "H05", authorize?: false)
     assert_enqueued(worker: Machine.Workers.CreateSprite)
 
     # The chain runs up to readiness, which waits for the boot id to settle.
-    drain()
+    build(machine)
     settling = WalletBench.get_machine!(machine.id, authorize?: false)
     assert settling.state == :settling
     assert settling.baseline_checkpoint_id == "v2"
@@ -44,18 +45,20 @@ defmodule Techtree.WalletBench.MachineTest do
     ready = WalletBench.get_machine!(machine.id, authorize?: false)
     assert ready.state == :ready
     assert ready.sprite_version == "0.0.1-rc48"
+    assert ready.manifest["harness_version"] == "2.1.286 (Claude Code)"
+    assert ready.recipe_digest == "digest-1"
 
     events = WalletBench.list_machine_events!(machine.id, authorize?: false)
 
     assert Enum.map(events, & &1.step) ==
-             [:requested, :created, :checkpointed, :restored, :settling, :ready]
+             [:requested, :created, :built, :checkpointed, :restored, :settling, :ready]
 
     assert List.last(events).detail["upload_round_trip"] == true
   end
 
   test "a machine that restarted after its restore is failed at once, with the reason" do
-    machine = WalletBench.request_machine!(@name, authorize?: false)
-    drain()
+    machine = WalletBench.request_machine!(@name, "H05", authorize?: false)
+    build(machine)
 
     Process.put(:boot_ids, ["boot-2"])
     settle(machine)
@@ -68,7 +71,7 @@ defmodule Techtree.WalletBench.MachineTest do
   end
 
   test "a step that finishes after the machine was retired leaves it retired" do
-    machine = WalletBench.request_machine!(@name, authorize?: false)
+    machine = WalletBench.request_machine!(@name, "H05", authorize?: false)
     Oban.drain_queue(queue: :sprites)
     created = WalletBench.get_machine!(machine.id, authorize?: false)
     assert created.state == :created
@@ -78,12 +81,14 @@ defmodule Techtree.WalletBench.MachineTest do
       conn -> sprites(conn)
     end)
 
-    WalletBench.retire_machine!(created, authorize?: false)
+    WalletBench.retire_machine!(created, "test", authorize?: false)
 
     assert {:error, _stale} =
              created
-             |> Ash.Changeset.for_update(:checkpoint_baseline, %{})
+             |> Ash.Changeset.for_update(:build_baseline, %{})
              |> Ash.update(authorize?: false)
+
+    drain()
 
     assert WalletBench.get_machine!(machine.id, authorize?: false).state == :retired
   end
@@ -92,16 +97,30 @@ defmodule Techtree.WalletBench.MachineTest do
     Oban.drain_queue([queue: :sprites, with_recursion: true] ++ opts)
   end
 
+  # The build starts, waits while it runs, then finishes and is checkpointed;
+  # the restore waits a minute after the checkpoint, then the chain runs up to
+  # readiness.
+  defp build(machine) do
+    drain()
+    assert Process.get(:baseline) == "running"
+    Process.put(:baseline, "exit 0")
+    Oban.drain_queue(queue: :sprites, with_scheduled: true)
+    drain()
+    assert WalletBench.get_machine!(machine.id, authorize?: false).state == :checkpointed
+    backdate(machine, :updated_at, 61)
+    Oban.drain_queue(queue: :sprites, with_scheduled: true)
+    drain()
+  end
+
   # Readiness counts 30 seconds from when the boot id was noted.
-  defp settle(machine) do
+  defp settle(machine), do: backdate(machine, :boot_seen_at, 31)
+
+  defp backdate(machine, field, seconds) do
     {:ok, id} = Ecto.UUID.dump(machine.id)
-    seen = DateTime.add(DateTime.utc_now(), -31)
+    at = DateTime.add(DateTime.utc_now(), -seconds)
 
     {1, _} =
-      Repo.update_all(
-        from(m in "wallet_bench_machines", where: m.id == ^id),
-        set: [boot_seen_at: seen]
-      )
+      Repo.update_all(from(m in "wallet_bench_machines", where: m.id == ^id), set: [{field, at}])
   end
 
   # A stand-in for the Sprites API, enough for one machine's steps.
@@ -144,6 +163,35 @@ defmodule Techtree.WalletBench.MachineTest do
         {:ok, body, conn} = Plug.Conn.read_body(conn)
         Process.put(:upload, body)
         frames(conn, "")
+
+      ["sh", "-c", _script, "/work/bin/machine/job.sh", "baseline"] ->
+        frames(conn, Process.get(:baseline) <> "\n")
+
+      ["bash", "-c", "install -d -m 700 /work" <> _rest] ->
+        frames(conn, "")
+
+      ["bash", "/work/bin/machine/job.sh", "start", "baseline" | _script] ->
+        Process.put(:baseline, "running")
+        frames(conn, "started\n")
+
+      ["cat", "/work/baseline/manifest.json"] ->
+        frames(
+          conn,
+          Jason.encode!(%{harness_id: "H05", harness_version: "2.1.286 (Claude Code)"})
+        )
+
+      ["bash", "-c", "cd /work/bin && find" <> _rest] ->
+        frames(conn, "digest-1  -\n")
+
+      ["bash", "/work/bin/machine/readiness.sh", "H05"] ->
+        account = %{
+          work_readable: false,
+          sudo: false,
+          checkpoints_listable: false,
+          socket_reachable: false
+        }
+
+        frames(conn, Jason.encode!(%{account: account, harness_version: "2.1.286 (Claude Code)"}))
     end
   end
 

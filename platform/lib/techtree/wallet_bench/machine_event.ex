@@ -64,11 +64,15 @@ defmodule Techtree.WalletBench.MachineEvent do
       constraints one_of: [
                     :requested,
                     :created,
+                    :built,
                     :checkpointed,
                     :restored,
                     :settling,
                     :ready,
+                    :leased,
+                    :resetting,
                     :failed,
+                    :retiring,
                     :retired
                   ]
     end

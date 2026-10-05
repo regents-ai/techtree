@@ -71,15 +71,21 @@ config :techtree,
   generators: [timestamp_type: :utc_datetime]
 
 # Background jobs. The schema they live in is set in `config/runtime.exs`, beside
-# the repo's. `sprites` holds the AgentWalletBench machine steps, which wait on
-# Fly Sprites.
+# the repo's. `sprites` holds the AgentWalletBench machine, attempt and turn
+# steps, which wait on Fly Sprites; `wallet_bench_judge` holds the judge's model
+# calls, which can take minutes.
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
-  queues: [sprites: 10],
+  queues: [sprites: 10, wallet_bench_judge: 3],
   cron: [crontab: []],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]
+
+# The model that judges AgentWalletBench turns; it must be priced in
+# regent_openai. The key for the judge and the tested harness is set in
+# `config/runtime.exs`.
+config :techtree, Techtree.WalletBench, judge_model: "gpt-5.6-sol"
 
 # The catalog bundle this build serves, and the release channel it belongs to.
 # `catalog_root` holds the generated `techtree-python` export; it is populated

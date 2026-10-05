@@ -1,7 +1,7 @@
 # AgentWalletBench v1 — plan
 
-Status: plan agreed with Sean on 3–4 October 2026 (grilling Q1–Q20, then plan decisions); phase 1 built 4 October on
-branch `tt/walletbench-phase1`, not yet pushed. Source study:
+Status: plan agreed with Sean on 3–4 October 2026 (grilling Q1–Q20, then plan decisions); phase 1 built 4 October and
+pushed 5 October on branch `tt/walletbench-phase1` (not merged); phase 2 being built on the same branch (design below). Source study:
 `/Users/sean/Documents/regent/harness-wallet-experiment/runs/sprite-run-20261001/study/` (FINDINGS, METHODS, REPRODUCE).
 
 ## What it is
@@ -50,7 +50,7 @@ the machine. Patchbay shows the published results on its pair pages.
 | Calls to the Sprites API | `regent_sprites` from elixir-utils (Req underneath); Regents' own copy is removed |
 | Calls to the model judge | `regent_openai` from elixir-utils (cost recorded on every result) |
 | Signature checks (EIP-191, EIP-1271) | elixir-utils `siwa` (`evm_personal_sign`, `wallet_signature`) plus a Base RPC read through Req |
-| Per-attempt model spending cap | The translator on the machine (LiteLLM) with its own per-key budget; the bench never counts tokens itself |
+| Per-attempt model spending cap | The translator on the machine (LiteLLM): its per-call cost, summed by a pre-call hook that refuses at $5; the bench never counts tokens itself |
 | Evidence files (streams, transcripts, verifier output) | A private Tigris bucket on Fly (decided 4 October); rows keep the path and sha256; public pages serve the blanked copy through Techtree |
 | Blanking secrets before anything is public | A verifier step per attempt: the known secrets of that attempt (passwords, keys, sign-in links and codes the verifiers saw) and secret-shaped strings are replaced with `[redacted]` before the evidence is stored for publishing; the original is never published |
 | Pruning old jobs, rescuing jobs from a dead node | Oban `pruner:` and `lifeline:` |
@@ -76,7 +76,18 @@ What Sprites does that the steps work around (found while building the client, 4
 - After a restore, Sprites' file endpoints still show the disk as it was before; a command sees the restored disk. All
   file reads and writes therefore go through commands (base64 out, standard input in).
 - A command's standard input is refused unless it is sent as raw bytes (`application/octet-stream`).
-- A restore made just after a checkpoint is sometimes refused ("file exists"); the restore job's retries try it again.
+- A restore made within seconds of a checkpoint is sometimes refused ("BackupActiveCheckpoint failed: JuiceFS rename
+  clone … file exists"), about one immediate try in five on 5 October, with or without the bench's `lock`. After that
+  the machine can never checkpoint or restore again, so a retry does not help. The new baseline's first restore
+  therefore waits until 60 s after its checkpoint; three restores made after 45 s all worked.
+- A machine pauses after about 30 s with no command, session or request running, freezing background work; a task
+  (`PUT /v1/tasks/<name>`, renewed every minute) holds it awake. Sprites refuses a task name with anything but
+  lowercase letters, digits and dashes. Until 5 October the turn jobs were named `turn-T1a`, every hold was refused
+  unseen, and the checks after each turn crept along only while Techtree's status checks woke the machine (25 minutes
+  for T2's). Turn jobs are now `turn-t1a`, `turn-t2`, `turn-t2-signature`, and `job.sh` takes the first hold before
+  starting the work, so a refused hold stops the start with Sprites' answer.
+- Right after a restore the disk is cold: the install check's search of the whole disk for files the tested account
+  owns took 10 minutes in the first turn of the 5 October attempt, and about a second every time after.
 - Each restore leaves an extra "pre-restore" checkpoint on the machine.
 
 Phase 1 checks three of the four readiness points: boot id steady for 30 s, the upload round-trip, and the image versions
@@ -134,6 +145,108 @@ is installed, which the frozen track (`gpt-6-luna` high, our OpenAI key) needs.
 5. Widen: the remaining harnesses (including Command Code and NemoClaw once their accounts and notices are done by
    Sean), the wallets that need a person, wallets with a desktop part (Coinbase Agentic Wallet) on a desktop machine,
    the current-ecosystem track, T3–T5 with funding rules, vendor debugging.
+
+## Phase 2 design (5 October 2026)
+
+Sean, 5 October: "1 a 2 a". The T1a prompt is the survey's, word for word; the bench records the wallet version that
+was actually installed and flags it when it differs from the version the survey installed. Each attempt may spend at
+most $5 on the tested model, enforced on the machine.
+
+### What the machine holds
+
+`priv/wallet_bench/` holds everything that runs on a machine. It is packed and sent to the machine when its baseline is
+built, so the baseline checkpoint carries the exact scripts. The machine's `recipe_digest` is the sha256 of the sorted
+`sha256sum` lines of every file under `machine/` and `harness/<id>/`, worked out the same way on the machine and in
+Techtree; an attempt only leases a machine whose digest matches, so a changed recipe needs a new baseline machine.
+
+- `machine/common.sh`: shared helpers, among them `lock`, which hides the machine's management controls from the
+  tested account (below). Every script that lets the tested account run anything calls it first.
+- `machine/job.sh`: starts a long piece of work in the background and reports on it. While the work runs, the machine
+  holds a Sprites task so it does not pause; the task ends with the work. A job that already started is never started
+  again, so a repeated Oban job only reads its status. The status is read from files the work writes in order (boot
+  id, then process id, then exit code), and the exit code is read again after the process is gone, so a status taken
+  between two writes never reads as work that died.
+- `machine/baseline.sh <harness>`: environment facts, the model translator installed but not started, the tested
+  account `bench` (no sudo, cannot read `/work`), the harness install, and `/work/baseline/manifest.json` (harness
+  version, translator version, image facts). Without the key: the key arrives only per attempt. The survey's upgrade of
+  the image's own agents for the owner account is left out; it never touched the tested account.
+- `machine/turn.sh`: the survey's turn runner (`bin/turn-remote.sh`), plus the transcript renderer, the model calls
+  of the turn with their cost, the install check and the storage check, all written into the turn's folder.
+- `machine/credentials.sh attach|revoke`: attach takes the OpenAI key on standard input, writes it owner-only and starts
+  the translator as a Sprites service; revoke deletes the service and the key, before the machine is reset, so the
+  "pre-restore" checkpoint Sprites keeps never holds the key.
+- `machine/readiness.sh`: the account checks, run as the tested account.
+- `harness/H05/`: the survey's Claude Code install, turn command and stream parser, unchanged.
+
+The translator is the survey's LiteLLM 1.103.1 setup (every call `gpt-6-luna` at high effort) with two additions:
+gpt-6-luna's list price (input $0.10, cached input $0.01, output $0.50 per million tokens, short context) so it can
+count spend, and a small hook (`machine/bench_hooks.py`) that adds up LiteLLM's own cost for each answered call and
+refuses further calls once an attempt has spent $5. LiteLLM's built-in `max_budget` is not used: without a database it
+is not enforced. Every call's cost is logged beside its model and effort. The translator's own output goes to a file under `/work`, never to the Sprites
+service log, which any account can read.
+
+### Found while building: the tested account could reach the machine's controls
+
+Probed 5 October on a scratch machine (deleted after):
+- Sprites mounts the machine's last checkpoints under `/.sprite/checkpoints`, readable by every account. After a
+  reset, the "pre-restore" checkpoint holds the previous attempt's disk, so the next attempt's agent could read the
+  previous agent's wallet files.
+- The management socket `/.sprite/api.sock` is open to every account and can list, make and restore checkpoints and
+  start services.
+
+`lock` closes both: the checkpoint folder becomes root-only, and the socket is bound to a root-only folder for the
+owner while its usual path is covered by an empty root-only file. Both reset when the machine boots, so the lock runs
+before anything the tested account does, and readiness checks it from the tested account's side. The survey ran one
+machine per pair, so no agent could reach another pair's files; its transcripts show eight agents listing the mounts
+while checking whether files survive a restart, and none using the socket.
+
+### Records
+
+- `Machine` gains `harness_id`, `recipe_digest`, the baseline manifest and four states: `built` (baseline script done,
+  before the checkpoint), `leased` (an attempt is using it), `resetting` (the key was revoked after an attempt; the
+  machine goes back through restore and readiness) and `retiring` (the key could not be confirmed revoked, so the
+  machine is deleted rather than reused; then `retired`). Readiness adds: the tested account cannot read `/work`, has no sudo, cannot list the checkpoints and
+  cannot reach the socket; the harness version matches the manifest.
+- `Attempt` (one pair, one run): `requested → leased → testing → revoking → done`, or `failed`. Attaching the key moves
+  `leased` to `testing`; every attempt that reached a machine goes through `revoking`, whatever happened before.
+- `Turn` (one prompt sent to the harness): `queued → running → finished → judged`, or `failed`. A turn's prompt is rendered from
+  `priv/wallet_bench/prompts/`, the harness keeps one conversation per attempt, and a turn never runs twice.
+- `AttemptEvent`: the ordered record, written in the same transaction as each state change.
+
+Each arrow is one AshOban trigger, as in phase 1: outside calls before the transaction, the state change as a
+compare-and-set, the event and the next job in the same transaction. Waiting (for a ready machine, a baseline build, a
+running turn) is an Oban snooze.
+
+### Tests and judging
+
+- T1a, then T1b only when the judge names a technical error to send back, then T2 only when an install worked (as in
+  the survey), then the signature request (survey `T2-A02`) only when the agent signed but never printed the
+  signature. The prompts are the survey's, word for word.
+- Collecting a turn: the turn folder comes back as one archive; secrets are blanked before anything is stored (below);
+  each file goes to the evidence bucket under `attempts/<attempt>/<turn>/`, with its sha256 on the turn.
+- Judging uses `priv/wallet_bench/review/T1.md` and `T2.md`, the survey's review guides restated without the survey's
+  internal files. For T2 the bench first reads the address, message and signature the agent printed (a model call
+  whose answers must appear word for word in the transcript), checks the address on Base's public RPC and recovers the
+  signature with `siwa`, then the judge rules with those checks in front of it. The judge returns the outcome, C1–C5,
+  a plain-English summary and its reasoning; T1 also returns the installed version.
+- The judge model is a setting (`:techtree, Techtree.WalletBench, judge_model`), called through `regent_openai`, cost
+  recorded on every judgment. It is `gpt-5.6-sol` for now, because `regent_openai` prices only models in its table and
+  the gpt-6 models are not there yet. Judging runs on its own Oban queue, `wallet_bench_judge`, so slow model calls
+  never hold up machine work on `sprites`.
+
+### Blanking
+
+Before evidence is stored: every file the storage check lists under a secret-looking name (password, secret, key,
+mnemonic, seed, `.env`, keystores) is read on the machine by the owner, and each line of it is blanked wherever it
+appears; then 32-byte hex values, OpenAI-style keys, runs of 12 or more recovery-phrase words, sign-in links with codes
+and email addresses are blanked. Each blank says what kind of thing it hid, so the judge can still rule a printed key
+a safety failure. Signatures and addresses are not secret and stay.
+
+### Pages
+
+`/wallet-bench` lists attempts; `/wallet-bench/:id` shows one attempt: versions, machine manifest, each test's outcome,
+C1–C5, summary and the judge's reasoning, turn timings, spend, every event, and the blanked evidence through Techtree.
+Pages update live through `Ash.Notifier.PubSub`. Public, no sign-in.
 
 ## Accounts and settings
 
