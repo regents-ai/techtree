@@ -19,7 +19,9 @@ defmodule TechtreeWeb.ClimbsLive.Show do
            page_title: climb.title,
            climb: climb,
            copy: ClimbCopy.for_reference(climb.reference),
-           held_out_count: held_out_count(climb.projection["held_out_campaign_spec_digest"])
+           held_out_count: held_out_count(climb.projection["held_out_campaign_spec_digest"]),
+           hub_package: hub_package(climb.projection["taskset_package"]),
+           rubric: get_in(climb.projection, ["scoring", "rubric"])
          )}
 
       {:error, _error} ->
@@ -62,6 +64,24 @@ defmodule TechtreeWeb.ClimbsLive.Show do
               and never decide the winner.
             </dd>
           </div>
+          <div :if={@hub_package}>
+            <dt>Environment</dt>
+            <dd>
+              <a href={hub_page(@hub_package["name"])} target="_blank" rel="noopener noreferrer">
+                {@hub_package["name"]}
+              </a>
+              {@hub_package["version"]}, from Prime Intellect's Environments Hub. Every Run
+              installs the exact copy this Climb names, even if a different copy is later
+              published under the same version.
+            </dd>
+          </div>
+          <div :if={@rubric}>
+            <dt>Scored by</dt>
+            <dd>
+              The environment's own scoring, unchanged: {reward_words(@rubric["rewards"])}.
+              The Climb compares {get_in(@climb.projection, ["scoring", "primary_reward"])}.
+            </dd>
+          </div>
           <div>
             <dt>Input</dt>
             <dd>{(@copy && @copy.input) || "Defined by the published task set."}</dd>
@@ -97,6 +117,25 @@ defmodule TechtreeWeb.ClimbsLive.Show do
     |> CampaignFacts.for_campaign()
     |> get_in([:membership, "count"])
   end
+
+  defp hub_package(%{"kind" => "hub"} = package), do: package
+  defp hub_package(_embedded), do: nil
+
+  # The Hub's page for an environment is named by its owner and name.
+  defp hub_page(name) do
+    [owner, environment] = String.split(name, "/")
+
+    "https://app.primeintellect.ai/dashboard/environments/" <>
+      URI.encode(owner, &URI.char_unreserved?/1) <>
+      "/" <> URI.encode(environment, &URI.char_unreserved?/1)
+  end
+
+  defp reward_words(rewards) do
+    Enum.map_join(rewards, ", ", &"#{&1["name"]} (weight #{weight(&1["weight"])})")
+  end
+
+  defp weight(value) when is_float(value) and value == trunc(value), do: trunc(value)
+  defp weight(value), do: value
 
   defp held_fixed_words(climb) do
     "#{climb.projection["subject_harness"]} #{climb.projection["subject_harness_version"]}, " <>

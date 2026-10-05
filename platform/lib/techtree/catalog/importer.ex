@@ -340,6 +340,15 @@ defmodule Techtree.Catalog.Importer do
       "validation_receipt_digest" => parts.validation_digest,
       "purpose" => get_in(campaign, ["metadata", "purpose"]),
       "taskset_id" => get_in(campaign, ["taskset", "ref", "id"]),
+      "taskset_package" =>
+        take(campaign, ["taskset", "ref", "package"], [
+          "kind",
+          "name",
+          "version",
+          "revision",
+          "digest",
+          "artifact_url"
+        ]),
       "task_count" => get_in(campaign, ["taskset", "selection", "num_tasks"]),
       "subject_harness" => get_in(execution_plan, ["subject", "harness_id"]),
       "subject_harness_version" => get_in(execution_plan, ["subject", "harness_version"]),
@@ -372,6 +381,7 @@ defmodule Techtree.Catalog.Importer do
       "scoring" =>
         take(campaign, ["scoring"], [
           "primary_reward",
+          "rubric",
           "aggregation",
           "minimum_absolute_delta",
           "require_candidate_above_baseline"
