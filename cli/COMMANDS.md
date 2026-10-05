@@ -157,23 +157,33 @@ A refused proof is not published, and the answer names the file and the check it
   with ChatGPT, so Climbs run on that plan (decision 59 a). Techtree sells no model calls and
   charges nothing; the runs use the person's own plan allowance.
 - **Who may run it:** anyone with ChatGPT Plus or Pro.
-- **What it changes:** nothing on the site. It writes `~/.regents/techtree/chatgpt.json` on this
-  machine (`login`) or removes it (`logout`).
+- **What it changes:** nothing on the site. It writes `<techtree home>/chatgpt.json` (by default
+  `~/.regents/techtree/chatgpt.json`) on this machine (`login`) or removes it (`logout`).
 - **Route:** none on the Techtree site. Every call goes to OpenAI.
 - **Inputs:** none.
 - **Answer:**
-  - `login`: the signed-in email, the line "Using your ChatGPT plan", and the link
+  - `login`: opens the browser at OpenAI's sign-in address and listens on 127.0.0.1 for the
+    answer. If no browser opens, it prints the address for the person to open on this machine;
+    the address holds only the state and the PKCE challenge, never a token. Signing in from a
+    remote shell is not covered in this version. Then it answers with the signed-in email, the line "Using your ChatGPT plan", and the link
     https://chatgpt.com/settings/usage, where the person sets how much of their plan Regents may
     use and can disconnect it.
   - `status`: signed in or not, the email, and the models the plan offers (the ones listed
     with visibility `list`).
-  - `logout`: revokes the sign-in at OpenAI, then deletes the file.
+  - `logout`: revokes the sign-in at OpenAI, then deletes the file. When OpenAI does not confirm
+    the revocation, it still deletes the file and says the sign-in was removed here but not
+    confirmed revoked at OpenAI; disconnecting Regents at https://chatgpt.com/settings/usage
+    finishes it.
 - **Refusals:**
-  - `plan_not_eligible`: OpenAI answered `subscription_sharing_user_not_eligible`; the plan is
-    not Plus or Pro.
-  - `model_sign_in_required`: `status` or a Climb found no sign-in, or the sign-in can no longer
-    be refreshed (`invalid_grant`, `refresh_token_reused`). The answer says to run
-    `regents techtree model login`.
+  - `plan_not_eligible`: OpenAI answered `subscription_sharing_user_not_eligible` (the plan is
+    not Plus or Pro), `chatpass_v2_scope_not_authorized`, or a 403 for its policy or the
+    person's region.
+  - `model_sign_in_required`: `status` or a Climb found no sign-in, the sign-in can no longer
+    be refreshed (`invalid_grant`, `refresh_token_reused`), or OpenAI answered 401
+    `subscription_sharing_invalid_user`. The answer says to run `regents techtree model login`.
+- **doctor:** its "Evaluation model credential" check becomes "ChatGPT sign-in". Signed in means
+  the file exists, the refresh token is within its 30 days, and the granted scopes include
+  `chatgpt.tokens.use.direct`. doctor makes no network call, so it never refreshes.
 
 This machine:
 
@@ -191,10 +201,12 @@ later logins  the same, with the kept client_id
 token         POST https://auth.openai.com/api/accounts/oauth/token (public client, no secret)
               check the ID token: JWKS signature, iss, aud == issued client_id, exp, nonce
               granted scopes must include chatgpt.tokens.use.direct
-storage       ~/.regents/techtree/chatgpt.json, written atomically, mode 0600
+storage       <techtree home>/chatgpt.json (by default ~/.regents/techtree/chatgpt.json),
+              written atomically, mode 0600
 refresh       access token lasts 1 hour; refresh token 30 days and rotates on every use
               refresh under a file lock so two processes never reuse one refresh token
 logout        revoke at the endpoint OpenAI's OpenID configuration names, then delete the file
+              (deleted even when the revocation is not confirmed, and the answer says so)
 never         the token in a URL, a log, a container, a --json answer or anything sent to Techtree
 ```
 
@@ -234,13 +246,22 @@ cost            provenance plan_included: tokens used, no dollar figure
 plan used up    the run ends with plan_limit_reached and no Result; the message reads
                 "Your ChatGPT plan's limit for Regents is used up. Manage usage:
                  https://chatgpt.com/settings/usage" (no reset time is guessed)
+plan refused    400 subscription_sharing_unsupported_capability: the run ends with
+                plan_request_refused. The forwarder sent something the plan does not take, a
+                fault on our side; the request is never retried and OpenAI's request id is kept
+                in the details
+plan busy       503 subscription_sharing_usage_unavailable or subscription_sharing_user_unavailable:
+                a bounded retry inside the forwarder, then the run ends with plan_unavailable
 not eligible    plan_not_eligible
 no sign-in      model_sign_in_required
 ```
 
 - **Before a run starts:** `climb prepare` and `climb start` say "Using your ChatGPT plan", show
-  the settings link, and give the most the run may use as tokens and calls: "Runs on your
-  ChatGPT plan and uses up to N tokens of its limits. Techtree charges nothing."
+  the settings link, and say: "Runs on your ChatGPT plan. Each try stops starting model calls
+  once it passes its token limit or reaches K calls, so the run uses about N tokens of your
+  plan's limits; a try's last reply can go over. Techtree charges nothing." K is
+  `maximum_model_calls`; N is (`maximum_input_tokens` + `maximum_output_tokens`) × tries. The
+  call limit is exact; the token limits are not.
 - **Site needs:** the importer reads the new ModelSpec and Budgets. Climb pages and Result pages
   show "Runs on your ChatGPT plan" and token limits in place of dollar limits.
 - **Open until Sean decides:** whether the plan replaces today's own-Prime-key route outright
