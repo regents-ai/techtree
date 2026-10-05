@@ -189,7 +189,7 @@ defmodule Techtree.Catalog.VerifierTest do
       assert {:error, error} = verify(bundle)
       assert error.code == :catalog_bundle_invalid
       assert error.details["kind"] == "campaign"
-      assert error.details["expected"] == "techtree.campaign.v3"
+      assert error.details["expected"] == "techtree.campaign.v4"
     end
   end
 

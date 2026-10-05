@@ -27,7 +27,7 @@ defmodule Techtree.Catalog.Verifier do
   # resolved execution plan it was defined against by digest, and the plan is
   # a catalog object in its own right; both are named here so that a graph
   # built from any other shape is refused before a page is built from it.
-  @campaign_schema_version "techtree.campaign.v3"
+  @campaign_schema_version "techtree.campaign.v4"
   @execution_plan_schema_version "techtree.execution-plan.v1"
   @commit_length 40
 

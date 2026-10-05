@@ -93,7 +93,6 @@ defmodule TechtreeWeb.RunsLive.Index do
         page_limit: Map.get(params, "limit"),
         entries: page.entries,
         next_before_sequence: page.next_before_sequence,
-        score_name: climb && climb.projection["scoring"]["primary_reward"],
         climb_slug: climb && climb.projection["slug"],
         empty: empty(page.entries, families, Map.has_key?(params, "before_sequence")),
         asked_for: []
@@ -112,7 +111,6 @@ defmodule TechtreeWeb.RunsLive.Index do
       page_limit: nil,
       entries: [],
       next_before_sequence: nil,
-      score_name: nil,
       climb_slug: nil,
       empty: empty,
       asked_for: asked_for
@@ -307,8 +305,7 @@ defmodule TechtreeWeb.RunsLive.Index do
         </p>
 
         <p :if={@entries != []} id="results-score-scale" class="section-note small quiet">
-          Scores are each run's mean <code>{@score_name}</code>
-          over its tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
+          Scores are each run's mean task score over its tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
         </p>
 
         <div

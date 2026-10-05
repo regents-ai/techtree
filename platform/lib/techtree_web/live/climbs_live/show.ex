@@ -75,13 +75,6 @@ defmodule TechtreeWeb.ClimbsLive.Show do
               published under the same version.
             </dd>
           </div>
-          <div :if={@rubric}>
-            <dt>Scored by</dt>
-            <dd>
-              The environment's own scoring, unchanged: {reward_words(@rubric["rewards"])}.
-              The Climb compares {get_in(@climb.projection, ["scoring", "primary_reward"])}.
-            </dd>
-          </div>
           <div>
             <dt>Input</dt>
             <dd>{(@copy && @copy.input) || "Defined by the published task set."}</dd>
@@ -92,7 +85,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           </div>
           <div>
             <dt>Scoring</dt>
-            <dd>{(@copy && @copy.scoring) || "Defined by the published Climb."}</dd>
+            <dd>{(@copy && @copy.scoring) || rubric_words(@rubric["rewards"])}</dd>
           </div>
           <div>
             <dt>Held fixed</dt>
@@ -130,8 +123,10 @@ defmodule TechtreeWeb.ClimbsLive.Show do
       "/" <> URI.encode(environment, &URI.char_unreserved?/1)
   end
 
-  defp reward_words(rewards) do
-    Enum.map_join(rewards, ", ", &"#{&1["name"]} (weight #{weight(&1["weight"])})")
+  defp rubric_words(rewards) do
+    "Each task's score is the weighted total of the environment's own rewards, unchanged: " <>
+      Enum.map_join(rewards, " + ", &"#{weight(&1["weight"])} × #{&1["name"]}") <>
+      ". The Climb compares the mean of those scores over its tasks."
   end
 
   defp weight(value) when is_float(value) and value == trunc(value), do: trunc(value)

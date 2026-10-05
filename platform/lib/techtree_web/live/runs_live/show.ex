@@ -135,8 +135,7 @@ defmodule TechtreeWeb.RunsLive.Show do
           )}
         </p>
         <p id="run-score-scale" class="assessment__means">
-          Each is the mean <code>{@score_name}</code>
-          over the tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
+          Each is the mean task score over the tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
         </p>
         <ul class="assessment__tasks">
           <li :for={outcome <- [:better, :worse, :same]} id={"tasks-#{outcome}"}>
@@ -510,7 +509,6 @@ defmodule TechtreeWeb.RunsLive.Show do
       skill_name: skill_name(entry, climb),
       github_url: github_url(entry),
       publisher_words: publisher_words(entry),
-      score_name: climb.projection["scoring"]["primary_reward"],
       withdrawn?: Query.withdrawn?(entry),
       held_out?: held_out?,
       assessment: entry.assessment,

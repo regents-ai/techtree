@@ -112,7 +112,7 @@ defmodule Techtree.Network.Result do
   def assess(report, campaign) when is_map(report) and is_map(campaign) do
     Decimal.Context.with(@exact, fn ->
       with {:ok, rows} <- rows(report["task_deltas"]),
-           {:ok, written} <- written(report["primary_result"], campaign),
+           {:ok, written} <- written(report["primary_result"]),
            :ok <- reportable(report),
            {:ok, decision} <- decision(report["decision"]),
            :ok <- model_build_agrees(report["statuses"], campaign),
@@ -198,18 +198,12 @@ defmodule Techtree.Network.Result do
 
   defp row(_delta), do: :error
 
-  defp written(
-         %{"reward_name" => reward, "wins" => wins, "losses" => losses, "ties" => ties},
-         %{"scoring" => %{"primary_reward" => reward}}
-       )
+  defp written(%{"wins" => wins, "losses" => losses, "ties" => ties})
        when is_integer(wins) and is_integer(losses) and is_integer(ties),
        do: {:ok, %{wins: wins, losses: losses, ties: ties}}
 
-  defp written(_result, _campaign) do
-    inconsistent(
-      "this result does not state its counts for the score its Campaign decides on",
-      %{}
-    )
+  defp written(_result) do
+    inconsistent("this result does not state its counts of better, worse and same tasks", %{})
   end
 
   defp reportable(%{

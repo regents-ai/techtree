@@ -40,8 +40,7 @@ defmodule Techtree.Catalog.Importer do
   @trial_names [
     ["agents", "subject", "model", "provider"],
     ["agents", "subject", "model", "model_id"],
-    ["agents", "subject", "model", "credential_env"],
-    ["scoring", "primary_reward"]
+    ["agents", "subject", "model", "credential_env"]
   ]
   @trial_counts [
     ["budgets", "maximum_model_calls"],
@@ -380,7 +379,6 @@ defmodule Techtree.Catalog.Importer do
         ]),
       "scoring" =>
         take(campaign, ["scoring"], [
-          "primary_reward",
           "rubric",
           "aggregation",
           "minimum_absolute_delta",
@@ -458,6 +456,7 @@ defmodule Techtree.Catalog.Importer do
     )
 
     require!(campaign, ["execution", "retry_limit"], entry, &(is_integer(&1) and &1 >= 0))
+    require!(campaign, ["scoring", "rubric", "rewards"], entry, &rewards?/1)
     require!(campaign, ["scoring", "aggregation"], entry, &(&1 == "mean"))
     require!(campaign, ["scoring", "require_candidate_above_baseline"], entry, &is_boolean/1)
     require!(campaign, ["scoring", "minimum_absolute_delta"], entry, &(is_number(&1) and &1 >= 0))
@@ -469,6 +468,20 @@ defmodule Techtree.Catalog.Importer do
       &(is_nil(&1) or (is_binary(&1) and &1 != ""))
     )
   end
+
+  # A page names each reward the environment scores with and its weight.
+  defp rewards?([_ | _] = rewards),
+    do:
+      Enum.all?(
+        rewards,
+        &match?(
+          %{"name" => name, "weight" => weight}
+          when is_binary(name) and name != "" and is_number(weight),
+          &1
+        )
+      )
+
+  defp rewards?(_rewards), do: false
 
   defp require!(document, path, entry, valid?) do
     unless valid?.(get_in(document, path)) do

@@ -766,7 +766,7 @@ defmodule Techtree.Network.Bundle do
 
   defp report_context(report, manifest, campaign) do
     expected = [
-      {"schema_version", "techtree.uplift-report.v2"},
+      {"schema_version", "techtree.uplift-report.v3"},
       {"campaign_spec_digest", manifest["payload"]["campaign_spec_digest"]},
       {"execution_plan_digest", campaign["execution_plan_digest"]}
     ]
@@ -779,7 +779,7 @@ defmodule Techtree.Network.Bundle do
         {:error,
          Error.new(
            :submission_report_context_mismatch,
-           "the signed v2 result summary must bind the published campaign and its execution plan",
+           "the signed result summary must bind the published campaign and its execution plan",
            %{"field" => field, "expected" => value, "found" => Map.get(report, field)}
          )}
     end
