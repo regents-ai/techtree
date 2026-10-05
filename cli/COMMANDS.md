@@ -7,7 +7,8 @@ cannot say. So this folder has no `commands.json`. The regents-cli chief builds 
 its section here.
 
 This file starts with the two commands added for reruns (decision 67 c) and public Skills
-(decision 68 a). Each existing command gets its section here when it next changes.
+(decision 68 a), then the ChatGPT plan sign-in (decision 59 a). Each existing command gets its
+section here when it next changes.
 
 Every command also takes `--json` (print the answer as JSON) and `--base-url URL` (the site's
 address; also `TECHTREE_BASE_URL`). A refusal prints the site's `code`, `message` and `hint`
@@ -149,3 +150,102 @@ no file contains a private key or an API key:
 ```
 
 A refused proof is not published, and the answer names the file and the check it failed.
+
+## regents techtree model login | status | logout
+
+- **What it does:** signs this machine in to the person's ChatGPT plan with OpenAI's Sign in
+  with ChatGPT, so Climbs run on that plan (decision 59 a). Techtree sells no model calls and
+  charges nothing; the runs use the person's own plan allowance.
+- **Who may run it:** anyone with ChatGPT Plus or Pro.
+- **What it changes:** nothing on the site. It writes `~/.regents/techtree/chatgpt.json` on this
+  machine (`login`) or removes it (`logout`).
+- **Route:** none on the Techtree site. Every call goes to OpenAI.
+- **Inputs:** none.
+- **Answer:**
+  - `login`: the signed-in email, the line "Using your ChatGPT plan", and the link
+    https://chatgpt.com/settings/usage, where the person sets how much of their plan Regents may
+    use and can disconnect it.
+  - `status`: signed in or not, the email, and the models the plan offers (the ones listed
+    with visibility `list`).
+  - `logout`: revokes the sign-in at OpenAI, then deletes the file.
+- **Refusals:**
+  - `plan_not_eligible`: OpenAI answered `subscription_sharing_user_not_eligible`; the plan is
+    not Plus or Pro.
+  - `model_sign_in_required`: `status` or a Climb found no sign-in, or the sign-in can no longer
+    be refreshed (`invalid_grant`, `refresh_token_reused`). The answer says to run
+    `regents techtree model login`.
+
+This machine:
+
+```text
+registration  self-serve: open-source local apps need no OpenAI approval
+first login   GET https://auth.openai.com/api/accounts/authorize
+                client_id=dynamic_agent_client, agent_name_hint=Regents,
+                ext_agent_host_id=<this machine's saved urn:uuid>,
+                redirect_uri=http://127.0.0.1:<port>/callback (loopback only),
+                scope="openid profile email offline_access resource.invoke
+                       chatgpt.tokens.use.direct", resource=https://api.openai.com/v1,
+                PKCE S256, state, nonce
+              the callback returns the code and this person's issued client_id (kept)
+later logins  the same, with the kept client_id
+token         POST https://auth.openai.com/api/accounts/oauth/token (public client, no secret)
+              check the ID token: JWKS signature, iss, aud == issued client_id, exp, nonce
+              granted scopes must include chatgpt.tokens.use.direct
+storage       ~/.regents/techtree/chatgpt.json, written atomically, mode 0600
+refresh       access token lasts 1 hour; refresh token 30 days and rotates on every use
+              refresh under a file lock so two processes never reuse one refresh token
+logout        revoke at the endpoint OpenAI's OpenID configuration names, then delete the file
+never         the token in a URL, a log, a container, a --json answer or anything sent to Techtree
+```
+
+- **History:** 2026-10-05 added.
+
+## How a Climb runs on the ChatGPT plan (59 a)
+
+Every Climb's Campaign names the plan as its model access, so the person's plan pays for the
+runs and Techtree never sees a model key. Hello World, Frontier-CS, Tasksmith and the au-bas
+Climb all move in climb-v0.7.0. `techtree.campaign.v4` and `techtree.experiment.v4` are not
+released yet, so this changes them in place:
+
+```text
+ModelSpec       {access: "chatgpt_plan", model_id}       provider, revision and credential_env go
+SamplingSpec    {reasoning_effort}                       temperature and max_tokens go
+Budgets         maximum_input_tokens, maximum_output_tokens, maximum_model_calls, timeout_seconds
+                                                          maximum_usd goes
+model_id        one OpenAI model held fixed for every Climb, the luna tier, named from the
+                plan's live model list once Sean signs in
+```
+
+During a run, regents-cli runs a forwarder on this machine's loopback address. The model calls
+from inside the container reach it, and it sends each one to
+`POST https://api.openai.com/v1/responses` with a fresh access token, `store: false` and
+`stream: true`. A call counts only on a `response.completed` event. The forwarder drops every
+field the plan refuses (`max_output_tokens`, `temperature`, `top_p`, `truncation`,
+`previous_response_id` and the rest of OpenAI's list), sends the full history each time, and
+keeps `reasoning`.
+
+```text
+per try         stop starting calls once a limit is crossed; the call that crosses it still
+                finishes, so a try can go past its token limits by one full reply
+                the try is graded as it stands
+receipt         EpisodeReceiptV3 gains ending: completed | token_limit | call_limit | timeout
+                the report counts tries by ending
+cost            provenance plan_included: tokens used, no dollar figure
+plan used up    the run ends with plan_limit_reached and no Result; the message reads
+                "Your ChatGPT plan's limit for Regents is used up. Manage usage:
+                 https://chatgpt.com/settings/usage" (no reset time is guessed)
+not eligible    plan_not_eligible
+no sign-in      model_sign_in_required
+```
+
+- **Before a run starts:** `climb prepare` and `climb start` say "Using your ChatGPT plan", show
+  the settings link, and give the most the run may use as tokens and calls: "Runs on your
+  ChatGPT plan and uses up to N tokens of its limits. Techtree charges nothing."
+- **Site needs:** the importer reads the new ModelSpec and Budgets. Climb pages and Result pages
+  show "Runs on your ChatGPT plan" and token limits in place of dollar limits.
+- **Open until Sean decides:** whether the plan replaces today's own-Prime-key route outright
+  (recommended: one route, so every Result of a Climb compares with every other).
+- **Still to prove:** many parallel tries on one plan (OpenAI's docs name no concurrency
+  limit), and Hermes's tool calls under OpenAI's namespace rule. Both are checked on the free
+  stand-in, then in one small run on Sean's plan after he signs in.
+- **History:** 2026-10-05 added.
