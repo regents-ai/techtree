@@ -24,19 +24,29 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               ".hero__mechanism",
-               "Run the same tasks with and without your Skill."
+               "#hero-title",
+               "Techtree is designed for use by agents, with WebMCP."
              )
-
-      assert has_element?(live, ".hero__terms", "Publishing is optional")
 
       assert has_element?(
                live,
-               "#hero-title > .hero-title__line",
-               "Improve a Skill."
+               ".hero__mechanism",
+               "Humans can use it too, with their agent to read and assist."
              )
 
-      assert has_element?(live, "#hero-title > .hero-title__line", "Prove it worked.")
+      assert has_element?(live, "#hero-choice", "Do you want to build or upgrade:")
+
+      for {href, name} <- [
+            {"/start#skill", "Skill"},
+            {"/wallet-bench", "Harness"},
+            {"/repo2rlenv", "Env"}
+          ] do
+        assert has_element?(
+                 live,
+                 ~s|.hero__products a.hero-product[href="#{href}"] .hero-product__name|,
+                 name
+               )
+      end
 
       assert has_element?(live, "section.hero")
       refute has_element?(live, "section.hero[data-hero-stage]")
@@ -59,12 +69,12 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert css =~ ~s|@import "./techtree_home.css"|
     end
 
-    test "the hero points to how a Skill is tested below it", %{conn: conn} do
+    test "the hero points to AgentWalletBench below it", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(
                live,
-               ~s|a.hero__more[href="#skill-test"] svg|
+               ~s|a.hero__more[href="#wallet-bench"] svg|
              )
     end
 
@@ -128,7 +138,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, "#copy-home-agent-line.rg-button--primary", "Copy")
 
       assert live
-             |> element(~s|.hero__actions a[href="/examples/tdd"]|, "See a real comparison")
+             |> element(~s|#skill-test a[href="/examples/tdd"]|, "See a real comparison")
              |> has_element?()
 
       assert live
@@ -147,6 +157,11 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, _html} = live(conn, ~p"/")
 
       assert has_element?(live, "#capabilities")
+      assert has_element?(live, ~s|#wallet-bench a[href="/wallet-bench"]|, "See the wallet tests")
+      assert has_element?(live, "#tools #tool-skill2env h3", "Skill2Env")
+      assert has_element?(live, "#tools #tool-repo2rlenv h3", "Repo2RLEnv")
+      assert has_element?(live, "#tools #tool-tasksmith h3", "Tasksmith")
+      assert has_element?(live, "#tools #tool-frontiersmith h3", "FrontierSmith")
       refute has_element?(live, "#home-evidence-graph")
       refute has_element?(live, ".home-section.process")
       assert has_element?(live, "#skill-test")
@@ -200,7 +215,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     {:ok, _live, html} = live(conn, ~p"/")
     text = visible_text(html)
 
-    assert text =~ "Improve a Skill."
+    assert text =~ "Techtree is designed for use by agents, with WebMCP."
     refute text =~ "Evidence graph"
     assert text =~ HomeLive.agent_line()
     refute html =~ "copy-home-cli"

@@ -16,13 +16,11 @@
 .hero--landing .hero__copy > .eyebrow { color: var(--color-link); }
 .hero--landing .hero-title {
   margin-top: var(--space-2);
-  /* Each phrase is about 9.1em wide, so capping the size at 10.8% of the copy
-     column keeps "Improve a Skill." and "Prove it worked." on one line apiece. */
-  font-size: min(clamp(2.5rem, 4.75vw, 5.5rem), 10.8cqi);
+  font-size: min(clamp(2rem, 3.5vw, 3.75rem), 9cqi);
   line-height: 1.1;
   letter-spacing: -.035em;
+  text-wrap: balance;
 }
-.hero--landing .hero-title__line { display: block; }
 .hero--landing .hero__mechanism {
   margin-top: var(--space-3);
   font-family: var(--font-family-ui);
@@ -36,6 +34,25 @@
   height: auto;
   mask-image: linear-gradient(to right, transparent 28%, rgb(0 0 0 / .25) 48%, #000 68%);
 }
+.hero--landing .hero__choice {
+  margin-top: var(--space-4);
+  font-family: var(--font-family-ui);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.hero--landing .hero__products { width: 100%; margin-top: var(--space-2); }
+.hero-product--skill { --hero-product-fill: var(--palette-powder-blue); }
+.hero-product--harness { --hero-product-fill: var(--palette-tangerine-tango); }
+.hero-product--env { --hero-product-fill: var(--palette-platinum); }
+.hero-product__name {
+  display: block;
+  font-family: var(--font-family-title);
+  font-size: clamp(1.125rem, 1.8vw, 1.5rem);
+  line-height: 1.2;
+  letter-spacing: -.025em;
+}
+.hero-product__line { display: block; margin-top: var(--space-1); font-size: .8125rem; line-height: 1.4; }
 .hero--landing .installer { margin-top: var(--space-4); }
 .hero--landing .command__head { flex-wrap: nowrap; padding: var(--space-1) var(--space-2); }
 .hero--landing .command__label { min-width: 0; }
@@ -55,21 +72,27 @@
   margin-top: var(--space-2);
   font-size: .875rem;
 }
-.hero--landing .hero__actions {
-  margin-top: var(--space-2);
-  gap: var(--space-3);
+.tools__intro { max-width: var(--measure); margin-top: var(--space-3); }
+.tools-list { margin-top: var(--space-4); border-top: 1px solid var(--hairline); }
+.tools-list__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--rg-track-gap);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--hairline);
+  scroll-margin-top: var(--space-3);
 }
-.hero--landing .hero__actions .text-link { font-weight: 600; }
-.hero--landing .hero__actions .text-link span { color: var(--color-link); }
-.hero--landing .hero__terms {
-  margin-top: var(--space-3);
-  color: var(--color-fg-muted);
-  font-family: var(--font-family-ui);
-  font-size: .8125rem;
-}
-
+.tools-list__name { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); }
+.tools-list__name h3 { font-size: clamp(1.25rem, 2vw, 1.75rem); }
+.tools-list__body { max-width: var(--measure); }
+.tools-list__body > p + p { margin-top: var(--space-2); }
+.tools-list__links { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 
 @media (max-width: 47.99rem) {
+  .hero--landing .hero__products { grid-template-columns: minmax(0, 1fr); }
+  .hero--landing .hero-product { min-height: 0; flex-direction: column; align-items: stretch; }
+  .hero--landing .hero-product__destination { margin-top: var(--space-2); }
+  .tools-list__item { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
   body:has(.hero--landing) .masthead__inner { row-gap: var(--space-2); }
   body:has(.hero--landing) .masthead__nav { width: 100%; gap: var(--space-1); }
   .hero--landing .hero__stage { min-height: 0; padding-block: var(--space-4) 0; }
