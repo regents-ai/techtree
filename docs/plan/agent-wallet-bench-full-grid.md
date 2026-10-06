@@ -33,20 +33,32 @@ That is 13 × 9 = **117 pairs**. Each attempt is the survey's two tests: install
 
 ## Runs, time and cost
 
-Measured on techtree.sh (Claude Code × Foundry Cast, 6 October): an attempt takes 4–13 minutes and costs about
-$0.11–0.15, of which about $0.012 is the tested agent's model and the rest the judge model (gpt-5.6-sol). Other agents
-may use more model calls; the machine refuses any attempt past $5.
+Measured on techtree.sh on 6 October: an attempt takes 4–13 minutes and costs $0.11–0.25 (Claude Code × Foundry
+Cast $0.11–0.15; Claude Code × MoonPay $0.20–0.24, where the signature request adds a judged turn). The tested agent's
+model is $0.01–0.02 of that; the judge model (gpt-5.6-sol) is the rest. Other agents may use more model calls; the
+machine refuses any attempt past $5.
 
 | Option | Attempts | Expected model + judge spend | Cap asked for |
 |---|---|---|---|
-| One run per pair | 117 | about $15–20 | $30 |
-| Three runs per pair | 351 | about $45–55 | $75 |
+| One run per pair | 117 | about $15–30 | $40 |
+| Three runs per pair | 351 | about $40–90 | $110 |
 
 Time: one machine per agent, attempts on a machine one after another, 13 machines side by side. Three runs per pair is
 27 attempts per machine, about 2–6 hours.
 
 Not yet in these numbers: the Sprites machines' own running cost. The 1–2 October totals Sean is fetching (31a) give
 the rate; 13 machines kept for one day should be small next to the model spend, and they are reset after each attempt.
+
+## Results so far on techtree.sh (6 October)
+
+| Pair | Runs | Install: all five checks | Make a wallet: all five checks (plain-file caveat) | Real wallet made and signature verified |
+|---|---|---|---|---|
+| Claude Code × Foundry Cast | 3 | 3 of 3 | 0 of 3 (stopped short each time) | 0 of 3 |
+| Claude Code × MoonPay | 3 | 3 of 3 | 2 of 3 | 3 of 3 |
+
+The MoonPay run marked failed (30420867) made a wallet and a verified signature; the judge faulted its chain answer
+because the bench's MoonPay notes wrongly said the wallet covers every EVM chain. Claude Code had quoted MoonPay's own
+list, which is right. The notes are corrected (8689cfd), not yet released.
 
 ## Work before any run
 
