@@ -88,7 +88,10 @@ Versioned, so older releases keep working: `agent-wallet-bench-v8.csv`, `agent-w
   name), so an untested pair shows as an empty cell; each test with one plain sentence; every outcome with a one-line
   meaning and whether it counts as tested (NOT_RUN, NOT_REQUIRED, the blocked results and WAITING_HUMAN each keep
   their own name and are never drawn as failures); the setup every row shares (model gpt-6-luna for every agent, stock
-  agents, one Sprites machine per agent).
+  agents, one Sprites machine per agent). It also states how runs combine: a pair's result for a test is a count,
+  how many of its runs met all five checks out of the runs that took place (shown as "2 of 3", PASS and PASS* counted
+  separately), never turned into a single pass or fail. The rows hold exactly the runs that took place; a run that is
+  missing was not run.
 - **Checks** (`-v8-criteria.csv`): one row per check: harness_id, wallet_id, test, attempt, run, criterion_id,
   criterion text, result (true, false or open). The judge already records each check, so this costs nothing extra.
 
