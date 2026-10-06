@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.7.0 (2026-10-06)
+
+### Added
+
+- A Climb can run on your ChatGPT plan as well as on your own Prime key. Sign
+  in with `regents techtree model login`; each Climb page lists the routes it
+  runs on, and a run uses one route for both sides. A run on your plan shows
+  no dollar cost. Techtree sells no model calls and charges nothing.
+- Every Climb page says what each task is scored on: the environment's own
+  weighted total of rewards. The Tasksmith Climb page names the Prime
+  Environments Hub taskset it runs, `techtree/hf-tasksmith-v1`.
+- Published Results carry their Skill, so anyone can fetch it with
+  `regents techtree skill fetch` or rerun a Result with
+  `regents techtree climb prepare --rerun-of`. Run pages show the Skill and
+  say when a Result reruns another.
+
+### Changed
+
+- Techtree now names regents-cli 1.6.0. The Climbs move to
+  `hello-world-climb@3`, `frontier-cs-open-ended-climb@3` and
+  `tasksmith-climb@2`, with the same tasks, limits and starter Skills. Install
+  it with `uv tool install --python 3.12 regents-cli==1.6.0`. The Hermes
+  plugin is 0.7.0.
+
 ## v0.6.1 (2026-10-04)
 
 ### Changed
