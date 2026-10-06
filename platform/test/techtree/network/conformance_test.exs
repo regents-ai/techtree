@@ -87,11 +87,19 @@ defmodule Techtree.Network.ConformanceTest do
     assert entry.verification_checks_passed == Bundle.check_count()
     assert entry.submission_bytes == submitted
 
-    # And the Skill both carried is served as the answer `skill fetch` accepts.
+    # The CLI's rerun of the Prime-key Result names it, and is of the same
+    # Campaign and the same Skill.
+    assert {:ok, rerun, :recorded} = NetworkFixture.publish(NetworkFixture.cli_rerun_submission())
+    assert rerun.assessment.rerun_of == entry.bundle_digest
+    assert rerun.skill_digest == entry.skill_digest
+    assert rerun.subject_provider == "prime"
+
+    # And the Skill all three carried is served as the answer `skill fetch`
+    # accepts.
     accepted = NetworkFixture.cli_skill_answer()
     assert {:ok, answer} = Techtree.Network.Query.skill(entry.skill_digest)
     assert answer == accepted
-    assert answer["results"] == [entry.bundle_digest, plan.bundle_digest]
+    assert answer["results"] == [rerun.bundle_digest, entry.bundle_digest, plan.bundle_digest]
   end
 
   test "the submission this site builds for a proof directory is the one the CLI sends" do

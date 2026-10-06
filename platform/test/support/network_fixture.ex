@@ -31,6 +31,7 @@ defmodule Techtree.NetworkFixture do
   @root Path.expand("fixtures/proof-v4", __DIR__)
   @cli_submission Path.expand("fixtures/publication/v3-submission.json", __DIR__)
   @cli_plan_submission Path.expand("fixtures/publication/v3-submission-plan.json", __DIR__)
+  @cli_rerun_submission Path.expand("fixtures/publication/v3-submission-rerun.json", __DIR__)
   @cli_skill_answer Path.expand("fixtures/publication/get-skill-answer.json", __DIR__)
   @schema_version "techtree.publication-submission.v1alpha1"
   @withdrawal_schema_version "techtree.publication-withdrawal.v1alpha1"
@@ -102,8 +103,17 @@ defmodule Techtree.NetworkFixture do
   def cli_plan_submission, do: File.read!(@cli_plan_submission)
 
   @doc """
+  The bytes the CLI's publishing path puts on the wire for a rerun of the
+  fixture proof on the person's own Prime key: the same Campaign and the same
+  Skill, new runs, and a report whose `rerun_of` names the fixture bundle's
+  digest.
+  """
+  @spec cli_rerun_submission() :: binary()
+  def cli_rerun_submission, do: File.read!(@cli_rerun_submission)
+
+  @doc """
   The answer to `GET /api/v1/skills/{root_digest}` that `skill fetch` accepts
-  for the Skill both fixture proofs carry.
+  for the Skill all three fixture proofs carry.
   """
   @spec cli_skill_answer() :: map()
   def cli_skill_answer, do: @cli_skill_answer |> File.read!() |> Jason.decode!()
