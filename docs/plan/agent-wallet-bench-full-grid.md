@@ -55,6 +55,10 @@ the rate; 13 machines kept for one day should be small next to the model spend, 
    survey), and a results download (one row per attempt and test, the same columns as the survey's CSV) for Patchbay's
    chart. One Techtree release.
 2. Build the 13 agents' machines once each (about 3 minutes each, no model spend).
+   On 6 October a machine restarted on its own after a reset, and the bench rightly refused to use it again; replacing
+   it was a hand step (retire, request a new one, about 3 minutes). Across 351 attempts that will happen more than
+   once, so a refused machine should be retired and replaced by the bench itself (one more AshOban step on the machine
+   resource) rather than waiting for an operator.
 3. Run, watch the first attempt per agent, then let the rest go.
 
 ## What Sean gets
