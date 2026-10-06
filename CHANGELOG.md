@@ -8,8 +8,9 @@
   in with `regents techtree model login`; each Climb page lists the routes it
   runs on, and a run uses one route for both sides. A run on your plan shows
   no dollar cost. Techtree sells no model calls and charges nothing.
-- Every Climb page says what each task is scored on: the environment's own
-  weighted total of rewards. The Tasksmith Climb page names the Prime
+- A Climb now scores each task on its environment's own weighted total of
+  rewards. Today's three Climbs each still have one reward, so their scores
+  mean what they meant before. The Tasksmith Climb page names the Prime
   Environments Hub taskset it runs, `techtree/hf-tasksmith-v1`.
 - Published Results carry their Skill, so anyone can fetch it with
   `regents techtree skill fetch` or rerun a Result with
