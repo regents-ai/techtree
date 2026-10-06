@@ -12,6 +12,13 @@ defmodule Techtree.WalletBench.Catalog do
   @harnesses %{"H05" => %{id: "H05", name: "Claude Code"}}
 
   @wallets %{
+    "W03" => %{
+      id: "W03",
+      name: "MoonPay",
+      executable: "mp",
+      help: ["--help"],
+      survey_version: "1.96.5"
+    },
     "W07" => %{
       id: "W07",
       name: "Foundry Cast",
