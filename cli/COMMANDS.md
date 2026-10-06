@@ -7,8 +7,8 @@ cannot say. So this folder has no `commands.json`. The regents-cli chief builds 
 its section here.
 
 This file starts with the two commands added for reruns (decision 67 c) and public Skills
-(decision 68 a), then the ChatGPT plan sign-in (decision 59 a). Each existing command gets its
-section here when it next changes.
+(decision 68 a), then the ChatGPT plan sign-in (decision 59 a) beside the own-Prime-key route
+(decision 105 b). Each existing command gets its section here when it next changes.
 
 Every command also takes `--json` (print the answer as JSON) and `--base-url URL` (the site's
 address; also `TECHTREE_BASE_URL`). A refusal prints the site's `code`, `message` and `hint`
@@ -154,8 +154,9 @@ A refused proof is not published, and the answer names the file and the check it
 ## regents techtree model login | status | logout
 
 - **What it does:** signs this machine in to the person's ChatGPT plan with OpenAI's Sign in
-  with ChatGPT, so Climbs run on that plan (decision 59 a). Techtree sells no model calls and
-  charges nothing; the runs use the person's own plan allowance.
+  with ChatGPT, so Climbs can run on that plan (decision 59 a) as well as on the person's own
+  Prime key. Techtree sells no model calls and charges nothing; plan runs use the person's own
+  plan allowance.
 - **Who may run it:** anyone with ChatGPT Plus or Pro.
 - **What it changes:** nothing on the site. It writes `<techtree home>/chatgpt.json` (by default
   `~/.regents/techtree/chatgpt.json`) on this machine (`login`) or removes it (`logout`).
@@ -181,8 +182,9 @@ A refused proof is not published, and the answer names the file and the check it
   - `model_sign_in_required`: `status` or a Climb found no sign-in, the sign-in can no longer
     be refreshed (`invalid_grant`, `refresh_token_reused`), or OpenAI answered 401
     `subscription_sharing_invalid_user`. The answer says to run `regents techtree model login`.
-- **doctor:** its "Evaluation model credential" check becomes "ChatGPT sign-in". Signed in means
-  the file exists, the refresh token is within its 30 days, and the granted scopes include
+- **doctor:** its "Evaluation model credential" check becomes two lines, "Own Prime key" and
+  "ChatGPT sign-in", each set up or not; a Climb needs only the route it runs on. Signed in
+  means the file exists, the refresh token is within its 30 days, and the granted scopes include
   `chatgpt.tokens.use.direct`. doctor makes no network call, so it never refreshes.
 
 This machine:
@@ -212,23 +214,69 @@ never         the token in a URL, a log, a container, a --json answer or anythin
 
 - **History:** 2026-10-05 added.
 
-## How a Climb runs on the ChatGPT plan (59 a)
+## How a Climb runs: own Prime key or ChatGPT plan (59 a, 105 b)
 
-Every Climb's Campaign names the plan as its model access, so the person's plan pays for the
-runs and Techtree never sees a model key. Hello World, Frontier-CS, Tasksmith and the au-bas
+A Climb runs on one of two routes, and the person picks one for each run: their own Prime key,
+as today, or their ChatGPT plan (decision 59 a). Both stay (decision 105 b). Credits bought
+through Stripe's LLM billing come later as a third route. On either route the person pays their
+own provider and Techtree charges nothing. Hello World, Frontier-CS, Tasksmith and the au-bas
 Climb all move in climb-v0.7.0. `techtree.campaign.v4` and `techtree.experiment.v4` are not
 released yet, so this changes them in place:
 
 ```text
-ModelSpec       {access: "chatgpt_plan", model_id}       provider, revision and credential_env go
-SamplingSpec    {reasoning_effort}                       temperature and max_tokens go
+ModelSpec       {model_id, access}                       provider, revision and credential_env go
+model_id        OpenAI's own name for one model held fixed for every Climb: "gpt-6-luna"
+access          the routes this Campaign offers: a non-empty, sorted set with no repeats,
+                drawn from "chatgpt_plan" and "prime_key" ("stripe_credits" joins later)
+                prime_key asks Prime for "openai/<model_id>" and reads the key the way Prime
+                does (PRIME_API_KEY, else `prime login`)
+SamplingSpec    {reasoning_effort}                       temperature and max_tokens go on both
+                                                         routes: the plan refuses them, and a
+                                                         reply cap on one route only would make
+                                                         the two routes' tries differ
 Budgets         maximum_input_tokens, maximum_output_tokens, maximum_model_calls, timeout_seconds
-                                                          maximum_usd goes
-model_id        one OpenAI model held fixed for every Climb, the luna tier, named from the
-                plan's live model list once Sean signs in
+                on both routes
+                maximum_usd: present exactly when access holds prime_key, and used only there
 ```
 
-During a run, regents-cli runs a forwarder on this machine's loopback address. The model calls
+One run is one route. A run's baseline and candidate always use the same route, so the uplift a
+Result claims is measured within one route. The route is recorded and signed:
+
+```text
+experiment manifest v4   access: "prime_key" | "chatgpt_plan"   (in the bundle, checked offline)
+uplift report            access, and cost provenance provider_reported (prime_key) or
+                         plan_included (chatgpt_plan)
+```
+
+Choosing the route:
+
+```text
+climb prepare <climb> --access prime-key|chatgpt-plan
+  required whenever the Climb offers more than one route; no default, never guessed from what is
+  set up on this machine
+  missing           model_access_required: lists the routes the Climb offers and which are set
+                    up here ("ChatGPT plan: signed in as you@... / own Prime key: not set up")
+  not offered       model_access_not_offered
+  not set up        model_sign_in_required (plan) or prime_key_missing (Prime)
+  the draft records the route; climb start uses it, and its first line names it
+climb prepare --rerun-of <bundle_digest> --access ...
+  any route the Climb offers; the rerun records its own route, and its page shows the
+  original's beside it
+```
+
+Both routes stop the same way:
+
+```text
+per try         stop starting calls once a token limit is crossed or K calls are reached; the
+                call that crosses still finishes, so a try can go past its token limits by one
+                full reply; the try is graded as it stands
+receipt         EpisodeReceiptV3 gains ending: completed | token_limit | call_limit | timeout
+                the report counts tries by ending
+prime_key also  the run-wide dollar stop at maximum_usd; run_spend_unreported when Prime
+                reports no cost
+```
+
+On the plan, regents-cli runs a forwarder on this machine's loopback address. The model calls
 from inside the container reach it, and it sends each one to
 `POST https://api.openai.com/v1/responses` with a fresh access token, `store: false` and
 `stream: true`. A call counts only on a `response.completed` event. The forwarder drops every
@@ -237,11 +285,6 @@ field the plan refuses (`max_output_tokens`, `temperature`, `top_p`, `truncation
 keeps `reasoning`.
 
 ```text
-per try         stop starting calls once a limit is crossed; the call that crosses it still
-                finishes, so a try can go past its token limits by one full reply
-                the try is graded as it stands
-receipt         EpisodeReceiptV3 gains ending: completed | token_limit | call_limit | timeout
-                the report counts tries by ending
 cost            provenance plan_included: tokens used, no dollar figure
 plan used up    the run ends with plan_limit_reached and no Result; the message reads
                 "Your ChatGPT plan's limit for Regents is used up. Manage usage:
@@ -256,19 +299,29 @@ not eligible    plan_not_eligible
 no sign-in      model_sign_in_required
 ```
 
-- **Before a run starts:** `climb prepare` and `climb start` say "Using your ChatGPT plan", show
-  the settings link, and say: "Runs on your ChatGPT plan. Each try stops starting model calls
-  once it passes its token limit or reaches K calls, so the run uses about N tokens of your
-  plan's limits; a try's last reply can go over. Techtree charges nothing." K is
-  `maximum_model_calls`; N is (`maximum_input_tokens` + `maximum_output_tokens`) × tries. The
-  call limit is exact; the token limits are not.
-- **Site needs:** the importer reads the new ModelSpec and Budgets. Climb pages and Result pages
-  show "Runs on your ChatGPT plan" and token limits in place of dollar limits.
-- **Sean decided (105 b, 6 Oct):** the plan does not replace today's own-Prime-key route; both
-  stay, and credits bought through Stripe's LLM billing come later. How one Climb offers both
-  routes while every Result stays comparable is being designed with regents-cli, and the
-  ModelSpec, Budgets and "Before a run starts" text above change to match.
-- **Still to prove:** many parallel tries on one plan (OpenAI's docs name no concurrency
-  limit), and Hermes's tool calls under OpenAI's namespace rule. Both are checked on the free
-  stand-in, then in one small run on Sean's plan after he signs in.
-- **History:** 2026-10-05 added.
+- **Before a run starts:** `climb prepare` and `climb start` name the route.
+  - Plan: "Using your ChatGPT plan", the settings link, and "Runs on your ChatGPT plan. Each try
+    stops starting model calls once it passes its token limit or reaches K calls, so the run uses
+    about N tokens of your plan's limits; a try's last reply can go over. Techtree charges
+    nothing."
+  - Own Prime key: "Runs on your own Prime key. Stops at $X, or sooner when each try passes its
+    token limit or reaches K calls. Techtree charges nothing."
+  - K is `maximum_model_calls`; N is (`maximum_input_tokens` + `maximum_output_tokens`) × tries;
+    $X is `maximum_usd`. The call and dollar limits are exact; the token limits are not.
+- **Site needs:** the importer reads `ModelSpec.access` and the Budgets (`maximum_usd` only when
+  the Climb offers the Prime key). A Climb page shows the routes it offers, the token and call
+  limits, and the dollar limit when the Prime key is offered. A Result page says "Ran on: own
+  Prime key" or "Ran on: ChatGPT plan", read from the signed manifest and report. A Climb's
+  board lists every Result together (same model, sampling and limits) with the route on each
+  row and a filter by route; it is not split.
+- **Still to prove:**
+  - The two routes give the model the same input. The Prime key goes through Verifiers' client
+    to Prime; the plan goes through the forwarder to OpenAI, which moves system text into
+    `instructions` and wraps tools in a namespace. regents-cli records both routes' outgoing
+    requests for the same try on the free stand-in and compares them field by field. If they
+    cannot be made equal, a Climb's board splits Results by route.
+  - Many parallel tries on one plan (OpenAI's docs name no concurrency limit).
+  - Whether the plan serves gpt-6-luna, known once Sean signs in. If not, Sean chooses between
+    moving every Climb to one model both routes serve, or listing only the Prime key on those
+    Climbs.
+- **History:** 2026-10-05 added (plan only). 2026-10-06: both routes (105 b).
