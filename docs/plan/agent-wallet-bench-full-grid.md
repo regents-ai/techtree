@@ -64,14 +64,33 @@ list, which is right. The notes are corrected (8689cfd), not yet released.
 
 1. Techtree: add the 12 other agents' recipes (the survey's install, turn and parse scripts, copied unchanged and
    checked once each on a test machine), the 7 other wallets' notes and install prompts (word for word from the
-   survey), and a results download (one row per attempt and test, the same columns as the survey's CSV) for Patchbay's
-   chart. One Techtree release.
+   survey), and a results download for Patchbay's chart (shape below, as the Patchbay UI lane asked on 6 October).
+   One Techtree release.
 2. Build the 13 agents' machines once each (about 3 minutes each, no model spend).
    On 6 October a machine restarted on its own after a reset, and the bench rightly refused to use it again; replacing
    it was a hand step (retire, request a new one, about 3 minutes). Across 351 attempts that will happen more than
    once, so a refused machine should be retired and replaced by the bench itself (one more AshOban step on the machine
    resource) rather than waiting for an operator.
-3. Run, watch the first attempt per agent, then let the rest go.
+3. Run, watch the first attempt per agent, then let the rest go. Report the Sprites machine cost after the first 10
+   pairs before the rest run (HQ's condition on 131).
+
+## The results download
+
+Versioned, so older releases keep working: `agent-wallet-bench-v8.csv`, `agent-wallet-bench-v8.json` and
+`agent-wallet-bench-v8-criteria.csv`.
+
+- **Rows** (`-v8.csv`): the survey's columns in the survey's order (harness_id, harness, wallet_id, wallet, test,
+  attempt, outcome, outcome_detail, criteria_true, criteria_false, criteria_open), then `run` (1, 2, 3 for repeated
+  runs of a pair) and `attempt_id` (the bench's id, linking to its page on techtree.sh). One row per pair, test and
+  run. `attempt` keeps the survey's meaning: `official`, or `follow-up` for a go-ahead prompt. The signature request
+  belongs to the wallet test, as in the survey: the T2 row carries the wallet test's final result.
+- **Release details** (`-v8.json`): release id, date and rubric version; every harness and wallet in the grid (id and
+  name), so an untested pair shows as an empty cell; each test with one plain sentence; every outcome with a one-line
+  meaning and whether it counts as tested (NOT_RUN, NOT_REQUIRED, the blocked results and WAITING_HUMAN each keep
+  their own name and are never drawn as failures); the setup every row shares (model gpt-6-luna for every agent, stock
+  agents, one Sprites machine per agent).
+- **Checks** (`-v8-criteria.csv`): one row per check: harness_id, wallet_id, test, attempt, run, criterion_id,
+  criterion text, result (true, false or open). The judge already records each check, so this costs nothing extra.
 
 ## What Sean gets
 
