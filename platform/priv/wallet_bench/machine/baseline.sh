@@ -13,6 +13,12 @@ OUT=$W/baseline
 mkdir -p "$OUT"
 lock
 
+# Ends the build with a failed step's last lines, so the machine's failure shows them.
+shown() {
+  tail -n 40 "$1"
+  exit 1
+}
+
 # 1. Environment facts (variable names only, never values).
 {
   echo "captured_at=$(date -u +%FT%TZ)"
@@ -28,21 +34,24 @@ lock
 # 2. The model translator, not started.
 bash "$W/bin/machine/proxy-install.sh" > "$OUT/proxy-install.log" 2>&1
 
-# 3. The tested account: clean home, no sudo.
+# 3. The tested account: clean home, no sudo. It gets the Sprite's language runtimes (node, python3, uv, go, java,
+# bun), with Node's own folder ahead of /.sprite/bin: the Sprite's npm launcher calls itself forever when the account
+# has a ~/.nvm with no Node in it yet, which is where Harbor's Node install passes.
 id bench > /dev/null 2>&1 || sudo useradd -m -s /bin/bash bench
-sudo -u bench -H bash -c 'cat >> ~/.profile' <<'EOF'
-# Benchmark baseline: Sprite-provided language runtimes (node, python3, uv, go, java, bun).
-export PATH="$HOME/.local/bin:$PATH:/.sprite/bin"
+NODE_DIR=$(dirname "$(/.sprite/bin/node -e 'process.stdout.write(process.execPath)')")
+sudo -u bench -H bash -c 'cat >> ~/.profile' <<EOF
+# Benchmark baseline: Sprite-provided language runtimes.
+export PATH="\$HOME/.local/bin:\$PATH:$NODE_DIR:/.sprite/bin"
 EOF
 sudo install -o bench -g bench -m 600 "$W/proxy/local.token" /home/bench/.model-token
 
 # 4. The runner, then the harness through its Harbor adapter: the survey's pinned version and its wiring to the
 # translator. /logs/agent keeps the agent's sessions and output for the whole attempt.
 sudo env UV_PROJECT_ENVIRONMENT="$RUNNER_ENV" /.sprite/bin/uv sync --frozen --project "$W/bin/runner" \
-  > "$OUT/runner-install.log" 2>&1
+  > "$OUT/runner-install.log" 2>&1 || shown "$OUT/runner-install.log"
 sudo mkdir -p /logs
 sudo install -d -o bench -g bench -m 755 /logs/agent
-runner setup "$HARNESS" > "$OUT/harness-install.log" 2>&1
+runner setup "$HARNESS" > "$OUT/harness-install.log" 2>&1 || shown "$OUT/harness-install.log"
 
 # 5. The tested account before any wallet work.
 as_bench inventory.sh > "$OUT/bench-inventory.txt" 2>&1
