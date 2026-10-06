@@ -17,7 +17,7 @@ defmodule TechtreeWeb.StartLive do
 
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
-  alias TechtreeWeb.Providers
+  alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.ReleaseInfo
 
   @title "Choose where to start."
@@ -161,23 +161,25 @@ defmodule TechtreeWeb.StartLive do
           <.definition_list :if={@example}>
             <:fact term="You need">
               <.requirements minimums={@minimums} provider={false} hermes={false}>
-                <li>
-                  An API key for {@example.provider}, set as <code>{@example.credential_env}</code>; the model calls are charged to your account
-                </li>
+                <li :if={length(@example.routes) > 1}>One of these, chosen for each run:</li>
+                <li :for={route <- @example.routes}>{ModelAccess.needs!(route)}</li>
               </.requirements>
             </:fact>
             <:fact term="Model">
-              The Climb fixes the model: <code>{@example.model_id}</code> from {@example.provider}.
+              The Climb fixes the model: <code>{@example.model_id}</code>, whichever way you run it.
             </:fact>
             <:fact term="Limits">
-              Each task is tried once with the Skill and once without. Each try stops starting model calls after {@example.calls} calls, {@example.input_tokens} input tokens or {@example.output_tokens} output tokens. With {@example.tasks} tasks, a run can make up to {@example.run_calls} model calls. Before anything runs, Techtree shows the most the run may spend and waits for your yes.
+              Each task is tried once with the Skill and once without. Each try stops starting model calls after {@example.calls} calls, {@example.input_tokens} input tokens or {@example.output_tokens} output tokens. With {@example.tasks} tasks, a run can make up to {@example.run_calls} model calls.
+              <span :if={@example.maximum_usd}>
+                On your own Prime key, a run also stops once it has spent {@example.maximum_usd}.
+              </span>
+              Before anything runs, Techtree shows these limits and waits for your yes.
             </:fact>
             <:fact term="Time">
-              About 15 minutes to set up. How long the run takes depends on your provider.
+              About 15 minutes to set up. How long the run takes depends on the model service.
             </:fact>
             <:fact term="Where your data goes">
-              The model calls go to {@example.provider} on your <code>{@example.credential_env}</code>
-              key, only after you approve. Episodes and traces stay on your computer. Publishing a finished result is optional and uploads its proof bundle to Techtree.
+              The model calls go to {ModelAccess.destinations(@example.routes)}, only after you approve. Episodes and traces stay on your computer. Publishing a finished result is optional and uploads its proof bundle to Techtree.
             </:fact>
           </.definition_list>
           <.command_block
@@ -230,9 +232,9 @@ defmodule TechtreeWeb.StartLive do
     trial = reference |> Query.get_climb_by_reference!() |> CampaignFacts.trial!()
 
     %{
-      provider: Providers.name!(trial.provider),
+      routes: trial.routes,
       model_id: trial.model_id,
-      credential_env: trial.credential_env,
+      maximum_usd: trial.maximum_usd && ModelAccess.dollars(trial.maximum_usd),
       tasks: CampaignFacts.count(trial.tasks),
       calls: CampaignFacts.count(trial.calls),
       input_tokens: CampaignFacts.count(trial.input_tokens),
@@ -244,14 +246,18 @@ defmodule TechtreeWeb.StartLive do
   defp example(nil), do: nil
 
   defp example_commands(install_argv, reference) do
+    trial = reference |> Query.get_climb_by_reference!() |> CampaignFacts.trial!()
+
     [
       {:command, install_argv},
       {:command, ["regents", "techtree", "setup"]},
       {:command, ["regents", "techtree", "doctor", "--climb", reference]},
       {:command, ["regents", "techtree", "skill", "starter"]},
-      {:comment, "Prepare with the Skill it placed, then run the start command it prints:"},
-      {:command,
-       ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]}
-    ]
+      {:comment, "Prepare with the Skill it placed, then run the start command it prints."}
+    ] ++
+      ModelAccess.prepare_lines(
+        trial.routes,
+        ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]
+      )
   end
 end

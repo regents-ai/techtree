@@ -114,7 +114,7 @@
 .results-ledger small { display: block; font-size: .6875rem; font-weight: 400; color: var(--color-fg-muted); }
 .results-ledger .results-ledger__numeric { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .results-ledger td.results-ledger__numeric { min-width: 6.25rem; font-family: var(--font-family-mono); font-size: .8125rem; }
-.results-ledger__tasks, .results-ledger__date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.results-ledger__tasks, .results-ledger__date, .results-ledger__route { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .results-ledger .results-ledger__evidence a { display: inline-flex; align-items: center; min-height: 2.75rem; white-space: nowrap; }
 .results-ledger .is-withdrawn .results-ledger__skill > a { text-decoration: line-through; }
 .results-ledger tbody tr:focus-within { background: var(--color-surface); }

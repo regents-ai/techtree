@@ -55,10 +55,12 @@ defmodule TechtreeWeb.RunsLive.Index do
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query, as: Catalog
+  alias Techtree.Catalog.Route
   alias Techtree.Network.AgentVersions
   alias Techtree.Network.Query
   alias Techtree.Network.ResultFilters
   alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.ResultAssessment
 
   @impl true
@@ -124,7 +126,8 @@ defmodule TechtreeWeb.RunsLive.Index do
       agent: selection.family.id,
       agent_version: selection.version,
       model: filters.model,
-      challenge: filters.challenge
+      challenge: filters.challenge,
+      provider: filters.route && Route.provider!(filters.route)
     )
   end
 
@@ -140,6 +143,7 @@ defmodule TechtreeWeb.RunsLive.Index do
           AgentVersions.url(selection.family.id, selection.version,
             model: filters.model,
             challenge: filters.challenge,
+            route: filters.route,
             before_sequence: Map.get(params, "before_sequence"),
             limit: Map.get(params, "limit")
           ),
@@ -230,15 +234,6 @@ defmodule TechtreeWeb.RunsLive.Index do
               >{model}</.link>
               <p :if={@filters.models == []} class="quiet small">Choose a submitted harness first</p>
             </nav>
-            <a
-              :if={@filters.model}
-              class="text-link results-filter-about"
-              href={model_page(@filters.model)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              About this model ↗
-            </a>
           </div>
           <div class="results-filter-row">
             <h2 class="results-filter-label"><span>03</span> Challenge</h2>
@@ -275,6 +270,26 @@ defmodule TechtreeWeb.RunsLive.Index do
             >
               About this Climb ↗
             </a>
+          </div>
+          <div class="results-filter-row">
+            <h2 class="results-filter-label"><span>04</span> Ran on</h2>
+            <nav class="results-filter-choices" aria-label="Routes the Results ran on">
+              <.link
+                :if={@filters.routes != []}
+                class="result-choice"
+                patch={route_url(@selection, @filters, nil)}
+                aria-current={if is_nil(@filters.route), do: "page"}
+              >Every route</.link>
+              <.link
+                :for={route <- @filters.routes}
+                class="result-choice"
+                patch={route_url(@selection, @filters, route)}
+                aria-current={if route == @filters.route, do: "page"}
+              >{ModelAccess.label!(route)}</.link>
+              <p :if={@filters.routes == []} class="quiet small">
+                Choose a submitted challenge first
+              </p>
+            </nav>
           </div>
         </section>
 
@@ -327,6 +342,7 @@ defmodule TechtreeWeb.RunsLive.Index do
                 <th scope="col" class="results-ledger__numeric">Candidate</th>
                 <th scope="col" class="results-ledger__numeric">Δ Score</th>
                 <th scope="col">Tasks <span class="quiet">↑ / = / ↓</span></th>
+                <th scope="col">Ran on</th>
                 <th scope="col">Published</th>
                 <th scope="col">Evidence</th>
               </tr>
@@ -365,6 +381,7 @@ defmodule TechtreeWeb.RunsLive.Index do
                     {entry.wins} / {entry.ties} / {entry.losses}
                   </span>
                 </td>
+                <td class="results-ledger__route">{ModelAccess.ran_on!(entry.subject_provider)}</td>
                 <td class="results-ledger__date">
                   <time datetime={DateTime.to_iso8601(entry.accepted_at)}>
                     {arrived(entry.accepted_at)}
@@ -451,8 +468,6 @@ defmodule TechtreeWeb.RunsLive.Index do
   defp harness_page("codex"), do: "https://github.com/openai/codex"
   defp harness_page(_id), do: nil
 
-  defp model_page(model), do: "https://openrouter.ai/" <> URI.encode(model)
-
   # Which empty page a readable selection is, if any: nothing published at
   # all, a page past the oldest entry of a selection that has entries, or a
   # selection with no entries. An address the page cannot read at all, or one
@@ -470,7 +485,8 @@ defmodule TechtreeWeb.RunsLive.Index do
     [
       params["agent"] && harness_words(families, params["agent"], params["agent_version"]),
       params["model"] && model_words(params["model"]),
-      params["challenge"] && challenge_words(params["challenge"])
+      params["challenge"] && challenge_words(params["challenge"]),
+      params["route"] && route_words(params["route"])
     ]
     |> Enum.reject(&is_nil/1)
   end
@@ -498,6 +514,10 @@ defmodule TechtreeWeb.RunsLive.Index do
     end
   end
 
+  defp route_words(route) do
+    if route in Route.all(), do: "on your " <> ModelAccess.name!(route), else: "that route"
+  end
+
   defp no_match_words([]), do: "No published Results match this address."
 
   defp no_match_words(asked_for),
@@ -507,8 +527,20 @@ defmodule TechtreeWeb.RunsLive.Index do
     challenge =
       Enum.find(filters.challenges, &(&1.campaign_spec_digest == filters.challenge))
 
-    "#{selection.family.label} #{selection.version} · #{filters.model} · #{campaign_name(challenge)}"
+    "#{selection.family.label} #{selection.version} · #{filters.model} · " <>
+      campaign_name(challenge) <> route_suffix(filters.route)
   end
+
+  defp route_suffix(nil), do: ""
+  defp route_suffix(route), do: " · on your " <> ModelAccess.name!(route)
+
+  defp route_url(selection, filters, route),
+    do:
+      AgentVersions.url(selection.family.id, selection.version,
+        model: filters.model,
+        challenge: filters.challenge,
+        route: route
+      )
 
   defp legacy_copy(entry), do: ClimbCopy.for_reference(entry.climb_reference) || %{}
 
@@ -523,6 +555,7 @@ defmodule TechtreeWeb.RunsLive.Index do
       AgentVersions.url(selection.family.id, selection.version,
         model: filters.model,
         challenge: filters.challenge,
+        route: filters.route,
         limit: limit,
         before_sequence: sequence
       )

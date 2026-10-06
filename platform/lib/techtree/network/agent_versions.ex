@@ -53,7 +53,8 @@ defmodule Techtree.Network.AgentVersions do
     params = [{"agent", agent}, {"agent_version", version}]
 
     params =
-      Enum.reduce([:model, :challenge, :before_sequence, :limit], params, fn key, params ->
+      Enum.reduce([:model, :challenge, :route, :before_sequence, :limit], params, fn key,
+                                                                                     params ->
         case Keyword.get(options, key) do
           nil -> params
           value -> params ++ [{to_string(key), to_string(value)}]

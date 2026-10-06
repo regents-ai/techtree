@@ -57,9 +57,12 @@ defmodule Techtree.Network.ConformanceTest do
     :ok
   end
 
-  test "the submission the CLI's publishing path builds for the v2 proof is accepted here unmodified" do
+  test "the submissions the CLI's publishing path builds on each route are accepted here unmodified" do
     submitted = NetworkFixture.cli_submission()
 
+    # The same Campaign and Skill, run on the ChatGPT plan, arrives first; the
+    # fixture proof, run on the person's own Prime key, after it.
+    assert {:ok, plan, :recorded} = NetworkFixture.publish(NetworkFixture.cli_plan_submission())
     assert {:ok, entry, :recorded} = NetworkFixture.publish(submitted)
 
     declared = Jason.decode!(submitted)
@@ -76,21 +79,19 @@ defmodule Techtree.Network.ConformanceTest do
     assert entry.run_id == declared["run_id"]
     assert entry.campaign_spec_digest == CatalogFixture.campaign_digest()
     assert entry.subject_harness == "hermes-agent"
+    assert entry.subject_provider == "prime"
+    assert plan.subject_provider == "openai"
+    assert plan.campaign_spec_digest == entry.campaign_spec_digest
+    assert plan.skill_digest == entry.skill_digest
     assert entry.task_count == 36
     assert entry.verification_checks_passed == Bundle.check_count()
     assert entry.submission_bytes == submitted
-
-    # The CLI's rerun of that Result names it, and is of the same Campaign and
-    # the same Skill.
-    assert {:ok, rerun, :recorded} = NetworkFixture.publish(NetworkFixture.cli_rerun_submission())
-    assert rerun.assessment.rerun_of == entry.bundle_digest
-    assert rerun.skill_digest == entry.skill_digest
 
     # And the Skill both carried is served as the answer `skill fetch` accepts.
     accepted = NetworkFixture.cli_skill_answer()
     assert {:ok, answer} = Techtree.Network.Query.skill(entry.skill_digest)
     assert answer == accepted
-    assert answer["results"] == [rerun.bundle_digest, entry.bundle_digest]
+    assert answer["results"] == [entry.bundle_digest, plan.bundle_digest]
   end
 
   test "the submission this site builds for a proof directory is the one the CLI sends" do

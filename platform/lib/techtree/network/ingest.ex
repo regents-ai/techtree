@@ -103,6 +103,7 @@ defmodule Techtree.Network.Ingest do
 
   alias Techtree.Canonical
   alias Techtree.Catalog.Digest
+  alias Techtree.Catalog.Route
   alias Techtree.Network
   alias Techtree.Network.Address
   alias Techtree.Network.Bundle
@@ -443,6 +444,8 @@ defmodule Techtree.Network.Ingest do
   # The subject facts come from the published definition the run was a run of,
   # never from the bundle: the model from the Campaign, and the harness from
   # the execution plan that Campaign binds, which is where a v2 Campaign keeps it.
+  # The one exception is the service the model calls went to, which the run's
+  # route decides and the signed report names.
   defp attributes(
          %Bundle{
            manifest: manifest,
@@ -477,7 +480,7 @@ defmodule Techtree.Network.Ingest do
       participant_kind: :local_ed25519,
       participant_key_id: identity["key_id"],
       participant_public_key: identity["public_key"],
-      subject_provider: field(model, "provider"),
+      subject_provider: Route.provider!(report["access"]),
       subject_model: field(model, "model_id"),
       subject_harness: field(harness, "harness_id"),
       subject_harness_version: field(harness, "harness_version"),

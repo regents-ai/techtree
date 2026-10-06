@@ -129,11 +129,14 @@ defmodule Techtree.Network.PublicationEntry do
         allow_nil?: true,
         constraints: [trim?: false, allow_empty?: true]
 
+      argument :provider, :string, allow_nil?: true
+
       filter expr(is_nil(^arg(:before_sequence)) or log_sequence < ^arg(:before_sequence))
       filter expr(is_nil(^arg(:agent)) or subject_harness == ^arg(:agent))
       filter expr(is_nil(^arg(:agent_version)) or subject_harness_version == ^arg(:agent_version))
       filter expr(is_nil(^arg(:model)) or subject_model == ^arg(:model))
       filter expr(is_nil(^arg(:challenge)) or campaign_spec_digest == ^arg(:challenge))
+      filter expr(is_nil(^arg(:provider)) or subject_provider == ^arg(:provider))
 
       prepare build(sort: [log_sequence: :desc])
     end

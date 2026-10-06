@@ -17,10 +17,10 @@ defmodule Techtree.CatalogFixture do
   @climb_path "climbs/hello-world-climb.json"
   @campaign_path "campaigns/hello-world-climb.json"
   @execution_plan_path "execution-plans/hello-world-climb.json"
-  @campaign_digest "sha256:f1f45ca0c6fe0c85890e7c27bf3621bf900fd67b0153ce99d55fc9c606ab63c3"
-  @execution_plan_digest "sha256:626e31e0939288726a2fa86d76faec7ce7f4b2bec06bf0b5c614a1f97b368d7c"
-  @catalog_digest "sha256:8e4f2e94ba47942839c714233a4f6452b29d84e85f84b2ee9a0fa7a3ac2e6e21"
-  @taskset_validation_digest "sha256:41646dc7b4044b1f3305df7434516c1515b7e27755c64d3c32f7993e5ecf802f"
+  @campaign_digest "sha256:5c19ff8387bc5c714cd8981a134ef364e9da6cf33f4667eac5aeaa3c7aca77ed"
+  @execution_plan_digest "sha256:b32887a310c3b10e059fd0c372d8244067493c3ec0be8a9cb881555b25475417"
+  @catalog_digest "sha256:2b81f26f8439e7fa1c1c68b7199731c519454d77f2b06da90d654bdc11ae9d35"
+  @taskset_validation_digest "sha256:b7c480ac8410ad3f50a31759ce52d47432cb77dd90574e701385c518c8a7029e"
   @data_policy_digest "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9"
 
   # Stand-ins with the shape of a real coordinate and none of its meaning.

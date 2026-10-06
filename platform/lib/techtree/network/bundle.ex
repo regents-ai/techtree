@@ -848,7 +848,7 @@ defmodule Techtree.Network.Bundle do
 
     case Enum.find(expected, fn {field, value} -> Map.get(report, field) != value end) do
       nil ->
-        :ok
+        route(report, campaign)
 
       {field, value} ->
         {:error,
@@ -858,6 +858,36 @@ defmodule Techtree.Network.Bundle do
            %{"field" => field, "expected" => value, "found" => Map.get(report, field)}
          )}
     end
+  end
+
+  # A run is one route, one the Campaign offers, and its cost is reported the
+  # way that route reports it: Prime reports dollars, the plan does not.
+  @route_costs [{"prime_key", "provider_reported"}, {"chatgpt_plan", "plan_included"}]
+
+  defp route(%{"access" => access, "cost_provenance" => provenance}, campaign)
+       when {access, provenance} in @route_costs do
+    offered = get_in(campaign, ["agents", "subject", "model", "access"])
+
+    if access in offered do
+      :ok
+    else
+      {:error,
+       Error.new(
+         :submission_report_context_mismatch,
+         "the signed result summary names a route its Campaign does not offer",
+         %{"field" => "access", "expected" => offered, "found" => access}
+       )}
+    end
+  end
+
+  defp route(report, _campaign) do
+    {:error,
+     Error.new(
+       :submission_report_context_mismatch,
+       "the signed result summary must name the route it ran on and how that route " <>
+         "reports cost",
+       Map.take(report, ["access", "cost_provenance"])
+     )}
   end
 
   # An object this site publishes, read from the exact bytes it serves. The

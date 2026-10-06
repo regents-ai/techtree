@@ -149,6 +149,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     ~r/\b\d+(\.\d+)?\s*(usd|dollars?|cents?)\b/i
   ]
 
+  @spend_limit ~r/stops\s+once\s+it\s+has\s+spent\s+\$\d+\.\d{2}\./
+
   # Describing the install-time report is optional. Describing it honestly is
   # not: the one answer a reader must never be offered is to stop the source
   # from being read at all. The word is looked for as prose — a name with a dot
@@ -457,8 +459,13 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     end
   end
 
+  # A Campaign that offers the reader's own Prime key sets the most a run may
+  # spend there. That is a limit the Campaign declares, not a price, so the one
+  # sentence that states it is read past.
   defp refute_priced_claim(sources) do
-    for {label, text} <- sources, pattern <- @priced_claim do
+    for {label, source} <- sources,
+        text = String.replace(source, @spend_limit, ""),
+        pattern <- @priced_claim do
       refute text =~ pattern,
              "#{label} matches #{inspect(pattern)}: what a trial costs is set by the " <>
                "reader's provider, and this site cannot quote it"

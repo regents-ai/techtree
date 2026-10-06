@@ -8,7 +8,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
-  alias TechtreeWeb.Providers
+  alias TechtreeWeb.ModelAccess
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
@@ -21,7 +21,8 @@ defmodule TechtreeWeb.ClimbsLive.Show do
            copy: ClimbCopy.for_reference(climb.reference),
            held_out_count: held_out_count(climb.projection["held_out_campaign_spec_digest"]),
            hub_package: hub_package(climb.projection["taskset_package"]),
-           rubric: get_in(climb.projection, ["scoring", "rubric"])
+           rubric: get_in(climb.projection, ["scoring", "rubric"]),
+           trial: CampaignFacts.trial!(climb)
          )}
 
       {:error, _error} ->
@@ -76,6 +77,21 @@ defmodule TechtreeWeb.ClimbsLive.Show do
             </dd>
           </div>
           <div>
+            <dt>Model</dt>
+            <dd>
+              <code>{@trial.model_id}</code>, run on {ModelAccess.destinations(@trial.routes)}.
+              <span :if={length(@trial.routes) > 1}>You choose one when a Run starts.</span>
+            </dd>
+          </div>
+          <div :if={@trial.maximum_usd}>
+            <dt>Spend limit</dt>
+            <dd>
+              On your own Prime key, a Run stops once it has spent {ModelAccess.dollars(
+                @trial.maximum_usd
+              )}.
+            </dd>
+          </div>
+          <div>
             <dt>Input</dt>
             <dd>{(@copy && @copy.input) || "Defined by the published task set."}</dd>
           </div>
@@ -89,7 +105,7 @@ defmodule TechtreeWeb.ClimbsLive.Show do
           </div>
           <div>
             <dt>Held fixed</dt>
-            <dd>{(@copy && @copy.held_fixed) || held_fixed_words(@climb)}</dd>
+            <dd>{(@copy && @copy.held_fixed) || held_fixed_words(@climb, @trial)}</dd>
           </div>
         </dl>
 
@@ -132,9 +148,8 @@ defmodule TechtreeWeb.ClimbsLive.Show do
   defp weight(value) when is_float(value) and value == trunc(value), do: trunc(value)
   defp weight(value), do: value
 
-  defp held_fixed_words(climb) do
+  defp held_fixed_words(climb, trial) do
     "#{climb.projection["subject_harness"]} #{climb.projection["subject_harness_version"]}, " <>
-      "#{Providers.name!(climb.projection["subject_model"]["provider"])} " <>
-      climb.projection["subject_model"]["model_id"]
+      trial.model_id
   end
 end

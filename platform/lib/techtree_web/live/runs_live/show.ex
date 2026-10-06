@@ -47,6 +47,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   alias Techtree.Network.Query
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.Motion
   alias TechtreeWeb.Providers
   alias TechtreeWeb.ReleaseInfo
@@ -283,9 +284,8 @@ defmodule TechtreeWeb.RunsLive.Show do
           <div class="rerun__needs">
             <h3>You need</h3>
             <.requirements minimums={@rerun.minimums} provider={false} hermes={false}>
-              <li>
-                An API key for {@limits.provider}, set as <code>{@limits.credential_env}</code>; the model calls are charged to your account
-              </li>
+              <li :if={length(@rerun.routes) > 1}>One of these, chosen for the run:</li>
+              <li :for={route <- @rerun.routes}>{ModelAccess.needs!(route)}</li>
             </.requirements>
           </div>
           <.command_block id="copy-run-rerun" label="Run it again" lines={@rerun.commands} />
@@ -299,22 +299,27 @@ defmodule TechtreeWeb.RunsLive.Show do
           cannot run this comparison again.
         </p>
 
-        <h3 class="rerun__heading">Limits</h3>
-        <.definition_list>
-          <:fact term="Each try">
-            Stops starting model calls at {@limits.calls} calls, {@limits.input_tokens} input tokens or {@limits.output_tokens} output tokens, whichever comes first.
-          </:fact>
-          <:fact term="Whole run">
-            {@limits.plan}: up to {@limits.tries} tries. At most {@limits.run_calls} model calls. The token limits add up to {@limits.run_input_tokens} input tokens and {@limits.run_output_tokens} output tokens.
-          </:fact>
-          <:fact term="Before it starts">
-            Techtree shows the most the run may spend and waits for your yes.
-          </:fact>
-        </.definition_list>
-        <p class="small quiet section-note">
-          The call that crosses a limit still finishes, so a try can go past its token limits
-          by up to one full request and its reply.
-        </p>
+        <div :if={@limits}>
+          <h3 class="rerun__heading">Limits</h3>
+          <.definition_list>
+            <:fact term="Each try">
+              Stops starting model calls at {@limits.calls} calls, {@limits.input_tokens} input tokens or {@limits.output_tokens} output tokens, whichever comes first.
+            </:fact>
+            <:fact term="Whole run">
+              {@limits.plan}: up to {@limits.tries} tries. At most {@limits.run_calls} model calls. The token limits add up to {@limits.run_input_tokens} input tokens and {@limits.run_output_tokens} output tokens.
+            </:fact>
+            <:fact :if={@limits.maximum_usd} term="On your own Prime key">
+              The run also stops once it has spent {@limits.maximum_usd}.
+            </:fact>
+            <:fact term="Before it starts">
+              Techtree shows these limits and waits for your yes.
+            </:fact>
+          </.definition_list>
+          <p class="small quiet section-note">
+            The call that crosses a limit still finishes, so a try can go past its token limits
+            by up to one full request and its reply.
+          </p>
+        </div>
 
         <h3 class="rerun__heading">What a new run can tell you</h3>
         <ul class="needs">
@@ -424,6 +429,9 @@ defmodule TechtreeWeb.RunsLive.Show do
             <:fact term="Model">
               {@entry.subject_model} from {Providers.name!(@entry.subject_provider)}
             </:fact>
+            <:fact term="Ran on">
+              {ModelAccess.ran_on!(@entry.subject_provider)}
+            </:fact>
             <:fact term="Climb fingerprint">
               <.digest
                 value={@entry.campaign_spec_digest}
@@ -523,6 +531,16 @@ defmodule TechtreeWeb.RunsLive.Show do
     campaign = CampaignFacts.campaign_by_digest!(entry.campaign_spec_digest)
     held_out? = Catalog.held_out_campaign?(climb, entry.campaign_spec_digest)
 
+    # Limits and commands are read only for a Campaign the current release
+    # still runs; an older Campaign's Result keeps its own page without them.
+    current_climb =
+      case Catalog.get_climb_by_campaign_digest(entry.campaign_spec_digest) do
+        {:ok, current} -> current
+        {:error, _retired} -> nil
+      end
+
+    trial = current_climb && CampaignFacts.trial(campaign)
+
     campaign_name = campaign_name(entry, climb)
     tasks = ResultAssessment.tasks(entry.task_deltas)
     groups = ResultAssessment.by_outcome(tasks)
@@ -543,8 +561,8 @@ defmodule TechtreeWeb.RunsLive.Show do
       tasks: tasks,
       task_filter: :all,
       published: CampaignFacts.for_campaign(campaign),
-      limits: limits(campaign),
-      rerun: rerun(entry),
+      limits: trial && limits(trial),
+      rerun: rerun(current_climb, trial, entry.bundle_digest),
       rerun_of: rerun_of(entry),
       reruns: Query.reruns(entry),
       slug: climb.projection["slug"]
@@ -552,13 +570,11 @@ defmodule TechtreeWeb.RunsLive.Show do
   end
 
   # The limits the Result's own Campaign set, per try and over the whole run.
-  defp limits(campaign) do
-    trial = CampaignFacts.trial(campaign)
+  defp limits(trial) do
     total = CampaignFacts.run_total(trial)
 
     %{
-      provider: Providers.name!(trial.provider),
-      credential_env: trial.credential_env,
+      maximum_usd: trial.maximum_usd && ModelAccess.dollars(trial.maximum_usd),
       plan: plan_words(trial),
       calls: CampaignFacts.count(trial.calls),
       input_tokens: CampaignFacts.count(trial.input_tokens),
@@ -589,45 +605,54 @@ defmodule TechtreeWeb.RunsLive.Show do
       "#{times} with it#{retries}"
   end
 
-  # The commands only exist when the release served now installs and still
-  # carries this Result's Climb; a retired Climb cannot be run by it.
+  # The commands and limits only exist when the release served now installs
+  # and still carries this Result's Climb; a retired Climb cannot be run by it.
+  # A Climb it carries runs the Result's own Campaign, read with this release's
+  # reading of it.
   # Patchbay keys one discussion to each Result's bundle digest and creates it
   # on the first post, so the link needs nothing from Patchbay to be shown.
   defp discussion_url(bundle_digest),
     do: "https://patchbay.help/discuss/techtree/" <> bundle_digest
 
-  defp rerun(entry) do
-    case ReleaseInfo.current() do
-      %{installable?: true, install_argv: [_ | _] = install_argv, minimums: minimums} ->
-        case Catalog.get_climb_by_campaign_digest(entry.campaign_spec_digest) do
-          {:ok, climb} ->
-            %{
-              minimums: minimums,
-              commands: rerun_commands(install_argv, climb.reference, entry.bundle_digest)
-            }
+  defp rerun(climb, trial, bundle_digest) do
+    case {ReleaseInfo.current(), climb} do
+      {%{installable?: true, install_argv: [_ | _] = install_argv, minimums: minimums},
+       %{reference: reference}} ->
+        %{
+          minimums: minimums,
+          routes: trial.routes,
+          commands: rerun_commands(install_argv, reference, bundle_digest, trial.routes)
+        }
 
-          {:error, _retired} ->
-            :climb_retired
-        end
+      {%{installable?: true, install_argv: [_ | _]}, nil} ->
+        :climb_retired
 
       _not_installable ->
         :no_release
     end
   end
 
-  defp rerun_commands(install_argv, reference, bundle_digest) do
+  defp rerun_commands(install_argv, reference, bundle_digest, routes) do
     [
       {:command, install_argv},
       {:command, ["regents", "techtree", "setup"]},
       {:command, ["regents", "techtree", "doctor", "--climb", reference]},
-      {:comment,
-       "Prepare a rerun. Techtree downloads this Result and its Skill and checks both:"},
-      {:command, ["regents", "techtree", "climb", "prepare", "--rerun-of", bundle_digest]},
-      {:comment, "Start the draft it names. Techtree shows the most it may spend first:"},
-      {:command, ["regents", "techtree", "climb", "start", "DRAFT_ID"]},
-      {:comment, "When it finishes, check the run and read its result:"},
-      {:command, ["regents", "techtree", "run", "result", "RUN_ID"]}
-    ]
+      {:comment, "Prepare a rerun. Techtree downloads this Result and its Skill and checks both."}
+    ] ++
+      ModelAccess.prepare_lines(routes, [
+        "regents",
+        "techtree",
+        "climb",
+        "prepare",
+        "--rerun-of",
+        bundle_digest
+      ]) ++
+      [
+        {:comment, "Start the draft it names. Techtree shows its limits first:"},
+        {:command, ["regents", "techtree", "climb", "start", "DRAFT_ID"]},
+        {:comment, "When it finishes, check the run and read its result:"},
+        {:command, ["regents", "techtree", "run", "result", "RUN_ID"]}
+      ]
   end
 
   # The Result this one reruns. The site refused any rerun naming a Result it

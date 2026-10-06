@@ -30,6 +30,7 @@ defmodule Techtree.Network.Query do
 
   require Ash.Query
 
+  alias Techtree.Catalog.Route
   alias Techtree.Network
   alias Techtree.Network.AgentVersions
   alias Techtree.Network.PublicationEntry
@@ -59,7 +60,8 @@ defmodule Techtree.Network.Query do
         agent: Keyword.get(options, :agent),
         agent_version: Keyword.get(options, :agent_version),
         model: Keyword.get(options, :model),
-        challenge: Keyword.get(options, :challenge)
+        challenge: Keyword.get(options, :challenge),
+        provider: Keyword.get(options, :provider)
       })
       |> Ash.Query.limit(limit + 1)
       |> Ash.read!()
@@ -107,6 +109,22 @@ defmodule Techtree.Network.Query do
     |> Ash.Query.distinct_sort(log_sequence: :desc)
     |> Ash.read!()
     |> Enum.map(&Map.take(&1, [:campaign_spec_digest, :campaign_name, :climb_reference]))
+  end
+
+  @doc "The routes the Results of one exact Campaign ran on, newest first."
+  def result_routes(agent, version, model, challenge) do
+    PublicationEntry
+    |> Ash.Query.for_read(:list_log, %{
+      agent: agent,
+      agent_version: version,
+      model: model,
+      challenge: challenge
+    })
+    |> Ash.Query.select([:subject_provider, :log_sequence])
+    |> Ash.Query.distinct(:subject_provider)
+    |> Ash.Query.distinct_sort(log_sequence: :desc)
+    |> Ash.read!()
+    |> Enum.map(&Route.of_provider!(&1.subject_provider))
   end
 
   @doc """

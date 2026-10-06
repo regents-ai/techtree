@@ -12,6 +12,9 @@ defmodule TechtreeWeb.SkillController do
 
   use TechtreeWeb, :controller
 
+  alias Techtree.Catalog.Query
+  alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.ReleaseInfo
 
   def show(conn, _params) do
@@ -121,6 +124,12 @@ defmodule TechtreeWeb.SkillController do
   end
 
   defp climb_section(%{introductory_reference: reference}) when is_binary(reference) do
+    routes =
+      reference
+      |> Query.get_climb_by_reference!()
+      |> CampaignFacts.trial!()
+      |> Map.fetch!(:routes)
+
     """
     ## The introductory Climb
 
@@ -132,8 +141,12 @@ defmodule TechtreeWeb.SkillController do
     regents techtree setup
     regents techtree doctor --climb #{reference}
     regents techtree skill starter
-    regents techtree climb prepare #{reference} --skill path/to/skill
+    #{prepare_lines(reference, routes)}
     ```
+
+    Each run uses one of these routes. Ask the person which one to use:
+
+    #{Enum.map_join(routes, "\n", &("- " <> ModelAccess.needs!(&1)))}
 
     Read the preparation output and run the exact one-time `regents techtree climb start`
     command it prints. Nothing causing model token spend starts on its own.
@@ -146,4 +159,23 @@ defmodule TechtreeWeb.SkillController do
   end
 
   defp climb_section(_release), do: ""
+
+  # One prepare command for each route the Climb offers, each after a comment
+  # naming its route.
+  defp prepare_lines(reference, routes) do
+    routes
+    |> ModelAccess.prepare_lines([
+      "regents",
+      "techtree",
+      "climb",
+      "prepare",
+      reference,
+      "--skill",
+      "path/to/skill"
+    ])
+    |> Enum.map_join("\n", fn
+      {:comment, text} -> "# " <> text
+      {:command, argv} -> Enum.join(argv, " ")
+    end)
+  end
 end

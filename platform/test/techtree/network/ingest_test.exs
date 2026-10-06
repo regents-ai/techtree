@@ -56,7 +56,7 @@ defmodule Techtree.Network.IngestTest do
       assert entry.participant_public_key == manifest["executor_identity"]["public_key"]
       assert entry.subject_harness == "hermes-agent"
       assert entry.subject_harness_version == "v2026.9.24"
-      assert entry.subject_model == "openai/gpt-6-luna"
+      assert entry.subject_model == "gpt-6-luna"
       assert entry.subject_provider == "prime"
       assert entry.wins == report["primary_result"]["wins"]
       assert entry.losses == report["primary_result"]["losses"]
@@ -64,10 +64,10 @@ defmodule Techtree.Network.IngestTest do
       assert entry.task_count == 36
       assert length(entry.task_deltas) == 36
       assert entry.statuses == report["statuses"]
-      # The fixture's stand-in runs score every task the same with and without
-      # the Skill, so the Campaign's rule rejects it as no change at all.
+      # The fixture's stand-in runs do better with the Skill on 9 tasks and
+      # worse on 1, which clears the Campaign's rule.
       assert entry.decision == report["decision"]
-      assert entry.assessment.reason == :unchanged
+      assert entry.assessment.reason == :cleared_rule
       assert entry.assessment.wins == entry.wins
       assert is_nil(entry.assessment.rerun_of)
 

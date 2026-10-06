@@ -51,8 +51,11 @@ defmodule TechtreeWeb.StartLiveTest do
           "regents techtree setup",
           "regents techtree doctor --climb #{release.introductory_reference}",
           "regents techtree skill starter",
-          "# Prepare with the Skill it placed, then run the start command it prints:",
-          "regents techtree climb prepare #{release.introductory_reference} --skill path/to/skill"
+          "# Prepare with the Skill it placed, then run the start command it prints.",
+          "# On your ChatGPT plan:",
+          "regents techtree climb prepare #{release.introductory_reference} --skill path/to/skill --access chatgpt-plan",
+          "# Or on your own Prime key:",
+          "regents techtree climb prepare #{release.introductory_reference} --skill path/to/skill --access prime-key"
         ]
         |> Enum.join("\n")
 
@@ -96,10 +99,10 @@ defmodule TechtreeWeb.StartLiveTest do
   end
 
   # A reader pays for the example's model calls on their own key, so what the
-  # page tells them — the model, the key, the tasks and the limits — has to be
+  # page tells them — the model, the route, the tasks and the limits — has to be
   # what the Climb's Campaign declares, not words that can drift from it.
   @tag :tmp_dir
-  test "the example states the model, key, tasks and limits its Campaign declares", %{
+  test "the example states the model, route, tasks and limits its Campaign declares", %{
     conn: conn,
     tmp_dir: tmp_dir
   } do
@@ -109,7 +112,8 @@ defmodule TechtreeWeb.StartLiveTest do
     CatalogFixture.rewrite_campaign!(bundle, fn campaign ->
       campaign
       |> put_in(["agents", "subject", "model", "model_id"], "example/other-model")
-      |> put_in(["agents", "subject", "model", "credential_env"], "OTHER_PROVIDER_KEY")
+      |> put_in(["agents", "subject", "model", "access"], ["chatgpt_plan"])
+      |> update_in(["budgets"], &Map.delete(&1, "maximum_usd"))
       |> put_in(["budgets", "maximum_model_calls"], 7)
       |> put_in(["budgets", "maximum_input_tokens"], 1_234_567)
       |> put_in(["budgets", "maximum_output_tokens"], 8_000)
@@ -124,11 +128,12 @@ defmodule TechtreeWeb.StartLiveTest do
     text = visible_text(html)
 
     assert text =~ "example/other-model"
-    assert text =~ "OTHER_PROVIDER_KEY"
+    assert text =~ "A ChatGPT Plus or Pro plan"
     assert text =~ "after 7 calls, 1,234,567 input tokens or 8,000 output tokens"
     assert text =~ "With 5 tasks, a run can make up to 70 model calls"
-    refute text =~ "openai/gpt-6-luna"
+    refute text =~ "gpt-6-luna"
     refute text =~ "PRIME_API_KEY"
+    refute text =~ "has spent"
   end
 
   test "a channel with nothing to install offers no instruction and no command", %{conn: conn} do

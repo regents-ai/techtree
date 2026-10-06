@@ -115,7 +115,7 @@ defmodule Techtree.Network.Result do
            {:ok, written} <- written(report["primary_result"]),
            :ok <- reportable(report),
            {:ok, decision} <- decision(report["decision"]),
-           :ok <- model_build_agrees(report["statuses"], campaign),
+           :ok <- model_build_agrees(report["statuses"]),
            rule = rule(campaign),
            tally = tally(rows),
            :ok <- counts_agree(tally, written),
@@ -227,18 +227,16 @@ defmodule Techtree.Network.Result do
     do:
       inconsistent("this result's decision is not one this site knows", %{"decision" => decision})
 
-  defp model_build_agrees(%{"comparison" => comparison}, campaign) do
-    pinned? = is_binary(get_in(campaign, ["agents", "subject", "model", "revision"]))
+  # A Campaign names a model, never a build of it, so the two runs are known
+  # to share a model name only, and the report's comparison must say so.
+  defp model_build_agrees(%{"comparison" => "controlled_with_warnings"}), do: :ok
 
-    if comparison == "controlled" == pinned? do
-      :ok
-    else
-      inconsistent(
-        "this result's comparison warns about the model build exactly when its Campaign " <>
-          "names none, and this one does not",
-        %{"comparison" => comparison}
-      )
-    end
+  defp model_build_agrees(statuses) do
+    inconsistent(
+      "a Campaign names no model build, so this result's comparison must warn that its " <>
+        "runs share a model name only, and this one does not",
+      %{"comparison" => statuses["comparison"]}
+    )
   end
 
   # A number as a JSON reader reads it, a double, then as the shortest decimal

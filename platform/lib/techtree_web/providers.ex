@@ -7,7 +7,7 @@ defmodule TechtreeWeb.Providers do
   here, so the site spells each provider one way.
   """
 
-  @names %{"openai-codex" => "OpenAI", "prime" => "Prime Intellect"}
+  @names %{"openai" => "OpenAI", "openai-codex" => "OpenAI", "prime" => "Prime Intellect"}
 
   @doc """
   The name a reader knows one provider by. A provider this site cannot name is

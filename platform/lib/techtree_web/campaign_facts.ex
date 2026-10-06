@@ -4,17 +4,16 @@ defmodule TechtreeWeb.CampaignFacts do
   not carry, read from the published documents themselves.
 
   A Climb's summary is a projection, and projections are deliberately small.
-  What a reader needs beyond it — the limits on each try, the key the subject's
-  model calls use, how many tasks the run covers, and what the publisher's own
+  What a reader needs beyond it — the limits on each try, the routes a person
+  may run it on, how many tasks the run covers, and what the publisher's own
   check of the tasks concluded — is written in documents this site already
   publishes under a content address. It is read from those exact bytes here
   rather than added to the summary, so a page that shows it is showing the
   document, not a copy of it that could drift.
 
-  One field is read and never published. A Campaign's budget includes a money
-  figure, and what a trial costs is set by the reader's model provider, not by
-  this site. The limits this module returns are the ones a reader can act on:
-  calls and tokens.
+  A Campaign that offers the person's own Prime key also sets the most a run
+  may spend there, in dollars. The ChatGPT plan shows no dollars, so a run on
+  it stops at the call and token limits alone.
 
   Every limit is per try. A run tries each task without the Skill and with it,
   as many times as the Campaign's rollouts say, and a failed try may be run
@@ -28,9 +27,9 @@ defmodule TechtreeWeb.CampaignFacts do
   @type t :: %{membership: map(), validation: map()}
 
   @type trial :: %{
-          provider: String.t(),
           model_id: String.t(),
-          credential_env: String.t(),
+          routes: [String.t(), ...],
+          maximum_usd: number() | nil,
           tasks: pos_integer(),
           rollouts: pos_integer(),
           retries: non_neg_integer(),
@@ -80,8 +79,8 @@ defmodule TechtreeWeb.CampaignFacts do
 
   @doc """
   What one Climb asks of the person running it, read from its Campaign: the
-  model and provider its calls go to, the key they are charged to, how many
-  tasks it runs, and the limits on each try.
+  model its calls go to, the routes it may run on, how many tasks it runs, and
+  the limits on each try and on a run's spend.
 
   The importer refuses a Climb whose Campaign leaves any of these out, so a
   Climb without them is a broken catalog and raises here.
@@ -163,28 +162,25 @@ defmodule TechtreeWeb.CampaignFacts do
   def trial(%{
         "agents" => %{
           "subject" => %{
-            "model" => %{
-              "provider" => provider,
-              "model_id" => model_id,
-              "credential_env" => credential_env
-            }
+            "model" => %{"model_id" => model_id, "access" => [_ | _] = routes}
           }
         },
-        "budgets" => %{
-          "maximum_model_calls" => calls,
-          "maximum_input_tokens" => input_tokens,
-          "maximum_output_tokens" => output_tokens
-        },
+        "budgets" =>
+          %{
+            "maximum_model_calls" => calls,
+            "maximum_input_tokens" => input_tokens,
+            "maximum_output_tokens" => output_tokens
+          } = budgets,
         "execution" => %{"retry_limit" => retries},
         "taskset" => %{"selection" => %{"num_tasks" => tasks, "num_rollouts" => rollouts}}
       })
-      when is_binary(provider) and is_binary(model_id) and is_binary(credential_env) and
-             is_integer(tasks) and is_integer(rollouts) and is_integer(retries) and
-             is_integer(calls) and is_integer(input_tokens) and is_integer(output_tokens) do
+      when is_binary(model_id) and is_integer(tasks) and is_integer(rollouts) and
+             is_integer(retries) and is_integer(calls) and is_integer(input_tokens) and
+             is_integer(output_tokens) do
     %{
-      provider: provider,
       model_id: model_id,
-      credential_env: credential_env,
+      routes: routes,
+      maximum_usd: budgets["maximum_usd"],
       tasks: tasks,
       rollouts: rollouts,
       retries: retries,

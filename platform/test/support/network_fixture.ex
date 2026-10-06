@@ -30,7 +30,7 @@ defmodule Techtree.NetworkFixture do
 
   @root Path.expand("fixtures/proof-v4", __DIR__)
   @cli_submission Path.expand("fixtures/publication/v3-submission.json", __DIR__)
-  @cli_rerun_submission Path.expand("fixtures/publication/v3-submission-rerun.json", __DIR__)
+  @cli_plan_submission Path.expand("fixtures/publication/v3-submission-plan.json", __DIR__)
   @cli_skill_answer Path.expand("fixtures/publication/get-skill-answer.json", __DIR__)
   @schema_version "techtree.publication-submission.v1alpha1"
   @withdrawal_schema_version "techtree.publication-withdrawal.v1alpha1"
@@ -94,12 +94,12 @@ defmodule Techtree.NetworkFixture do
   def cli_submission, do: File.read!(@cli_submission)
 
   @doc """
-  The bytes the CLI's publishing path puts on the wire for a rerun of the
-  fixture proof: the same Campaign and the same Skill, new runs, and a report
-  whose `rerun_of` names the fixture bundle's digest.
+  The bytes the CLI's publishing path puts on the wire for the same Campaign
+  and the same Skill run on the ChatGPT plan, where the fixture proof ran on
+  the person's own Prime key.
   """
-  @spec cli_rerun_submission() :: binary()
-  def cli_rerun_submission, do: File.read!(@cli_rerun_submission)
+  @spec cli_plan_submission() :: binary()
+  def cli_plan_submission, do: File.read!(@cli_plan_submission)
 
   @doc """
   The answer to `GET /api/v1/skills/{root_digest}` that `skill fetch` accepts
@@ -415,7 +415,7 @@ defmodule Techtree.NetworkFixture do
         participant_key_id: payload["executor_identity"]["key_id"],
         participant_public_key: payload["executor_identity"]["public_key"],
         subject_provider: "prime",
-        subject_model: "openai/gpt-6-luna",
+        subject_model: "gpt-6-luna",
         subject_harness: "hermes-agent",
         subject_harness_version: "v2026.9.24",
         skill_digest: Digest.hash_bytes("skill"),

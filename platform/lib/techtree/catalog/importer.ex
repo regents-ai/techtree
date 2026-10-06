@@ -25,23 +25,19 @@ defmodule Techtree.Catalog.Importer do
   alias Techtree.Catalog.CatalogEntry
   alias Techtree.Catalog.CatalogRelease
   alias Techtree.Catalog.Error
+  alias Techtree.Catalog.Route
   alias Techtree.Catalog.Verifier
 
   # Importing a release is operator work with no actor, and every catalog
   # resource refuses writes from any other caller.
   @internal [authorize?: false]
 
-  # What a page tells a person before they run a Climb: the model and provider
-  # its calls go to, the key they are charged to, how many tasks and tries it
-  # runs, and the limits on each try. And what this site decides a published
-  # result by: the Campaign's rule, the model build it names or does not, and
-  # how many Skills may differ. Pages and the publication check read these
-  # from the Campaign as facts, so every Climb's Campaign must state them.
-  @trial_names [
-    ["agents", "subject", "model", "provider"],
-    ["agents", "subject", "model", "model_id"],
-    ["agents", "subject", "model", "credential_env"]
-  ]
+  # What a page tells a person before they run a Climb: the model its calls go
+  # to, the routes a person may run it on, how many tasks and tries it runs, and
+  # the limits on each try. And what this site decides a published result by:
+  # the Campaign's rule and how many Skills may differ. Pages and the
+  # publication check read these from the Campaign as facts, so every Climb's
+  # Campaign must state them.
   @trial_counts [
     ["budgets", "maximum_model_calls"],
     ["budgets", "maximum_input_tokens"],
@@ -412,11 +408,8 @@ defmodule Techtree.Catalog.Importer do
     }
   end
 
-  # The summary names the model and leaves out the environment variable a
-  # participant supplies their key through; a page that needs that name reads
-  # it from the Campaign document itself.
   defp subject_model(campaign) do
-    take(campaign, ["agents", "subject", "model"], ["provider", "model_id", "revision"])
+    take(campaign, ["agents", "subject", "model"], ["model_id", "access"])
   end
 
   defp take(document, path, keys) do
@@ -445,10 +438,16 @@ defmodule Techtree.Catalog.Importer do
   end
 
   defp require_trial!(campaign, entry) do
-    Enum.each(
-      @trial_names,
-      &require!(campaign, &1, entry, fn name -> is_binary(name) and name != "" end)
-    )
+    require!(campaign, ["agents", "subject", "model", "model_id"], entry, &non_empty_string?/1)
+    require!(campaign, ["agents", "subject", "model", "access"], entry, &routes?/1)
+
+    # A dollar limit applies only to the person's own Prime key: the plan shows
+    # no dollars.
+    prime_key? = "prime_key" in get_in(campaign, ["agents", "subject", "model", "access"])
+
+    require!(campaign, ["budgets", "maximum_usd"], entry, fn limit ->
+      if prime_key?, do: is_number(limit) and limit > 0, else: is_nil(limit)
+    end)
 
     Enum.each(
       @trial_counts,
@@ -460,14 +459,16 @@ defmodule Techtree.Catalog.Importer do
     require!(campaign, ["scoring", "aggregation"], entry, &(&1 == "mean"))
     require!(campaign, ["scoring", "require_candidate_above_baseline"], entry, &is_boolean/1)
     require!(campaign, ["scoring", "minimum_absolute_delta"], entry, &(is_number(&1) and &1 >= 0))
-
-    require!(
-      campaign,
-      ["agents", "subject", "model", "revision"],
-      entry,
-      &(is_nil(&1) or (is_binary(&1) and &1 != ""))
-    )
   end
+
+  defp non_empty_string?(value), do: is_binary(value) and value != ""
+
+  # The routes a Campaign offers: at least one, each one this site knows,
+  # written in name order with no repeats.
+  defp routes?([_ | _] = routes),
+    do: routes == Enum.uniq(Enum.sort(routes)) and Enum.all?(routes, &(&1 in Route.all()))
+
+  defp routes?(_other), do: false
 
   # A page names each reward the environment scores with and its weight.
   defp rewards?([_ | _] = rewards),

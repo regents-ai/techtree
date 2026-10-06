@@ -10,9 +10,14 @@ defmodule TechtreeWeb.DocsLive do
 
   import TechtreeWeb.PageCopy, only: [page_copy: 1]
 
+  alias Techtree.Catalog.Query
+  alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
+
+  @frontier "frontier-cs-open-ended-climb@3"
 
   @impl true
   def mount(_params, _session, socket) do
@@ -23,7 +28,9 @@ defmodule TechtreeWeb.DocsLive do
        page_title: "Docs",
        release: release,
        instruction: StartLive.instruction(),
-       plugin_commands: plugin_commands(release)
+       plugin_commands: plugin_commands(release),
+       introductory_routes: release && routes(release.introductory_reference),
+       frontier_routes: release && routes(@frontier)
      )}
   end
 
@@ -291,19 +298,18 @@ defmodule TechtreeWeb.DocsLive do
             <.command_block
               :if={@release && @release.introductory_reference}
               id="copy-docs-prepare"
-              lines={[
-                {:command, ["regents", "techtree", "skill", "starter"]},
-                {:command,
-                 [
-                   "regents",
-                   "techtree",
-                   "climb",
-                   "prepare",
-                   @release.introductory_reference,
-                   "--skill",
-                   "path/to/skill"
-                 ]}
-              ]}
+              lines={
+                [{:command, ["regents", "techtree", "skill", "starter"]}] ++
+                  ModelAccess.prepare_lines(@introductory_routes, [
+                    "regents",
+                    "techtree",
+                    "climb",
+                    "prepare",
+                    @release.introductory_reference,
+                    "--skill",
+                    "path/to/skill"
+                  ])
+              }
               label="Prepare the Hello World Climb"
             />
             <p>
@@ -322,28 +328,20 @@ defmodule TechtreeWeb.DocsLive do
               Skill and once with it. Start from its starter Skill, or from your own.
             </p>
             <.command_block
+              :if={@frontier_routes}
               id="copy-docs-frontier"
-              lines={[
-                {:command,
-                 [
-                   "regents",
-                   "techtree",
-                   "skill",
-                   "starter",
-                   "--climb",
-                   "frontier-cs-open-ended-climb@3"
-                 ]},
-                {:command,
-                 [
-                   "regents",
-                   "techtree",
-                   "climb",
-                   "prepare",
-                   "frontier-cs-open-ended-climb@3",
-                   "--skill",
-                   "path/to/skill"
-                 ]}
-              ]}
+              lines={
+                [{:command, ["regents", "techtree", "skill", "starter", "--climb", frontier()]}] ++
+                  ModelAccess.prepare_lines(@frontier_routes, [
+                    "regents",
+                    "techtree",
+                    "climb",
+                    "prepare",
+                    frontier(),
+                    "--skill",
+                    "path/to/skill"
+                  ])
+              }
               label="Prepare the Frontier-CS Open-Ended Climb"
             />
           </section>
@@ -509,6 +507,18 @@ defmodule TechtreeWeb.DocsLive do
   end
 
   defp plugin_commands(_release), do: nil
+
+  defp frontier, do: @frontier
+
+  # The routes a Climb offers, each with its own prepare command.
+  defp routes(nil), do: nil
+
+  defp routes(reference),
+    do:
+      reference
+      |> Query.get_climb_by_reference!()
+      |> CampaignFacts.trial!()
+      |> Map.fetch!(:routes)
 
   attr :title, :string, required: true
   attr :links, :list, required: true
