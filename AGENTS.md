@@ -38,3 +38,6 @@ under `docs/plan/` and `docs/v0.2/` are historical records.
 For product orientation and related Regent products, see [README.md](README.md).
 The public agent entry point is [platform/priv/public/llms.md](platform/priv/public/llms.md), served at `/llms.txt`;
 keep its advertised commands consistent with the owning CLI and HTTP contracts.
+
+The site's own [platform/AGENTS.md](platform/AGENTS.md) carries each installed package's usage
+rules, written by `mix usage_rules.sync`.

@@ -19,6 +19,7 @@ defmodule Techtree.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      usage_rules: usage_rules(),
       releases: releases(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
@@ -87,6 +88,8 @@ defmodule Techtree.MixProject do
        only: [:dev, :test],
        runtime: false},
       {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
+      # Test too: precommit runs in the test environment and checks the AGENTS.md block.
+      {:usage_rules, "~> 1.2.8", only: [:dev, :test], runtime: false},
       {:ash_phoenix, "~> 2.0"},
       # 2.13.1 and later write upserts without the Repo's schema, into public.
       {:ash_postgres, "== 2.13.0"},
@@ -121,6 +124,21 @@ defmodule Techtree.MixProject do
   #     $ mix setup
   #
   # See the documentation for `Mix` for more info on aliases.
+  # `mix usage_rules.sync` writes the marked block at the end of AGENTS.md: how to
+  # read the installed version's docs, and links to each package's own rules in deps/.
+  defp usage_rules do
+    [
+      file: "AGENTS.md",
+      usage_rules: [
+        {:usage_rules, sub_rules: []},
+        {:usage_rules, sub_rules: :all, main: false, link: :markdown},
+        {:ash, link: :markdown},
+        {~r/^ash_/, link: :markdown},
+        {:phoenix, sub_rules: ["phoenix", "liveview", "html"], link: :markdown}
+      ]
+    ]
+  end
+
   defp aliases do
     [
       setup: ["deps.get", "ash.setup", "assets.setup", "assets.build"],
@@ -137,6 +155,7 @@ defmodule Techtree.MixProject do
         # Ash resources and their domains compile against each other; this is the floor.
         "xref graph --label compile-connected --fail-above 15",
         "ash.codegen --check",
+        "usage_rules.sync --check",
         "cmd --cd assets npm run typecheck",
         "test"
       ],
