@@ -13,9 +13,8 @@ from harbor.agents.installed.base import BaseInstalledAgent
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
 from harbor.agents.installed.opencode import OpenCode
-from harbor.agents.installed.pi import Pi
 
-from .agents import TOKEN, TRANSLATOR, ClineAgent, DeepSeekHarness, HermesAgent, KiloCode, OhMyPi
+from .agents import TOKEN, TRANSLATOR, ClineAgent, DeepSeekHarness, HermesAgent, KiloCode, OhMyPi, PiAgent
 
 # Where every adapter keeps the agent's sessions and output on the machine, for the whole attempt.
 LOGS = Path("/logs/agent")
@@ -40,12 +39,14 @@ ROSTER = {
     ),
     "H07": Harness("Kilo Code", KiloCode, "7.8.1", "openai/gpt-6-luna", "kilo.txt"),
     "H08": Harness(
-        "Pi", Pi, "1.0.0", "openai/gpt-6-luna", "pi.txt", {"model_api": "openai-completions", "thinking": "high"}
+        "Pi", PiAgent, "1.0.0", "openai/gpt-6-luna", "pi.txt", {"model_api": "openai-completions", "thinking": "high"}
     ),
     "H09": Harness("oh-my-pi", OhMyPi, "v18.4.8", "openai/gpt-6-luna", "omp.txt"),
     "H10": Harness("Codex CLI", Codex, "0.159.3", "openai/gpt-6-luna", "codex.txt"),
     "H12": Harness("DeepSeek Harness", DeepSeekHarness, "0.2.0-rc.2", "openai/gpt-6-luna", "dsh.txt"),
-    "H13": Harness("OpenCode", OpenCode, "1.18.34", "openai/gpt-6-luna", "opencode.txt"),
+    "H13": Harness(
+        "OpenCode", OpenCode, "1.18.34", "openai/gpt-6-luna", "opencode.txt", {"opencode_config": {"autoupdate": False}}
+    ),
 }
 
 

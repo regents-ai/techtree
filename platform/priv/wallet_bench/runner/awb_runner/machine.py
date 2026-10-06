@@ -60,7 +60,7 @@ class Machine(BaseEnvironment):
     ) -> ExecResult:
         user = str(self._resolve_user(user) or "root")
         limit = self._limit(timeout_sec)
-        pairs = [f"{key}={value}" for key, value in (env or {}).items()]
+        pairs = [f"{key}={value}" for key, value in (self._merge_env(env) or {}).items()]
         if user == "root":
             argv = ["env", *pairs, "bash", "-c", command]
         else:

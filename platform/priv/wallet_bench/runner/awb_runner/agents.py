@@ -4,7 +4,7 @@ Harbor 0.24.0 has no adapter for oh-my-pi or DeepSeek Harness, and reaches Kilo 
 those three are written here, each from the 1 October survey's working recipe (pinned version, model wiring through
 the machine's translator, headless flags) and reusing Harbor's trajectory converter where the agent is a fork of one
 Harbor already reads (Kilo of OpenCode, oh-my-pi of Pi). Hermes and Cline use Harbor's adapters with the survey's
-pinned install and translator sign-in in place of Harbor's latest-release install.
+pinned install and translator sign-in in place of Harbor's latest-release install, and Pi with the survey's settings.
 
 An adapter that continues a conversation by its id reads `resume_session_id`, which the runner sets from the
 controller before a later turn.
@@ -63,9 +63,17 @@ class HermesAgent(Hermes):
                 "</dev/null && "
                 'export PATH="$HOME/.local/bin:$PATH" && '
                 "mkdir -p /tmp/hermes/sessions /tmp/hermes/skills /tmp/hermes/memories && "
-                "hermes version"
+                "hermes --version"
             ),
         )
+
+    def get_version_command(self) -> str | None:
+        # This release has `--version`, not Harbor's `hermes version`.
+        return 'export PATH="$HOME/.local/bin:$PATH"; hermes --version'
+
+    def parse_version(self, stdout: str) -> str:
+        # "Hermes Agent v0.21.5 (2026.9.24) · upstream …", then an update notice.
+        return re.search(r"Hermes Agent v(\S+)", stdout).group(1)
 
     async def resume(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
         self._native_session_id = self.resume_session_id
@@ -79,7 +87,20 @@ class ClineAgent(ClineCli):
     """
 
     async def install(self, environment: BaseEnvironment) -> None:
-        await super().install(environment)
+        # Before Cline first runs, as in the survey: stay on the pinned version (Cline otherwise replaces itself while
+        # it runs) and send no product telemetry.
+        await self.exec_as_agent(
+            environment,
+            command=(
+                "umask 077 && mkdir -p ~/.cline/data/settings && "
+                """printf '{"autoUpdateEnabled": false, "telemetryOptOut": true}\\n' """
+                "> ~/.cline/data/settings/global-settings.json"
+            ),
+        )
+        # Harbor installs into the Node it finds, and the Sprite's Node is not the tested account's to write. The survey
+        # installed into ~/.local, which is on the account's PATH.
+        with environment.scoped_exec_env({"NPM_CONFIG_PREFIX": "/home/bench/.local"}):
+            await super().install(environment)
         await self.exec_as_agent(
             environment,
             command=(
@@ -156,6 +177,23 @@ class KiloCode(OpenCode):
         )
 
 
+class PiAgent(Pi):
+    """Pi 1.0.0 with the survey's settings: no install telemetry. Harbor runs Pi from its own settings folder, so the
+    settings go there."""
+
+    SETTINGS_DIR = "/tmp/harbor-pi-agent"
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        await super().install(environment)
+        await self.exec_as_agent(
+            environment,
+            command=(
+                f"mkdir -p {self.SETTINGS_DIR} && chmod 700 {self.SETTINGS_DIR} && "
+                f"""printf '{{"enableInstallTelemetry": false}}\\n' > {self.SETTINGS_DIR}/settings.json"""
+            ),
+        )
+
+
 class OhMyPi(Pi):
     """oh-my-pi v18.4.8, the release binary checked against its published digest, as in the survey. It is a fork of
     Pi and keeps Pi's session format, so Pi's converter reads its sessions once they are copied where Pi keeps them."""
@@ -170,6 +208,10 @@ class OhMyPi(Pi):
 
     def get_version_command(self) -> str | None:
         return "omp --version"
+
+    def parse_version(self, stdout: str) -> str:
+        # "omp/18.4.8"
+        return stdout.strip().removeprefix("omp/")
 
     async def install(self, environment: BaseEnvironment) -> None:
         models = (
