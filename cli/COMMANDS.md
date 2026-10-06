@@ -264,8 +264,10 @@ no sign-in      model_sign_in_required
   call limit is exact; the token limits are not.
 - **Site needs:** the importer reads the new ModelSpec and Budgets. Climb pages and Result pages
   show "Runs on your ChatGPT plan" and token limits in place of dollar limits.
-- **Open until Sean decides:** whether the plan replaces today's own-Prime-key route outright
-  (recommended: one route, so every Result of a Climb compares with every other).
+- **Sean decided (105 b, 6 Oct):** the plan does not replace today's own-Prime-key route; both
+  stay, and credits bought through Stripe's LLM billing come later. How one Climb offers both
+  routes while every Result stays comparable is being designed with regents-cli, and the
+  ModelSpec, Budgets and "Before a run starts" text above change to match.
 - **Still to prove:** many parallel tries on one plan (OpenAI's docs name no concurrency
   limit), and Hermes's tool calls under OpenAI's namespace rule. Both are checked on the free
   stand-in, then in one small run on Sean's plan after he signs in.
