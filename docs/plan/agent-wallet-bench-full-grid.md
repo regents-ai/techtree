@@ -1,4 +1,4 @@
-# AgentWalletBench: the full head-to-head grid
+# AgentWalletBench: the full test matrix
 
 Proposal, 6 October 2026. Sean's direction (HQ 126, relayed by HQ, control 4a7ee6a): "we need to get the data for the
 full head to head chart from the agents x wallet-CLIs which can be tested on a Sprite". Nothing here runs without
@@ -97,9 +97,10 @@ Versioned, so older releases keep working: `agent-wallet-bench-v8.csv`, `agent-w
 
 ## What Sean gets
 
-- The head-to-head grid on patchbay.help, built by the Patchbay UI lane from Techtree's download: pick two agents (or
-  two wallets) and compare them pair by pair.
-- A plain success count per pair: how many of the runs met all five checks on install, and on make-a-wallet.
+- The full test matrix on patchbay.help, built by the Patchbay UI lane from Techtree's download: every agent × every
+  wallet, one grid per test (install, install retry, make a wallet). Each square shows that pair's count, such as
+  "2 of 3", with PASS and PASS* kept apart. There is no pick-two comparison view (Sean, 6 October 21:39Z: "no I mean
+  the test matrix, nvm the head to head comment").
 - Note on "full success": in the survey no make-a-wallet result met all five checks without a caveat. The best result
   on every wallet that needs no person was "all five checks met, but the wallet's password or key sits in a plain file"
-  (PASS*). The chart shows PASS and PASS* side by side so that caveat is visible.
+  (PASS*). Keeping PASS and PASS* apart in each square makes that caveat visible.
