@@ -3,7 +3,7 @@
 # machine's owner account through job.sh. The OpenAI key is not here: it arrives for each attempt (credentials.sh).
 #
 # Usage: baseline.sh <harness_id>
-# Writes /work/baseline/: environment.txt, the harness's install files, bench-inventory.txt and, last,
+# Writes /work/baseline/: environment.txt, runner-install.log, harness-install.log, bench-inventory.txt and, last,
 # manifest.json (what readiness and every attempt compare against).
 set -euo pipefail
 source /work/bin/machine/common.sh
@@ -36,15 +36,19 @@ export PATH="$HOME/.local/bin:$PATH:/.sprite/bin"
 EOF
 sudo install -o bench -g bench -m 600 "$W/proxy/local.token" /home/bench/.model-token
 
-# 4. Harness install and model wiring (the survey's harness/<id>/install.sh, which expects its files in
-# /work/baseline).
-bash "$W/bin/harness/$HARNESS/install.sh"
+# 4. The runner, then the harness through its Harbor adapter: the survey's pinned version and its wiring to the
+# translator. /logs/agent keeps the agent's sessions and output for the whole attempt.
+sudo env UV_PROJECT_ENVIRONMENT="$RUNNER_ENV" /.sprite/bin/uv sync --frozen --project "$W/bin/runner" \
+  > "$OUT/runner-install.log" 2>&1
+sudo mkdir -p /logs
+sudo install -d -o bench -g bench -m 755 /logs/agent
+runner setup "$HARNESS" > "$OUT/harness-install.log" 2>&1
 
 # 5. The tested account before any wallet work.
 as_bench inventory.sh > "$OUT/bench-inventory.txt" 2>&1
 
 # 6. The manifest.
-HARNESS_VERSION=$(as_bench version.sh "$HARNESS" 2>/dev/null | head -1)
+HARNESS_VERSION=$(runner version "$HARNESS" 2>/dev/null | head -1)
 test -n "$HARNESS_VERSION"
 /.sprite/bin/python3 - "$HARNESS" "$HARNESS_VERSION" > "$OUT/manifest.json" <<'EOF'
 import json, os, platform, sys

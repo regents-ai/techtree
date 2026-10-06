@@ -38,7 +38,7 @@ defmodule Techtree.WalletBench.Attempt.Changes.LeaseMachine do
   end
 
   defp ready_machine(harness_id) do
-    digest = Catalog.recipe_digest(harness_id)
+    digest = Catalog.recipe_digest()
 
     Machine
     |> Ash.Query.filter(

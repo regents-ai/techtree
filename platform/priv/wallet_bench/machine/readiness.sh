@@ -8,6 +8,6 @@ set -euo pipefail
 source /work/bin/machine/common.sh
 lock
 ACCOUNT=$(as_bench readiness.sh 2>/dev/null)
-VERSION=$(as_bench version.sh "$1" 2>/dev/null | head -1)
+VERSION=$(runner version "$1" 2>/dev/null | head -1)
 /.sprite/bin/python3 -c 'import json, sys; print(json.dumps({"account": json.loads(sys.argv[1]), "harness_version": sys.argv[2]}))' \
   "$ACCOUNT" "$VERSION"

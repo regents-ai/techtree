@@ -1,0 +1,9 @@
+[project]
+name = "awb-runner"
+version = "1.0.0"
+description = "Drives one tested agent on its bench machine through Harbor's agent adapters."
+requires-python = ">=3.13"
+dependencies = ["harbor==0.24.0"]
+
+[tool.uv]
+package = false

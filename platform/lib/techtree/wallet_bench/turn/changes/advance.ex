@@ -4,7 +4,8 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
   test, ends the attempt's tests, or stops the attempt. A turn that only moved
   on to `finished` changes nothing.
 
-  - T1a passed, or T1b passed: T2, continuing the same conversation.
+  - T1a passed, or T1b passed: T2, continuing the same conversation, for a
+    harness that takes the wallet tests.
   - T1a not passed and the judge named an error to send back: T1b with it.
   - T2 signed but never printed the signature: the signature request.
   - Anything else ends the tests; a failed turn stops the attempt with its reason.
@@ -33,9 +34,11 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
   end
 
   defp advance(attempt, %Turn{state: :judged} = turn) do
-    case next(turn.test, turn.judgment) do
-      {test, error} -> queue(attempt, turn, test, error)
-      :done -> update(attempt, :finish_tests, %{})
+    with {test, error} <- next(turn.test, turn.judgment),
+         true <- test in Catalog.tests(attempt.harness_id) do
+      queue(attempt, turn, test, error)
+    else
+      _done -> update(attempt, :finish_tests, %{})
     end
   end
 

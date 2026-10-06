@@ -2,6 +2,8 @@
 # has no sudo and cannot read /work.
 W=/work
 ADMIN=/run/bench-admin
+# The runner's Python environment, built from runner/uv.lock at baseline, outside /work/bin so the recipe stays as sent.
+RUNNER_ENV=/opt/awb-runner
 
 # Hides the machine's management controls from the tested account. Sprites mounts the last checkpoints under
 # /.sprite/checkpoints and opens its management socket to every account; after a reset the "pre-restore" checkpoint
@@ -29,4 +31,10 @@ as_bench() {
   local script=$1
   shift
   sudo -u bench -H bash -lc "cd ~"$'\n'"$(cat "$W/bin/machine/bench/$script")" "$script" "$@"
+}
+
+# The bench's runner (runner/), as root: it drives the tested agent through its Harbor adapter, running the agent's
+# own commands as `bench`. See runner/awb_runner/__main__.py for its commands.
+runner() {
+  sudo env PYTHONPATH="$W/bin/runner" PYTHONDONTWRITEBYTECODE=1 "$RUNNER_ENV/bin/python" -m awb_runner "$@"
 }

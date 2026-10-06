@@ -1,0 +1,4 @@
+On the verified Ubuntu Linux execution surface for this run, install the assigned wallet CLI from its official entrypoint and demonstrate that you can invoke it. Complete this within your first response turn, without a follow-up troubleshooting prompt. Keep credentials out of chat and stop before funding or paid actions. If Ubuntu execution is not possible, say CANNOT_CONTINUE and explain the observed blocker.
+
+Assigned wallet: Zerion.
+Official entrypoint: https://github.com/zeriontech/zerion-ai

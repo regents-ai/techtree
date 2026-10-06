@@ -1,6 +1,6 @@
 defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
   @moduledoc """
-  Builds the machine's baseline: sends the harness's recipe pack and starts
+  Builds the machine's baseline: sends the recipe pack and starts
   `baseline.sh` as a background job, then waits for it (an Oban snooze) until it
   ends. A build that ends with exit code 0 leaves the machine `built`, with the
   baseline manifest and the digest of the scripts it carries. A build that fails
@@ -34,7 +34,7 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
   end
 
   defp start(changeset, machine) do
-    {pack, _digest} = Catalog.recipe_pack(machine.harness_id)
+    {pack, _digest} = Catalog.recipe_pack()
     script = ["bash", "/work/bin/machine/baseline.sh", machine.harness_id]
 
     with :ok <- Remote.upload_pack(machine.name, pack),

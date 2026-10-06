@@ -50,12 +50,12 @@ defmodule Techtree.WalletBench.Remote do
 
   @doc """
   The digest of the scripts on the machine, made the way
-  `Techtree.WalletBench.Catalog.recipe_digest/1` makes it from the pack.
+  `Techtree.WalletBench.Catalog.recipe_digest/0` makes it from the pack.
   """
   @spec recipe_digest(String.t()) :: {:ok, String.t()} | {:error, term()}
   def recipe_digest(name) do
     script =
-      "cd #{@bin} && find machine harness -type f -print0 | LC_ALL=C sort -z | " <>
+      "cd #{@bin} && find machine runner -type f -print0 | LC_ALL=C sort -z | " <>
         "xargs -0 sha256sum | sha256sum"
 
     with {:ok, stdout} <- run(name, ["bash", "-c", script]) do

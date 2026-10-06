@@ -2,57 +2,179 @@ defmodule Techtree.WalletBench.Catalog do
   @moduledoc """
   What the bench can test, read from `priv/wallet_bench/`: the harnesses and
   wallets it knows, the survey's prompts and review guides, the wallets' notes,
-  and the recipe pack a machine's baseline is built from.
+  and the recipe pack every machine's baseline is built from.
 
-  The pack holds `machine/` and the harness's own folder. Its digest is the
-  sha256 of a `sha256sum`-style list of every file in it, so it names the exact
-  scripts a baseline carries, whatever the files' dates.
+  Eight wallets are listed with a fixed result and never run (founder
+  decisions 2 b and 4 b, 6 October 2026): six need a person to sign in, one
+  cannot run on a server and one makes no keys. Cline takes the install tests
+  only, because it cannot continue a conversation from a script (5 a).
+
+  The pack holds `machine/` and `runner/`. Its digest is the sha256 of a
+  `sha256sum`-style list of every file in it, so it names the exact scripts a
+  baseline carries, whatever the files' dates.
   """
 
-  @harnesses %{"H05" => %{id: "H05", name: "Claude Code"}}
+  @install_tests [:T1a, :T1b]
 
-  @wallets %{
-    "W03" => %{
-      id: "W03",
-      name: "MoonPay",
-      executable: "mp",
-      help: ["--help"],
-      survey_version: "1.96.5"
-    },
-    "W07" => %{
-      id: "W07",
-      name: "Foundry Cast",
-      executable: "cast",
-      help: ["--help"],
-      survey_version: "1.8.3"
-    }
-  }
+  @harnesses Map.new(
+               [
+                 %{id: "H04", name: "Hermes Agent", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H05", name: "Claude Code", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H06", name: "Cline", tests: @install_tests},
+                 %{id: "H07", name: "Kilo Code", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H08", name: "Pi", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H09", name: "oh-my-pi", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H10", name: "Codex CLI", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H12", name: "DeepSeek Harness", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H13", name: "OpenCode", tests: [:T1a, :T1b, :T2, :T2_signature]}
+               ],
+               &{&1.id, &1}
+             )
+
+  @wallets Map.new(
+             [
+               %{
+                 id: "W01",
+                 name: "Bankr",
+                 executable: "bankr",
+                 survey_version: "0.3.43",
+                 fixed: nil
+               },
+               %{
+                 id: "W02",
+                 name: "MetaMask Agent Wallet",
+                 executable: "mm",
+                 survey_version: "7.0.0",
+                 fixed: %{
+                   outcome: "WAITING_HUMAN",
+                   reason: "Signing in needs a person in a browser, or MetaMask Mobile."
+                 }
+               },
+               %{
+                 id: "W03",
+                 name: "MoonPay",
+                 executable: "mp",
+                 survey_version: "1.96.5",
+                 fixed: nil
+               },
+               %{
+                 id: "W05",
+                 name: "Coinbase Agentic Wallet",
+                 executable: "awal",
+                 survey_version: "2.12.1",
+                 fixed: %{outcome: "NOT_RUN", reason: "It cannot run on a server."}
+               },
+               %{
+                 id: "W06",
+                 name: "Phantom",
+                 executable: "phantom",
+                 survey_version: "2.0.1",
+                 fixed: %{
+                   outcome: "WAITING_HUMAN",
+                   reason:
+                     "Signing in needs a person in a browser, with Google, Apple or the extension."
+                 }
+               },
+               %{
+                 id: "W07",
+                 name: "Foundry Cast",
+                 executable: "cast",
+                 survey_version: "1.8.3",
+                 fixed: nil
+               },
+               %{
+                 id: "W09",
+                 name: "Circle",
+                 executable: "circle",
+                 survey_version: "1.1.4",
+                 fixed: %{
+                   outcome: "WAITING_HUMAN",
+                   reason:
+                     "Signing in needs a person to accept Circle's Terms and give an emailed code."
+                 }
+               },
+               %{
+                 id: "W10",
+                 name: "Safe",
+                 executable: "safe-cli",
+                 survey_version: "1.9.0",
+                 fixed: %{outcome: "NOT_RUN", reason: "It makes no keys of its own."}
+               },
+               %{
+                 id: "W13",
+                 name: "Zerion",
+                 executable: "zerion",
+                 survey_version: "1.9.1",
+                 fixed: nil
+               },
+               %{
+                 id: "W14",
+                 name: "Splits",
+                 executable: "splits",
+                 survey_version: "0.2.12",
+                 fixed: %{
+                   outcome: "WAITING_HUMAN",
+                   reason: "It needs a person's passkey account and an API key made in a browser."
+                 }
+               },
+               %{
+                 id: "W15",
+                 name: "Privy",
+                 executable: "paw",
+                 survey_version: "0.3.6",
+                 fixed: %{
+                   outcome: "WAITING_HUMAN",
+                   reason: "Signing in needs a person to approve a device code in a browser."
+                 }
+               },
+               %{
+                 id: "W17",
+                 name: "Turnkey",
+                 executable: "turnkey",
+                 survey_version: "1.1.5",
+                 fixed: %{
+                   outcome: "WAITING_HUMAN",
+                   reason: "It needs a person's Turnkey organisation and a registered API key."
+                 }
+               }
+             ],
+             &{&1.id, Map.put(&1, :help, ["--help"])}
+           )
 
   @tests [:T1a, :T1b, :T2, :T2_signature]
 
   # The survey's watchdogs, in seconds.
   @wall_caps %{T1a: 1800, T1b: 1800, T2: 1800, T2_signature: 900}
 
-  @type harness :: %{id: String.t(), name: String.t()}
+  @type harness :: %{id: String.t(), name: String.t(), tests: [atom()]}
   @type wallet :: %{
           id: String.t(),
           name: String.t(),
           executable: String.t(),
           help: [String.t()],
-          survey_version: String.t()
+          survey_version: String.t(),
+          fixed: nil | %{outcome: String.t(), reason: String.t()}
         }
 
   @doc "The harness ids the bench can build."
   @spec harness_ids() :: [String.t()]
   def harness_ids, do: Map.keys(@harnesses)
 
-  @doc "The wallet ids the bench can test."
+  @doc "Every wallet id the bench lists, including those with a fixed result."
   @spec wallet_ids() :: [String.t()]
   def wallet_ids, do: Map.keys(@wallets)
+
+  @doc "The wallet ids the bench runs: those without a fixed result."
+  @spec tested_wallet_ids() :: [String.t()]
+  def tested_wallet_ids, do: for({id, %{fixed: nil}} <- @wallets, do: id)
 
   @doc "The tests, in the order they can run."
   @spec tests() :: [atom()]
   def tests, do: @tests
+
+  @doc "The tests a harness takes, in the order they can run."
+  @spec tests(String.t()) :: [atom()]
+  def tests(harness_id), do: harness!(harness_id).tests
 
   @spec harness!(String.t()) :: harness()
   def harness!(id), do: Map.fetch!(@harnesses, id)
@@ -112,23 +234,23 @@ defmodule Techtree.WalletBench.Catalog do
   @spec wallet_notes(String.t()) :: String.t()
   def wallet_notes(wallet_id), do: read!("wallets/#{wallet_id}.md")
 
-  @doc "The recipe pack for a harness's machines, as a gzipped tar, and its digest."
-  @spec recipe_pack(String.t()) :: {binary(), String.t()}
-  def recipe_pack(harness_id) do
-    files = pack_files(harness_id)
+  @doc "The recipe pack every machine's baseline is built from, as a gzipped tar, and its digest."
+  @spec recipe_pack() :: {binary(), String.t()}
+  def recipe_pack do
+    files = pack_files()
     {tar(files), digest(files)}
   end
 
   @doc "The digest a machine built from today's recipe carries."
-  @spec recipe_digest(String.t()) :: String.t()
-  def recipe_digest(harness_id), do: harness_id |> pack_files() |> digest()
+  @spec recipe_digest() :: String.t()
+  def recipe_digest, do: pack_files() |> digest()
 
-  # Files under the app's own recipe folder, for a harness the catalog names.
+  # Files under the app's own recipe folder.
   # sobelow_skip ["Traversal.FileModule"]
-  defp pack_files(harness_id) do
+  defp pack_files do
     root = root()
 
-    ["machine", "harness/" <> Map.fetch!(@harnesses, harness_id).id]
+    ["machine", "runner"]
     |> Enum.flat_map(&Path.wildcard(Path.join([root, &1, "**", "*"])))
     |> Enum.filter(&File.regular?/1)
     |> Enum.map(&{Path.relative_to(&1, root), File.read!(&1)})

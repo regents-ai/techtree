@@ -92,7 +92,7 @@ defmodule Techtree.WalletBench.Attempt do
       description "Ask for one pair to be tested; jobs take it from here. Operator only."
       accept [:harness_id, :wallet_id]
       validate one_of(:harness_id, Catalog.harness_ids())
-      validate one_of(:wallet_id, Catalog.wallet_ids())
+      validate one_of(:wallet_id, Catalog.tested_wallet_ids())
       change set_attribute(:state, :requested)
       change RecordEvent
       change run_oban_trigger(:lease)

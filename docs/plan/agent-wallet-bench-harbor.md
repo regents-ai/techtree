@@ -1,9 +1,21 @@
 # AgentWalletBench on Harbor — plan
 
-Proposal, 6 October 2026. Sean's direction: rebuild the bench on Harbor with 9 agents × 12 wallet tools, each wallet
+Plan, 6 October 2026. Sean's direction: rebuild the bench on Harbor with 9 agents × 12 wallet tools, each wallet
 installed from its own official quickstart, following the reviewed structure for the evals (Sprites baselines,
 Harbor task and agent interfaces, optional model-call capture, our own independent verifiers and controls above), and
-leaving out the training (RL) part. Nothing here runs or spends without Sean's yes.
+leaving out the training (RL) part.
+
+**Sean's decisions, 6 October ("1 a 2 b 3 a 4 b 5 a 6 a"):**
+
+1. The Techtree chief engineer builds and runs it; the harness-wallet lane hands over.
+2. MetaMask, Turnkey, Splits, Privy, Phantom and Circle are listed as WAITING_HUMAN and not run.
+3. Bankr's `bankr login siwe --private-key` sign-in, with a key the agent makes itself, counts as needing no person.
+4. Coinbase Agentic Wallet ("cannot run on a server") and Safe ("makes no keys") are listed and not run.
+5. Cline takes the install tests only; its wallet test is NOT_RUN (it cannot continue a conversation from a script).
+6. Up to $10 for the qualification turns (one per agent) and the pilot, then a report to Sean before the full grid.
+
+Results are kept in the bench's own tables in the shared database; Patchbay reads them through read-only views
+(Sean, Patchbay thread, 6 October: "it will be saving it in your shared DB, so read from there").
 
 Sources: Harbor 0.24.0 (github.com/harbor-framework/harbor, docs.harborframework.com, read 6 October); the 1 October
 survey (`harness-wallet-experiment/runs/sprite-run-20261001/`: harness recipes, wallet profiles, DECISIONS.md); the v1
@@ -22,7 +34,7 @@ translator (LiteLLM) with the $5 cap per attempt, approval prompts off and label
 | Foundry Cast (W07) | `curl -L https://getfoundry.sh/install \| bash; foundryup` | No | Runs end to end |
 | MoonPay (W03) | `npm i -g @moonpay/cli` | No (records its own Terms consent, ruling 2) | Runs end to end |
 | Zerion (W13) | `npm i -g zerion-cli` | No (needs a passphrase file or a terminal) | Runs end to end |
-| Bankr (W01) | `npm i -g @bankr/cli` | Only for email sign-in; `bankr login siwe --private-key` signs in with the agent's own key and accepts Terms by itself | Runs end to end if that counts like ruling 2 |
+| Bankr (W01) | `npm i -g @bankr/cli` | Only for email sign-in; `bankr login siwe --private-key` signs in with the agent's own key and accepts Terms by itself | Runs end to end (decision 3) |
 | MetaMask (W02) | `npm i -g @metamask/agent-wallet` | Yes (browser sign-in); a pre-made `MM_CLI_TOKEN` avoids it | Needs a person, or a Regent token |
 | Turnkey (W17) | Linux release binary of `tkcli` | Yes (organisation + passkey); a pre-registered key pair avoids it | Needs a person, or a Regent organisation |
 | Splits (W14) | `npm i -g @splits/splits-cli` | For the API key only (browser, passkey); no signing command | Makes a key; signing is the agent's own |
@@ -33,20 +45,19 @@ translator (LiteLLM) with the $5 cap per attempt, approval prompts off and label
 | Safe CLI (W10) | `uv tool install safe-cli` | No, but it makes no keys and a Safe costs gas to deploy | Cannot do the test as written |
 
 Pairs that need a person are still listed in the results with that outcome (WAITING_HUMAN keeps its own name and is
-never drawn as a failure), so the grid always has 108 cells.
+never drawn as a failure), so the grid always has 108 cells. After decisions 2–5 the bench runs Foundry Cast, MoonPay,
+Zerion and Bankr with every agent (Cline: install only); the other eight wallets carry their fixed result in the
+catalog.
 
 ## The structure (the reviewed shape)
 
 ```
 Techtree controller (existing Ash service on techtree.sh)
   rounds and their order, attempts, append-only results, spending, publishing
-          │  one Oban job per turn
-          ▼
-Harbor runner (Harbor 0.24.x, run by that job on techtree.sh)
-  agent adapter  +  wallet task (one turn)  +  Sprites environment
-          │
+          │  one Oban job per step (start a turn, collect it, judge it)
           ▼
 The attempt's Sprite (fresh copy of the agent's clean baseline, kept for the whole attempt)
+  turn.sh → the bench runner (Harbor 0.24.0, as root) → the agent's Harbor adapter → the agent (as `bench`)
   translator (LiteLLM, $5 cap, records every model call)  →  gpt-6-luna
 
 Independent checks (run by the controller, not trusted from the machine)
@@ -58,18 +69,25 @@ Independent checks (run by the controller, not trusted from the machine)
    signature request where the agent signed but never printed it. Harbor runs one turn at a time; the controller
    decides the next. A person-needed pause is recorded as WAITING_HUMAN, never timed out and retried. Each attempt has
    its own id; results are never overwritten, and a new agent or wallet version is a new comparison.
-2. **Agent adapters (Harbor's interface).** Built in and used with our settings: Claude Code, Codex, OpenCode, Pi,
-   Hermes, Cline. Written by us as small Harbor agent classes, copied from the survey's working recipes: oh-my-pi
-   (from Harbor's Pi adapter), DeepSeek Harness, Kilo Code (from Harbor's OpenCode adapter, since Kilo is built on
-   it). Every adapter pins the survey's version (or a newer one recorded per attempt), points at the translator, and
-   continues the same conversation for later turns with the agent's own resume flag. Each adapter is checked once on
-   a Sprite before it joins the grid (a "qualification" turn).
-3. **Wallet tasks (Harbor's task format).** One folder per wallet with the survey's prompts word for word and the
-   official quickstart link; no wallet commands are handed to the agent. The task's tests only collect evidence (the
-   transcript, the agent's own trajectory, files the checks need); scoring happens outside the machine.
-4. **Sprites environment.** Harbor has no Fly.io or Sprites support; we add one environment class (start = restore the
-   attempt's Sprite or make it from the baseline, run a command, copy files in and out, stop). It uses the same
-   Sprites calls the bench already makes.
+2. **Agent adapters (Harbor's interface).** Harbor's own adapters for Claude Code, Codex, OpenCode and Pi; Harbor's
+   Hermes and Cline adapters with the survey's pinned install (Cline is signed in to the translator at baseline,
+   since Harbor's Cline adapter has no address setting); and three written by us from the survey's working recipes:
+   Kilo Code (on Harbor's OpenCode adapter, whose output it shares), oh-my-pi (on Harbor's Pi adapter, whose session
+   format it keeps) and DeepSeek Harness (its own converter to Harbor's trajectory format). Every adapter pins the
+   survey's version and points at the translator. A later turn continues the attempt's conversation: by the session id
+   the controller passes from the previous turn for agents that resume by id (Hermes, Kilo, oh-my-pi, DeepSeek), by
+   "continue the last conversation" for the others, since each machine holds one conversation. Each adapter is checked
+   once on a Sprite before it joins the grid (a "qualification" turn).
+3. **The runner lives on the machine.** `priv/wallet_bench/runner/` (Python, locked with uv, Harbor 0.24.0) is part of
+   the recipe pack. Baseline builds it into `/opt/awb-runner` and installs the agent through the adapter (Harbor's
+   `setup`); each turn, `turn.sh` runs `runner turn`, which hands the prompt to the adapter and copies the agent's own
+   output (`stream.jsonl`) and Harbor's trajectory (`trajectory.json`) into the turn folder. The machine itself is
+   the Harbor environment: the agent's commands run as `bench` in a login shell, and the turn's wall cap holds across
+   all of them (each later clean-up command, such as copying the session out, gets 60 seconds). Harbor's trial and
+   job runners and its task format are not used: the controller owns every step, and the prompts stay the survey's,
+   word for word, in `priv/wallet_bench/prompts/`. No wallet commands are handed to the agent.
+4. **No Harbor code on techtree.sh.** The controller reaches the machine through the same Sprites calls as before;
+   techtree.sh's image does not change.
 5. **Checks stay ours and independent.** The address is read on Base, the signature recovered with siwa, and the judge
    (gpt-5.6-sol, review guides T1 and T2) rules with those facts in front of it. Anything the agent writes is a claim
    to check. Harbor's own reward is not the public score.
@@ -85,18 +103,21 @@ Independent checks (run by the controller, not trusted from the machine)
 ## What changes in the existing service
 
 Kept: the Ash resources, AshOban attempt steps, events table, judge, siwa and Base checks, evidence bucket, blanking,
-pages. Replaced by Harbor: the per-agent install and turn scripts and their output parsers (Harbor adapters and
-trajectories take over), the turn transport to the Sprite (the Sprites environment class). techtree.sh's image gains
-Python and Harbor. Hard cutover: the old recipe scripts and parsers are deleted when the Harbor path works.
+pages, the turn folder the collector and judge read (`turn-summary.json`, `transcript.md`, `stream.jsonl`, the
+checks' files). Replaced by Harbor, as a hard cutover: Claude Code's install and turn scripts, its output parser and
+the machine's transcript writer (`runner transcript` now writes `transcript.md`, `turn-summary.json` and
+`tool-calls.json` from the trajectory). The catalog lists all 9 agents and 12 wallets, with the fixed results above;
+an attempt can only be requested for a wallet without one, and Cline's attempts end after the install tests.
 
 ## Order of work
 
-1. Harbor on techtree.sh, the Sprites environment, and the translator reachable from the Sprite. No model spend.
-2. Pilot: OpenCode and Pi × Foundry Cast and one other wallet (see decisions), 3 runs each, including one deliberately
-   failing check to prove a failure is caught. About 12 attempts, $3–6.
-3. The six built-in adapters and the three new ones, each qualified with one turn. About $1.
-4. The full grid, 3 runs per pair, watched for the first attempt per agent; the Sprites cost reported after the first
-   10 pairs (HQ 131's condition).
+1. The runner, the adapters and the catalog (built 6 October). Then each agent's baseline on a Sprite. No model
+   spend.
+2. The nine adapters, each qualified with one turn. About $1 (decision 6).
+3. Pilot: OpenCode and Pi × Foundry Cast and Bankr, 3 runs each, including one deliberately failing check to prove a
+   failure is caught. About 12 attempts, $3–6 (decision 6). Then a report to Sean.
+4. With Sean's go: the full grid, 3 runs per pair, watched for the first attempt per agent; the Sprites cost reported
+   after the first 10 pairs (HQ 131's condition).
 
 ## Cost
 
