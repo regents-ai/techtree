@@ -132,9 +132,13 @@ defmodule Techtree.WalletBench.Judge do
     end
   end
 
+  @doc "The model that judges new turns."
+  @spec model() :: String.t()
+  def model, do: Application.fetch_env!(:techtree, Techtree.WalletBench)[:judge_model]
+
   defp respond(instructions, input, schema) do
     RegentOpenAI.respond(
-      model: Application.fetch_env!(:techtree, Techtree.WalletBench)[:judge_model],
+      model: model(),
       instructions: instructions,
       input: input,
       schema: schema,

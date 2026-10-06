@@ -37,6 +37,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
     assign(socket,
       page_title: Copy.pair(attempt),
       attempt: attempt,
+      judges: judges(attempt),
       events: WalletBench.list_attempt_events!(attempt.id)
     )
   end
@@ -73,6 +74,8 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             <dd>{wallet(@attempt).name}, run as <code>{wallet(@attempt).executable}</code></dd>
             <dt>Version the survey installed</dt>
             <dd>{wallet(@attempt).survey_version}</dd>
+            <dt :if={@judges != []}>Judge</dt>
+            <dd :if={@judges != []}>{Enum.join(@judges, ", ")}</dd>
           </dl>
           <p :if={!@attempt.machine} class="quiet">No machine yet.</p>
         </section>
@@ -139,6 +142,8 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             </dd>
             <dt :if={turn.model_spend_usd}>Model cost</dt>
             <dd :if={turn.model_spend_usd}>{Copy.dollars(turn.model_spend_usd)}</dd>
+            <dt :if={turn.judgment}>Judged by</dt>
+            <dd :if={turn.judgment}>{turn.judgment["model"]}</dd>
             <dt :if={turn.judge_cost_usd}>Judge cost</dt>
             <dd :if={turn.judge_cost_usd}>{Copy.dollars(turn.judge_cost_usd)}</dd>
           </dl>
@@ -194,6 +199,11 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
   end
 
   defp wallet(attempt), do: Catalog.wallet!(attempt.wallet_id)
+
+  # The models that ruled on this attempt's turns, as each ruling recorded.
+  defp judges(attempt) do
+    attempt.turns |> Enum.filter(& &1.judgment) |> Enum.map(& &1.judgment["model"]) |> Enum.uniq()
+  end
 
   defp version_note(%{"matches_survey" => true}), do: ", the same as the survey."
 

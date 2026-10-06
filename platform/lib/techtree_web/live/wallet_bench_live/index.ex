@@ -7,12 +7,13 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   use TechtreeWeb, :live_view
 
   alias Techtree.WalletBench
+  alias Techtree.WalletBench.Judge
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: TechtreeWeb.Endpoint.subscribe("wallet_bench:attempts")
-    {:ok, socket |> assign(page_title: "Wallet tests") |> load()}
+    {:ok, socket |> assign(page_title: "Wallet tests", judge: Judge.model()) |> load()}
   end
 
   @impl true
@@ -31,12 +32,24 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         <header class="page-heading wallet-bench__intro">
           <p class="eyebrow">AgentWalletBench</p>
           <h1>Wallet tests</h1>
-          <p class="wallet-bench__lede">
-            A coding agent on a clean machine is asked to install a wallet tool from its official
-            page, then to set up a wallet it controls and prove it with a signature. Every turn is
-            recorded and judged. Newest first.
-          </p>
+          <p class="wallet-bench__lede">How each test runs:</p>
+          <ol class="wallet-bench__steps">
+            <li>A clean machine starts with the coding agent installed and nothing else.</li>
+            <li>The agent is asked to install a wallet tool from the tool's official page.</li>
+            <li>
+              It is then asked to set up a wallet it controls, say how the keys are kept, and
+              prove control with a signature.
+            </li>
+            <li>Everything the agent does is recorded, with secrets blanked before it is stored.</li>
+            <li>
+              A judge model, {@judge}, rules on each of the agent's answers against five checks,
+              and the bench checks any wallet address and signature on Base itself.
+            </li>
+            <li>The machine goes back to its clean start for the next test.</li>
+          </ol>
         </header>
+
+        <p :if={@attempts != []} class="quiet">Newest first.</p>
 
         <p :if={@attempts == []} class="quiet">No tests have run yet.</p>
 

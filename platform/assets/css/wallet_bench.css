@@ -1,6 +1,7 @@
 /* Wallet tests: the list of attempts, and one attempt's rulings and evidence. */
 .wallet-bench { display: grid; gap: var(--space-4); }
 .wallet-bench__lede { margin-top: var(--space-2); max-width: 65ch; color: var(--color-fg-muted); }
+.wallet-bench__steps { display: grid; gap: var(--space-1); margin-top: var(--space-1); max-width: 65ch; padding-left: 1.5rem; color: var(--color-fg-muted); list-style: decimal; }
 .wallet-bench__frame { overflow-x: auto; border-block: 1px solid var(--hairline); }
 .wallet-bench__frame:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .wallet-bench__failure { display: block; margin-top: var(--space-1); color: var(--color-error); max-width: 65ch; }
