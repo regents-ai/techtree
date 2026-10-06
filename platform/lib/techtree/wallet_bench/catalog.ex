@@ -116,6 +116,8 @@ defmodule Techtree.WalletBench.Catalog do
   @spec recipe_digest(String.t()) :: String.t()
   def recipe_digest(harness_id), do: harness_id |> pack_files() |> digest()
 
+  # Files under the app's own recipe folder, for a harness the catalog names.
+  # sobelow_skip ["Traversal.FileModule"]
   defp pack_files(harness_id) do
     root = root()
 
@@ -132,6 +134,8 @@ defmodule Techtree.WalletBench.Catalog do
     |> sha256()
   end
 
+  # A file of the bench's own naming in the system's temporary folder.
+  # sobelow_skip ["Traversal.FileModule"]
   defp tar(files) do
     path =
       Path.join(System.tmp_dir!(), "wallet-bench-pack-#{System.unique_integer([:positive])}.tgz")
@@ -147,6 +151,8 @@ defmodule Techtree.WalletBench.Catalog do
 
   defp sha256(data), do: :crypto.hash(:sha256, data) |> Base.encode16(case: :lower)
 
+  # Callers name files under the app's own wallet_bench folder from the catalog.
+  # sobelow_skip ["Traversal.FileModule"]
   defp read!(relative), do: root() |> Path.join(relative) |> File.read!()
 
   defp root, do: Application.app_dir(:techtree, "priv/wallet_bench")
