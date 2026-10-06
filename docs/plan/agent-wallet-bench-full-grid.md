@@ -58,7 +58,7 @@ the rate; 13 machines kept for one day should be small next to the model spend, 
 
 The MoonPay run marked failed (30420867) made a wallet and a verified signature; the judge faulted its chain answer
 because the bench's MoonPay notes wrongly said the wallet covers every EVM chain. Claude Code had quoted MoonPay's own
-list, which is right. The notes are corrected (8689cfd), not yet released.
+list, which is right. The notes are corrected (3c9f294), not yet released.
 
 ## Work before any run
 
