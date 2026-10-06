@@ -8,7 +8,7 @@ defmodule Techtree.MixProject do
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "970b5bcf0d283ca7063a43c35e649ee04a5e8022"
   @regents "https://github.com/regents-ai/regents.git"
-  @regents_ref "d12166405169e09bb558333fc3478799c293c446"
+  @regents_ref "004307e65ffcf9cc9b3034d7cc2b015dcd45011b"
 
   def project do
     [
@@ -74,10 +74,7 @@ defmodule Techtree.MixProject do
       # regent_openai names regent_http by a sibling path; this pin replaces it.
       {:regent_http, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "http", override: true},
       # The ref regent_agents already brings; the bench recovers signatures with it.
-      {:siwa,
-       git: @elixir_utils,
-       ref: "f30b2f283ba03f0d0aa0adbcba5cee6c5a7de1cc",
-       sparse: "siwa/siwa-elixir/apps/siwa"},
+      {:siwa, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "siwa/siwa-elixir/apps/siwa"},
       {:regent_identity, git: @regents, ref: @regents_ref, sparse: "identity"},
       {:regent_agents, git: @regents, ref: @regents_ref, sparse: "agents"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
@@ -91,8 +88,9 @@ defmodule Techtree.MixProject do
        runtime: false},
       {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
       {:ash_phoenix, "~> 2.0"},
-      {:ash_postgres, "~> 2.13.0"},
-      {:ash, "~> 3.33.11"},
+      # 2.13.1 and later write upserts without the Repo's schema, into public.
+      {:ash_postgres, "== 2.13.0"},
+      {:ash, "~> 3.34 and >= 3.34.4"},
       {:ash_oban, "~> 0.9.0"},
       {:oban, "~> 2.24"},
       {:req, "~> 0.7"},
