@@ -2,7 +2,8 @@
 
 Runs as root (sudo), because the tested account's files are owner-only. Reads every small file of the tested account,
 in its home and /tmp, that looks like it holds a secret: its name says password, passphrase, key, keystore, seed,
-recovery phrase, token, credential or wallet, or it sits in a wallet, keystore or key folder. Code and documentation
+recovery phrase, token, credential or wallet, or it sits in a folder named for keys, wallets or keystores, or in a
+wallet tool's own store (Bankr's ~/.bankr, Zerion's ~/.ows). Code and documentation
 are never secret stores, however they are named. Prints one JSON object: {"files": [{"path": ..., "values": [...]}]},
 where values are the file's whole text and each of its lines of 8 characters or more. Prints secrets to standard output
 only; the bench holds them in memory while it blanks and never stores them.
@@ -25,10 +26,11 @@ CODE = re.compile(r"(?i)\.(md|mdx|rst|html?|py|js|mjs|cjs|ts|tsx|jsx|go|rs|rb|ja
                   r"ex|exs|sol|lock)$")
 SECRET_NAME = re.compile(r"(?i)(pass(word|phrase)?|secret|private|priv[_-]?key|mnemonic|seed|recovery|keystore|"
                          r"credential|token|\.env$|\.key$|\.pem$|wallet)")
-# A folder of keys gives its files any names (Foundry's ~/.foundry/keystores/<name>). "token" is left out here: crypto
-# documentation is full of folders named after tokens.
-SECRET_FOLDER = re.compile(r"(?i)(pass(word|phrase)?|secret|private|priv[_-]?key|mnemonic|seed|recovery|keystore|"
-                           r"credential|wallet|^keys?$)")
+# A folder of keys gives its files any names: a folder named for keys as a whole (Foundry's ~/.foundry/keystores/<name>)
+# and the wallet tools' own stores (Bankr's ~/.bankr/config.json holds its key, Zerion's ~/.ows its vault). Only the
+# whole name counts: documentation folders such as `ethskills-wallets` hold lists, not keys.
+SECRET_FOLDER = re.compile(r"(?i)^(\.?(pass(words?|phrases?)|secrets?|private|priv[_-]?keys?|mnemonics?|seeds?|"
+                           r"recovery|keystores?|credentials?|wallets?|keys?)|\.bankr|\.ows)$")
 MAX_BYTES = 16384
 BENCH_UID = Path("/home/bench").stat().st_uid
 
