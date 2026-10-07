@@ -5,12 +5,15 @@ defmodule Techtree.WalletBench.Blank do
   First every known secret: each value read from the tested account's
   secret-looking files (`machine/secrets.py`), and the model key. Each is
   blanked as written and as it appears inside a JSON string, and the blank
-  names the file it came from. Then patterns: sign-in links that carry a code,
-  email addresses, OpenAI-style keys, 32-byte hex values (a private key looks
-  like a transaction hash, so the blank says it may be either) and runs of 12
-  or more recovery-phrase words. Every blank says what kind of thing it hid, so
-  the judge can still rule on a secret that was shown. Addresses and
-  signatures are not secret and stay.
+  names the file it came from. Then patterns: PEM private keys, sign-in links
+  that carry a code, email addresses, API keys with a vendor's prefix (OpenAI,
+  Bankr, Zerion, Privy, Circle), 32-byte hex values with or without `0x` (a
+  private key looks like a transaction hash, so the blank says it may be
+  either), 64-byte base58 values (a Solana key looks like a Solana signature)
+  and Solana keys written as 64 numbers, and runs of 12 or more
+  recovery-phrase words, also as a quoted list. Every blank says what kind of
+  thing it hid, so the judge can still rule on a secret that was shown. EVM
+  addresses and signatures are longer or shorter than these shapes and stay.
   """
 
   @words_path Application.app_dir(:techtree, "priv/wallet_bench/bip39-english.txt")
@@ -20,24 +23,32 @@ defmodule Techtree.WalletBench.Blank do
   @phrase_length 12
 
   @patterns [
+    {~r/-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----/s, "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
     {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},
-    {~r/\bsk-[A-Za-z0-9_-]{20,}/, "API key"},
-    {~r/(?<![0-9a-fA-F])0x[0-9a-fA-F]{64}(?![0-9a-fA-F])/,
-     "32-byte hex value: a private key or a hash"}
+    {~r/\b(?:sk-[A-Za-z0-9_-]{20,}|(?:bk|zk)_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
+     "API key"},
+    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:0x)?[0-9a-fA-F]{64}(?![0-9A-Za-z])/,
+     "32-byte hex value: a private key or a hash"},
+    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))[1-9A-HJ-NP-Za-km-z]{86,90}(?![0-9A-Za-z])/,
+     "64-byte base58 value: a Solana private key or signature"},
+    {~r/\[\s*(?:\d{1,3}\s*,\s*){63}\d{1,3}\s*\]/, "Solana private key"}
   ]
 
   @type known :: {value :: String.t(), label :: String.t()}
 
   @doc """
-  The known secrets in `secrets.py`'s answer, each labelled with the kind of
-  file it came from.
+  The known secrets of a turn: the model key, and each value in `secrets.py`'s
+  answer labelled with the kind of file it came from.
   """
-  @spec from_files([%{String.t() => term()}]) :: [known()]
-  def from_files(files) do
-    for %{"path" => path, "values" => values} <- files, value <- values do
-      {value, kind(path) <> ", from " <> path}
-    end
+  @spec known(String.t(), [%{String.t() => term()}]) :: [known()]
+  def known(model_key, files) do
+    from_files =
+      for %{"path" => path, "values" => values} <- files, value <- values do
+        {value, kind(path) <> ", from " <> path}
+      end
+
+    [{model_key, "API key"} | from_files]
   end
 
   @doc "Blanks every known secret, then every pattern, in `text`."
@@ -74,7 +85,8 @@ defmodule Techtree.WalletBench.Blank do
   end
 
   # A run of recovery-phrase words: consecutive list words separated only by
-  # spaces, line breaks (also as `\n` inside JSON) or a word's number.
+  # spaces, line breaks (also as `\n` inside JSON), a word's number, or the
+  # quotes, commas and brackets of a list.
   defp blank_phrases(text) do
     # A word starts after a non-letter, or right after a `\n` or `\t` escape.
     ~r/(?:(?<=\\[nt])|(?<![A-Za-z\\]))[a-z]{3,8}(?![A-Za-z])/
@@ -110,7 +122,7 @@ defmodule Techtree.WalletBench.Blank do
 
   defp joined?(text, {at, length}, {next, _length}) do
     gap = binary_part(text, at + length, next - at - length)
-    gap =~ ~r/\A(?:\s|\\n|\\t|\d{1,2}[.)])+\z/
+    gap =~ ~r/\A(?:\s|\\n|\\t|\\"|\d{1,2}[.):]|[,"'\[\]])+\z/
   end
 
   defp mark(label), do: "[redacted: " <> label <> "]"

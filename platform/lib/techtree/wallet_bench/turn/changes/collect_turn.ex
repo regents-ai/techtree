@@ -9,8 +9,10 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   and what the tested model's calls cost.
 
   A turn whose runner was lost (the machine restarted) or ended badly is
-  `failed` at once, with the end of its log. Storing again replaces the same
-  keys with the same bytes.
+  `failed` at once, with the end of its log, blanked the same way. A turn
+  folder over 20 MB is not brought back: the machine refuses to pack it and the
+  turn fails with that reason. Storing again replaces the same keys with the
+  same bytes.
   """
 
   use Ash.Resource.Change
@@ -21,6 +23,9 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   alias Techtree.WalletBench.Attempt.Changes.AttachCredentials
 
   @wait_seconds 30
+  @max_folder_bytes 20_000_000
+  # The archive is gzip then base64; gzip can grow incompressible bytes a little.
+  @max_encoded_bytes div(@max_folder_bytes * 4, 3) + 1_000_000
 
   @impl true
   def change(changeset, _opts, _context) do
@@ -64,29 +69,35 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
         :missing -> "was never started"
       end
 
-    case Remote.job_log_tail(attempt.machine.name, Catalog.turn_job(test)) do
-      {:ok, log} ->
-        reason = "The turn's runner #{how}."
+    with {:ok, log} <- Remote.job_log_tail(attempt.machine.name, Catalog.turn_job(test)),
+         {:ok, known, _secret_files} <- known_secrets(attempt.machine.name) do
+      reason = "The turn's runner #{how}."
 
-        changeset
-        |> Ash.Changeset.force_change_attributes(%{state: :failed, failure: reason})
-        |> put_detail(%{failure: reason, log_tail: log})
-
-      {:error, error} ->
-        Ash.Changeset.add_error(changeset, error)
+      changeset
+      |> Ash.Changeset.force_change_attributes(%{state: :failed, failure: reason})
+      |> put_detail(%{failure: reason, log_tail: Blank.blank(log, known)})
+    else
+      {:error, error} -> Ash.Changeset.add_error(changeset, error)
     end
   end
 
   defp collect(attempt, folder) do
     name = attempt.machine.name
-    archive = ~s(tar -C "/work/turns/$1" -czf - . | base64 -w0)
+
+    archive = """
+    set -euo pipefail
+    size=$(du -sb "/work/turns/$1" | cut -f1)
+    if [ "$size" -gt #{@max_folder_bytes} ]; then
+      echo "The turn's folder holds $size bytes, over the #{div(@max_folder_bytes, 1_000_000)} MB limit." >&2
+      exit 3
+    fi
+    tar -C "/work/turns/$1" -czf - . | base64 -w0
+    """
 
     with {:ok, encoded} <-
            Remote.run(name, ["bash", "-c", archive, "bash", folder], receive_timeout: 180_000),
          {:ok, files} <- unpack(encoded),
-         {:ok, %{"files" => secret_files}} <-
-           Remote.json(name, ["sudo", "/.sprite/bin/python3", "/work/bin/machine/secrets.py"]) do
-      known = [{AttachCredentials.model_key(), "API key"} | Blank.from_files(secret_files)]
+         {:ok, known, secret_files} <- known_secrets(name) do
       blanked = Map.new(files, fn {file, content} -> {file, Blank.blank(content, known)} end)
 
       with :ok <- store(attempt, folder, blanked) do
@@ -95,6 +106,16 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
       end
     end
   end
+
+  defp known_secrets(name) do
+    with {:ok, %{"files" => secret_files}} <-
+           Remote.json(name, ["sudo", "/.sprite/bin/python3", "/work/bin/machine/secrets.py"]) do
+      {:ok, Blank.known(AttachCredentials.model_key(), secret_files), secret_files}
+    end
+  end
+
+  defp unpack(encoded) when byte_size(encoded) > @max_encoded_bytes,
+    do: {:error, "The turn's archive is #{byte_size(encoded)} bytes, over its limit."}
 
   defp unpack(encoded) do
     with {:ok, archive} <- Base.decode64(encoded),

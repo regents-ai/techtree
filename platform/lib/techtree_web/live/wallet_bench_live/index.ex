@@ -47,6 +47,11 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             </li>
             <li>The machine goes back to its clean start for the next test.</li>
           </ol>
+          <p>
+            On 7 Oct 2026 the wallet question gained one sentence asking the agent to make a wallet
+            if it had none. Tests sent the earlier wording are marked “(earlier question)”, and each
+            test's page shows the prompt it was sent, word for word.
+          </p>
         </header>
 
         <p :if={@attempts != []} class="quiet">Newest first.</p>
@@ -81,7 +86,10 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
                 </td>
                 <td>{Copy.status(attempt.state)}</td>
                 <td>{attempt.turns |> Copy.install_result() |> Copy.outcome()}</td>
-                <td>{attempt.turns |> Copy.wallet_result() |> Copy.outcome()}</td>
+                <td>
+                  {attempt.turns |> Copy.wallet_result() |> Copy.outcome()}
+                  <span :if={Copy.earlier_question?(attempt)} class="quiet">(earlier question)</span>
+                </td>
                 <td class="results-ledger__numeric">{Copy.dollars(attempt.model_spend_usd)}</td>
               </tr>
             </tbody>

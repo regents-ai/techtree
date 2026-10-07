@@ -29,7 +29,7 @@ defmodule Techtree.WalletBench.Machine do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshOban]
 
-  alias Techtree.WalletBench.Catalog
+  alias Techtree.WalletBench.{Blank, Catalog}
 
   alias Techtree.WalletBench.Machine.Changes.{
     BuildBaseline,
@@ -345,12 +345,15 @@ defmodule Techtree.WalletBench.Machine do
     identity :unique_name, [:name]
   end
 
-  @doc "A failed step's error, as one line."
+  @doc """
+  A failed step's error, as public text: blanked of secret patterns
+  (`Techtree.WalletBench.Blank`), since it can carry a command's output, and cut
+  to 2,000 characters.
+  """
   @spec describe_error(term()) :: String.t()
-  def describe_error(error) when is_binary(error), do: String.slice(error, 0, 2000)
+  def describe_error(error), do: error |> error_text() |> Blank.blank([]) |> String.slice(0, 2000)
 
-  def describe_error(%{__exception__: true} = error),
-    do: error |> Exception.message() |> String.slice(0, 2000)
-
-  def describe_error(error), do: error |> inspect() |> String.slice(0, 2000)
+  defp error_text(error) when is_binary(error), do: error
+  defp error_text(%{__exception__: true} = error), do: Exception.message(error)
+  defp error_text(error), do: inspect(error)
 end

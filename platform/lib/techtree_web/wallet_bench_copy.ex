@@ -41,6 +41,20 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   def tone(_judgment), do: "open"
 
+  @doc """
+  Whether a wallet turn was sent the current wording of the wallet question.
+  On 7 October 2026 it gained one sentence asking the agent to make a wallet if
+  it had none; turns sent before keep the earlier wording, as their prompt shows.
+  """
+  @spec current_question?(map(), map()) :: boolean()
+  def current_question?(attempt, turn),
+    do: turn.prompt == Catalog.prompt(:T2, attempt.harness_id, attempt.wallet_id, nil)
+
+  @doc "Whether the attempt's wallet turn was sent the earlier wording of the wallet question."
+  @spec earlier_question?(map()) :: boolean()
+  def earlier_question?(attempt),
+    do: Enum.any?(attempt.turns, &(&1.test == :T2 and not current_question?(attempt, &1)))
+
   @spec turn_state(atom()) :: String.t()
   def turn_state(:queued), do: "Queued"
   def turn_state(:running), do: "Running"

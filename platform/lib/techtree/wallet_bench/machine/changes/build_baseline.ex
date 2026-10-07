@@ -4,15 +4,15 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
   `baseline.sh` as a background job, then waits for it (an Oban snooze) until it
   ends. A build that ends with exit code 0 leaves the machine `built`, with the
   baseline manifest and the digest of the scripts it carries. A build that fails
-  or is lost marks the machine failed at once, with the end of its log; a
-  repeat would only build the same thing again.
+  or is lost marks the machine failed at once, with the end of its log
+  blanked of secret patterns; a repeat would only build the same thing again.
   """
 
   use Ash.Resource.Change
 
   import Techtree.WalletBench.Machine.Changes.RecordEvent, only: [put_detail: 2]
 
-  alias Techtree.WalletBench.{Catalog, Remote}
+  alias Techtree.WalletBench.{Blank, Catalog, Remote}
 
   @job "baseline"
   @wait_seconds 30
@@ -74,7 +74,7 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
 
         changeset
         |> Ash.Changeset.force_change_attributes(%{state: :failed, failure: reason})
-        |> put_detail(%{failure: reason, log_tail: log})
+        |> put_detail(%{failure: reason, log_tail: Blank.blank(log, [])})
 
       {:error, error} ->
         Ash.Changeset.add_error(changeset, error)

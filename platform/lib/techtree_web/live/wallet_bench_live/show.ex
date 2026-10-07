@@ -124,6 +124,14 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
           <% end %>
 
           <dl class="wallet-bench__facts">
+            <%= if turn.test == :T2 do %>
+              <dt>Question asked</dt>
+              <dd>
+                {if Copy.current_question?(@attempt, turn),
+                  do: "The current wording",
+                  else: "The earlier wording, which did not ask the agent to make a wallet"}
+              </dd>
+            <% end %>
             <%= if version = turn.checks["version"] do %>
               <dt>Version installed</dt>
               <dd>

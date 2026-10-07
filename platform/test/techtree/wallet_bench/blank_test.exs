@@ -12,7 +12,7 @@ defmodule Techtree.WalletBench.BlankTest do
 
   test "known secrets, patterns and recovery phrases are blanked; addresses and signatures stay" do
     known =
-      Blank.from_files([
+      Blank.known("model-key-value-123", [
         %{"path" => "/home/bench/.foundry/recovery/w.password", "values" => [~s(pa"ss\\word-123)]}
       ])
 
@@ -20,6 +20,14 @@ defmodule Techtree.WalletBench.BlankTest do
     password: pa"ss\\word-123
     {"output": "pa\\"ss\\\\word-123"}
     key 0x#{String.duplicate("1f", 32)}
+    bare {"k": "\\n#{String.duplicate("2e", 32)}"}
+    solana #{String.duplicate("4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi", 2)}
+    keypair [#{Enum.join(1..64, ",")}]
+    -----BEGIN EC PRIVATE KEY-----
+    MHcCAQEEIBkg4LVWM9nuwNSk3yByxZpYRTBnVJk5oLh1mUQ+gL9zoAoGCCqGSM49
+    -----END EC PRIVATE KEY-----
+    bankr bk_ABCDEFGHJKLMNPQRSTUV and model model-key-value-123
+    list ["#{String.replace(@phrase, " ", ~s(", "))}"]
     openai sk-proj-abcdefghijklmnopqrstuvwxyz
     open https://wallet.example/login?code=482913 now
     mail someone@example.com
@@ -34,6 +42,12 @@ defmodule Techtree.WalletBench.BlankTest do
           "pa\"ss",
           "pa\\\"ss",
           String.duplicate("1f", 32),
+          String.duplicate("2e", 32),
+          "4vJ9JU1b",
+          "1,2,3",
+          "MHcCAQEE",
+          "bk_ABC",
+          "model-key-value",
           "sk-proj",
           "482913",
           "someone@",
