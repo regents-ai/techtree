@@ -27,5 +27,6 @@ echo "--- uv tools"; uv tool list 2>&1
 echo "--- pipx"; command -v pipx > /dev/null && pipx list --short 2>&1
 echo "--- bench executables in ~/.local/bin, ~/bin, ~/.foundry/bin, ~/go/bin"
 ls -la ~/.local/bin ~/bin ~/.foundry/bin ~/go/bin 2>/dev/null
-echo "--- files owned by bench outside its home (expect none)"
-find / -xdev -user bench -not -path "/home/bench" -not -path "/home/bench/*" -not -path "/proc/*" -not -path "/tmp/*" 2>/dev/null | head -20
+echo "--- files owned by bench outside its home and the agent's log folder /logs/agent (expect none)"
+find / -xdev -user bench -not -path "/home/bench" -not -path "/home/bench/*" -not -path "/proc/*" -not -path "/tmp/*" \
+  -not -path /logs/agent -not -path "/logs/agent/*" 2>/dev/null | head -20

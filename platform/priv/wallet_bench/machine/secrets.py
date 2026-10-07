@@ -14,7 +14,9 @@ import re
 from pathlib import Path
 
 ROOTS = [Path("/home/bench"), Path("/tmp")]
-SKIP = re.compile(r"/(node_modules|\.cache|\.npm|_npx|versions)/")
+# Installed software, not the account's own files: a library's `secrets.py` holds code, not secrets.
+SKIP = re.compile(r"/(node_modules|\.cache|\.npm|_npx|versions|site-packages|dist-packages|\.local/share/uv|"
+                  r"\.local/share/pnpm|go/pkg)/")
 SECRET = re.compile(r"(?i)(pass(word|phrase)?|secret|private|priv[_-]?key|mnemonic|seed|recovery|keystore|"
                     r"credential|token|\.env$|\.key$|\.pem$|wallet)")
 MAX_BYTES = 16384

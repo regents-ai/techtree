@@ -13,8 +13,9 @@ find ~ -xdev -newermt "$START" -type f \
   -not -path "*/.opencode/*" -not -path "*/.local/share/opencode/*" -not -path "*/.cline/*" \
   -not -path "*/.deepseek*/*" -not -path "*/.ironclaw/*" -not -path "*/.config/*-agent/*" \
   -printf "%m %u %s %p\n" 2>/dev/null | sort -k4 | head -80
-echo "--- same, outside bench home (expect none)"
+echo "--- same, outside bench home and the agent's log folder /logs/agent (expect none)"
 find / -xdev -user bench -newermt "$START" -not -path /home/bench -not -path "/home/bench/*" -not -path "/proc/*" -not -path "/tmp/*" \
+  -not -path /logs/agent -not -path "/logs/agent/*" \
   -printf "%m %u %s %p\n" 2>/dev/null | head -20
 echo "--- bench processes still running"
 ps -u bench -o etime=,args= | grep -v -E "^ *[0-9:]+ (-?bash|ps|grep|sort|head|cut)( |$)" | cut -c1-160 | head -20
