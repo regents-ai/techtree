@@ -5,8 +5,11 @@ in its home and /tmp, that looks like it holds a secret: its name says password,
 recovery phrase, token, credential or wallet, or it sits in a folder named for keys, wallets or keystores, or in a
 wallet tool's own store (Bankr's ~/.bankr, Zerion's ~/.ows). Code and documentation
 are never secret stores, however they are named. Prints one JSON object: {"files": [{"path": ..., "values": [...]}]},
-where values are the file's whole text and each of its lines of 8 characters or more. Prints secrets to standard output
-only; the bench holds them in memory while it blanks and never stores them.
+where values are the file's whole text and each of its lines of 8 characters or more. A file holding a JSON object (the
+Open Wallet Standard records Zerion and MoonPay keep, Bankr's config) is read field by field instead: its values are its
+text fields of 8 characters or more, except the labels the tools print themselves whenever they list their wallets (ids,
+names, addresses, chains, times, links to other records, service addresses, the names of a cipher and key scheme, a token's hash).
+Prints secrets to standard output only; the bench holds them in memory while it blanks and never stores them.
 
 Usage: sudo python3 secrets.py
 """
@@ -31,6 +34,13 @@ SECRET_NAME = re.compile(r"(?i)(pass(word|phrase)?|secret|private|priv[_-]?key|m
 # whole name counts: documentation folders such as `ethskills-wallets` hold lists, not keys.
 SECRET_FOLDER = re.compile(r"(?i)^(\.?(pass(words?|phrases?)|secrets?|private|priv[_-]?keys?|mnemonics?|seeds?|"
                            r"recovery|keystores?|credentials?|wallets?|keys?)|\.bankr|\.ows)$")
+# The labels of the wallet tools' JSON records (OWS docs/01-storage-format.md and 03-policy-engine.md, MoonPay's wallet
+# list, Bankr's BankrConfig): a field so named, and everything inside it, the tools print themselves. Every other field
+# is secret.
+LABELS = {"ows_version", "version", "id", "name", "type", "key_type", "created_at", "createdAt", "expires_at",
+          "accounts", "account_id", "address", "addresses", "chain", "chain_id", "chainId", "derivation_path",
+          "derivationPath", "wallet_id", "wallet_ids", "policy_ids", "api_key_id", "device", "rules", "action",
+          "cipher", "kdf", "info", "token_hash", "apiUrl", "llmUrl", "lastThreadId", "sound"}
 MAX_BYTES = 16384
 BENCH_UID = Path("/home/bench").stat().st_uid
 
@@ -49,10 +59,28 @@ def candidates():
                     yield path
 
 
+def record_secrets(value):
+    if isinstance(value, dict):
+        return {secret for key, item in value.items() if key not in LABELS for secret in record_secrets(item)}
+    if isinstance(value, list):
+        return {secret for item in value for secret in record_secrets(item)}
+    return {value} if isinstance(value, str) else set()
+
+
+def secrets_of(text):
+    try:
+        record = json.loads(text)
+    except ValueError:
+        record = None
+    if isinstance(record, dict):
+        return record_secrets(record)
+    return {text, *(line.strip() for line in text.splitlines())}
+
+
 found = []
 for path in candidates():
     text = path.read_bytes().decode("utf-8", errors="replace").strip()
-    values = sorted({text, *(line.strip() for line in text.splitlines())} - {""}, key=len, reverse=True)
+    values = sorted(secrets_of(text) - {""}, key=len, reverse=True)
     values = [value for value in values if len(value) >= 8]
     if values:
         found.append({"path": str(path), "values": values})
