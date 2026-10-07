@@ -53,9 +53,33 @@ with the Skill's uplift.
    A held-out set needs AutoMedBench's own unpublished split; ask the authors later.
 3. **Judge cost and route.** S1–S3 need a judge model call per stage. The person pays it through their own key (the
    Prime route, as in SkillOpt). Cost per run is unknown until a measured pilot.
-4. **HQ 122 c** (no Climb features or spend) covers this; building starts only when Sean lifts it for this Climb.
+4. **HQ 122 c** (no Climb features or spend) is lifted for this Climb (Sean "2 a", 7 October 2026): the probe, then a
+   pilot capped at $10 with every model call announced before it is made.
 5. **CPU time.** Segmentation (TotalSegmentator) and 2,005 question-answering cases may be too slow on a laptop. The
    probe measures each track; slow tracks use a fixed sample of cases, recorded in the Climb.
+
+## Decisions
+
+- 7 October 2026, Sean "1 a": the run is this AutoMedBench-Lite Climb, run by a person through regents-cli.
+- 7 October 2026, Sean "2 a": HQ 122 c lifted for it; probe, then a pilot capped at $10, each call announced.
+- Open: which tracks go in (the five with clear terms, or all seven), and whether VERA's method goes first onto
+  Techtree's existing non-medical Climbs (see below).
+
+## VERA outside medicine
+
+VERA's method is not medical. The paper runs the same loop on a second domain, software and computer work
+("CoWork", sandboxes built from Terminal-Bench, SWE-Bench and MLE-Bench), where the co-evolved 9B agent also improves
+SWE-Bench Verified (44.0 to 54.2). This release ships only the medical half: its rubric tables, sandboxes, research
+tools and Skills are medical, and the CoWork environments and AutoCoWorkBench are not released.
+
+What carries to any domain: the loop (score each stage, decide whether the model or the Skills caused a weakness,
+change one, keep it only if the score rises), the rubric shape (five to ten weighted yes/no checks per stage, each
+checkable from evidence, an executable check overriding the judge) and the judge that inspects the workspace.
+
+For Techtree, the Skill half is the SkillOpt template, and it needs no medical data: it can run on any existing Climb
+(Tasksmith, Frontier-CS, Hub) today. The model half needs GPUs (about 100 GPU-hours for a 9B model per domain) and
+stays out of scope. On AutoMedBench the Skill half alone reached 56.1 against 69.1 for both halves, so Skills give most
+but not all of VERA's gain.
 
 ## Phases
 
