@@ -4,7 +4,8 @@ defmodule Techtree.WalletBench.Machine.Changes.ConfirmReady do
   machine is ready when the boot id is unchanged, a file of random bytes written
   to it reads back exactly, Sprites reports the image versions it was created
   with, the tested account cannot read `/work`, use sudo, list the checkpoints or
-  reach the management socket (`readiness.sh`, which locks them first), and the
+  reach the management socket (`readiness.sh`, which locks them and empties
+  `/tmp` first: a restore leaves that disk as the last attempt left it), and the
   harness reports the version the baseline recorded. Any check that does not hold marks the machine failed with that reason,
   at once and without a retry (plan D18). A call to Sprites that fails is an
   error, which the job retries.
