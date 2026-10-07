@@ -14,9 +14,11 @@ import re
 from pathlib import Path
 
 ROOTS = [Path("/home/bench"), Path("/tmp")]
-# Installed software, not the account's own files: a library's `secrets.py` holds code, not secrets.
+# Installed software and the agents' own folders, as the storage check leaves out (bench/verify-storage.sh): a
+# library's `secrets.py` or Hermes's own `secrets/command.md` holds code and docs, not secrets.
 SKIP = re.compile(r"/(node_modules|\.cache|\.npm|_npx|versions|site-packages|dist-packages|\.local/share/uv|"
-                  r"\.local/share/pnpm|go/pkg)/")
+                  r"\.local/share/pnpm|go/pkg|\.claude|\.codex|\.grok|\.muse|\.hermes|\.kilo[^/]*|\.pi|\.omp|"
+                  r"\.opencode|\.local/share/opencode|\.cline|\.deepseek[^/]*|\.ironclaw|\.config/[^/]*-agent)/")
 SECRET = re.compile(r"(?i)(pass(word|phrase)?|secret|private|priv[_-]?key|mnemonic|seed|recovery|keystore|"
                     r"credential|token|\.env$|\.key$|\.pem$|wallet)")
 MAX_BYTES = 16384
