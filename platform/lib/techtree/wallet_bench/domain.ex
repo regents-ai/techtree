@@ -36,6 +36,7 @@ defmodule Techtree.WalletBench do
       define :request_attempt, action: :request, args: [:harness_id, :wallet_id]
       define :get_attempt, action: :read, get_by: [:id]
       define :list_attempts, action: :recent
+      define :withdraw_attempt, action: :withdraw, args: [:reason]
     end
 
     resource Techtree.WalletBench.Turn

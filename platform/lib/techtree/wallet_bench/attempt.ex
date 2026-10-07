@@ -8,7 +8,8 @@ defmodule Techtree.WalletBench.Attempt do
   tests are over or one failed; the key comes off) and `done`, or `failed` with
   the reason. Every attempt that reached a machine goes through `revoking`:
   once the key is confirmed gone, the machine is reset for the next attempt;
-  when it cannot be confirmed gone, the machine is deleted instead.
+  when it cannot be confirmed gone, the machine is deleted instead. A `done`
+  attempt the bench itself spoiled is withdrawn: `failed`, with the reason.
 
   Each step calls the machine before its transaction opens, then writes the new
   state, its `Techtree.WalletBench.AttemptEvent` and the next step's job in one
@@ -194,6 +195,28 @@ defmodule Techtree.WalletBench.Attempt do
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
         |> RecordEvent.put_detail(%{failure: message})
+      end
+
+      change RecordEvent
+    end
+
+    update :withdraw do
+      description """
+      A finished attempt the bench itself spoiled leaves the results, with the
+      reason; its record stays. Operator only.
+      """
+
+      require_atomic? false
+      argument :reason, :string, allow_nil?: false
+      change filter(expr(state == :done))
+      change set_attribute(:state, :failed)
+
+      change fn changeset, _context ->
+        reason = Ash.Changeset.get_argument(changeset, :reason)
+
+        changeset
+        |> Ash.Changeset.force_change_attribute(:failure, reason)
+        |> RecordEvent.put_detail(%{failure: reason})
       end
 
       change RecordEvent

@@ -79,6 +79,11 @@ class HermesAgent(Hermes):
         self._native_session_id = self.resume_session_id
         await super().resume(instruction, environment, context)
 
+    def _convert_hermes_session_to_atif(self, jsonl_text: str, session_id: str) -> Trajectory | None:
+        # The trajectory is named by Hermes's own conversation id, which the next turn's `hermes chat --resume` finds;
+        # Harbor names it with a fresh uuid, which Hermes answers with "Session not found".
+        return super()._convert_hermes_session_to_atif(jsonl_text, self._extract_native_session_id(jsonl_text))
+
 
 class ClineAgent(ClineCli):
     """Cline CLI 3.0.67, signed in to the translator as an OpenAI-compatible provider at baseline, as in the survey.
