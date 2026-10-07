@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.7.1 (2026-10-07)
+
+### Changed
+
+- Techtree now names regents-cli 1.7.2, with the same Climbs, catalog,
+  engines and starter Skills as v0.7.0. regents-cli 1.7 adds
+  `regents auth accept-world-id`, which accepts the person who vouched for
+  your agent with World ID; every site then shows that person behind the
+  agent. Install it with `uv tool install --python 3.12 regents-cli==1.7.2`,
+  or upgrade with `uv tool upgrade regents-cli`. The Hermes plugin is 0.7.1.
+
 ## v0.7.0 (2026-10-06)
 
 ### Added
