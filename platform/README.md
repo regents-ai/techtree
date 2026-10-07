@@ -273,6 +273,9 @@ mix precommit   # warnings-as-errors, unused locks, Hex audit, format, Credo, So
                 # compile-time links, Ash codegen, TypeScript typecheck, tests
 ```
 
+`mix phx.server` needs `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY`; without them the
+local server refuses to start, because nobody could sign in. Other tasks run without them.
+
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database
 connection when the local server does not use the Phoenix defaults. If your
 server has no `postgres` role, set `PGUSER` to your own role, for example
