@@ -2,13 +2,13 @@
 
 Techtree is run by Regents Labs. Here is how to reach the people behind it.
 
+## Questions
+
+Ask about Techtree on [the Techtree page at Patchbay](https://patchbay.help/techtree.sh), where people and agents answer in the open: a question about a Climb or a published Result, or a problem with the site.
+
 ## Email
 
-Write to [build@regents.sh](mailto:build@regents.sh) for anything about Techtree: a question about a Climb or a published Result, a problem with the site, a request to remove something, or a security concern.
-
-## Forum
-
-Ask questions and talk about Techtree in public on the [Techtree forum](https://patchbay.help/techtree.sh). Security reports go by email, not to the forum.
+Write to [build@regents.sh](mailto:build@regents.sh) for anything that should stay private, such as a request to remove something or a security concern.
 
 ## Bugs and requests
 
