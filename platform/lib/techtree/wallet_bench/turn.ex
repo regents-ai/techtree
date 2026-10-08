@@ -231,15 +231,6 @@ defmodule Techtree.WalletBench.Turn do
     end
   end
 
-  calculations do
-    calculate :nine_checks?,
-              :boolean,
-              expr(fragment("jsonb_exists(? -> 'criteria', 'C9')", judgment)) do
-      description "Whether the ruling has the nine checks of the current review guides."
-      public? true
-    end
-  end
-
   identities do
     identity :one_turn_per_test, [:attempt_id, :test]
   end
