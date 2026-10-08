@@ -31,6 +31,12 @@ config :techtree, :privy,
   app_id: System.get_env("PRIVY_APP_ID"),
   verification_key: System.get_env("PRIVY_VERIFICATION_KEY")
 
+# Agents' signed requests are checked by this sign-in service instead, such as one
+# running on this machine.
+if broker_url = System.get_env("TECHTREE_SIWA_BROKER_URL") do
+  config :regent_agents, :siwa, url: broker_url, audience: "techtree"
+end
+
 # Without its Privy settings a local server answers every page while nobody can
 # sign in, so it refuses to start. Other mix tasks, such as migrations and code
 # generation, run without them.
