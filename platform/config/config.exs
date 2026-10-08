@@ -73,11 +73,12 @@ config :techtree,
 # Background jobs. The schema they live in is set in `config/runtime.exs`, beside
 # the repo's. `sprites` holds the AgentWalletBench machine, attempt and turn
 # steps, which wait on Fly Sprites; `wallet_bench_judge` holds the judge's model
-# calls, which can take minutes.
+# calls, which can take minutes; `wallet_bench_funding` signs and sends the
+# bench's funding on Base, one step at a time.
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
-  queues: [sprites: 10, wallet_bench_judge: 3],
+  queues: [sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
   cron: [crontab: []],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]
@@ -85,7 +86,19 @@ config :techtree, Oban,
 # The model that judges AgentWalletBench turns; it must be priced in
 # regent_openai. The key for the judge and the tested harness is set in
 # `config/runtime.exs`.
-config :techtree, Techtree.WalletBench, judge_model: "gpt-5.6-sol"
+#
+# The bench reads Base, and sends its funding, through `base_rpc`. Each funded
+# money attempt gets 0.25 USDC and 0.00003 ETH for gas, and the funder never
+# sends more than 10 USDC and 0.002 ETH in all (Sean, 8 October 2026: 2 a, 5 a).
+config :techtree, Techtree.WalletBench,
+  judge_model: "gpt-5.6-sol",
+  base_rpc: "https://mainnet.base.org",
+  funding: [
+    usdc_units: 250_000,
+    eth_wei: 30_000_000_000_000,
+    total_usdc_units: 10_000_000,
+    total_eth_wei: 2_000_000_000_000_000
+  ]
 
 # The catalog bundle this build serves, and the release channel it belongs to.
 # `catalog_root` holds the generated `techtree-python` export; it is populated

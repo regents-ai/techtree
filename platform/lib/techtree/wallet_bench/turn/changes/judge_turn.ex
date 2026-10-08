@@ -11,17 +11,23 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   (`Techtree.WalletBench.BaseCheck`); the signature request is ruled on
   together with the T2 turn before it, as one T2 result.
 
-  With `evidence: :stored` (the `:rejudge` action) a wallet turn is ruled on
-  again from what was read and checked when it was first judged: the printed
-  address, message and signature and the Base check at that block stay as
-  they are, so only the ruling is new.
+  A money turn (T3, T4, T5) goes to the judge with the funding, the bench's
+  look at the agent's wallet on Base and every USDC transfer since the funding
+  (`Techtree.WalletBench.MoneyCheck`), the transcript and the storage check; T4
+  also with the list of images the turn left. The turn that returns what is
+  left is not scored and goes to no judge: the bench records what came back.
+
+  With `evidence: :stored` (the `:rejudge` action) a wallet or money turn is
+  ruled on again from what was read and checked when it was first judged: the
+  printed address, message and signature and the Base checks at their blocks
+  stay as they are, so only the ruling is new.
   """
 
   use Ash.Resource.Change
 
   import Techtree.WalletBench.Attempt.Changes.RecordEvent, only: [put_detail: 2]
 
-  alias Techtree.WalletBench.{Attempt, BaseCheck, Catalog, Evidence, Judge}
+  alias Techtree.WalletBench.{Attempt, BaseCheck, BaseRpc, Catalog, Evidence, Judge, MoneyCheck}
 
   @impl true
   def change(changeset, opts, _context) do
@@ -29,7 +35,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
       turn = changeset.data
 
       with {:ok, attempt} <-
-             Ash.get(Attempt, turn.attempt_id, load: [:machine, :turns]),
+             Ash.get(Attempt, turn.attempt_id, load: [:machine, :turns, :payments]),
            {:ok, judgment, checks, cost} <- judge(attempt, turn, opts[:evidence]) do
         changeset
         |> Ash.Changeset.force_change_attributes(%{
@@ -103,6 +109,89 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
       {:ok, judgment, %{printed: Map.put(printed, :address, address), base: base},
        Decimal.add(cost, extract_cost)}
     end
+  end
+
+  defp judge(attempt, %{test: test} = turn, evidence) when test in [:T3, :T4, :T5] do
+    names = ~w(transcript.md verify-storage.txt) ++ if(test == :T4, do: ["images.txt"], else: [])
+
+    with {:ok, files} <- files(attempt, turn, names),
+         {:ok, money} <- money_check(attempt, turn, evidence),
+         {:ok, judgment, cost} <-
+           Judge.rule(
+             test,
+             Catalog.review_guide(test),
+             money_evidence(attempt, turn, files, money)
+           ) do
+      {:ok, judgment, %{money: money}, cost}
+    end
+  end
+
+  defp judge(attempt, %{test: :return} = turn, evidence) do
+    with {:ok, money} <- money_check(attempt, turn, evidence) do
+      {:ok, returned(money), %{money: money}, Decimal.new(0)}
+    end
+  end
+
+  defp money_check(_attempt, turn, :stored), do: {:ok, turn.checks["money"]}
+
+  defp money_check(attempt, turn, :fresh) do
+    since =
+      attempt.turns
+      |> Enum.filter(&(&1.test in [:T3, :T4, :T5] and &1.id != turn.id and &1.checks))
+      |> Enum.map(& &1.checks["money"]["block"])
+      |> Enum.max(fn -> MoneyCheck.funding_block(attempt) end)
+
+    MoneyCheck.check(attempt, since)
+  end
+
+  defp returned(money) do
+    units = MoneyCheck.returned_units(money)
+
+    %{
+      "outcome" => "UNSCORED",
+      "model" => "none: the bench's Base check",
+      "summary" =>
+        "#{BaseRpc.decimal(units, 6)} USDC came back to the bench's wallet in this turn; " <>
+          "the agent's wallet now holds #{BaseRpc.decimal(money["usdc_units"], 6)} USDC and " <>
+          "#{BaseRpc.decimal(money["eth_wei"], 18)} ETH.",
+      "returned_usdc_units" => units
+    }
+  end
+
+  defp money_evidence(attempt, turn, files, money) do
+    images =
+      if turn.test == :T4,
+        do:
+          "\n# Images the turn left (stored file, sha256, bytes, where the agent saved it | file type)\n\n#{files["images.txt"]}",
+        else: ""
+
+    """
+    #{pair(attempt)}
+
+    # Wallet notes
+
+    #{Catalog.wallet_notes(attempt.wallet_id)}
+
+    # #{Catalog.turn_name(turn.test)}: the prompt sent
+
+    #{turn.prompt}
+
+    ## Turn timing
+
+    #{timing(turn)}
+
+    ## Transcript
+
+    #{files["transcript.md"]}
+
+    ## Storage check
+
+    #{files["verify-storage.txt"]}
+    #{images}
+    # The bench's Base check
+
+    #{MoneyCheck.describe(money)}
+    """
   end
 
   defp turn_files(attempt, turns) do

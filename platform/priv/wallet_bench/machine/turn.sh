@@ -8,7 +8,8 @@
 #
 # Writes into the turn folder: start_utc, stream.jsonl (the agent's own output), trajectory.json (Harbor's record of
 # the turn), runner.log, exit_code, end_utc, wall_seconds, wall_cap_seconds, post-turn-inventory.txt, transcript.md,
-# turn-summary.json, tool-calls.json, model-calls.jsonl, verify-install.txt, verify-storage.txt and SHA256SUMS.
+# turn-summary.json, tool-calls.json, model-calls.jsonl, verify-install.txt, verify-storage.txt, images.txt with any
+# images the agent saved in the turn (image-<n>.<type>, read as bench) and SHA256SUMS.
 set -uo pipefail
 source /work/bin/machine/common.sh
 
@@ -33,5 +34,14 @@ runner transcript "$T" > /dev/null 2> "$T/transcript-errors.txt"
 /.sprite/bin/python3 "$W/bin/machine/calls.py" "$T" > "$T/model-calls.jsonl"
 as_bench verify-install.sh "$EXE" "${HELP[@]}" > "$T/verify-install.txt" 2>&1
 as_bench verify-storage.sh "$(cat "$T/start_utc")" > "$T/verify-storage.txt" 2>&1
+: > "$T/images.txt"
+n=0
+while IFS= read -r path; do
+  ext=${path##*.}
+  ext=${ext,,}
+  as_bench new-images.sh "$(cat "$T/start_utc")" "$n" > "$T/image-$n.$ext" 2>/dev/null
+  echo "image-$n.$ext $(sha256sum < "$T/image-$n.$ext" | cut -d' ' -f1) $(stat -c %s "$T/image-$n.$ext") $path | $(/.sprite/bin/python3 "$W/bin/machine/image_type.py" "$T/image-$n.$ext")" >> "$T/images.txt"
+  n=$((n + 1))
+done < <(as_bench new-images.sh "$(cat "$T/start_utc")")
 (cd "$T" && sha256sum -- * > SHA256SUMS)
 cat "$T/exit_code"

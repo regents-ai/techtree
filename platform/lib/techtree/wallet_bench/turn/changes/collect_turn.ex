@@ -175,6 +175,10 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
       ".json" -> "application/json"
       ".jsonl" -> "application/x-ndjson; charset=utf-8"
       ".md" -> "text/markdown; charset=utf-8"
+      ".png" -> "image/png"
+      ".jpg" -> "image/jpeg"
+      ".jpeg" -> "image/jpeg"
+      ".webp" -> "image/webp"
       _other -> "text/plain; charset=utf-8"
     end
   end

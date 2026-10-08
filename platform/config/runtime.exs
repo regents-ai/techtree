@@ -20,6 +20,13 @@ wallet_bench_openai_key = System.get_env("WALLETBENCH_OPENAI_API_KEY")
 config :techtree, Techtree.WalletBench, model_key: wallet_bench_openai_key
 config :regent_openai, api_key: wallet_bench_openai_key
 
+# The bench reads and funds on Base through this address instead, such as a
+# local copy of Base. The funder's key, WALLETBENCH_FUNDER_KEY, is read only
+# when a funding send is signed (Techtree.WalletBench.Funder).
+if base_rpc = System.get_env("WALLETBENCH_BASE_RPC") do
+  config :techtree, Techtree.WalletBench, base_rpc: base_rpc
+end
+
 config :techtree, Techtree.WalletBench.Evidence,
   endpoint: System.get_env("WALLETBENCH_AWS_ENDPOINT_URL_S3"),
   bucket: System.get_env("WALLETBENCH_BUCKET_NAME"),

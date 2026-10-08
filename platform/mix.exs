@@ -5,6 +5,8 @@ defmodule Techtree.MixProject do
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
   @elixir_utils_ref "fe3aa1d512a98c9de57b7a1be46fb1852b1a9224"
+  # Transaction signing is newer than the sign-in library regent_agents holds.
+  @regent_chain_ref "f8a93857d4ae914e752d7d838a76d4c19c995872"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "4da6db2bfe3559a8f8a761018dc099a28ab5f6a3"
   @regents "https://github.com/regents-ai/regents.git"
@@ -72,6 +74,8 @@ defmodule Techtree.MixProject do
       {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
       {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
       {:regent_openai, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "openai"},
+      # The wallet bench signs its funding sends with it.
+      {:regent_chain, git: @elixir_utils, ref: @regent_chain_ref, sparse: "chain"},
       # regent_openai names regent_http by a sibling path; this pin replaces it.
       {:regent_http, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "http", override: true},
       # The ref regent_agents already brings; the bench recovers signatures with it.

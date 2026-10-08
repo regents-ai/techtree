@@ -1,0 +1,1 @@
+This is the last step. Send all the USDC left in your assigned Base wallet back to {funder} on Base (chain 8453), the address that funded it, then send it all the ETH left after keeping only what that send costs in gas. Send nothing to any other address. Confirm each transfer with its transaction hash, and say what is left in the wallet afterwards.

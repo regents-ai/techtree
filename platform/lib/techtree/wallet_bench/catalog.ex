@@ -9,6 +9,10 @@ defmodule Techtree.WalletBench.Catalog do
   cannot run on a server and one makes no keys. Cline takes the install tests
   only, because it cannot continue a conversation from a script (5 a).
 
+  Money tests (T3 to T5, then returning what is left) run only on the pairs
+  that passed the wallet test in the first grid (Sean, 8 October 2026), as
+  attempts of the `money` plan.
+
   The pack holds `machine/` and `runner/`. Its digest is the sha256 of a
   `sha256sum`-style list of every file in it, so it names the exact scripts a
   baseline carries, whatever the files' dates.
@@ -141,10 +145,34 @@ defmodule Techtree.WalletBench.Catalog do
              &{&1.id, Map.put(&1, :help, ["--help"])}
            )
 
-  @tests [:T1a, :T1b, :T2, :T2_signature]
+  @tests [:T1a, :T1b, :T2, :T2_signature, :T3, :T4, :T5, :return]
+
+  @money_tests [:T3, :T4, :T5, :return]
+
+  # The nine pairs with a wallet-test pass in the first grid.
+  @money_pairs [
+    {"H04", "W03"},
+    {"H05", "W03"},
+    {"H07", "W03"},
+    {"H08", "W03"},
+    {"H09", "W03"},
+    {"H10", "W03"},
+    {"H04", "W07"},
+    {"H05", "W07"},
+    {"H12", "W07"}
+  ]
 
   # The survey's watchdogs, in seconds.
-  @wall_caps %{T1a: 1800, T1b: 1800, T2: 1800, T2_signature: 900}
+  @wall_caps %{
+    T1a: 1800,
+    T1b: 1800,
+    T2: 1800,
+    T2_signature: 900,
+    T3: 1800,
+    T4: 1800,
+    T5: 1800,
+    return: 900
+  }
 
   @type harness :: %{id: String.t(), name: String.t(), tests: [atom()]}
   @type wallet :: %{
@@ -172,7 +200,15 @@ defmodule Techtree.WalletBench.Catalog do
   @spec tests() :: [atom()]
   def tests, do: @tests
 
-  @doc "The tests a harness takes, in the order they can run."
+  @doc "The tests a funded money attempt runs after the wallet test, in order."
+  @spec money_tests() :: [atom()]
+  def money_tests, do: @money_tests
+
+  @doc "Whether a pair is one the money tests run on."
+  @spec money_pair?(String.t(), String.t()) :: boolean()
+  def money_pair?(harness_id, wallet_id), do: {harness_id, wallet_id} in @money_pairs
+
+  @doc "The tests a harness takes before any money moves, in the order they can run."
   @spec tests(String.t()) :: [atom()]
   def tests(harness_id), do: harness!(harness_id).tests
 
@@ -189,6 +225,7 @@ defmodule Techtree.WalletBench.Catalog do
   @doc "A test's folder on the machine and its name on pages."
   @spec turn_name(atom()) :: String.t()
   def turn_name(:T2_signature), do: "T2-signature"
+  def turn_name(:return), do: "return"
   def turn_name(test) when test in @tests, do: Atom.to_string(test)
 
   @doc """
@@ -225,10 +262,19 @@ defmodule Techtree.WalletBench.Catalog do
     |> String.replace("{pair}", pair(harness_id, wallet_id))
   end
 
-  @doc "The judge's guide for a test: `T1.md` for installs, `T2.md` for wallets."
+  def prompt(test, _harness_id, _wallet_id, nil) when test in [:T3, :T4, :T5],
+    do: read!("prompts/#{test}.txt")
+
+  @doc "The last, unscored turn of a money attempt: send what is left back to the funder."
+  @spec return_prompt(String.t()) :: String.t()
+  def return_prompt(funder),
+    do: "prompts/return.txt" |> read!() |> String.replace("{funder}", funder)
+
+  @doc "The judge's guide for a test: `T1.md` for installs, `T2.md` for wallets, then one per money test."
   @spec review_guide(atom()) :: String.t()
   def review_guide(test) when test in [:T1a, :T1b], do: read!("review/T1.md")
   def review_guide(test) when test in [:T2, :T2_signature], do: read!("review/T2.md")
+  def review_guide(test) when test in [:T3, :T4, :T5], do: read!("review/#{test}.md")
 
   @doc "What the vendor says about the wallet, for the judge."
   @spec wallet_notes(String.t()) :: String.t()

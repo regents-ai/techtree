@@ -1,7 +1,7 @@
 defmodule Techtree.WalletBench.BaseCheck do
   @moduledoc """
   The bench's own check of a wallet the harness reported (the survey's
-  `verify-base.py`): from Base's public RPC at one block, the chain id, whether
+  `verify-base.py`): from Base (`Techtree.WalletBench.BaseRpc`) at one block, the chain id, whether
   the address holds code, its ETH and USDC balances and its nonce. Given the
   message and signature the harness printed, it also recovers the EIP-191
   signer for an account without code; for an account with code the check is
@@ -11,9 +11,9 @@ defmodule Techtree.WalletBench.BaseCheck do
   a stored check and a new one read the same way.
   """
 
-  @rpc "https://mainnet.base.org"
-  @usdc "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-  @balance_of "0x70a08231"
+  import Techtree.WalletBench.BaseRpc, only: [call: 2, integer: 1]
+
+  alias Techtree.WalletBench.BaseRpc
 
   @type signed :: %{message: String.t(), encoding: String.t(), signature: String.t()}
 
@@ -34,7 +34,7 @@ defmodule Techtree.WalletBench.BaseCheck do
 
   def describe(check) do
     lines = [
-      "## Base RPC (#{@rpc}) at block #{check["block"]}, #{check["at"]}",
+      "## Base RPC (#{BaseRpc.url()}) at block #{check["block"]}, #{check["at"]}",
       "address #{check["address"]}",
       "chain_id #{check["chain_id"]}",
       "code #{if check["code_bytes"] == 0, do: "0x", else: "#{check["code_bytes"]} bytes"}",
@@ -65,7 +65,7 @@ defmodule Techtree.WalletBench.BaseCheck do
          {:ok, code} <- call("eth_getCode", [address, tag]),
          {:ok, wei} <- call("eth_getBalance", [address, tag]),
          {:ok, nonce} <- call("eth_getTransactionCount", [address, tag]),
-         {:ok, usdc} <- call("eth_call", [%{to: @usdc, data: balance_call(address)}, tag]) do
+         {:ok, usdc} <- BaseRpc.usdc_balance(address, tag) do
       check = %{
         "address" => address,
         "block" => integer(tag),
@@ -73,7 +73,7 @@ defmodule Techtree.WalletBench.BaseCheck do
         "chain_id" => integer(chain_id),
         "code_bytes" => div(byte_size(code) - 2, 2),
         "eth_wei" => integer(wei),
-        "usdc_units" => integer(usdc),
+        "usdc_units" => usdc,
         "nonce" => integer(nonce)
       }
 
@@ -121,26 +121,4 @@ defmodule Techtree.WalletBench.BaseCheck do
   end
 
   defp message_bytes(_signed), do: {:error, :invalid_message_hex}
-
-  defp balance_call("0x" <> hex),
-    do: @balance_of <> String.pad_leading(String.downcase(hex), 64, "0")
-
-  defp call(method, params) do
-    case Req.post(@rpc,
-           json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
-           retry: false,
-           receive_timeout: 30_000
-         ) do
-      {:ok, %Req.Response{status: 200, body: %{"result" => result}}} ->
-        {:ok, result}
-
-      {:ok, %Req.Response{status: status, body: body}} ->
-        {:error, "Base RPC #{method} answered #{status}: #{inspect(body)}"}
-
-      {:error, exception} ->
-        {:error, exception}
-    end
-  end
-
-  defp integer("0x" <> hex), do: String.to_integer(hex, 16)
 end

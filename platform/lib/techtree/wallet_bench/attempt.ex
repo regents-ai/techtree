@@ -6,7 +6,18 @@ defmodule Techtree.WalletBench.Attempt do
   machine with today's recipe is taken for it), `testing` (the model key is on
   the machine and the turns run, `Techtree.WalletBench.Turn`), `revoking` (the
   tests are over or one failed; the key comes off) and `done`, or `failed` with
-  the reason. Every attempt that reached a machine goes through `revoking`:
+  the reason.
+
+  An attempt of the `money` plan (only on `Catalog.money_pair?/2` pairs) goes
+  on after a passed wallet test: `funding` (the bench signs 0.25 USDC and
+  0.00003 ETH for the agent's address, `Techtree.WalletBench.Funding`),
+  `sending` (the sends are broadcast and their receipts read), then `testing`
+  again for T3, T4, T5 and the turn that returns what is left. When the agent
+  did not pass the install and wallet tests that funding needs, the reason is
+  kept in `funding_refused` and the attempt ends as usual; when the bench
+  itself cannot fund it, the attempt fails with the reason.
+
+  Every attempt that reached a machine goes through `revoking`:
   once the key is confirmed gone, the machine is reset for the next attempt;
   when it cannot be confirmed gone, the machine is deleted instead. A `done`
   attempt the bench itself spoiled is withdrawn: `failed`, with the reason.
@@ -30,7 +41,10 @@ defmodule Techtree.WalletBench.Attempt do
     LeaseMachine,
     RecordEvent,
     ReleaseMachine,
-    RevokeCredentials
+    RevokeCredentials,
+    RunTriggerForState,
+    SendFunding,
+    SignFunding
   }
 
   alias Techtree.WalletBench.{Catalog, Machine}
@@ -68,6 +82,28 @@ defmodule Techtree.WalletBench.Attempt do
         worker_module_name(Techtree.WalletBench.Attempt.Workers.AttachCredentials)
       end
 
+      trigger :sign_funding do
+        action :sign_funding
+        where expr(state == :funding)
+        queue(:wallet_bench_funding)
+        max_attempts(3)
+        on_error(:funding_failed)
+        lock_for_update?(false)
+        scheduler_cron(false)
+        worker_module_name(Techtree.WalletBench.Attempt.Workers.SignFunding)
+      end
+
+      trigger :send_funding do
+        action :send_funding
+        where expr(state == :sending)
+        queue(:wallet_bench_funding)
+        max_attempts(10)
+        on_error(:sending_failed)
+        lock_for_update?(false)
+        scheduler_cron(false)
+        worker_module_name(Techtree.WalletBench.Attempt.Workers.SendFunding)
+      end
+
       trigger :revoke do
         action :revoke
         where expr(state == :revoking)
@@ -91,9 +127,20 @@ defmodule Techtree.WalletBench.Attempt do
 
     create :request do
       description "Ask for one pair to be tested; jobs take it from here. Operator only."
-      accept [:harness_id, :wallet_id]
+      accept [:harness_id, :wallet_id, :plan]
       validate one_of(:harness_id, Catalog.harness_ids())
       validate one_of(:wallet_id, Catalog.tested_wallet_ids())
+
+      validate fn changeset, _context ->
+        plan = Ash.Changeset.get_attribute(changeset, :plan)
+        harness_id = Ash.Changeset.get_attribute(changeset, :harness_id)
+        wallet_id = Ash.Changeset.get_attribute(changeset, :wallet_id)
+
+        if plan == :money and not Catalog.money_pair?(harness_id, wallet_id),
+          do: {:error, field: :plan, message: "the money tests do not run on this pair"},
+          else: :ok
+      end
+
       change set_attribute(:state, :requested)
       change RecordEvent
       change run_oban_trigger(:lease)
@@ -125,6 +172,127 @@ defmodule Techtree.WalletBench.Attempt do
       change set_attribute(:state, :revoking)
       change RecordEvent
       change run_oban_trigger(:revoke)
+    end
+
+    update :fund do
+      description "The wallet test passed on a money attempt; its address is funded next. Turn steps only."
+      require_atomic? false
+      argument :address, :string, allow_nil?: false
+      change filter(expr(state == :testing and plan == :money))
+      change set_attribute(:agent_address, arg(:address))
+      change set_attribute(:state, :funding)
+      change RecordEvent
+      change run_oban_trigger(:sign_funding)
+    end
+
+    update :refuse_funding do
+      description "A money attempt did not earn its funding, for the reason given; its tests are over. Turn steps only."
+      require_atomic? false
+      argument :reason, :string, allow_nil?: false
+      change filter(expr(state == :testing and plan == :money))
+      change set_attribute(:funding_refused, arg(:reason))
+      change set_attribute(:state, :revoking)
+
+      change fn changeset, _context ->
+        RecordEvent.put_detail(changeset, %{
+          funding_refused: Ash.Changeset.get_argument(changeset, :reason)
+        })
+      end
+
+      change RecordEvent
+      change run_oban_trigger(:revoke)
+    end
+
+    update :sign_funding do
+      description "Signs the funding sends and keeps them, or says why the attempt is not funded."
+      require_atomic? false
+      change filter(expr(state == :funding))
+      change SignFunding
+      change RecordEvent
+      change {RunTriggerForState, sending: :send_funding, revoking: :revoke}
+    end
+
+    update :funding_failed do
+      description "Signing ran out of retries; nothing was sent, and the attempt stops."
+      require_atomic? false
+      argument :error, :term
+      change filter(expr(state == :funding))
+      change set_attribute(:state, :revoking)
+
+      change fn changeset, _context ->
+        message =
+          "The bench could not sign the funding: " <>
+            (changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error())
+
+        changeset
+        |> Ash.Changeset.force_change_attribute(:failure, message)
+        |> RecordEvent.put_detail(%{failure: message})
+      end
+
+      change RecordEvent
+      change run_oban_trigger(:revoke)
+    end
+
+    update :send_funding do
+      description "Broadcasts the signed sends and reads their receipts; T3 follows both."
+      require_atomic? false
+      change filter(expr(state == :sending))
+      change SendFunding
+      change RecordEvent
+      change {RunTriggerForState, revoking: :revoke}
+    end
+
+    update :sending_failed do
+      description """
+      The receipts could not be read after every retry: the sends not yet
+      settled become unknown, which pauses funding, and the attempt stops.
+      """
+
+      require_atomic? false
+      argument :error, :term
+      change filter(expr(state == :sending))
+      change set_attribute(:state, :revoking)
+
+      change fn changeset, _context ->
+        message =
+          "The funding sends' receipts could not be read, so their outcome is unknown and funding is paused: " <>
+            (changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error())
+
+        changeset
+        |> Ash.Changeset.force_change_attribute(:failure, message)
+        |> RecordEvent.put_detail(%{failure: message})
+        |> Ash.Changeset.after_action(fn _changeset, attempt ->
+          with {:ok, payments} <- Techtree.WalletBench.list_payments(attempt.id) do
+            payments
+            |> Enum.filter(&(&1.state == :signed))
+            |> Enum.reduce_while({:ok, attempt}, fn payment, {:ok, attempt} ->
+              payment
+              |> Ash.Changeset.for_update(:lose, %{})
+              # Payments have no public writer; the attempt's own funding step is one of two.
+              |> Ash.update(authorize?: false)
+              |> case do
+                {:ok, _payment} -> {:cont, {:ok, attempt}}
+                {:error, error} -> {:halt, {:error, error}}
+              end
+            end)
+          end
+        end)
+      end
+
+      change RecordEvent
+      change run_oban_trigger(:revoke)
+    end
+
+    update :clear_safety_stop do
+      description """
+      After a money test's safety failure on this attempt paused all funding,
+      an operator lets funding go on, saying why. Operator only.
+      """
+
+      require_atomic? false
+      argument :note, :string, allow_nil?: false
+      change filter(expr(plan == :money and is_nil(safety_cleared)))
+      change set_attribute(:safety_cleared, arg(:note))
     end
 
     update :stop do
@@ -253,10 +421,42 @@ defmodule Techtree.WalletBench.Attempt do
     attribute :state, :atom do
       allow_nil? false
       public? true
-      constraints one_of: [:requested, :leased, :testing, :revoking, :done, :failed]
+
+      constraints one_of: [
+                    :requested,
+                    :leased,
+                    :testing,
+                    :funding,
+                    :sending,
+                    :revoking,
+                    :done,
+                    :failed
+                  ]
+    end
+
+    attribute :plan, :atom do
+      description "`wallet`: install and wallet tests. `money`: then funded, T3 to T5 and returning what is left."
+      allow_nil? false
+      public? true
+      default :wallet
+      constraints one_of: [:wallet, :money]
     end
 
     attribute :failure, :string, public?: true, description: "Why the attempt failed."
+
+    attribute :agent_address, :string,
+      public?: true,
+      description: "The Base address the wallet test found, which the bench funds."
+
+    attribute :funding_refused, :string,
+      public?: true,
+      description:
+        "Why this money attempt was not funded: the install or wallet test it had to pass."
+
+    attribute :safety_cleared, :string,
+      public?: true,
+      description:
+        "Why an operator let funding go on after this attempt's money-test safety failure."
 
     timestamps()
   end
@@ -267,6 +467,11 @@ defmodule Techtree.WalletBench.Attempt do
     has_many :turns, Techtree.WalletBench.Turn do
       public? true
       sort inserted_at: :asc
+    end
+
+    has_many :payments, Techtree.WalletBench.Payment do
+      public? true
+      sort nonce: :asc
     end
   end
 

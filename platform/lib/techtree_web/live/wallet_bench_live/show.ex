@@ -1,8 +1,9 @@
 defmodule TechtreeWeb.WalletBenchLive.Show do
   @moduledoc """
   One wallet test attempt: the machine it ran on, each test's ruling with its
-  nine checks and reasons, the bench's own checks, the stored evidence and
-  everything that happened, in order. Updates as the attempt moves.
+  checks and reasons, the bench's own checks, the funding sends of a money
+  attempt, the stored evidence and everything that happened, in order.
+  Updates as the attempt moves.
   """
 
   use TechtreeWeb, :live_view
@@ -11,7 +12,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
   alias Techtree.WalletBench.Catalog
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
-  @load [:machine, :turns, :model_spend_usd, :judge_cost_usd]
+  @load [:machine, :turns, :payments, :model_spend_usd, :judge_cost_usd]
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -57,6 +58,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             )} UTC.
           </p>
           <p :if={@attempt.failure} class="wallet-bench__failure">{@attempt.failure}</p>
+          <p :if={@attempt.funding_refused}>Not funded: {@attempt.funding_refused}</p>
         </header>
 
         <section class="wallet-bench__section" aria-labelledby="setup">
@@ -70,6 +72,13 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             </dd>
             <dt>Machine</dt>
             <dd>{@attempt.machine.manifest["os"]}</dd>
+            <dt>Tests</dt>
+            <dd>
+              {if @attempt.plan == :money,
+                do:
+                  "Install and wallet, then, once funded, the refund, the paid picture and the Patchbay sign-in",
+                else: "Install and wallet"}
+            </dd>
             <dt>Wallet tool</dt>
             <dd>{wallet(@attempt).name}, run as <code>{wallet(@attempt).executable}</code></dd>
             <dt>Version the survey installed</dt>
@@ -97,8 +106,8 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
           <%= if turn.judgment do %>
             <p>{turn.judgment["summary"]}</p>
 
-            <table class="results-ledger wallet-bench__criteria">
-              <caption class="sr-only">The judge's nine checks</caption>
+            <table :if={turn.judgment["criteria"]} class="results-ledger wallet-bench__criteria">
+              <caption class="sr-only">The judge's checks</caption>
               <thead>
                 <tr>
                   <th scope="col">Check</th>
@@ -107,7 +116,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={key <- ~w(C1 C2 C3 C4 C5 C6 C7 C8 C9)}>
+                <tr :for={key <- turn.judgment["criteria"] |> Map.keys() |> Enum.sort()}>
                   <th scope="row">{Copy.criterion_question(turn.test, key)}</th>
                   <td class="wallet-bench__value">
                     {Copy.criterion(turn.judgment["criteria"][key]["value"])}
@@ -117,7 +126,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
               </tbody>
             </table>
 
-            <details class="wallet-bench__reasoning">
+            <details :if={turn.judgment["reasoning"]} class="wallet-bench__reasoning">
               <summary>The judge's reasoning</summary>
               <p>{turn.judgment["reasoning"]}</p>
             </details>
@@ -126,11 +135,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
           <dl class="wallet-bench__facts">
             <%= if turn.test == :T2 do %>
               <dt>Question asked</dt>
-              <dd>
-                {if Copy.current_question?(@attempt, turn),
-                  do: "The current wording",
-                  else: "The earlier wording, which did not ask the agent to make a wallet"}
-              </dd>
+              <dd>{Copy.question_wording(turn.prompt)}</dd>
             <% end %>
             <%= if version = turn.checks["version"] do %>
               <dt>Version installed</dt>
@@ -144,14 +149,18 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
               <dt>The bench's Base check</dt>
               <dd>{base}</dd>
             <% end %>
+            <%= if money = Copy.money(turn.checks["money"]) do %>
+              <dt>The bench's Base check</dt>
+              <dd>{money}</dd>
+            <% end %>
             <dt :if={turn.wall_seconds}>Time taken</dt>
             <dd :if={turn.wall_seconds}>
               {turn.wall_seconds} seconds of {Catalog.wall_cap(turn.test)}
             </dd>
             <dt :if={turn.model_spend_usd}>Model cost</dt>
             <dd :if={turn.model_spend_usd}>{Copy.dollars(turn.model_spend_usd)}</dd>
-            <dt :if={turn.judgment}>Judged by</dt>
-            <dd :if={turn.judgment}>{turn.judgment["model"]}</dd>
+            <dt :if={scored?(turn)}>Judged by</dt>
+            <dd :if={scored?(turn)}>{turn.judgment["model"]}</dd>
             <dt :if={turn.judge_cost_usd}>Judge cost</dt>
             <dd :if={turn.judge_cost_usd}>{Copy.dollars(turn.judge_cost_usd)}</dd>
           </dl>
@@ -175,6 +184,33 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
               </li>
             </ul>
           </div>
+        </section>
+
+        <section
+          :if={@attempt.payments != []}
+          class="wallet-bench__section"
+          aria-labelledby="funding"
+        >
+          <h2 id="funding">Funding</h2>
+          <p>
+            Sent to {@attempt.agent_address} on Base from the bench's wallet {hd(@attempt.payments).from}.
+          </p>
+          <table class="results-ledger">
+            <thead>
+              <tr>
+                <th scope="col">Sent</th>
+                <th scope="col">State</th>
+                <th scope="col">Transaction</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={payment <- @attempt.payments}>
+                <td>{Copy.payment(payment)}</td>
+                <td>{Copy.payment_state(payment.state)}</td>
+                <td><a href={"https://basescan.org/tx/" <> payment.hash}>{payment.hash}</a></td>
+              </tr>
+            </tbody>
+          </table>
         </section>
 
         <section class="wallet-bench__section" aria-labelledby="totals">
@@ -210,8 +246,11 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
 
   # The models that ruled on this attempt's turns, as each ruling recorded.
   defp judges(attempt) do
-    attempt.turns |> Enum.filter(& &1.judgment) |> Enum.map(& &1.judgment["model"]) |> Enum.uniq()
+    attempt.turns |> Enum.filter(&scored?/1) |> Enum.map(& &1.judgment["model"]) |> Enum.uniq()
   end
+
+  # The last turn of a money attempt is the bench's own check, not a ruling.
+  defp scored?(turn), do: turn.judgment != nil and turn.judgment["outcome"] != "UNSCORED"
 
   defp version_note(%{"matches_survey" => true}), do: ", the same as the survey."
 

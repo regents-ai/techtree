@@ -1,6 +1,7 @@
 defmodule TechtreeWeb.WalletBenchEvidenceController do
   @moduledoc """
-  One recorded file of a wallet test, as plain text.
+  One recorded file of a wallet test: an image the agent saved as that image,
+  everything else as plain text.
 
   Only a file the turn recorded is served: the turn and file names are looked
   up in the turn's own list, never used as a path, and the bytes read back
@@ -22,10 +23,20 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       ^sha256 = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
 
       conn
-      |> put_resp_content_type("text/plain")
+      |> put_resp_content_type(content_type(file), nil)
       |> send_resp(200, body)
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no recorded file has that name"
+    end
+  end
+
+  defp content_type(file) do
+    case Path.extname(file) do
+      ".png" -> "image/png"
+      ".jpg" -> "image/jpeg"
+      ".jpeg" -> "image/jpeg"
+      ".webp" -> "image/webp"
+      _text -> "text/plain; charset=utf-8"
     end
   end
 end

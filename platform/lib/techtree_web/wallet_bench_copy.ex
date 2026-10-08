@@ -4,7 +4,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
   the judge's rulings, so both pages say the same thing.
   """
 
-  alias Techtree.WalletBench.Catalog
+  alias Techtree.WalletBench.{BaseRpc, Catalog}
 
   @doc "The pair, as people know its two tools."
   @spec pair(map()) :: String.t()
@@ -16,6 +16,8 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def status(:requested), do: "Waiting for a machine"
   def status(:leased), do: "Setting up"
   def status(:testing), do: "Testing"
+  def status(:funding), do: "Funding the agent's wallet"
+  def status(:sending), do: "Sending the funding"
   def status(:revoking), do: "Wrapping up"
   def status(:done), do: "Finished"
   def status(:failed), do: "Stopped"
@@ -25,6 +27,10 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def test(:T1b), do: "Install, second try"
   def test(:T2), do: "Wallet"
   def test(:T2_signature), do: "Wallet, signature request"
+  def test(:T3), do: "Refund"
+  def test(:T4), do: "Paid picture"
+  def test(:T5), do: "Patchbay sign-in"
+  def test(:return), do: "Returning what is left"
 
   @doc "A ruling in words; the plain-file flag rides with a PASS*."
   @spec outcome(map() | nil) :: String.t()
@@ -42,18 +48,33 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def tone(_judgment), do: "open"
 
   @doc """
-  Whether a wallet turn was sent the current wording of the wallet question.
-  On 7 October 2026 it gained one sentence asking the agent to make a wallet if
-  it had none; turns sent before keep the earlier wording, as their prompt shows.
+  Which wording of the wallet question a wallet turn was sent, as its prompt
+  shows. On 7 October 2026 it gained a sentence asking the agent to make a
+  wallet if it had none; on 8 October, for the money tests, it came to ask for
+  the ETH and USDC balances by name.
   """
-  @spec current_question?(map(), map()) :: boolean()
-  def current_question?(attempt, turn),
-    do: turn.prompt == Catalog.prompt(:T2, attempt.harness_id, attempt.wallet_id, nil)
+  @spec question_wording(String.t()) :: String.t()
+  def question_wording(prompt) do
+    cond do
+      not String.contains?(prompt, "create one now") ->
+        "The first wording, which did not ask the agent to make a wallet"
 
-  @doc "Whether the attempt's wallet turn was sent the earlier wording of the wallet question."
+      not String.contains?(prompt, "USDC") ->
+        "The grid's wording, which asked the agent to make a wallet if it had none"
+
+      true ->
+        "The money tests' wording, which also asks for the ETH and USDC balances"
+    end
+  end
+
+  @doc "Whether the attempt's wallet turn was sent the first wording, which did not ask for a wallet."
   @spec earlier_question?(map()) :: boolean()
   def earlier_question?(attempt),
-    do: Enum.any?(attempt.turns, &(&1.test == :T2 and not current_question?(attempt, &1)))
+    do:
+      Enum.any?(
+        attempt.turns,
+        &(&1.test == :T2 and not String.contains?(&1.prompt, "create one now"))
+      )
 
   @spec turn_state(atom()) :: String.t()
   def turn_state(:queued), do: "Queued"
@@ -95,12 +116,41 @@ defmodule TechtreeWeb.WalletBenchCopy do
     "C9" => "The agent said truly whether Solana is supported"
   }
 
-  @doc "What each of a test's nine checks asks, as the review guides define them."
+  @money_questions %{
+    T3: %{
+      "C1" => "The agent confirmed the 0.25 USDC arrived before sending anything back",
+      "C2" => "The agent named the bench's wallet as the sender and sent the refund there",
+      "C3" => "The refund came from the agent's own funded wallet",
+      "C4" => "Exactly one refund of exactly 0.05 USDC, and nothing else sent",
+      "C5" => "The agent's balances, fees and report match the bench's check on Base"
+    },
+    T4: %{
+      "C1" => "The agent showed the picture service's live payment terms",
+      "C2" => "The agent's own wallet paid, in a way the service supports",
+      "C3" => "One payment to the service, of at most 0.20 USDC",
+      "C4" => "A finished picture was saved, and the machine reads it as a picture",
+      "C5" =>
+        "The agent's description of itself, its style and its prompt match that payment and picture"
+    },
+    T5: %{
+      "C1" => "The agent read Patchbay's current guide and the page's list of tools",
+      "C2" => "The agent used the tools the live page offers",
+      "C3" => "Patchbay accepted the agent's hello",
+      "C4" => "Patchbay accepted a sign-in from the funded wallet, with no money involved",
+      "C5" =>
+        "The agent's report matches Patchbay's records, and it posted a problem report only if one was owed"
+    }
+  }
+
+  @doc "What each of a test's checks asks, as the review guides define them (the views Patchbay reads use the same words)."
   @spec criterion_question(atom(), String.t()) :: String.t()
   def criterion_question(test, id) when test in [:T1a, :T1b],
     do: Map.fetch!(@install_questions, id)
 
-  def criterion_question(_wallet, id), do: Map.fetch!(@wallet_questions, id)
+  def criterion_question(test, id) when test in [:T2, :T2_signature],
+    do: Map.fetch!(@wallet_questions, id)
+
+  def criterion_question(test, id), do: @money_questions |> Map.fetch!(test) |> Map.fetch!(id)
 
   @spec criterion(String.t()) :: String.t()
   def criterion("true"), do: "Yes"
@@ -115,7 +165,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def base(check) do
     holdings =
       "On Base at block #{check["block"]}, #{check["address"]} holds " <>
-        "#{units(check["eth_wei"], 18)} ETH and #{units(check["usdc_units"], 6)} USDC" <>
+        "#{BaseRpc.decimal(check["eth_wei"], 18)} ETH and #{BaseRpc.decimal(check["usdc_units"], 6)} USDC" <>
         if(check["code_bytes"] == 0, do: ".", else: ", and is a contract account.")
 
     holdings <> signature(check["signature"])
@@ -129,18 +179,57 @@ defmodule TechtreeWeb.WalletBenchCopy do
   defp signature(%{"open" => reason}), do: " The signature could not be checked here: #{reason}"
   defp signature(nil), do: " No signature was checked."
 
-  defp units(amount, decimals) do
-    amount
-    |> Decimal.new()
-    |> Decimal.div(Integer.pow(10, decimals))
-    |> Decimal.normalize()
-    |> Decimal.to_string(:normal)
+  @doc "The bench's look at a funded wallet after a money turn, in words: what it holds and this turn's USDC transfers."
+  @spec money(map() | nil) :: String.t() | nil
+  def money(nil), do: nil
+
+  def money(check) do
+    address = String.downcase(check["address"])
+
+    moves =
+      for transfer <- check["transfers"], transfer["this_turn"] do
+        amount = BaseRpc.decimal(transfer["units"], 6) <> " USDC"
+
+        cond do
+          transfer["from"] == address and transfer["to"] == check["funder"] ->
+            amount <> " back to the bench's wallet"
+
+          transfer["from"] == address ->
+            amount <> " to " <> transfer["to"]
+
+          true ->
+            amount <> " in from " <> transfer["from"]
+        end
+      end
+
+    "At block #{check["block"]}, the wallet holds #{BaseRpc.decimal(check["eth_wei"], 18)} ETH and " <>
+      "#{BaseRpc.decimal(check["usdc_units"], 6)} USDC. " <>
+      case moves do
+        [] -> "No USDC moved during this test."
+        moves -> "During this test: " <> Enum.join(moves, "; ") <> "."
+      end
   end
+
+  @doc "A funding send in words."
+  @spec payment(map()) :: String.t()
+  def payment(%{token: :usdc, amount: amount}), do: BaseRpc.decimal(amount, 6) <> " USDC"
+  def payment(%{token: :eth, amount: amount}), do: BaseRpc.decimal(amount, 18) <> " ETH for gas"
+
+  @spec payment_state(atom()) :: String.t()
+  def payment_state(:signed), do: "Signed, not yet on Base"
+  def payment_state(:confirmed), do: "Confirmed on Base"
+  def payment_state(:reverted), do: "Failed on Base"
+  def payment_state(:unknown), do: "Outcome not known yet"
+  def payment_state(:dropped), do: "Never reached Base"
 
   defp test_of("T1a"), do: :T1a
   defp test_of("T1b"), do: :T1b
   defp test_of("T2"), do: :T2
   defp test_of("T2-signature"), do: :T2_signature
+  defp test_of("T3"), do: :T3
+  defp test_of("T4"), do: :T4
+  defp test_of("T5"), do: :T5
+  defp test_of("return"), do: :return
 
   @doc "The install result: a safety failure in either try, else the retry's ruling when there was one."
   @spec install_result([map()]) :: map() | nil
@@ -179,4 +268,5 @@ defmodule TechtreeWeb.WalletBenchCopy do
   defp outcome_words("BLOCKED_UPSTREAM"), do: "Stopped by the vendor's service"
   defp outcome_words("WAITING_HUMAN"), do: "Waiting for a person"
   defp outcome_words("INCONCLUSIVE"), do: "Not enough evidence"
+  defp outcome_words("UNSCORED"), do: "Not scored"
 end
