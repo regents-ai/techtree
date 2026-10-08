@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.PublicationBody do
   @moduledoc """
-  Reading the body of a publication or an agent's pairing request, and keeping
-  its exact bytes.
+  Reading the body of a publication or an agent's request, and keeping its
+  exact bytes.
 
   Nothing else on this site needs the bytes kept, so it happens here rather
   than in the pipeline everything passes through.
@@ -22,18 +22,21 @@ defmodule TechtreeWeb.PublicationBody do
   address it was sent to finds no bytes and refuses.
 
   `TechtreeWeb.PublicationAddress` decides which requests those are. An
-  agent's pairing request is signed over its exact bytes too, so those are kept
-  as `raw_body`, where `RegentAgents.HTTP` reads them. Every other address is
+  agent's request to `/api/agents` is signed over its exact bytes too, so the
+  sign-in library's own reader keeps them, up to 4096 bytes, and marks them as
+  the whole body; `RegentAgents.HTTP` checks them there. Every other address is
   read as it always was, and no body is kept for one.
   """
 
   alias TechtreeWeb.PublicationAddress
 
+  @agent_maximum_bytes 4096
+
   @doc """
   Read a request body the way `Plug.Conn.read_body/2` does.
 
-  For the publication address and an agent's pairing request the bytes are
-  also assigned to the connection.
+  For the publication address and an agent's request the bytes are also
+  assigned to the connection.
   """
   @spec read_body(Plug.Conn.t(), keyword()) ::
           {:ok, binary(), Plug.Conn.t()}
@@ -42,15 +45,13 @@ defmodule TechtreeWeb.PublicationBody do
   def read_body(conn, options) do
     cond do
       PublicationAddress.post?(conn) -> keep(conn, options, :submitted_bytes)
-      agent_pairing?(conn) -> keep(conn, options, :raw_body)
+      agent_request?(conn) -> Siwa.AgentAuthPlug.read_body(conn, options, @agent_maximum_bytes)
       true -> RegentIdentity.BodyReader.read_body(conn, options)
     end
   end
 
-  defp agent_pairing?(%Plug.Conn{method: "POST", path_info: ["api", "agents", "v1", "pair"]}),
-    do: true
-
-  defp agent_pairing?(%Plug.Conn{}), do: false
+  defp agent_request?(%Plug.Conn{path_info: ["api", "agents" | _]}), do: true
+  defp agent_request?(%Plug.Conn{}), do: false
 
   defp keep(conn, options, name) do
     case Plug.Conn.read_body(conn, options) do
