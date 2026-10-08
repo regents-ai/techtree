@@ -24,8 +24,8 @@ defmodule Techtree.WalletBench.Judge do
   @criteria %{
     type: "object",
     additionalProperties: false,
-    required: ["C1", "C2", "C3", "C4", "C5"],
-    properties: Map.new(~w(C1 C2 C3 C4 C5), &{&1, @criterion})
+    required: ~w(C1 C2 C3 C4 C5 C6 C7 C8 C9),
+    properties: Map.new(~w(C1 C2 C3 C4 C5 C6 C7 C8 C9), &{&1, @criterion})
   }
 
   @install_schema %{

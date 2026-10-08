@@ -39,7 +39,9 @@ defmodule Techtree.WalletBench do
       define :withdraw_attempt, action: :withdraw, args: [:reason]
     end
 
-    resource Techtree.WalletBench.Turn
+    resource Techtree.WalletBench.Turn do
+      define :rejudge_turn, action: :rejudge
+    end
 
     resource Techtree.WalletBench.AttemptEvent do
       define :list_attempt_events, action: :for_attempt, args: [:attempt_id]

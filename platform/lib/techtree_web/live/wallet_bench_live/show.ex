@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.WalletBenchLive.Show do
   @moduledoc """
   One wallet test attempt: the machine it ran on, each test's ruling with its
-  five checks and reasons, the bench's own checks, the stored evidence and
+  nine checks and reasons, the bench's own checks, the stored evidence and
   everything that happened, in order. Updates as the attempt moves.
   """
 
@@ -98,7 +98,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             <p>{turn.judgment["summary"]}</p>
 
             <table class="results-ledger wallet-bench__criteria">
-              <caption class="sr-only">The judge's five checks</caption>
+              <caption class="sr-only">The judge's nine checks</caption>
               <thead>
                 <tr>
                   <th scope="col">Check</th>
@@ -107,7 +107,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={key <- ~w(C1 C2 C3 C4 C5)}>
+                <tr :for={key <- ~w(C1 C2 C3 C4 C5 C6 C7 C8 C9)}>
                   <th scope="row">{Copy.criterion_question(turn.test, key)}</th>
                   <td class="wallet-bench__value">
                     {Copy.criterion(turn.judgment["criteria"][key]["value"])}

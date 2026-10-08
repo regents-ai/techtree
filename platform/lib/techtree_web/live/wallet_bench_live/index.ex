@@ -42,7 +42,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             </li>
             <li>Everything the agent does is recorded, with secrets blanked before it is stored.</li>
             <li>
-              A judge model, {@judge}, rules on each of the agent's answers against five checks,
+              A judge model, {@judge}, rules on each of the agent's answers against nine checks,
               and the bench checks any wallet address and signature on Base itself.
             </li>
             <li>The machine goes back to its clean start for the next test.</li>

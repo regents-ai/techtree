@@ -6,6 +6,9 @@ defmodule Techtree.WalletBench.BaseCheck do
   message and signature the harness printed, it also recovers the EIP-191
   signer for an account without code; for an account with code the check is
   left open. Read-only.
+
+  A check is a map with string keys, the shape it is stored in on the turn, so
+  a stored check and a new one read the same way.
   """
 
   @rpc "https://mainnet.base.org"
@@ -20,31 +23,32 @@ defmodule Techtree.WalletBench.BaseCheck do
     if address =~ ~r/\A0x[0-9a-fA-F]{40}\z/ do
       chain(address, signed)
     else
-      {:ok, %{address: address, problem: "This is not an EVM address."}}
+      {:ok, %{"address" => address, "problem" => "This is not an EVM address."}}
     end
   end
 
   @doc "The check as plain lines, for the judge and the page."
   @spec describe(map()) :: String.t()
-  def describe(%{problem: problem, address: address}), do: "address #{address}\n#{problem}\n"
+  def describe(%{"problem" => problem, "address" => address}),
+    do: "address #{address}\n#{problem}\n"
 
   def describe(check) do
     lines = [
-      "## Base RPC (#{@rpc}) at block #{check.block}, #{check.at}",
-      "address #{check.address}",
-      "chain_id #{check.chain_id}",
-      "code #{if check.code_bytes == 0, do: "0x", else: "#{check.code_bytes} bytes"}",
-      "eth_wei #{check.eth_wei}",
-      "usdc_units #{check.usdc_units}",
-      "nonce #{check.nonce}"
+      "## Base RPC (#{@rpc}) at block #{check["block"]}, #{check["at"]}",
+      "address #{check["address"]}",
+      "chain_id #{check["chain_id"]}",
+      "code #{if check["code_bytes"] == 0, do: "0x", else: "#{check["code_bytes"]} bytes"}",
+      "eth_wei #{check["eth_wei"]}",
+      "usdc_units #{check["usdc_units"]}",
+      "nonce #{check["nonce"]}"
     ]
 
     signature =
       case check do
-        %{signature: %{recovered: recovered, matches_address: matches}} ->
+        %{"signature" => %{"recovered" => recovered, "matches_address" => matches}} ->
           ["## signature check", "eip191_recovered #{recovered}", "matches_address #{matches}"]
 
-        %{signature: %{open: reason}} ->
+        %{"signature" => %{"open" => reason}} ->
           ["## signature check", "open: #{reason}"]
 
         _no_signature ->
@@ -63,14 +67,14 @@ defmodule Techtree.WalletBench.BaseCheck do
          {:ok, nonce} <- call("eth_getTransactionCount", [address, tag]),
          {:ok, usdc} <- call("eth_call", [%{to: @usdc, data: balance_call(address)}, tag]) do
       check = %{
-        address: address,
-        block: integer(tag),
-        at: block["timestamp"] |> integer() |> DateTime.from_unix!() |> DateTime.to_iso8601(),
-        chain_id: integer(chain_id),
-        code_bytes: div(byte_size(code) - 2, 2),
-        eth_wei: integer(wei),
-        usdc_units: integer(usdc),
-        nonce: integer(nonce)
+        "address" => address,
+        "block" => integer(tag),
+        "at" => block["timestamp"] |> integer() |> DateTime.from_unix!() |> DateTime.to_iso8601(),
+        "chain_id" => integer(chain_id),
+        "code_bytes" => div(byte_size(code) - 2, 2),
+        "eth_wei" => integer(wei),
+        "usdc_units" => integer(usdc),
+        "nonce" => integer(nonce)
       }
 
       {:ok, signature(check, signed)}
@@ -79,31 +83,31 @@ defmodule Techtree.WalletBench.BaseCheck do
 
   defp signature(check, nil), do: check
 
-  defp signature(%{code_bytes: 0} = check, signed) do
+  defp signature(%{"code_bytes" => 0} = check, signed) do
     result =
       with {:ok, message} <- message_bytes(signed),
            {:ok, recovered} <-
              Siwa.EvmPersonalSign.recover_personal_address(message, signed.signature) do
         %{
-          recovered: recovered,
-          matches_address: String.downcase(recovered) == String.downcase(check.address)
+          "recovered" => recovered,
+          "matches_address" => String.downcase(recovered) == String.downcase(check["address"])
         }
       else
-        {:error, reason} -> %{open: "the signature could not be recovered (#{reason})"}
+        {:error, reason} -> %{"open" => "the signature could not be recovered (#{reason})"}
       end
 
     Map.put(
       check,
-      :signature,
-      Map.merge(result, %{message: signed.message, value: signed.signature})
+      "signature",
+      Map.merge(result, %{"message" => signed.message, "value" => signed.signature})
     )
   end
 
   defp signature(check, signed) do
-    Map.put(check, :signature, %{
-      open: "the account holds code, so an EIP-191 recovery does not decide it",
-      message: signed.message,
-      value: signed.signature
+    Map.put(check, "signature", %{
+      "open" => "the account holds code, so an EIP-191 recovery does not decide it",
+      "message" => signed.message,
+      "value" => signed.signature
     })
   end
 

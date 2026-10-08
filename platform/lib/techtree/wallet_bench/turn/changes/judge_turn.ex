@@ -10,6 +10,11 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   answers found word for word in the transcript, then checked on Base
   (`Techtree.WalletBench.BaseCheck`); the signature request is ruled on
   together with the T2 turn before it, as one T2 result.
+
+  With `evidence: :stored` (the `:rejudge` action) a wallet turn is ruled on
+  again from what was read and checked when it was first judged: the printed
+  address, message and signature and the Base check at that block stay as
+  they are, so only the ruling is new.
   """
 
   use Ash.Resource.Change
@@ -19,13 +24,13 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   alias Techtree.WalletBench.{Attempt, BaseCheck, Catalog, Evidence, Judge}
 
   @impl true
-  def change(changeset, _opts, _context) do
+  def change(changeset, opts, _context) do
     Ash.Changeset.before_transaction(changeset, fn changeset ->
       turn = changeset.data
 
       with {:ok, attempt} <-
              Ash.get(Attempt, turn.attempt_id, load: [:machine, :turns]),
-           {:ok, judgment, checks, cost} <- judge(attempt, turn) do
+           {:ok, judgment, checks, cost} <- judge(attempt, turn, opts[:evidence]) do
         changeset
         |> Ash.Changeset.force_change_attributes(%{
           judgment: judgment,
@@ -39,7 +44,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     end)
   end
 
-  defp judge(attempt, %{test: test} = turn) when test in [:T1a, :T1b] do
+  defp judge(attempt, %{test: test} = turn, _evidence) when test in [:T1a, :T1b] do
     wallet = Catalog.wallet!(attempt.wallet_id)
 
     with {:ok, files} <-
@@ -62,7 +67,19 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     end
   end
 
-  defp judge(attempt, %{test: :T2} = turn) do
+  defp judge(attempt, %{test: test} = turn, :stored) when test in [:T2, :T2_signature] do
+    first = Enum.find(attempt.turns, &(&1.test == :T2))
+    turns = if test == :T2, do: [turn], else: [first, turn]
+    base = turn.checks["base"]
+
+    with {:ok, parts} <- turn_files(attempt, turns),
+         {:ok, judgment, cost} <-
+           Judge.rule(:wallet, Catalog.review_guide(test), wallet_evidence(attempt, parts, base)) do
+      {:ok, judgment, turn.checks, cost}
+    end
+  end
+
+  defp judge(attempt, %{test: :T2} = turn, :fresh) do
     with {:ok, files} <- files(attempt, turn, ~w(transcript.md stream.jsonl verify-storage.txt)),
          {:ok, printed, extract_cost} <- printed(files),
          {:ok, base} <- base_check(printed.address, printed),
@@ -72,7 +89,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     end
   end
 
-  defp judge(attempt, %{test: :T2_signature} = turn) do
+  defp judge(attempt, %{test: :T2_signature} = turn, :fresh) do
     first = Enum.find(attempt.turns, &(&1.test == :T2))
     address = first.checks["printed"]["address"]
 
@@ -86,6 +103,15 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
       {:ok, judgment, %{printed: Map.put(printed, :address, address), base: base},
        Decimal.add(cost, extract_cost)}
     end
+  end
+
+  defp turn_files(attempt, turns) do
+    Enum.reduce_while(turns, {:ok, []}, fn turn, {:ok, parts} ->
+      case files(attempt, turn, ~w(transcript.md verify-storage.txt)) do
+        {:ok, files} -> {:cont, {:ok, parts ++ [{turn, files}]}}
+        {:error, error} -> {:halt, {:error, error}}
+      end
+    end)
   end
 
   defp files(attempt, turn, names) do
@@ -178,7 +204,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     first = Enum.find(attempt.turns, &(&1.test == :T1a))
 
     "T1b, the retry after T1a, which was ruled #{first.judgment["outcome"]}: " <>
-      "#{first.judgment["summary"]} The error sent back was: #{first.judgment["retry_error"]}"
+      "#{first.judgment["summary"]} The error sent back is in the prompt below."
   end
 
   defp wallet_evidence(attempt, turns, base) do

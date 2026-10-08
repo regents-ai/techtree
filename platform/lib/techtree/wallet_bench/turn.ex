@@ -13,6 +13,9 @@ defmodule Techtree.WalletBench.Turn do
   T1b only when the judge named a technical error to send back, T2 only after an
   install worked, the signature request only when the agent signed but never
   printed the signature; otherwise the attempt's tests are over.
+
+  A judged turn can be ruled on again (`:rejudge`) when the review guides
+  change: the same stored evidence, a new ruling, and nothing after it runs.
   """
 
   use Ash.Resource,
@@ -109,10 +112,18 @@ defmodule Techtree.WalletBench.Turn do
       description "The judge's ruling, then the next test or the end of the tests."
       require_atomic? false
       change filter(expr(state == :finished))
-      change JudgeTurn
+      change {JudgeTurn, evidence: :fresh}
       change set_attribute(:state, :judged)
       change RecordEvent
       change Advance
+    end
+
+    update :rejudge do
+      description "A new ruling on a judged turn from its stored evidence; the attempt does not move."
+      require_atomic? false
+      change filter(expr(state == :judged))
+      change {JudgeTurn, evidence: :stored}
+      change RecordEvent
     end
 
     update :mark_failed do
@@ -203,7 +214,7 @@ defmodule Techtree.WalletBench.Turn do
     end
 
     attribute :judgment, :map do
-      description "The judge's ruling: outcome, C1–C5, summary and reasoning."
+      description "The judge's ruling: outcome, C1–C9, summary and reasoning."
       public? true
     end
 
@@ -216,6 +227,15 @@ defmodule Techtree.WalletBench.Turn do
   relationships do
     belongs_to :attempt, Techtree.WalletBench.Attempt do
       allow_nil? false
+      public? true
+    end
+  end
+
+  calculations do
+    calculate :nine_checks?,
+              :boolean,
+              expr(fragment("jsonb_exists(? -> 'criteria', 'C9')", judgment)) do
+      description "Whether the ruling has the nine checks of the current review guides."
       public? true
     end
   end
