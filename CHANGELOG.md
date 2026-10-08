@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.7.2 (2026-10-08)
+
+### Changed
+
+- Techtree now names regents-cli 1.7.3, with the same Climbs, catalog,
+  engines and starter Skills as v0.7.1. regents-cli 1.7.3 works with an
+  agent key set up by the SIWA agent client's `use-wallet`, and on a Mac it
+  keeps the agent key locked with a passkey. Install it with
+  `uv tool install --python 3.12 regents-cli==1.7.3`, or upgrade with
+  `uv tool upgrade regents-cli`. The Hermes plugin is 0.7.2.
+
 ## v0.7.1 (2026-10-07)
 
 ### Changed

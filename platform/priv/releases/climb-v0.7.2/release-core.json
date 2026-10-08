@@ -1,0 +1,37 @@
+{
+  "catalog_digest": "sha256:2b81f26f8439e7fa1c1c68b7199731c519454d77f2b06da90d654bdc11ae9d35",
+  "cli_version": "1.7.3",
+  "climbs": {
+    "frontier-cs-open-ended-climb@3": {
+      "engine_digest": "sha256:c075bc1fb158d11a08c475233fb2abbfb3ab98616be6608a2ad5efb05c9422d5",
+      "starter_skill_digest": "sha256:c93c985b1017d976408239b2583bff7248507032cb32c7aeb20edd685fbc86a6",
+      "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669"
+    },
+    "hello-world-climb@3": {
+      "engine_digest": "sha256:1fdb893a38dae08bf783e44e74980e521bb806234e6a569da410a66ad532bc46",
+      "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
+      "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
+    },
+    "tasksmith-climb@2": {
+      "engine_digest": "sha256:cefd5ddff683098a20be16e951aeeac8edcab5ea0e4559280235503946a3975b",
+      "starter_skill_digest": "sha256:974fafc5bce1d489fe332c7bdc8e9b9ecb38b873d407ac7d38c70f098362b595",
+      "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:6e36be766e6d2ac16f5d8feda3a09f5b1337a6d9f7d1b306cdd44dbe456377d4"
+    }
+  },
+  "intro_climb_reference": "hello-world-climb@3",
+  "maximum_tested_host_hermes_version": "0.21.3",
+  "minimum_host_hermes_version": "0.21.3",
+  "protocol_version": "v1alpha1",
+  "publication": {
+    "network_key": {
+      "algorithm": "ed25519",
+      "key_id": "sha256:84ea8ffad2b0fc59f9db9f14b7d97f25c060e71b644dec316ecd582ac040b966",
+      "public_key": "FbKdOrQUNLohljAE31P5ts99ynqvGpesCktW3aez0I4="
+    },
+    "public_log_url": "https://techtree.sh/results",
+    "submission_endpoint": "https://techtree.sh/api/v1/publications"
+  },
+  "release_id": "climb-v0.7.2",
+  "schema_version": "techtree.release-core.v3",
+  "subject_hermes_version": "v2026.9.24"
+}
