@@ -112,6 +112,9 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
       base == nil or Map.has_key?(base, "problem") or base["chain_id"] != 8453 ->
         refuse(attempt, "The bench did not find the agent's wallet on Base.")
 
+      get_in(base, ["signature", "matches_address"]) != true ->
+        refuse(attempt, "The bench could not confirm a signature from the agent's wallet.")
+
       true ->
         update(attempt, :fund, %{address: base["address"]})
     end

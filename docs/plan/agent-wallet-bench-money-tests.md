@@ -28,7 +28,9 @@ therefore runs every step on one machine, which it keeps for the whole attempt:
 
 1. T1a install (T1b only where the judge sends back a technical error), as now.
 2. T2 with the corrected balance sentence (below), as now.
-3. **Funding gate.** Only when T2 passed with this attempt's own address, read on Base, does the controller fund it.
+3. **Funding gate.** Only when T2 passed with this attempt's own address, read on Base, and the bench itself confirmed
+   the T2 signature came from that address, does the controller fund it. The bench recovers the key's signature
+   (EIP-191); for a smart wallet the key did not sign for, it asks the wallet itself (ERC-1271).
    Otherwise the attempt ends after T2, costs no USDC and records why it was not funded ("The wallet test did not
    pass (FAILED_TECHNICAL)."); its refund, image and Patchbay results read "Not run" with that reason. When the bench
    itself cannot fund (funding paused, a total reached, the funder short, an address that is not new on Base), the
@@ -55,17 +57,21 @@ address is public in the results. How it signs is decision 1.
 
 - `wallet_bench_payments`, in Techtree's schema: one row per send the bench makes, with the attempt, token, amount,
   funder, agent address, nonce, the signed bytes, the transaction hash, the block and a state (`signed`, `confirmed`,
-  `reverted`, `unknown`, `dropped`). The bytes and hash are stored before anything is broadcast, so sending again is
+  `reverted`, `unknown`, `replaced`). The bytes and hash are stored before anything is broadcast, so sending again is
   the same transaction, never a second one. A Sprite restore never touches it.
 - Funding is two AshOban steps on the attempt. **Sign:** reads Base at the latest block, decides, signs both sends
   and stores them in the same transaction as the attempt's move to `sending`; nothing is broadcast. **Send:**
   broadcasts the stored bytes and reads the receipts, waiting (an Oban snooze, not a retry) while one is pending.
   Both confirmed: T3 is queued in the same transaction. One reverted: the attempt stops. No receipt ten minutes after
-  signing: the send becomes `unknown`, which pauses all funding until an operator reads the chain and settles it as
-  `confirmed` or `dropped`. Running out of signing retries stops the attempt with nothing sent.
+  signing: the send becomes `unknown`, which pauses all funding until an operator asks the bench to settle it. Settling
+  reads Base itself: a receipt makes it `confirmed` or `reverted`; with no receipt it becomes `replaced` only once the
+  funder's nonce at the latest block has passed it. While that nonce is unused the stored bytes can still land, so the
+  send stays unknown until the nonce is used on Base (for example a zero-ETH send from the funder to itself, which Sean
+  signs). Running out of signing retries stops the attempt with nothing sent.
 - Checks before signing, all at the latest block: funding not paused; the run's totals (decision 5) not passed,
-  counting every send except reverted and dropped ones; the agent's address is not the funder's, holds nothing and has
-  sent nothing; the RPC answers for chain 8453; the funder holds the amounts plus gas at twice the current base fee.
+  counting every send except reverted and replaced ones; the agent's address is not the funder's, holds nothing and has
+  sent nothing; the RPC answers for chain 8453; Base's fee cap (twice the base fee plus the tip) is at most 0.1 gwei per
+  gas; the funder holds the amounts plus that gas.
   Each send takes the next nonce after both the chain's pending count and every nonce the bench already signed.
 - The funder's key is read from the site setting `WALLETBENCH_FUNDER_KEY` each time a send is signed and never kept
   (Sentinel's rule): not in a job's arguments, a row, a process's state or a log. Signing is

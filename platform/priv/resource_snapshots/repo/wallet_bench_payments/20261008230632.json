@@ -121,18 +121,6 @@
       "type": "bigint"
     },
     {
-      "allow_nil?": true,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "note",
-      "type": "text"
-    },
-    {
       "allow_nil?": false,
       "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
       "generated?": false,
@@ -196,7 +184,7 @@
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "E2FD57DB6DB7FC9E0BD9BF02B6E60DD9DF6169EA6241800389A143FB66B65848",
+  "hash": "D531EC87CA33C2CF7BA0A1EA9D3253D262703C96B551C837B4D02B7B438C636F",
   "identities": [
     {
       "all_tenants?": false,

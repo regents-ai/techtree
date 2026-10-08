@@ -7,8 +7,11 @@ defmodule Techtree.WalletBench.Payment do
   A send is written `signed`, with its signed bytes and hash, before it is ever
   broadcast, so sending again is the same transaction and never a second one.
   It ends `confirmed` or `reverted` from its receipt on Base, or `unknown` when
-  no receipt came in time; an unknown send pauses all funding until an
-  operator settles it from the chain (`:settle`) as `confirmed` or `dropped`.
+  no receipt came in time. An unknown send pauses all funding until an
+  operator settles it (`:settle`), which reads Base itself: `confirmed` or
+  `reverted` from a receipt, or `replaced` once the funder's nonce has been
+  used by another send. A send never ends while its nonce is unused, because
+  its stored bytes can still land.
 
   The database holds the limits that must never break: one send per funder
   nonce, and an address is funded with each token at most once, ever.
@@ -67,15 +70,13 @@ defmodule Techtree.WalletBench.Payment do
 
     update :settle do
       description """
-      An operator, having read the chain, says what became of an unknown send:
-      `confirmed` at a block, or `dropped`. Operator only.
+      An operator asks the bench to read Base for what became of an unknown
+      send (`Techtree.WalletBench.Payment.Changes.Settle`). Operator only.
       """
 
-      accept [:block, :note]
-      argument :state, :atom, allow_nil?: false, constraints: [one_of: [:confirmed, :dropped]]
-      validate present(:note)
+      require_atomic? false
       change filter(expr(state == :unknown))
-      change set_attribute(:state, arg(:state))
+      change Techtree.WalletBench.Payment.Changes.Settle
     end
   end
 
@@ -101,7 +102,7 @@ defmodule Techtree.WalletBench.Payment do
     attribute :state, :atom do
       allow_nil? false
       public? true
-      constraints one_of: [:signed, :confirmed, :reverted, :unknown, :dropped]
+      constraints one_of: [:signed, :confirmed, :reverted, :unknown, :replaced]
     end
 
     attribute :from, :string, allow_nil?: false, public?: true, description: "The funder."
@@ -123,7 +124,6 @@ defmodule Techtree.WalletBench.Payment do
 
     attribute :hash, :string, allow_nil?: false, public?: true
     attribute :block, :integer, public?: true, description: "The block its receipt is in."
-    attribute :note, :string, public?: true, description: "What the operator read on the chain."
 
     timestamps()
   end

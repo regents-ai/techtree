@@ -90,6 +90,7 @@ config :techtree, Oban,
 # The bench reads Base, and sends its funding, through `base_rpc`. Each funded
 # money attempt gets 0.25 USDC and 0.00003 ETH for gas, and the funder never
 # sends more than 10 USDC and 0.002 ETH in all (Sean, 8 October 2026: 2 a, 5 a).
+# Nothing is signed while Base needs a fee cap above 0.1 gwei per gas.
 config :techtree, Techtree.WalletBench,
   judge_model: "gpt-5.6-sol",
   base_rpc: "https://mainnet.base.org",
@@ -97,7 +98,8 @@ config :techtree, Techtree.WalletBench,
     usdc_units: 250_000,
     eth_wei: 30_000_000_000_000,
     total_usdc_units: 10_000_000,
-    total_eth_wei: 2_000_000_000_000_000
+    total_eth_wei: 2_000_000_000_000_000,
+    max_fee_per_gas_wei: 100_000_000
   ]
 
 # The catalog bundle this build serves, and the release channel it belongs to.

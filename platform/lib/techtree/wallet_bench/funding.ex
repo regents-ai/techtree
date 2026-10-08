@@ -13,7 +13,10 @@ defmodule Techtree.WalletBench.Funding do
   chain's pending count and every nonce the bench already signed.
 
   `receipts/1` broadcasts the signed bytes again, which is harmless for a
-  transaction already sent, and reads each receipt.
+  transaction already sent, and reads each receipt. `settled/1` only reads.
+
+  Base's gas price is capped by `max_fee_per_gas_wei` in the funding settings:
+  above it, nothing is signed.
   """
 
   require Ash.Query
@@ -49,10 +52,37 @@ defmodule Techtree.WalletBench.Funding do
          :ok <- on_base(integer(chain_id)),
          {:ok, agent} <- BaseCheck.check(address, nil),
          :ok <- untouched(agent),
-         {:ok, fees} <- fees(),
+         {:ok, fees} <- fees(caps),
          :ok <- funder_can_pay(funder, caps, fees),
          {:ok, nonce} <- next_nonce(funder) do
       sign(funder, String.downcase(address), caps, fees, nonce)
+    end
+  end
+
+  @doc """
+  What became of an unknown send, read from Base without sending anything:
+  `{:confirmed, block}` or `{:reverted, block}` from its receipt, or
+  `:replaced` when there is no receipt and the funder's nonce at the latest
+  block has passed it. The nonce is read first, so a send included between the
+  two reads is seen by its receipt, never taken as replaced.
+  """
+  @spec settled(struct()) ::
+          {:ok, {:confirmed | :reverted, non_neg_integer()} | :replaced} | {:error, String.t()}
+  def settled(payment) do
+    with {:ok, nonce} <- call("eth_getTransactionCount", [payment.from, "latest"]),
+         {:ok, receipt} <- call("eth_getTransactionReceipt", [payment.hash]) do
+      cond do
+        receipt != nil ->
+          {:ok, outcome(receipt)}
+
+        integer(nonce) > payment.nonce ->
+          {:ok, :replaced}
+
+        true ->
+          {:error,
+           "Base has no receipt for #{payment.hash}, and the funder's nonce #{payment.nonce} is still unused, " <>
+             "so the send can still land. It stays unknown until that nonce is used on Base."}
+      end
     end
   end
 
@@ -104,11 +134,11 @@ defmodule Techtree.WalletBench.Funding do
     end
   end
 
-  # Every send counts except one that never reached the chain.
+  # Every send counts except one that moved nothing: reverted, or replaced at its nonce.
   defp within_totals(caps) do
     sent =
       Payment
-      |> Ash.Query.filter(state not in [:reverted, :dropped])
+      |> Ash.Query.filter(state not in [:reverted, :replaced])
       |> Ash.read!()
       |> Enum.group_by(& &1.token, & &1.amount)
       |> Map.new(fn {token, amounts} -> {token, Enum.sum(amounts)} end)
@@ -143,11 +173,17 @@ defmodule Techtree.WalletBench.Funding do
   end
 
   # The fee cap allows the base fee to double before the sends are included.
-  defp fees do
+  defp fees(caps) do
     with {:ok, block} <- call("eth_getBlockByNumber", ["latest", false]),
          {:ok, tip} <- call("eth_maxPriorityFeePerGas", []) do
       tip = integer(tip)
-      {:ok, %{tip: tip, max: 2 * integer(block["baseFeePerGas"]) + tip}}
+      max = 2 * integer(block["baseFeePerGas"]) + tip
+
+      if max <= caps[:max_fee_per_gas_wei],
+        do: {:ok, %{tip: tip, max: max}},
+        else:
+          {:refuse,
+           "Base's gas price needs a fee cap of #{max} wei per gas, over the bench's ceiling of #{caps[:max_fee_per_gas_wei]}."}
     end
   end
 

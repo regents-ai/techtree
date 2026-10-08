@@ -42,7 +42,7 @@ defmodule Techtree.WalletBench do
 
     resource Techtree.WalletBench.Payment do
       define :list_payments, action: :for_attempt, args: [:attempt_id]
-      define :settle_payment, action: :settle, args: [:state, :note]
+      define :settle_payment, action: :settle
     end
 
     resource Techtree.WalletBench.Turn do

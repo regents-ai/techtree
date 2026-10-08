@@ -176,6 +176,9 @@ defmodule TechtreeWeb.WalletBenchCopy do
   defp signature(%{"matches_address" => false, "recovered" => by}),
     do: " The signature was made by #{by}, not this wallet."
 
+  defp signature(%{"matches_address" => false}),
+    do: " The wallet did not accept the signature as its own."
+
   defp signature(%{"open" => reason}), do: " The signature could not be checked here: #{reason}"
   defp signature(nil), do: " No signature was checked."
 
@@ -220,7 +223,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def payment_state(:confirmed), do: "Confirmed on Base"
   def payment_state(:reverted), do: "Failed on Base"
   def payment_state(:unknown), do: "Outcome not known yet"
-  def payment_state(:dropped), do: "Never reached Base"
+  def payment_state(:replaced), do: "Never sent; another send took its place"
 
   defp test_of("T1a"), do: :T1a
   defp test_of("T1b"), do: :T1b

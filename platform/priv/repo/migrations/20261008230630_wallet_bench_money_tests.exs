@@ -26,7 +26,6 @@ defmodule Techtree.Repo.Migrations.WalletBenchMoneyTests do
       add :raw, :text, null: false
       add :hash, :text, null: false
       add :block, :bigint
-      add :note, :text
 
       add :inserted_at, :utc_datetime_usec,
         null: false,

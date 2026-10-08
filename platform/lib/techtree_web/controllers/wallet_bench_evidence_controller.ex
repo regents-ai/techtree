@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.WalletBenchEvidenceController do
   @moduledoc """
   One recorded file of a wallet test: an image the agent saved as that image,
-  everything else as plain text.
+  when its own bytes say it is one of that kind, and everything else as plain
+  text.
 
   Only a file the turn recorded is served: the turn and file names are looked
   up in the turn's own list, never used as a path, and the bytes read back
@@ -23,19 +24,19 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       ^sha256 = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
 
       conn
-      |> put_resp_content_type(content_type(file), nil)
+      |> put_resp_content_type(content_type(file, body), nil)
       |> send_resp(200, body)
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no recorded file has that name"
     end
   end
 
-  defp content_type(file) do
-    case Path.extname(file) do
-      ".png" -> "image/png"
-      ".jpg" -> "image/jpeg"
-      ".jpeg" -> "image/jpeg"
-      ".webp" -> "image/webp"
+  # The same headers the machine's image_type.py reads.
+  defp content_type(file, body) do
+    case {Path.extname(file), body} do
+      {".png", <<0x89, "PNG\r\n", 0x1A, "\n", _rest::binary>>} -> "image/png"
+      {ext, <<0xFF, 0xD8, _rest::binary>>} when ext in [".jpg", ".jpeg"] -> "image/jpeg"
+      {".webp", <<"RIFF", _size::binary-size(4), "WEBP", _rest::binary>>} -> "image/webp"
       _text -> "text/plain; charset=utf-8"
     end
   end
