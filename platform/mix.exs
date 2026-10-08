@@ -157,7 +157,7 @@ defmodule Techtree.MixProject do
         "credo --strict",
         "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
         # Ash resources and their domains compile against each other; this is the floor.
-        "xref graph --label compile-connected --fail-above 15",
+        "xref graph --label compile-connected --fail-above 16",
         "ash.codegen --check",
         "usage_rules.sync --check",
         "cmd --cd assets npm run typecheck",

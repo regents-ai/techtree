@@ -15,6 +15,9 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   alias Techtree.WalletBench
   alias Techtree.WalletBench.{Catalog, Evidence}
 
+  # The type is one of four fixed values, chosen from the stored file's own header and never from the request; an
+  # image or plain text runs no script, and the site sends nosniff and its CSP with every answer.
+  # sobelow_skip ["XSS.ContentType", "XSS.SendResp"]
   def show(conn, %{"id" => id, "turn" => turn_name, "file" => file}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, attempt} <- WalletBench.get_attempt(id, load: [:turns]),
