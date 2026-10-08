@@ -377,7 +377,9 @@ defmodule TechtreeWeb.OpenAPI do
               ),
             "401" => error("`verification_failed`: the signature could not be verified."),
             "503" =>
-              error("`verification_unavailable`: the sign-in service could not be reached.")
+              error(
+                "`verification_unavailable`: the sign-in service could not be reached or gave no answer."
+              )
           }
         }
       },
@@ -394,7 +396,9 @@ defmodule TechtreeWeb.OpenAPI do
             "401" => error("`verification_failed`: the signature could not be verified."),
             "404" => error("`not_paired`: this agent is not paired with an account."),
             "503" =>
-              error("`verification_unavailable`: the sign-in service could not be reached.")
+              error(
+                "`verification_unavailable`: the sign-in service could not be reached or gave no answer."
+              )
           }
         }
       },
