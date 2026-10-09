@@ -3,7 +3,8 @@ defmodule Techtree.WalletBench.Blank do
   Blanks secrets out of a turn's evidence before anything is stored.
 
   First every known secret: each value read from the tested account's
-  secret-looking files (`machine/secrets.py`), and the model key. Each is
+  secret-looking files (`machine/secrets.py`), the model key and supplied
+  operator keys regardless of what the agent left on disk. Each is
   blanked as written and as it appears inside a JSON string, and the blank
   names the file it came from. Then patterns: PEM private keys, sign-in links
   that carry a code, email addresses, API keys with a vendor's prefix (OpenAI,
@@ -26,7 +27,7 @@ defmodule Techtree.WalletBench.Blank do
     {~r/-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----/s, "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
     {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},
-    {~r/\b(?:sk-[A-Za-z0-9_-]{20,}|(?:bk|zk)_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
+    {~r/\b(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
      "API key"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:0x)?[0-9a-fA-F]{64}(?![0-9A-Za-z])/,
      "32-byte hex value: a private key or a hash"},
@@ -38,17 +39,22 @@ defmodule Techtree.WalletBench.Blank do
   @type known :: {value :: String.t(), label :: String.t()}
 
   @doc """
-  The known secrets of a turn: the model key, and each value in `secrets.py`'s
-  answer labelled with the kind of file it came from.
+  The known secrets of a turn: model and operator keys, and each value in
+  `secrets.py`'s answer labelled with the kind of file it came from.
   """
-  @spec known(String.t(), [%{String.t() => term()}]) :: [known()]
-  def known(model_key, files) do
+  @spec known(String.t(), [%{String.t() => term()}], [String.t() | nil]) :: [known()]
+  def known(model_key, files, operator_keys \\ []) do
     from_files =
       for %{"path" => path, "values" => values} <- files, value <- values do
         {value, kind(path) <> ", from " <> path}
       end
 
-    [{model_key, "API key"} | from_files]
+    keys =
+      [model_key | operator_keys]
+      |> Enum.filter(&(is_binary(&1) and &1 != ""))
+      |> Enum.map(&{&1, "API key"})
+
+    keys ++ from_files
   end
 
   @doc "Blanks every known secret, then every pattern, in `text`."

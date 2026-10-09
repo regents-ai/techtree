@@ -254,6 +254,22 @@ defmodule Techtree.WalletBench.Catalog do
     |> String.replace("{error}", error)
   end
 
+  def prompt(:T2, _harness_id, "W01", nil) do
+    supplied =
+      case Application.get_env(:techtree, :wallet_bench_bankr_api_key) do
+        key when is_binary(key) and key != "" ->
+          "\nThe operator supplied an existing Bankr benchmark account in ~/.bankr/config.json " <>
+            "and approved use of its existing LLM credits. Use Max Mode with gemini-3.8-flash. " <>
+            "Report this as assisted access; do not create or replace the account. " <>
+            "Do not reveal the API key. No purchase, top-up or transaction is authorised.\n"
+
+        _not_supplied ->
+          ""
+      end
+
+    read!("prompts/T2.txt") <> "\n" <> read!("prompts/T2-bankr.txt") <> supplied
+  end
+
   def prompt(:T2, _harness_id, _wallet_id, nil), do: read!("prompts/T2.txt")
 
   def prompt(:T2_signature, harness_id, wallet_id, nil) do

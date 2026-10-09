@@ -20,6 +20,10 @@ wallet_bench_openai_key = System.get_env("WALLETBENCH_OPENAI_API_KEY")
 config :techtree, Techtree.WalletBench, model_key: wallet_bench_openai_key
 config :regent_openai, api_key: wallet_bench_openai_key
 
+# Optional operator-supplied Bankr access for the assisted W01 wallet test.
+# It is never included in a prompt, recipe, command argument or public record.
+config :techtree, :wallet_bench_bankr_api_key, System.get_env("WALLETBENCH_BANKR_API_KEY")
+
 # The bench reads and funds on Base through this address instead, such as a
 # local copy of Base. The funder's key, WALLETBENCH_FUNDER_KEY, is read only
 # when a funding send is signed (Techtree.WalletBench.Funder).

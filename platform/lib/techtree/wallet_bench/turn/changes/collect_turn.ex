@@ -110,7 +110,9 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   defp known_secrets(name) do
     with {:ok, %{"files" => secret_files}} <-
            Remote.json(name, ["sudo", "/.sprite/bin/python3", "/work/bin/machine/secrets.py"]) do
-      {:ok, Blank.known(AttachCredentials.model_key(), secret_files), secret_files}
+      bankr_key = Application.get_env(:techtree, :wallet_bench_bankr_api_key)
+      known = Blank.known(AttachCredentials.model_key(), secret_files, [bankr_key])
+      {:ok, known, secret_files}
     end
   end
 

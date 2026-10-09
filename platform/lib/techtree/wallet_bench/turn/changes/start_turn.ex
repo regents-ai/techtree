@@ -39,7 +39,8 @@ defmodule Techtree.WalletBench.Turn.Changes.StartTurn do
             [Integer.to_string(Catalog.wall_cap(turn.test)), turn.resume_session_id || "-"] ++
             [wallet.executable | wallet.help]
 
-        with {:ok, _stdout} <- put_prompt(name, folder, turn.prompt) do
+        with :ok <- bankr_access(attempt, turn),
+             {:ok, _stdout} <- put_prompt(name, folder, turn.prompt) do
           Remote.start_job(name, job, script)
         end
 
@@ -50,6 +51,33 @@ defmodule Techtree.WalletBench.Turn.Changes.StartTurn do
         {:error, error}
     end
   end
+
+  # Installation is still unassisted. Only the wallet turn receives the
+  # optional benchmark account; the key travels on stdin, never in argv.
+  defp bankr_access(%{wallet_id: "W01", machine: machine}, %{test: :T2}) do
+    case Application.get_env(:techtree, :wallet_bench_bankr_api_key) do
+      key when is_binary(key) and key != "" ->
+        case Remote.run(
+               machine.name,
+               [
+                 "sudo",
+                 "/.sprite/bin/python3",
+                 "/work/bin/machine/bankr_credentials.py",
+                 "attach"
+               ],
+               stdin: key
+             ) do
+          {:ok, "attached\n"} -> :ok
+          {:ok, _other} -> {:error, "Bankr credential attachment did not confirm success."}
+          {:error, error} -> {:error, error}
+        end
+
+      _not_supplied ->
+        :ok
+    end
+  end
+
+  defp bankr_access(_attempt, _turn), do: :ok
 
   defp put_prompt(name, folder, prompt) do
     path = "/work/turns/" <> folder

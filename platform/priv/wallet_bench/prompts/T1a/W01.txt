@@ -3,3 +3,5 @@ On the verified Ubuntu Linux execution surface for this run, install the assigne
 Assigned wallet: Bankr.
 Official entrypoint: https://github.com/BankrBot/skills/tree/main/bankr
 Bankr's own instruction for this entrypoint: "install the bankr skill from https://github.com/BankrBot/skills/tree/main/bankr"
+
+Bankr's CLI includes a hosted agent reached through `bankr agent`; this is a valid official workflow. This install test needs only installation and an invocation such as version or help. Do not submit a hosted-agent prompt, log in, purchase access or top up credits during this install test. Report the installed CLI version.

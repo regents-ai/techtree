@@ -15,6 +15,7 @@ defmodule Techtree.WalletBench.Attempt.Changes.RevokeCredentials do
   def change(changeset, _opts, _context) do
     Ash.Changeset.before_transaction(changeset, fn changeset ->
       with {:ok, machine} <- Ash.get(Machine, changeset.data.machine_id),
+           :ok <- remove_bankr_access(machine.name, changeset.data.wallet_id),
            {:ok, "revoked\n"} <-
              Remote.run(machine.name, ["bash", "/work/bin/machine/credentials.sh", "revoke"],
                receive_timeout: 120_000
@@ -29,4 +30,22 @@ defmodule Techtree.WalletBench.Attempt.Changes.RevokeCredentials do
       end
     end)
   end
+
+  defp remove_bankr_access(name, "W01") do
+    script = """
+    if [ -f /work/bankr-access-supplied ]; then
+      sudo /.sprite/bin/python3 /work/bin/machine/bankr_credentials.py revoke
+    else
+      echo revoked
+    fi
+    """
+
+    case Remote.run(name, ["bash", "-c", script]) do
+      {:ok, "revoked\n"} -> :ok
+      {:ok, _other} -> {:error, "Bankr credential removal did not confirm success."}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  defp remove_bankr_access(_name, _wallet_id), do: :ok
 end
