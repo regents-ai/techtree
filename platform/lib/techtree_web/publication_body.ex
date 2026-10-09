@@ -11,9 +11,9 @@ defmodule TechtreeWeb.PublicationBody do
   are checked against a digest of what arrived rather than against a
   re-rendering of it. So the bytes are set aside as they are read.
 
-  The size cap is not here: the parser in `TechtreeWeb.Endpoint` reads no more
-  than the cap from any address, and stops a body over it before it has been
-  decoded, hashed or looked at.
+  The parser and shared SIWA body reader enforce the existing publication cap
+  before parsing or verification. Signed account and pairing bodies have a
+  smaller 4096-byte cap.
 
   The bytes are only kept for a request that arrived as `application/json`,
   because `Plug.Parsers` calls this reader for the parser that matched the
@@ -24,8 +24,8 @@ defmodule TechtreeWeb.PublicationBody do
   `TechtreeWeb.PublicationAddress` decides which requests those are. An
   agent's request to `/api/agents` is signed over its exact bytes too, so the
   sign-in library's own reader keeps them, up to 4096 bytes, and marks them as
-  the whole body; `RegentAgents.HTTP` checks them there. Every other address is
-  read as it always was, and no body is kept for one.
+  the whole body; `RegentAgents.HTTP` checks them there. Signed `/tools/account` bodies use that same reader and cap. Every other
+  address uses the identity body reader as before.
   """
 
   alias TechtreeWeb.PublicationAddress
@@ -44,18 +44,23 @@ defmodule TechtreeWeb.PublicationBody do
           | {:error, term()}
   def read_body(conn, options) do
     cond do
-      PublicationAddress.post?(conn) -> keep(conn, options, :submitted_bytes)
+      PublicationAddress.post?(conn) -> publication_body(conn, options)
       agent_request?(conn) -> Siwa.AgentAuthPlug.read_body(conn, options, @agent_maximum_bytes)
       true -> RegentIdentity.BodyReader.read_body(conn, options)
     end
   end
 
-  defp agent_request?(%Plug.Conn{path_info: ["api", "agents" | _]}), do: true
-  defp agent_request?(%Plug.Conn{}), do: false
+  defp agent_request?(conn) do
+    case Enum.map(conn.path_info, &URI.decode/1) do
+      ["api", "agents" | _] -> true
+      ["tools", "account" | _] -> true
+      _other -> false
+    end
+  end
 
-  defp keep(conn, options, name) do
-    case Plug.Conn.read_body(conn, options) do
-      {:ok, body, conn} -> {:ok, body, Plug.Conn.assign(conn, name, body)}
+  defp publication_body(conn, options) do
+    case Siwa.AgentAuthPlug.read_body(conn, options, Techtree.Network.maximum_body_bytes()) do
+      {:ok, body, conn} -> {:ok, body, Plug.Conn.assign(conn, :submitted_bytes, body)}
       other -> other
     end
   end

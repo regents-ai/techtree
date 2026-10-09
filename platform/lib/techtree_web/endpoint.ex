@@ -93,7 +93,8 @@ defmodule TechtreeWeb.Endpoint do
   # in JSON (`TechtreeWeb.Plugs.Parsers`).
   plug RegentAgentAccess.Plug,
     documents: &TechtreeWeb.PublicDocuments.document/1,
-    guide: "/llms.txt"
+    guide: "/llms.txt",
+    json_prefixes: ["api", "tools"]
 
   # One budget per caller, shared by the health check and every `/api` path,
   # answered or not, except publishing, which `TechtreeWeb.PublicationRate`
@@ -127,16 +128,23 @@ defmodule TechtreeWeb.Endpoint do
                 key: &TechtreeWeb.ClientAddress.key/1
               )
 
-  defp limit_rate(%Plug.Conn{path_info: ["healthz"]} = conn, _opts),
-    do: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+  defp limit_rate(conn, _opts) do
+    case Enum.map(conn.path_info, &URI.decode/1) do
+      ["healthz"] ->
+        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
-  defp limit_rate(%Plug.Conn{path_info: ["api" | _]} = conn, _opts) do
-    if TechtreeWeb.PublicationAddress.post?(conn),
-      do: conn,
-      else: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+      ["tools", "account" | _] ->
+        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+      ["api" | _] ->
+        if TechtreeWeb.PublicationAddress.post?(conn),
+          do: conn,
+          else: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+      _other ->
+        conn
+    end
   end
-
-  defp limit_rate(conn, _opts), do: conn
 
   defp secure_browser_headers(conn, _opts) do
     put_secure_browser_headers(conn, %{

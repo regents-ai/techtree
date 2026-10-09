@@ -17,6 +17,11 @@ defmodule TechtreeWeb.PublicPagesController do
     render(conn, :show, page: page, page_title: page.title)
   end
 
+  def agents(conn, _params) do
+    %{markdown: text} = TechtreeWeb.PublicDocuments.document("/agents.md")
+    conn |> put_resp_content_type("text/markdown") |> send_resp(200, text)
+  end
+
   def llms(conn, _params) do
     body = PublicDocuments.llms()
     conn |> cached(body) |> put_resp_content_type("text/plain") |> send_resp(200, body)

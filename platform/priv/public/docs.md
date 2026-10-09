@@ -1,6 +1,6 @@
 # Docs
 
-Install the released CLI, test a Skill against no Skill or its earlier version, verify a Result, and publish a Climb Result to the public Results log. Reading anything here needs no account.
+Install the released CLI, test a Skill against no Skill or its earlier version, verify a Result, and publish a Climb Result to the public Results log. Public catalog and Result reads need no account.
 
 ## Install and check this machine
 
@@ -66,7 +66,7 @@ An unknown address under `/api` answers JSON 404 whatever the `Accept` header sa
 
 ## Rate limits
 
-Each client address has {{request_limit}} requests per {{request_window}} seconds, shared by `/healthz` and the API. Publishing or withdrawing a Result has a budget of its own, {{publication_limit}} per {{publication_window}} seconds, and does not count against the first. Pages are not counted. Every answer says where you stand:
+Each client address has {{request_limit}} requests per {{request_window}} seconds, shared by `/healthz`, the API and signed `/tools/account` reads. Publishing or withdrawing a Result has a budget of its own, {{publication_limit}} per {{publication_window}} seconds, and does not count against the first. Pages are not counted. Every answer says where you stand:
 
 ```http
 RateLimit-Policy: "default";q={{request_limit}};w={{request_window}}
@@ -101,3 +101,9 @@ Local Runs, Episodes and Traces stay local. Model calls go to the provider you c
 - [Start](/start), [Results](/results), [Verify](/verify) and the [Changelog](/changelog).
 - [Agent guide](/llms.txt) and [security.txt](/.well-known/security.txt), which says where to report a vulnerability.
 - Source and issues: [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree).
+
+## Agent access adoption (API version 4)
+
+Hosted publication and withdrawal require fresh per-request SIWA proof for audience `techtree`, a current account pairing, and the participant's independent publication signature. The original JSON body and proof digests stay unchanged. Owner cookies grant no agent authority. A retry uses fresh SIWA proof and the identical publication document; digest idempotency returns the original receipt. Revocation stops new admission; re-pairing creates a new episode. This source adoption requires a compatible released CLI before deployment; frozen prior bootstrap releases remain unchanged.
+
+Read /agents.md for identity, pairing and recovery. GET /api/agents/v1/whoami verifies identity without requiring pairing. Current paired agents can read the shared owner's Credits balance/budget at GET /tools/account/balances, cursor history at POST /tools/account/credits/history, and Points at GET /tools/account/points. All use exact signed requests. Grant management, account security and owner pairing controls remain owner-only. World ID is optional. Native `techtree_publication` preserves raw JSON bytes through the shared transport; actual native execution remains unverified. Reads never activate or award Points.

@@ -59,7 +59,14 @@ defmodule Techtree.Network.PublicationEvent do
     create :record do
       description "Append one event against an entry. Ingest only."
 
-      accept [:kind, :payload_digest, :participant_signature]
+      accept [
+        :kind,
+        :payload_digest,
+        :participant_signature,
+        :beneficiary_privy_user_id,
+        :acting_agent_wallet,
+        :pairing_id
+      ]
 
       argument :publication_entry_id, :uuid, allow_nil?: false
 
@@ -97,6 +104,22 @@ defmodule Techtree.Network.PublicationEvent do
       description "That signature, as the document spells it."
       allow_nil? false
       public? true
+    end
+
+    # Historical events stay unattributed; never guess an owner from a proof key.
+    attribute :beneficiary_privy_user_id, :string do
+      sensitive? true
+      public? false
+    end
+
+    attribute :acting_agent_wallet, :string do
+      sensitive? true
+      public? false
+    end
+
+    attribute :pairing_id, :uuid do
+      sensitive? true
+      public? false
     end
 
     create_timestamp :inserted_at

@@ -25,9 +25,10 @@ defmodule TechtreeWeb.PublicationController do
   shape every signed document in this protocol uses and the shape the
   participant's own tooling validates. `Techtree.Network.Receipt` builds them.
 
-  Two gates stand in front of the checking, and both are here rather than in
-  the verifier, because both are properties of the request rather than of the
-  bundle. The body must arrive as `application/json` — anything else never
+  The request also needs a fresh SIWA proof and current owner pairing, checked
+  before the independent participant proof. Pairing is locked again inside the
+  transaction that records the event. The request gates belong outside the
+  bundle verifier. The body must arrive as `application/json` — anything else never
   reaches the parser that keeps the exact bytes, and is refused without being
   read. And the body is capped as it is read, which
   `TechtreeWeb.PublicationBody` does at the parser, before anything has been
@@ -251,6 +252,7 @@ defmodule TechtreeWeb.PublicationController do
 
   defp record(conn, bytes, loaded) do
     options = [
+      actor: conn.assigns.publication_actor,
       contributor_address: volunteered(conn),
       skill_name: header(conn, "x-techtree-skill-name"),
       skill_github_url: header(conn, "x-techtree-skill-github-url"),
@@ -279,8 +281,8 @@ defmodule TechtreeWeb.PublicationController do
   defp withdraw(conn, bytes, loaded) do
     withdrawn =
       case loaded do
-        {:ok, key} -> Ingest.withdraw(bytes, key, origin())
-        :error -> Ingest.recall_withdrawal(bytes)
+        {:ok, key} -> Ingest.withdraw(bytes, key, origin(), actor: conn.assigns.publication_actor)
+        :error -> Ingest.recall_withdrawal(bytes, actor: conn.assigns.publication_actor)
       end
 
     case withdrawn do

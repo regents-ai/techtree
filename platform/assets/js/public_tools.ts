@@ -1,9 +1,18 @@
-// The read-only tools every page offers a browser's own agent (WebMCP draft,
-// document.modelContext). priv/tool_manifest.json describes each tool once;
-// this file only adds the public request behind it. Nothing here signs in,
-// writes or spends: publishing stays with the CLI and its key.
+// Manifest-listed public reads and signed requests. Keys stay in the caller's SIWA signer.
 
 import manifest from "../../priv/tool_manifest.json" with {type: "json"}
+import {signedTools, type SignedOperation, type SignedInput} from "../vendor/regent_agent_access/signed_tools"
+
+function signedTransport() { return signedTools({
+  origin: window.location.origin,
+  trustedOrigins: [document.querySelector<HTMLMetaElement>('meta[name="agent-request-origin"]')?.content ?? ""],
+  audience: manifest.audience,
+  proofHeaders: manifest.proof_headers,
+  operations: manifest.tools.map(entry => ({...entry,
+    input_schema: "operation_input_schema" in entry ? entry.operation_input_schema : entry.input_schema,
+  })) as unknown as SignedOperation[],
+}) }
+
 
 type Property =
   | {type: "integer"; minimum: number; maximum?: number; description: string}
@@ -24,6 +33,7 @@ type Entry = {
   input_schema: Schema
   annotations: {readOnlyHint: boolean; untrustedContentHint: boolean}
   scope: string
+  authentication: string
 }
 
 // Named fields that passed inputProblem against the tool's schema.
@@ -127,6 +137,24 @@ const tools: ModelContextTool[] = entries.filter(entry => entry.scope === "site"
   inputSchema: entry.input_schema,
   annotations: entry.annotations,
   async execute(input: unknown, {signal}: {signal?: AbortSignal}) {
+    if (entry.name === "prepare_agent_request") {
+      try {
+        const args = input as {operation: string; input: Record<string, unknown>}
+        return {ok: true, request: signedTransport().prepare(args.operation, args.input)}
+      } catch (error) {
+        return {ok: false, error: {code: "invalid_preparation", message: String(error)}}
+      }
+    }
+    if (entry.authentication === "siwa_per_request") {
+      try {
+        const response = await signedTransport().execute(entry.name, input as SignedInput, signal)
+        const data = await response.json()
+        return response.ok ? {ok: true, status: response.status, data} : {ok: false, status: response.status, error: data.error}
+      } catch (error) {
+        return {ok: false, error: {code: "signed_request_failed", message: String(error),
+          hint: "Sign fresh proof for the exact prepared request with your existing SIWA signer. Report a missing signer; browser cookies grant no agent authority."}}
+      }
+    }
     const problem = inputProblem(input, entry.input_schema)
     if (problem) return {ok: false, error: {code: "invalid_input", message: problem}}
     try {
@@ -169,5 +197,5 @@ export function installPublicTools(): void {
         console.warn("Techtree's browser tools could not be offered.", error)
       })
   })
-  window.addEventListener("pagehide", () => registration!.abort())
+  window.addEventListener("pagehide", () => registration?.abort())
 }

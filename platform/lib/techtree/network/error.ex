@@ -26,7 +26,9 @@ defmodule Techtree.Network.Error do
   Every reason a submission is not a row.
   """
   @type code ::
-          :submission_too_large
+          :agent_not_paired
+          | :pairing_unavailable
+          | :submission_too_large
           | :submission_malformed
           | :submission_too_many_files
           | :submission_path_invalid
@@ -93,7 +95,9 @@ defmodule Techtree.Network.Error do
   entry that is not here is a `404`. Everything else is a well-formed request
   whose contents did not hold up, which is what `422` says.
   """
-  @spec status_for(code()) :: 400 | 404 | 409 | 413 | 422
+  @spec status_for(code()) :: 400 | 403 | 404 | 409 | 413 | 422 | 503
+  def status_for(:agent_not_paired), do: 403
+  def status_for(:pairing_unavailable), do: 503
   def status_for(:submission_too_large), do: 413
   def status_for(:submission_malformed), do: 400
   def status_for(:withdrawal_malformed), do: 400

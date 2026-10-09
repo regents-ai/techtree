@@ -7,6 +7,27 @@
 # General application configuration
 import Config
 
+config :ex_money,
+  custom_currencies: [{:XRC, name: "Credits", digits: 6}],
+  auto_start_exchange_rate_service: false
+
+config :regent_credits,
+  repo: Techtree.Repo,
+  pubsub: Techtree.PubSub,
+  ash_domains: [RegentCredits],
+  admins: []
+
+config :regent_points,
+  repo: Techtree.Repo,
+  pubsub: Techtree.PubSub,
+  ash_domains: [RegentPoints],
+  accounts: Techtree.Accounts,
+  program_id: "regents-points-v1",
+  starts_at: nil,
+  unified_activity_starts_at: nil,
+  approved_rules: [],
+  adapters: %{}
+
 config :regent_identity, repo: Techtree.Repo, ash_domains: [RegentIdentity]
 
 # Agents pair with a person's Regent account once, on any Regent site, and
@@ -67,7 +88,7 @@ config :spark,
 
 config :techtree,
   ecto_repos: [Techtree.Repo],
-  ash_domains: [Techtree.Catalog, Techtree.Network, Techtree.WalletBench],
+  ash_domains: [Techtree.Accounts, Techtree.Catalog, Techtree.Network, Techtree.WalletBench],
   generators: [timestamp_type: :utc_datetime]
 
 # Background jobs. The schema they live in is set in `config/runtime.exs`, beside

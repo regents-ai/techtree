@@ -9,7 +9,11 @@ defmodule Techtree.Capabilities do
   @manifest_path Path.expand("../../priv/tool_manifest.json", __DIR__)
   @external_resource @manifest_path
   @manifest @manifest_path |> File.read!() |> Jason.decode!()
-  @needs %{"none" => "Nothing"}
+  @needs %{
+    "none" => "Nothing",
+    "siwa" => "Fresh SIWA proof",
+    "siwa_and_pairing" => "Fresh SIWA proof and current pairing"
+  }
 
   @doc "The whole manifest."
   @spec manifest() :: map()
@@ -31,7 +35,7 @@ defmodule Techtree.Capabilities do
   @spec markdown_table() :: String.t()
   def markdown_table do
     """
-    | Tool | Reads | Needs | What it does |
+    | Tool | Request | Needs | What it does |
     | --- | --- | --- | --- |
     #{Enum.map_join(tools(), "\n", &"| `#{&1["name"]}` | `#{&1["route"]}` | #{needs(&1)} | #{&1["description"]} |")}\
     """

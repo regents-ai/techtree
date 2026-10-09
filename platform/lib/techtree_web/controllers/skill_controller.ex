@@ -40,6 +40,14 @@ defmodule TechtreeWeb.SkillController do
     compare. Everything runs on their own computer, and every step that calls a
     model waits for the person's yes.
 
+    ## Agent access
+
+    Read https://techtree.sh/agents.md before hosted publication or private account reads.
+    Hosted publication and withdrawal require current owner-approved agent pairing,
+    fresh SIWA proof over the exact request for audience `techtree`, and the independent
+    participant proof. Local work and public reads remain available without pairing.
+    Use a compatible CLI release; the frozen installation contract below is unchanged.
+
     ## Install
 
     ```sh

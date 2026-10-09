@@ -31,11 +31,18 @@ defmodule Techtree.Release do
       {:ok, _result, _apps} =
         with_migration_repo(repo, fn repo ->
           require_imported_history!(repo)
+          require_signed_access_schema!(repo)
           Ecto.Migrator.run(repo, :up, all: true, prefix: repo.default_prefix())
         end)
     end
 
     :ok
+  end
+
+  @doc "Read-only shared-schema prerequisites. This site never applies shared migrations."
+  def require_signed_access_schema!(repo) do
+    :ok = RegentAgents.Migrator.require_pairing_history!(repo)
+    RegentCredits.Migrator.require_pairing_grants!(repo)
   end
 
   @doc """

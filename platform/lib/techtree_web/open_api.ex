@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.OpenAPI do
   @moduledoc """
   The OpenAPI 3.1 description of every machine address this site answers:
-  the public read API, the one public write, the owner-only profile, and the
+  the public read API, the paired-agent write, the owner-only profile, and the
   health check.
 
   Each operation says what its controller actually sends. Documents this site
@@ -24,13 +24,13 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "3",
+        "version" => "4",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
           "The public catalog of Climbs, the log of published Results, the one address " <>
             "that accepts a signed Result bundle or its withdrawal, an agent's pairing " <>
-            "with its person's Regent account, and the owner-only shared profile. Reads need no account. Every error is an `error` object " <>
+            "with its person's Regent account, and the owner-only shared profile. Public reads need no account; private account reads require a current paired agent. Every error is an `error` object " <>
             "with a stable code: a refusal from an address says whether retrying could " <>
             "help, and an unknown address, an unreadable body, a request over the rate " <>
             "limit or an unexpected failure says what to do next. A breaking change " <>
@@ -205,9 +205,10 @@ defmodule TechtreeWeb.OpenAPI do
         },
         "post" => %{
           "operationId" => "createPublication",
+          "security" => [%{"AgentSignature" => []}],
           "summary" => "Publish a finished Result, or withdraw one already published",
           "description" =>
-            "The one public write. The body is either a publication submission (a " <>
+            "Fresh exact-request SIWA proof for audience techtree and a current account pairing are required, in addition to the participant proof. The body is either a publication submission (a " <>
               "finished run's proof bundle) or a signed withdrawal request; each declares " <>
               "what it is in its own `schema_version`. Every check runs before anything " <>
               "is stored, and a refusal names the check that failed. The body must be " <>
@@ -262,6 +263,8 @@ defmodule TechtreeWeb.OpenAPI do
                 "The body is not one of the two documents, or not JSON.",
                 ref("Error")
               ),
+            "401" => error("The exact request signature was refused."),
+            "403" => error("Current agent pairing is required."),
             "404" => error("The withdrawal names no published Result."),
             "409" => error("A different document was already published for this run."),
             "413" => json("The body is larger than the limit.", ref("Error")),
@@ -402,6 +405,49 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       },
+      "/api/agents/v1/whoami" => %{
+        "get" =>
+          signed_account_read(
+            "agent_whoami",
+            "Verify the named agent and its current pairing; no pairing prerequisite and no Points award."
+          )
+      },
+      "/tools/account/balances" => %{
+        "get" =>
+          signed_account_read(
+            "account_balances",
+            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed."
+          )
+      },
+      "/tools/account/points" => %{
+        "get" =>
+          signed_account_read(
+            "points_balance",
+            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing."
+          )
+      },
+      "/tools/account/credits/history" => %{
+        "post" =>
+          Map.put(
+            signed_account_read(
+              "credits_history",
+              "Current paired agent's canonical owner's Credits history; a read-only cursor page."
+            ),
+            "requestBody",
+            %{
+              "required" => true,
+              "content" => %{
+                "application/json" => %{
+                  "schema" => %{
+                    "type" => "object",
+                    "properties" => %{"after" => %{"type" => "string"}},
+                    "additionalProperties" => false
+                  }
+                }
+              }
+            }
+          )
+      },
       "/api/v1/profile" => %{
         "get" => %{
           "operationId" => "getProfile",
@@ -455,15 +501,29 @@ defmodule TechtreeWeb.OpenAPI do
     }
   end
 
+  defp signed_account_read(id, description) do
+    %{
+      "operationId" => id,
+      "summary" => description,
+      "security" => [%{"AgentSignature" => []}],
+      "responses" => %{
+        "200" => json("Authorized shared account or agent data.", %{"type" => "object"}),
+        "401" => error("Fresh exact-request SIWA proof is required."),
+        "403" => error("This protected read needs a current pairing and canonical owner."),
+        "503" => error("Identity, pairing or shared account data is unavailable.")
+      }
+    }
+  end
+
   defp components do
     %{
       "securitySchemes" => %{
         "AgentSignature" => %{
           "type" => "apiKey",
           "in" => "header",
-          "name" => "signature",
+          "name" => "x-siwa-signature",
           "description" =>
-            "A signature over the request made with the agent's own key, as " <>
+            "The complete per-request SIWA proof (x-siwa-signature, x-siwa-signature-input, x-siwa-receipt, x-key-id, x-timestamp, x-agent-wallet-address, x-agent-chain-id and content-digest for a body), binding exact method, path and body to audience techtree. Use the existing signer as " <>
               "https://siwa.regents.sh/skill.md describes."
         },
         "PrivyAccess" => %{

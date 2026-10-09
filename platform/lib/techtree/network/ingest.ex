@@ -143,8 +143,9 @@ defmodule Techtree.Network.Ingest do
   @spec accept(binary(), Key.t(), keyword()) ::
           {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
   def accept(raw, %Key{} = key, options \\ []) when is_binary(raw) do
-    with {:ok, bundle, address, metadata} <- checked(raw, options) do
-      append(bundle, address, metadata, key, Keyword.get(options, :origin, ""))
+    with {:ok, actor} <- actor(options),
+         {:ok, bundle, address, metadata} <- checked(raw, options) do
+      append(bundle, address, metadata, key, Keyword.get(options, :origin, ""), actor)
     end
   end
 
@@ -160,7 +161,9 @@ defmodule Techtree.Network.Ingest do
   @spec recall(binary(), keyword()) ::
           {:ok, PublicationEntry.t(), :existing} | :unrecorded | {:error, Error.t()}
   def recall(raw, options \\ []) when is_binary(raw) do
-    with {:ok, bundle, _address, _metadata} <- checked(raw, options) do
+    with {:ok, actor} <- actor(options),
+         :ok <- current_actor(actor),
+         {:ok, bundle, _address, _metadata} <- checked(raw, options) do
       case stored(bundle) do
         {:same, entry} -> {:ok, entry, :existing}
         _other -> :unrecorded
@@ -180,25 +183,29 @@ defmodule Techtree.Network.Ingest do
 
   `origin` is where this site answers, which the receipt names.
   """
-  @spec withdraw(binary(), Key.t(), String.t()) ::
+  @spec withdraw(binary(), Key.t(), String.t(), keyword()) ::
           {:ok, PublicationEntry.t(), outcome()} | {:error, Error.t()}
-  def withdraw(raw, %Key{} = key, origin) when is_binary(raw) and is_binary(origin) do
-    with {:ok, entry, request} <- verified_withdrawal(raw) do
-      append_withdrawal(entry, request, key, origin)
+  def withdraw(raw, %Key{} = key, origin, options \\ [])
+      when is_binary(raw) and is_binary(origin) do
+    with {:ok, actor} <- actor(options),
+         {:ok, entry, request} <- verified_withdrawal(raw) do
+      append_withdrawal(entry, request, key, origin, actor)
     end
   end
 
   @doc """
   The stored answer to one withdrawal request, for when this site cannot sign.
 
-  The request is checked in full against the entry it names, as `withdraw/3`
+  The request is checked in full against the entry it names, as `withdraw/4`
   checks it. Returns `{:ok, entry, :existing}` when that entry is already
   withdrawn, and `:unrecorded` when it is not. Nothing is written either way.
   """
-  @spec recall_withdrawal(binary()) ::
+  @spec recall_withdrawal(binary(), keyword()) ::
           {:ok, PublicationEntry.t(), :existing} | :unrecorded | {:error, Error.t()}
-  def recall_withdrawal(raw) when is_binary(raw) do
-    with {:ok, entry, _request} <- verified_withdrawal(raw) do
+  def recall_withdrawal(raw, options \\ []) when is_binary(raw) do
+    with {:ok, actor} <- actor(options),
+         :ok <- current_actor(actor),
+         {:ok, entry, _request} <- verified_withdrawal(raw) do
       if is_nil(entry.withdrawn_at), do: :unrecorded, else: {:ok, entry, :existing}
     end
   end
@@ -238,6 +245,57 @@ defmodule Techtree.Network.Ingest do
   """
   @spec events(PublicationEntry.t()) :: [PublicationEvent.t()]
   def events(%PublicationEntry{id: id}), do: Network.list_events_for_entry!(id, @internal)
+
+  defp actor(options) do
+    case Keyword.get(options, :actor) do
+      %{id: id, privy_user_id: owner, wallet: wallet} = actor
+      when is_binary(id) and is_binary(owner) and is_binary(wallet) ->
+        {:ok, actor}
+
+      _other ->
+        {:error, pairing_error()}
+    end
+  end
+
+  defp current_actor(%{id: id, privy_user_id: owner, wallet: wallet}) do
+    case RegentAgents.Authority.resolve(Repo, wallet) do
+      {:ok, %{id: ^id, privy_user_id: ^owner}} ->
+        :ok
+
+      {:ok, _different} ->
+        {:error, pairing_error()}
+
+      {:error, :not_paired} ->
+        {:error, pairing_error()}
+
+      {:error, _error} ->
+        {:error, Error.new(:pairing_unavailable, "Current pairing could not be checked.")}
+    end
+  end
+
+  defp lock_actor!(%{id: id, privy_user_id: owner, wallet: wallet}) do
+    case RegentAgents.Authority.lock(Repo, id, owner, wallet) do
+      {:ok, pairing} ->
+        %{
+          beneficiary_privy_user_id: pairing.privy_user_id,
+          acting_agent_wallet: pairing.wallet,
+          pairing_id: pairing.id
+        }
+
+      {:error, :not_paired} ->
+        raise pairing_error()
+
+      {:error, _error} ->
+        raise Error.new(:pairing_unavailable, "Current pairing could not be checked.")
+    end
+  end
+
+  defp pairing_error do
+    Error.new(
+      :agent_not_paired,
+      "The acting agent needs its current account pairing before publication or withdrawal."
+    )
+  end
 
   # -- Checking ---------------------------------------------------------------
 
@@ -343,9 +401,11 @@ defmodule Techtree.Network.Ingest do
 
   # -- Appending -------------------------------------------------------------
 
-  defp append(%Bundle{} = bundle, address, metadata, key, origin) do
+  defp append(%Bundle{} = bundle, address, metadata, key, origin, actor) do
     appended =
       Ash.transact([PublicationEntry, PublicationEvent, ContributorAddress], fn ->
+        attribution = lock_actor!(actor)
+
         entry =
           Network.record_publication_entry!(
             attributes(bundle, metadata, key, origin),
@@ -358,7 +418,8 @@ defmodule Techtree.Network.Ingest do
             kind: :accepted,
             payload_digest: entry.bundle_digest,
             participant_signature: Bundle.participant_signature(bundle)
-          },
+          }
+          |> Map.merge(attribution),
           @internal
         )
 
@@ -376,6 +437,8 @@ defmodule Techtree.Network.Ingest do
           :unexplained -> raise refusal
         end
     end
+  rescue
+    error in Error -> {:error, error}
   end
 
   # A publication the database refused is one of exactly three things, and
@@ -588,9 +651,11 @@ defmodule Techtree.Network.Ingest do
   # event went in. The refused attempt reads back the entry the winner wrote
   # and hands back its receipt. Anything else is a defect, and a defect is
   # raised rather than dressed up as an outcome.
-  defp append_withdrawal(entry, %WithdrawalRequest{} = request, key, origin) do
+  defp append_withdrawal(entry, %WithdrawalRequest{} = request, key, origin, actor) do
     appended =
       Ash.transact([PublicationEntry, PublicationEvent], fn ->
+        attribution = lock_actor!(actor)
+
         event =
           Network.record_publication_event!(
             %{
@@ -598,7 +663,8 @@ defmodule Techtree.Network.Ingest do
               kind: :withdrawn,
               payload_digest: request.payload_digest,
               participant_signature: request.signature
-            },
+            }
+            |> Map.merge(attribution),
             @internal
           )
 
@@ -623,6 +689,8 @@ defmodule Techtree.Network.Ingest do
             raise refusal
         end
     end
+  rescue
+    error in Error -> {:error, error}
   end
 
   defp withdrawal_receipt(%PublicationEntry{} = withdrawn, key, origin) do

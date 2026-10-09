@@ -1,0 +1,90 @@
+{
+  "$schema": "https://raw.githubusercontent.com/regents-ai/regents-cli/main/src/regents_cli/schemas/commands.v1.json",
+  "format": "regents.commands.v1",
+  "platform": "techtree",
+  "base_url": "https://techtree.sh",
+  "notes": [
+    "This signed HTTP subset complements Techtree's native offline engine and exact-byte publication commands.",
+    "Requires compatible server and CLI releases; pairing and all requests use the caller's existing SIWA signer.",
+    "Owner controls and grants stay owner-only; account reads activate no Points and spend no funds."
+  ],
+  "commands": [
+    {
+      "command": "agents whoami",
+      "operation_id": "agent_whoami",
+      "method": "GET",
+      "path": "/api/agents/v1/whoami",
+      "description": "Verify the signing agent and current pairing; no pairing prerequisite.",
+      "authority": "wallet-proof",
+      "effect": "read",
+      "webmcp": "agent_whoami"
+    },
+    {
+      "command": "agents pair",
+      "operation_id": "pairAgent",
+      "method": "POST",
+      "path": "/api/agents/v1/pair",
+      "description": "Redeem the owner-approved single-use private pairing code. Current pairing grants no spending authority.",
+      "authority": "wallet-proof",
+      "effect": "write",
+      "stdin_fields": [
+        {
+          "field": "code",
+          "type": "string",
+          "description": "Private owner-approved pairing code; supply on stdin.",
+          "required": true
+        },
+        {
+          "field": "name",
+          "type": "string",
+          "description": "Agent name, 1 to 80 characters.",
+          "required": true
+        },
+        {
+          "field": "harness",
+          "type": "string",
+          "description": "Supported harness identifier.",
+          "required": true
+        }
+      ]
+    },
+    {
+      "command": "account balances",
+      "operation_id": "account_balances",
+      "method": "GET",
+      "path": "/tools/account/balances",
+      "description": "Read the current paired owner's Credits balance and episode-bound spending grant.",
+      "authority": "wallet-proof",
+      "effect": "read",
+      "webmcp": "account_balances"
+    },
+    {
+      "command": "account credits-history",
+      "operation_id": "credits_history",
+      "method": "POST",
+      "path": "/tools/account/credits/history",
+      "description": "Read one page of the current paired owner's Credits history.",
+      "authority": "wallet-proof",
+      "effect": "read",
+      "webmcp": "credits_history",
+      "stdin_fields": [
+        {
+          "field": "after",
+          "type": "string",
+          "description": "Cursor from the preceding history page.",
+          "required": false
+        }
+      ]
+    },
+    {
+      "command": "account points",
+      "operation_id": "points_balance",
+      "method": "GET",
+      "path": "/tools/account/points",
+      "description": "Read the current paired canonical owner's Points; awards and activates nothing.",
+      "authority": "wallet-proof",
+      "effect": "read",
+      "webmcp": "points_balance"
+    }
+  ]
+}

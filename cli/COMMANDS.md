@@ -3,8 +3,8 @@
 Every `regents techtree` command, written before it is built. A command that is not
 described here does not exist yet. Techtree's commands are native code in regents-cli: they
 run a local engine, check signed proofs and write files, which a plain request description
-cannot say. So this folder has no `commands.json`. The regents-cli chief builds each one from
-its section here.
+cannot say. `commands.json` describes the signed HTTP account and pairing subset; it complements the
+native commands. The regents-cli chief builds each native command from its section here.
 
 This file starts with the two commands added for reruns (decision 67 c) and public Skills
 (decision 68 a), then the ChatGPT plan sign-in (decision 59 a) beside the own-Prime-key route
@@ -325,3 +325,16 @@ no sign-in      model_sign_in_required
     moving every Climb to one model both routes serve, or listing only the Prime key on those
     Climbs.
 - **History:** 2026-10-05 added (plan only). 2026-10-06: both routes (105 b).
+
+## Hosted publication access (API v4)
+
+`publish`, `climb publish` and `withdraw` retain their local participant proof and exact
+JSON bytes. Hosted requests require fresh SIWA proof for audience `techtree` and current
+owner-approved pairing. The CLI prepares and signs POST `/api/v1/publications` over the
+original body, never a re-encoded copy. A retry keeps the same document and signs a fresh
+request. Only `https://techtree.sh` may receive production proof; arbitrary base URLs
+remain available for public reads and offline work. Frozen prior releases remain intact.
+
+The signed HTTP subset adds `agents whoami`, `agents pair`, `account balances`,
+`account credits-history` and `account points`. It does not replace the native engine,
+manage grants, activate Points, or move funds. Pairing codes go on stdin.

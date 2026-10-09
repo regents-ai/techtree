@@ -34,6 +34,10 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
+  pipeline :paired_agent do
+    plug TechtreeWeb.Plugs.PairedAgent
+  end
+
   # The public profile page is temporarily withdrawn. Keep the owner-only
   # API and implementation intact for its later return.
   scope "/api/v1", TechtreeWeb do
@@ -86,6 +90,7 @@ defmodule TechtreeWeb.Router do
   scope "/", TechtreeWeb do
     get "/sitemap.xml", SitemapController, :index
     get "/robots.txt", PublicPagesController, :robots
+    get "/agents.md", PublicPagesController, :agents
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security
@@ -106,14 +111,21 @@ defmodule TechtreeWeb.Router do
     get "/skills/:root_digest", PublishedSkillController, :show
   end
 
-  # The one public write address. Its rate limit and exact-byte reader stand
+  # The one paired-agent write address. Its rate limit and exact-byte reader stand
   # in the endpoint, in front of the parser (`TechtreeWeb.PublicationRate`,
   # `TechtreeWeb.PublicationBody`). The profile routes above accept bodies only
   # from the signed-in owner.
   scope "/api/v1", TechtreeWeb do
-    pipe_through :api
+    pipe_through [:api, :paired_agent]
 
     post "/publications", PublicationController, :create
+  end
+
+  scope "/tools/account", TechtreeWeb do
+    pipe_through [:api, :paired_agent]
+    get "/balances", AgentAccountController, :balances
+    post "/credits/history", AgentAccountController, :history
+    get "/points", AgentAccountController, :points
   end
 
   # An agent pairs with its person's Regent account and checks in, signing each
