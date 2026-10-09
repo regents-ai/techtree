@@ -12,7 +12,7 @@ primary_region = "iad"
 
 # The BEAM's memory high-water mark is during the release command and the first
 # seconds of boot, not while serving. Half a gigabyte of swap makes that peak
-# survivable on a 512 MB machine instead of an OOM kill.
+# survivable instead of an OOM kill.
 swap_size_mb = 512
 
 [build]
@@ -91,7 +91,8 @@ swap_size_mb = 512
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory = "512mb"
+  # 1 GB since 9 October 2026 (Sean, Sentinel decision 1 a): 512 MB sat at 79% and grew daily.
+  memory = "1gb"
 
 # There is deliberately no [[statics]] block. Fly's proxy would serve
 # priv/static itself and skip the endpoint, and with it the content-security,
