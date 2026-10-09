@@ -40,7 +40,7 @@ defmodule Techtree.Repo.Migrations.WalletBenchMoneyTests do
             column: :id,
             name: "wallet_bench_payments_attempt_id_fkey",
             type: :uuid,
-            prefix: "public",
+            prefix: prefix() || "public",
             on_delete: :nothing,
             on_update: :nothing
           ),
