@@ -95,7 +95,7 @@ defmodule Techtree.MixProject do
       {:ash_phoenix, "~> 2.0"},
       # 2.13.1 and later write upserts without the Repo's schema, into public.
       {:ash_postgres, "== 2.13.0"},
-      {:ash, "~> 3.34 and >= 3.34.4"},
+      {:ash, "~> 3.34 and >= 3.34.6"},
       {:ash_oban, "~> 0.9.0"},
       {:oban, "~> 2.24"},
       {:req, "~> 0.7"},
