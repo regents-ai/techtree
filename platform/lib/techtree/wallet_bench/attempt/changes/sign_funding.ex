@@ -6,6 +6,11 @@ defmodule Techtree.WalletBench.Attempt.Changes.SignFunding do
   When the bench cannot fund it (funding paused, the run's total reached, the
   funder short), the attempt stops as a bench failure, with the reason: it
   leaves the results, as any run the bench itself spoiled does.
+
+  The sends are kept only after `Techtree.WalletBench.Funding.admit/1` finds
+  the run's totals still have room for them. When another attempt's funding
+  took that room after these were signed, nothing is kept and the step fails;
+  its retry prepares again and is refused with the reason.
   """
 
   use Ash.Resource.Change
@@ -37,6 +42,13 @@ defmodule Techtree.WalletBench.Attempt.Changes.SignFunding do
   defp prepared(changeset, {:error, error}), do: Ash.Changeset.add_error(changeset, error)
 
   defp keep(attempt, sends) do
+    case Funding.admit(sends) do
+      :ok -> create(attempt, sends)
+      {:refuse, reason} -> {:error, reason}
+    end
+  end
+
+  defp create(attempt, sends) do
     Enum.reduce_while(sends, {:ok, attempt}, fn send, {:ok, attempt} ->
       Payment
       |> Ash.Changeset.for_create(:sign, Map.put(send, :attempt_id, attempt.id))

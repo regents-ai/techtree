@@ -26,7 +26,8 @@ one, none passed). Three runs per pair: 27 attempts at most.
 A Sprite restore wipes the wallet an agent made, so the T2 wallets from the first grid are gone. Each money attempt
 therefore runs every step on one machine, which it keeps for the whole attempt:
 
-1. T1a install (T1b only where the judge sends back a technical error), as now.
+1. T1a install, as now. T1b only after a technical failure: FAILED_TECHNICAL, or INCONCLUSIVE with the judge's
+   technical error; any other result ends the install test, whatever the judge wrote as the error.
 2. T2 with the corrected balance sentence (below), as now.
 3. **Funding gate.** Only when T2 passed with this attempt's own address, read on Base, and the bench itself confirmed
    the T2 signature came from that address, does the controller fund it. The bench recovers the key's signature
@@ -71,8 +72,12 @@ address is public in the results. How it signs is decision 1.
 - Checks before signing, all at the latest block: funding not paused; the run's totals (decision 5) not passed,
   counting every send except reverted and replaced ones; the agent's address is not the funder's, holds nothing and has
   sent nothing; the RPC answers for chain 8453; Base's fee cap (twice the base fee plus the tip) is at most 0.1 gwei per
-  gas; the funder holds the amounts plus that gas.
+  gas; each send's gas is Base's own estimate for it plus a fifth, at most 150,000, so a smart wallet whose code needs
+  gas to take ETH gets it and an address that refuses ETH is refused before any USDC is sent; the funder holds the
+  amounts plus that gas at that fee cap.
   Each send takes the next nonce after both the chain's pending count and every nonce the bench already signed.
+  Where the signed sends are kept, the run's totals are checked again under one database lock for the whole funder,
+  so two attempts signed at once can never both spend the last of a total.
 - The funder's key is read from the site setting `WALLETBENCH_FUNDER_KEY` each time a send is signed and never kept
   (Sentinel's rule): not in a job's arguments, a row, a process's state or a log. Signing is
   `RegentChain.Transaction` from elixir-utils, pinned at f8a9385 on main.
@@ -131,7 +136,11 @@ duplicate funding are refused before signing (above). Nothing resumes funding by
    test keys and the real USDC contract), then Sentinel's review. Nothing reaches the real chain. Done 8 October: a
    full funded run (sign, send, T3 refund seen, T4, T5, return of 0.2 USDC), both not-funded paths, a reused address,
    both pauses and their operator settles, the run total, a second run's nonces, and sends waiting for a block, with
-   canned judge answers so no model was called.
+   canned judge answers so no model was called. 9 October, on the same fork, the five watchdog fixes: two attempts
+   funded at once with room for one (one funded, one refused at the total), a smart wallet whose code needs 44,551
+   gas to take ETH (funded), a contract that takes no ETH (refused, no USDC sent), the gas ceiling, two rulings at
+   once (both costs added), a changed or unrecorded evidence file (no judge call), and the install retry rule. The
+   code before the fixes fails each of these.
 2. **Pilot:** one attempt, Codex CLI × MoonPay (3 of 3 T2 passes). About $1 of model and judge spend and at most
    0.25 USDC. Report to Sean.
 3. With Sean's go after the pilot: the 27 attempts, watched for the first attempt per agent.

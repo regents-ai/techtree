@@ -7,16 +7,19 @@ defmodule Techtree.WalletBench.Funding do
   `prepare/1` decides and signs; nothing is broadcast there. It refuses, with
   the reason, when funding is paused, when the run's totals would pass their
   caps, when the agent's address is the funder's or already holds anything or
-  has sent anything, or when the funder cannot pay. Funding is paused while any
-  send is `unknown`, or while a money test's safety failure has not been
-  cleared by an operator. Each send takes the next funder nonce, after both the
-  chain's pending count and every nonce the bench already signed.
+  has sent anything, when Base answers that either send would fail, or when
+  the funder cannot pay. Funding is paused while any send is `unknown`, or
+  while a money test's safety failure has not been cleared by an operator.
+  Each send takes the next funder nonce, after both the chain's pending count
+  and every nonce the bench already signed, and the gas Base estimates for it.
+  `admit/1` checks the totals again where the sends are kept, so two
+  preparations at once can never both spend the last of a total.
 
   `receipts/1` broadcasts the signed bytes again, which is harmless for a
   transaction already sent, and reads each receipt. `settled/1` only reads.
 
-  Base's gas price is capped by `max_fee_per_gas_wei` in the funding settings:
-  above it, nothing is signed.
+  Base's gas price is capped by `max_fee_per_gas_wei` in the funding settings,
+  and each send's gas by `max_gas_per_send`: above either, nothing is signed.
   """
 
   require Ash.Query
@@ -26,8 +29,9 @@ defmodule Techtree.WalletBench.Funding do
   alias Techtree.WalletBench.{BaseCheck, BaseRpc, Funder, Payment, Turn}
 
   @chain_id 8453
-  @usdc_gas 100_000
-  @eth_gas 21_000
+
+  # The lock `admit/1` holds while sends are kept: one number for the whole funder, on every app instance.
+  @funding_lock :erlang.phash2(__MODULE__)
 
   @type send :: %{
           token: :usdc | :eth,
@@ -43,9 +47,10 @@ defmodule Techtree.WalletBench.Funding do
   @spec prepare(String.t()) :: {:ok, [send()]} | {:refuse, String.t()} | {:error, term()}
   def prepare(address) do
     caps = caps()
+    address = String.downcase(address)
 
     with :ok <- not_paused(),
-         :ok <- within_totals(caps),
+         :ok <- within_totals(%{usdc: caps[:usdc_units], eth: caps[:eth_wei]}),
          {:ok, funder} <- Funder.address(),
          :ok <- not_funder(address, funder),
          {:ok, chain_id} <- call("eth_chainId", []),
@@ -53,10 +58,25 @@ defmodule Techtree.WalletBench.Funding do
          {:ok, agent} <- BaseCheck.check(address, nil),
          :ok <- untouched(agent),
          {:ok, fees} <- fees(caps),
-         :ok <- funder_can_pay(funder, caps, fees),
+         {:ok, sends} <- gas_limits(sends(address, caps), funder, caps),
+         :ok <- funder_can_pay(funder, sends, fees),
          {:ok, nonce} <- next_nonce(funder) do
-      sign(funder, String.downcase(address), caps, fees, nonce)
+      sign(funder, address, sends, fees, nonce)
     end
+  end
+
+  @doc """
+  Inside the database transaction that keeps an attempt's signed `sends`:
+  waits until no other funding is being kept, on any app instance (a Postgres
+  lock held until this transaction ends), then refuses the sends when they and
+  every send kept so far would pass the run's totals. A preparation that was
+  within the totals when it was signed, but no longer is, is refused here,
+  before anything is broadcast.
+  """
+  @spec admit([send()]) :: :ok | {:refuse, String.t()}
+  def admit(sends) do
+    Techtree.Repo.query!("SELECT pg_advisory_xact_lock($1)", [@funding_lock])
+    within_totals(%{usdc: amount(sends, :usdc), eth: amount(sends, :eth)})
   end
 
   @doc """
@@ -135,21 +155,18 @@ defmodule Techtree.WalletBench.Funding do
   end
 
   # Every send counts except one that moved nothing: reverted, or replaced at its nonce.
-  defp within_totals(caps) do
-    sent =
-      Payment
-      |> Ash.Query.filter(state not in [:reverted, :replaced])
-      |> Ash.read!()
-      |> Enum.group_by(& &1.token, & &1.amount)
-      |> Map.new(fn {token, amounts} -> {token, Enum.sum(amounts)} end)
+  defp within_totals(adding) do
+    caps = caps()
+    sent = Payment |> Ash.Query.filter(state not in [:reverted, :replaced]) |> Ash.read!()
 
-    usdc = Map.get(sent, :usdc, 0) + caps[:usdc_units]
-    eth = Map.get(sent, :eth, 0) + caps[:eth_wei]
-
-    if usdc <= caps[:total_usdc_units] and eth <= caps[:total_eth_wei],
-      do: :ok,
-      else: {:refuse, "Funding this attempt would pass the run's total for the funder."}
+    if amount(sent, :usdc) + adding.usdc <= caps[:total_usdc_units] and
+         amount(sent, :eth) + adding.eth <= caps[:total_eth_wei],
+       do: :ok,
+       else: {:refuse, "Funding this attempt would pass the run's total for the funder."}
   end
+
+  defp amount(sends, token),
+    do: sends |> Enum.filter(&(&1.token == token)) |> Enum.map(& &1.amount) |> Enum.sum()
 
   defp not_funder(address, funder) do
     if String.downcase(address) == funder,
@@ -187,12 +204,65 @@ defmodule Techtree.WalletBench.Funding do
     end
   end
 
-  defp funder_can_pay(funder, caps, fees) do
-    gas = (@usdc_gas + @eth_gas) * fees.max
+  defp sends(address, caps) do
+    [
+      %{
+        token: :usdc,
+        amount: caps[:usdc_units],
+        fields: %{
+          to: BaseRpc.usdc(),
+          value: 0,
+          data: BaseRpc.usdc_transfer(address, caps[:usdc_units])
+        }
+      },
+      %{
+        token: :eth,
+        amount: caps[:eth_wei],
+        fields: %{to: address, value: caps[:eth_wei], data: "0x"}
+      }
+    ]
+  end
+
+  # Each send's gas is Base's own estimate for it, from the funder, with a fifth more for headroom: an address whose
+  # code needs gas to take ETH gets it, and one that refuses the ETH is refused before the USDC is sent.
+  defp gas_limits(sends, funder, caps) do
+    Enum.reduce_while(sends, {:ok, []}, fn send, {:ok, done} ->
+      transaction = Map.merge(send.fields, %{from: funder, value: BaseRpc.hex(send.fields.value)})
+
+      case BaseRpc.estimate_gas(transaction) do
+        {:ok, estimate} ->
+          limited(send, done, div(estimate * 6, 5), caps[:max_gas_per_send])
+
+        {:refused, reason} ->
+          {:halt, {:refuse, refused(send.token, reason)}}
+
+        {:error, error} ->
+          {:halt, {:error, error}}
+      end
+    end)
+  end
+
+  defp limited(send, done, gas, ceiling) when gas <= ceiling,
+    do: {:cont, {:ok, done ++ [put_in(send, [:fields, :gas], gas)]}}
+
+  defp limited(send, _done, gas, ceiling) do
+    {:halt,
+     {:refuse,
+      "The #{send.token} send needs #{gas} gas, over the bench's ceiling of #{ceiling} per send."}}
+  end
+
+  defp refused(:usdc, reason),
+    do: "Base answers that the USDC send to the agent's address would fail: #{reason}"
+
+  defp refused(:eth, reason),
+    do: "Base answers that the agent's address would not take the ETH for gas: #{reason}"
+
+  defp funder_can_pay(funder, sends, fees) do
+    gas = sends |> Enum.map(& &1.fields.gas) |> Enum.sum() |> Kernel.*(fees.max)
 
     with {:ok, wei} <- call("eth_getBalance", [funder, "latest"]),
          {:ok, usdc} <- BaseRpc.usdc_balance(funder, "latest") do
-      if usdc >= caps[:usdc_units] and integer(wei) >= caps[:eth_wei] + gas,
+      if usdc >= amount(sends, :usdc) and integer(wei) >= amount(sends, :eth) + gas,
         do: :ok,
         else:
           {:refuse,
@@ -216,25 +286,7 @@ defmodule Techtree.WalletBench.Funding do
     end
   end
 
-  defp sign(funder, address, caps, fees, nonce) do
-    sends = [
-      %{
-        token: :usdc,
-        amount: caps[:usdc_units],
-        fields: %{
-          to: BaseRpc.usdc(),
-          value: 0,
-          data: BaseRpc.usdc_transfer(address, caps[:usdc_units]),
-          gas: @usdc_gas
-        }
-      },
-      %{
-        token: :eth,
-        amount: caps[:eth_wei],
-        fields: %{to: address, value: caps[:eth_wei], data: "0x", gas: @eth_gas}
-      }
-    ]
-
+  defp sign(funder, address, sends, fees, nonce) do
     sends
     |> Enum.with_index(nonce)
     |> Enum.reduce_while({:ok, []}, fn {send, nonce}, {:ok, done} ->

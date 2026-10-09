@@ -75,7 +75,13 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
   end
 
   defp next(_plan, :T1a, %{"outcome" => "PASS"}), do: {:T2, nil}
-  defp next(_plan, :T1a, %{"retry_error" => error}) when error != "", do: {:T1b, error}
+
+  # A second install only after a technical failure (priv/wallet_bench/review/T1.md, "Retry needed?"); any other
+  # result ends the install test whatever the judge wrote as the error.
+  defp next(_plan, :T1a, %{"outcome" => outcome, "retry_error" => error})
+       when outcome in ["FAILED_TECHNICAL", "INCONCLUSIVE"] and error != "",
+       do: {:T1b, error}
+
   defp next(_plan, :T1b, %{"outcome" => "PASS"}), do: {:T2, nil}
   defp next(_plan, :T2, %{"signature_needed" => true}), do: {:T2_signature, nil}
   defp next(:money, test, _judgment) when test in [:T2, :T2_signature], do: :gate

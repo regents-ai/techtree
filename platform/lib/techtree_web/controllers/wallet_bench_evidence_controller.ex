@@ -6,8 +6,8 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
 
   Only a file the turn recorded is served: the turn and file names are looked
   up in the turn's own list, never used as a path, and the bytes read back
-  must match the fingerprint recorded with them. Everything stored was blanked
-  before it was stored (`Techtree.WalletBench.Blank`).
+  must match the fingerprint recorded with them (`Techtree.WalletBench.Evidence.recorded/2`).
+  Everything stored was blanked before it was stored (`Techtree.WalletBench.Blank`).
   """
 
   use TechtreeWeb, :controller
@@ -21,10 +21,9 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   def show(conn, %{"id" => id, "turn" => turn_name, "file" => file}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, attempt} <- WalletBench.get_attempt(id, load: [:turns]),
-         %{evidence: %{^file => %{"sha256" => sha256}}} <-
+         %{evidence: %{^file => _recorded}} = turn <-
            Enum.find(attempt.turns, &(Catalog.turn_name(&1.test) == turn_name)) do
-      {:ok, body} = Evidence.get(Evidence.turn_key(attempt.id, turn_name, file))
-      ^sha256 = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
+      {:ok, body} = Evidence.recorded(turn, file)
 
       conn
       |> put_resp_content_type(content_type(file, body), nil)

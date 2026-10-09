@@ -218,7 +218,11 @@ defmodule Techtree.WalletBench.Turn do
       public? true
     end
 
-    attribute :judge_cost_usd, :decimal, public?: true
+    attribute :judge_cost_usd, :decimal do
+      description "What every ruling on the turn cost together; each one's cost is also in the attempt's events."
+      public? true
+    end
+
     attribute :failure, :string, public?: true, description: "Why the turn failed."
 
     timestamps()

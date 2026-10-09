@@ -19,11 +19,7 @@ defmodule Techtree.WalletBench.BaseRpc do
 
   @spec call(String.t(), list()) :: {:ok, term()} | {:error, term()}
   def call(method, params) do
-    case Req.post(url(),
-           json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
-           retry: false,
-           receive_timeout: 30_000
-         ) do
+    case request(method, params) do
       {:ok, %Req.Response{status: 200, body: %{"result" => result}}} ->
         {:ok, result}
 
@@ -33,6 +29,36 @@ defmodule Techtree.WalletBench.BaseRpc do
       {:error, exception} ->
         {:error, exception}
     end
+  end
+
+  @doc """
+  The gas `transaction` needs at the latest block, or `{:refused, reason}` when
+  Base answers that it would revert (JSON-RPC error code 3), such as a recipient
+  whose code rejects it. Any other error, such as a rate limit, is an error.
+  """
+  @spec estimate_gas(map()) :: {:ok, pos_integer()} | {:refused, String.t()} | {:error, term()}
+  def estimate_gas(transaction) do
+    case request("eth_estimateGas", [transaction, "latest"]) do
+      {:ok, %Req.Response{status: 200, body: %{"result" => gas}}} ->
+        {:ok, integer(gas)}
+
+      {:ok, %Req.Response{status: 200, body: %{"error" => %{"code" => 3, "message" => reason}}}} ->
+        {:refused, reason}
+
+      {:ok, %Req.Response{status: status, body: body}} ->
+        {:error, "Base RPC eth_estimateGas answered #{status}: #{inspect(body)}"}
+
+      {:error, exception} ->
+        {:error, exception}
+    end
+  end
+
+  defp request(method, params) do
+    Req.post(url(),
+      json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
+      retry: false,
+      receive_timeout: 30_000
+    )
   end
 
   @doc "An address's USDC balance at a block tag, in units of 0.000001 USDC."

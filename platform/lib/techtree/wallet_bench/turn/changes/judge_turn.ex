@@ -21,6 +21,10 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   ruled on again from what was read and checked when it was first judged: the
   printed address, message and signature and the Base checks at their blocks
   stay as they are, so only the ruling is new.
+
+  Every ruling is paid for, so its cost is added to the turn's
+  `judge_cost_usd` in the update itself, never replacing an earlier ruling's,
+  and kept on the ruling's event.
   """
 
   use Ash.Resource.Change
@@ -38,12 +42,13 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
              Ash.get(Attempt, turn.attempt_id, load: [:machine, :turns, :payments]),
            {:ok, judgment, checks, cost} <- judge(attempt, turn, opts[:evidence]) do
         changeset
-        |> Ash.Changeset.force_change_attributes(%{
-          judgment: judgment,
-          checks: checks,
+        |> Ash.Changeset.force_change_attributes(%{judgment: judgment, checks: checks})
+        |> Ash.Changeset.atomic_update(:judge_cost_usd, expr((judge_cost_usd || 0) + ^cost))
+        |> put_detail(%{
+          outcome: judgment["outcome"],
+          summary: judgment["summary"],
           judge_cost_usd: cost
         })
-        |> put_detail(%{outcome: judgment["outcome"], summary: judgment["summary"]})
       else
         {:error, error} -> Ash.Changeset.add_error(changeset, error)
       end
@@ -54,7 +59,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     wallet = Catalog.wallet!(attempt.wallet_id)
 
     with {:ok, files} <-
-           files(attempt, turn, ~w(transcript.md verify-install.txt verify-storage.txt)),
+           files(turn, ~w(transcript.md verify-install.txt verify-storage.txt)),
          {:ok, judgment, cost} <-
            Judge.rule(
              :install,
@@ -78,7 +83,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     turns = if test == :T2, do: [turn], else: [first, turn]
     base = turn.checks["base"]
 
-    with {:ok, parts} <- turn_files(attempt, turns),
+    with {:ok, parts} <- turn_files(turns),
          {:ok, judgment, cost} <-
            Judge.rule(:wallet, Catalog.review_guide(test), wallet_evidence(attempt, parts, base)) do
       {:ok, judgment, turn.checks, cost}
@@ -86,7 +91,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   end
 
   defp judge(attempt, %{test: :T2} = turn, :fresh) do
-    with {:ok, files} <- files(attempt, turn, ~w(transcript.md stream.jsonl verify-storage.txt)),
+    with {:ok, files} <- files(turn, ~w(transcript.md stream.jsonl verify-storage.txt)),
          {:ok, printed, extract_cost} <- printed(files),
          {:ok, base} <- base_check(printed.address, printed),
          evidence = wallet_evidence(attempt, [{turn, files}], base),
@@ -99,8 +104,8 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     first = Enum.find(attempt.turns, &(&1.test == :T2))
     address = first.checks["printed"]["address"]
 
-    with {:ok, first_files} <- files(attempt, first, ~w(transcript.md verify-storage.txt)),
-         {:ok, files} <- files(attempt, turn, ~w(transcript.md stream.jsonl verify-storage.txt)),
+    with {:ok, first_files} <- files(first, ~w(transcript.md verify-storage.txt)),
+         {:ok, files} <- files(turn, ~w(transcript.md stream.jsonl verify-storage.txt)),
          {:ok, printed, extract_cost} <- printed(files),
          {:ok, base} <- base_check(address, printed),
          evidence = wallet_evidence(attempt, [{first, first_files}, {turn, files}], base),
@@ -114,7 +119,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   defp judge(attempt, %{test: test} = turn, evidence) when test in [:T3, :T4, :T5] do
     names = ~w(transcript.md verify-storage.txt) ++ if(test == :T4, do: ["images.txt"], else: [])
 
-    with {:ok, files} <- files(attempt, turn, names),
+    with {:ok, files} <- files(turn, names),
          {:ok, money} <- money_check(attempt, turn, evidence),
          {:ok, judgment, cost} <-
            Judge.rule(
@@ -194,18 +199,18 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     """
   end
 
-  defp turn_files(attempt, turns) do
+  defp turn_files(turns) do
     Enum.reduce_while(turns, {:ok, []}, fn turn, {:ok, parts} ->
-      case files(attempt, turn, ~w(transcript.md verify-storage.txt)) do
+      case files(turn, ~w(transcript.md verify-storage.txt)) do
         {:ok, files} -> {:cont, {:ok, parts ++ [{turn, files}]}}
         {:error, error} -> {:halt, {:error, error}}
       end
     end)
   end
 
-  defp files(attempt, turn, names) do
+  defp files(turn, names) do
     Enum.reduce_while(names, {:ok, %{}}, fn name, {:ok, files} ->
-      case Evidence.get(Evidence.turn_key(attempt.id, Catalog.turn_name(turn.test), name)) do
+      case Evidence.recorded(turn, name) do
         {:ok, content} -> {:cont, {:ok, Map.put(files, name, content)}}
         {:error, error} -> {:halt, {:error, error}}
       end

@@ -9,6 +9,8 @@ defmodule Techtree.WalletBench.Evidence do
   a `Req.Test` plug, under `:req_options`.
   """
 
+  alias Techtree.WalletBench.Catalog
+
   @doc "Where one file of an attempt's turn is stored."
   @spec turn_key(Ecto.UUID.t(), String.t(), String.t()) :: String.t()
   def turn_key(attempt_id, turn_name, file), do: "attempts/#{attempt_id}/#{turn_name}/#{file}"
@@ -20,6 +22,31 @@ defmodule Techtree.WalletBench.Evidence do
       {:ok, %Req.Response{status: 200}} -> :ok
       {:ok, %Req.Response{status: status}} -> {:error, {:evidence, status}}
       {:error, exception} -> {:error, exception}
+    end
+  end
+
+  @doc """
+  One file a turn recorded, read back only when its bytes still match the
+  sha256 recorded with them on the turn. Every reader of a turn's files, the
+  judge and the public evidence page, reads through here.
+  """
+  @spec recorded(struct(), String.t()) :: {:ok, binary()} | {:error, term()}
+  def recorded(%{attempt_id: attempt_id, test: test, evidence: evidence}, file) do
+    turn = Catalog.turn_name(test)
+
+    with {:ok, sha256} <- fingerprint(evidence, turn, file),
+         {:ok, body} <- get(turn_key(attempt_id, turn, file)) do
+      if Base.encode16(:crypto.hash(:sha256, body), case: :lower) == sha256,
+        do: {:ok, body},
+        else:
+          {:error, "The stored #{file} of #{turn} does not match the sha256 recorded with it."}
+    end
+  end
+
+  defp fingerprint(evidence, turn, file) do
+    case evidence do
+      %{^file => %{"sha256" => sha256}} -> {:ok, sha256}
+      _no_record -> {:error, "#{turn} recorded no #{file}."}
     end
   end
 
