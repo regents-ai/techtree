@@ -254,7 +254,7 @@ defmodule Techtree.WalletBench.Catalog do
     |> String.replace("{error}", error)
   end
 
-  def prompt(:T2, _harness_id, "W01", nil) do
+  def prompt(:T2, harness_id, "W01", nil) do
     supplied =
       case Application.get_env(:techtree, :wallet_bench_bankr_api_key) do
         key when is_binary(key) and key != "" ->
@@ -267,7 +267,12 @@ defmodule Techtree.WalletBench.Catalog do
           ""
       end
 
-    read!("prompts/T2.txt") <> "\n" <> read!("prompts/T2-bankr.txt") <> supplied
+    bankr =
+      "prompts/T2-bankr.txt"
+      |> read!()
+      |> String.replace("{pair}", pair(harness_id, "W01"))
+
+    read!("prompts/T2.txt") <> "\n" <> bankr <> supplied
   end
 
   def prompt(:T2, _harness_id, _wallet_id, nil), do: read!("prompts/T2.txt")
