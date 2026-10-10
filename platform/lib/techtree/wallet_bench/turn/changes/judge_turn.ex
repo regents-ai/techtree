@@ -31,7 +31,17 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
 
   import Techtree.WalletBench.Attempt.Changes.RecordEvent, only: [put_detail: 2]
 
-  alias Techtree.WalletBench.{Attempt, BaseCheck, BaseRpc, Catalog, Evidence, Judge, MoneyCheck}
+  alias Techtree.WalletBench.{
+    Attempt,
+    BaseCheck,
+    BaseRpc,
+    Batch,
+    Catalog,
+    Evidence,
+    Judge,
+    MoneyCheck,
+    Version
+  }
 
   @impl true
   def change(changeset, opts, _context) do
@@ -40,6 +50,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
 
       with {:ok, attempt} <-
              Ash.get(Attempt, turn.attempt_id, load: [:machine, :turns, :payments]),
+           :ok <- Batch.require_current!(attempt.run_spec),
            {:ok, judgment, checks, cost} <- judge(attempt, turn, opts[:evidence]) do
         changeset
         |> Ash.Changeset.force_change_attributes(%{judgment: judgment, checks: checks})
@@ -57,6 +68,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
 
   defp judge(attempt, %{test: test} = turn, _evidence) when test in [:T1a, :T1b] do
     wallet = Catalog.wallet!(attempt.wallet_id)
+    Batch.require_current!(attempt.run_spec)
 
     with {:ok, files} <-
            files(turn, ~w(transcript.md verify-install.txt verify-storage.txt)),
@@ -74,6 +86,9 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
         matches_survey: if(installed == "", do: nil, else: installed == wallet.survey_version)
       }
 
+      {judgment, version} =
+        Version.enforce(judgment, version, attempt.run_spec, files["verify-install.txt"])
+
       {:ok, judgment, %{version: version}, cost}
     end
   end
@@ -83,20 +98,26 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     turns = if test == :T2, do: [turn], else: [first, turn]
     base = turn.checks["base"]
 
-    with {:ok, parts} <- turn_files(turns),
+    with {:ok, parts} <- turn_files(turns, attempt.run_spec),
          {:ok, judgment, cost} <-
            Judge.rule(:wallet, Catalog.review_guide(test), wallet_evidence(attempt, parts, base)) do
-      {:ok, judgment, turn.checks, cost}
+      wallet_result(judgment, turn.checks, cost, attempt.run_spec, parts)
     end
   end
 
   defp judge(attempt, %{test: :T2} = turn, :fresh) do
-    with {:ok, files} <- files(turn, ~w(transcript.md stream.jsonl verify-storage.txt)),
+    with {:ok, files} <- files(turn, wallet_files(attempt.run_spec, true)),
          {:ok, printed, extract_cost} <- printed(files),
          {:ok, base} <- base_check(printed.address, printed),
          evidence = wallet_evidence(attempt, [{turn, files}], base),
          {:ok, judgment, cost} <- Judge.rule(:wallet, Catalog.review_guide(:T2), evidence) do
-      {:ok, judgment, %{printed: printed, base: base}, Decimal.add(cost, extract_cost)}
+      wallet_result(
+        judgment,
+        %{printed: printed, base: base},
+        Decimal.add(cost, extract_cost),
+        attempt.run_spec,
+        [{turn, files}]
+      )
     end
   end
 
@@ -104,15 +125,20 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     first = Enum.find(attempt.turns, &(&1.test == :T2))
     address = first.checks["printed"]["address"]
 
-    with {:ok, first_files} <- files(first, ~w(transcript.md verify-storage.txt)),
-         {:ok, files} <- files(turn, ~w(transcript.md stream.jsonl verify-storage.txt)),
+    with {:ok, first_files} <- files(first, wallet_files(attempt.run_spec)),
+         {:ok, files} <- files(turn, wallet_files(attempt.run_spec, true)),
          {:ok, printed, extract_cost} <- printed(files),
          {:ok, base} <- base_check(address, printed),
          evidence = wallet_evidence(attempt, [{first, first_files}, {turn, files}], base),
          {:ok, judgment, cost} <-
            Judge.rule(:wallet, Catalog.review_guide(:T2_signature), evidence) do
-      {:ok, judgment, %{printed: Map.put(printed, :address, address), base: base},
-       Decimal.add(cost, extract_cost)}
+      wallet_result(
+        judgment,
+        %{printed: Map.put(printed, :address, address), base: base},
+        Decimal.add(cost, extract_cost),
+        attempt.run_spec,
+        [{first, first_files}, {turn, files}]
+      )
     end
   end
 
@@ -199,13 +225,31 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     """
   end
 
-  defp turn_files(turns) do
+  defp turn_files(turns, spec) do
     Enum.reduce_while(turns, {:ok, []}, fn turn, {:ok, parts} ->
-      case files(turn, ~w(transcript.md verify-storage.txt)) do
+      case files(turn, wallet_files(spec)) do
         {:ok, files} -> {:cont, {:ok, parts ++ [{turn, files}]}}
         {:error, error} -> {:halt, {:error, error}}
       end
     end)
+  end
+
+  defp wallet_files(spec, stream? \\ false) do
+    ~w(transcript.md verify-storage.txt) ++
+      if(stream?, do: ["stream.jsonl"], else: []) ++
+      if(spec, do: ["verify-install.txt"], else: [])
+  end
+
+  defp wallet_result(judgment, checks, cost, spec, parts) do
+    {judgment, version} =
+      Version.enforce_wallet(
+        judgment,
+        spec,
+        Enum.map(parts, fn {_turn, files} -> files["verify-install.txt"] end)
+      )
+
+    checks = if version, do: Map.put(checks, :version, version), else: checks
+    {:ok, judgment, checks, cost}
   end
 
   defp files(turn, names) do

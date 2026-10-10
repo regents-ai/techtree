@@ -36,5 +36,5 @@ as_bench() {
 # The bench's runner (runner/), as root: it drives the tested agent through its Harbor adapter, running the agent's
 # own commands as `bench`. See runner/awb_runner/__main__.py for its commands.
 runner() {
-  sudo env PYTHONPATH="$W/bin/runner" PYTHONDONTWRITEBYTECODE=1 "$RUNNER_ENV/bin/python" -m awb_runner "$@"
+  sudo env PYTHONPATH="$W/bin/runner" PYTHONDONTWRITEBYTECODE=1 AWB_HARNESS_CONFIG="$W/harness.json" "$RUNNER_ENV/bin/python" -m awb_runner "$@"
 }

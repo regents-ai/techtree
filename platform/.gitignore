@@ -1,4 +1,6 @@
 local-only-*
+/priv/wallet_bench/runner/**/__pycache__/
+/priv/wallet_bench/runner/.venv/
 
 # The directory Mix will write compiled artifacts to.
 /_build/

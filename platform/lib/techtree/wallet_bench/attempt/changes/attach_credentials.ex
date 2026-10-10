@@ -37,7 +37,7 @@ defmodule Techtree.WalletBench.Attempt.Changes.AttachCredentials do
       |> Ash.Changeset.for_create(:queue, %{
         attempt_id: attempt.id,
         test: :T1a,
-        prompt: Catalog.prompt(:T1a, attempt.harness_id, attempt.wallet_id, nil)
+        prompt: Catalog.attempt_prompt(attempt, :T1a)
       })
       # Turns have no public writer; the attempt's own step queues the first.
       |> Ash.create(authorize?: false)

@@ -26,6 +26,7 @@ defmodule Techtree.WalletBench.Turn.Changes.StartTurn do
   end
 
   defp start(attempt, turn) do
+    Techtree.WalletBench.Batch.require_current!(attempt.run_spec)
     name = attempt.machine.name
     folder = Catalog.turn_name(turn.test)
     job = Catalog.turn_job(turn.test)
@@ -54,6 +55,8 @@ defmodule Techtree.WalletBench.Turn.Changes.StartTurn do
 
   # Installation is still unassisted. Only the wallet turn receives the
   # optional benchmark account; the key travels on stdin, never in argv.
+  defp bankr_access(%{run_spec: spec}, _turn) when not is_nil(spec), do: :ok
+
   defp bankr_access(%{wallet_id: "W01", machine: machine}, %{test: :T2}) do
     case Application.get_env(:techtree, :wallet_bench_bankr_api_key) do
       key when is_binary(key) and key != "" ->

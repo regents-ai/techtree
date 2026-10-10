@@ -1,11 +1,12 @@
-"""The nine agents the bench tests: each one's Harbor adapter, the survey's pinned version, and the model it is given.
+"""The ten agents the bench tests: each one's Harbor adapter, pinned version, and model.
 
 Every agent talks to gpt-6-luna through the machine's translator (LiteLLM on 127.0.0.1:4000), which sets the reasoning
-effort to high for every call, counts each call's cost and stops the attempt at $5. The agents only ever hold the
+effort to high for every call, counts cost and refuses new calls once the attempt reaches $5. The agents only hold the
 machine's local translator token, never the OpenAI key.
 """
+import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -15,6 +16,7 @@ from harbor.agents.installed.codex import Codex
 from harbor.agents.installed.opencode import OpenCode
 
 from .agents import TOKEN, TRANSLATOR, ClineAgent, DeepSeekHarness, HermesAgent, KiloCode, OhMyPi, PiAgent
+from .prime import PrimeAgent
 
 # Where every adapter keeps the agent's sessions and output on the machine, for the whole attempt.
 LOGS = Path("/logs/agent")
@@ -47,12 +49,21 @@ ROSTER = {
     "H13": Harness(
         "OpenCode", OpenCode, "1.18.34", "openai/gpt-6-luna", "opencode.txt", {"opencode_config": {"autoupdate": False}}
     ),
+    "H16": Harness("Prime Agent", PrimeAgent, "0.10.0", "bench/gpt-6-luna", "prime.txt"),
 }
+
+PINS = json.loads((Path(__file__).parents[1] / "harnesses.json").read_text())
+ROSTER = {id: replace(harness, version=PINS[id]["version"]) for id, harness in ROSTER.items()}
 
 
 def agent(harness_id: str) -> BaseInstalledAgent:
     """The harness's adapter, pointed at the translator with the machine's local token."""
     harness = ROSTER[harness_id]
+    config_file = os.environ.get("AWB_HARNESS_CONFIG")
+    pin = json.loads(Path(config_file).read_text()) if config_file else PINS[harness_id]
+    options = dict(harness.options)
+    if harness_id == "H06":
+        options["cline_version"] = pin["version"]
     token = Path(TOKEN).read_text().strip()
     os.environ.update(
         OPENAI_API_KEY=token,
@@ -61,10 +72,17 @@ def agent(harness_id: str) -> BaseInstalledAgent:
         ANTHROPIC_BASE_URL=TRANSLATOR.removesuffix("/v1"),
         API_KEY=token,
     )
-    return harness.adapter(
+    tested = harness.adapter(
         logs_dir=LOGS,
         environment_logs_dir=PurePosixPath(LOGS),
         model_name=harness.model,
-        version=harness.version,
-        **harness.options,
+        version=pin["version"],
+        **options,
     )
+    if harness_id == "H04":
+        tested.COMMIT = pin["source_ref"]
+    if harness_id == "H09":
+        tested.BINARY_SHA256 = pin["archive_sha256"]
+    if harness_id == "H16":
+        tested.archive_sha256 = pin["archive_sha256"]
+    return tested

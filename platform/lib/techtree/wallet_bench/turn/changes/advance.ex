@@ -48,7 +48,7 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
               attempt,
               turn,
               test,
-              Catalog.prompt(test, attempt.harness_id, attempt.wallet_id, error)
+              Catalog.attempt_prompt(attempt, test, error)
             ),
           else: update(attempt, :finish_tests, %{})
 
