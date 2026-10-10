@@ -235,7 +235,6 @@ defmodule Techtree.WalletBench.Catalog do
   @doc "A manual batch's prompt names its exact wallet release and disclosed access."
   def attempt_prompt(attempt, test, error \\ nil) do
     spec = attempt.run_spec
-    Techtree.WalletBench.Batch.require_current!(spec)
 
     text =
       if spec && test == :T2 && attempt.wallet_id == "W01" do

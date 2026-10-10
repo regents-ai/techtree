@@ -19,7 +19,7 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
 
   use Ash.Resource.Change
 
-  alias Techtree.WalletBench.{Attempt, Catalog, Turn}
+  alias Techtree.WalletBench.{Attempt, Batch, Catalog, Turn}
 
   @impl true
   def change(changeset, _opts, _context) do
@@ -40,6 +40,8 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
   end
 
   defp advance(attempt, %Turn{state: :judged} = turn) do
+    Batch.require_current!(attempt.run_spec)
+
     case next(attempt.plan, turn.test, turn.judgment) do
       {test, error} when test in [:T1b, :T2, :T2_signature] ->
         if test in Catalog.tests(attempt.harness_id),
