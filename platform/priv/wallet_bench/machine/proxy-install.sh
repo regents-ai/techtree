@@ -6,6 +6,12 @@
 # gpt-6-luna's list price lets LiteLLM price every call for the spend cap in bench_hooks.py: input $0.10, cached input
 # $0.01, cache writes $0.125 and output $0.50 per million tokens. A prompt over 272,000 input tokens costs twice as
 # much for input and cache, and one and a half times as much for output, across the whole request.
+#
+# The harness's token reaches only the chat, Responses and Anthropic Messages routes the harnesses use, the
+# Messages token counter and the model list. LiteLLM's other routes (forwarding straight to OpenAI, batches, files)
+# would skip the spend cap. LiteLLM enforces this list without its paid licence and logs that it is a paid feature.
+# LiteLLM sends each request once: its own retries would run after the failed call's hold is released. Harnesses
+# retry with new requests, each of which takes its own hold.
 set -euo pipefail
 source /work/bin/machine/common.sh
 LITELLM_VERSION=1.103.1
@@ -35,8 +41,11 @@ model_list:
 litellm_settings:
   drop_params: true
   callbacks: bench_hooks.bench_hooks
+router_settings:
+  num_retries: 0
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+  allowed_routes: ["/v1/chat/completions", "/v1/responses", "/v1/messages", "/v1/messages/count_tokens", "/v1/models"]
 EOF
 install -m 644 "$W/bin/machine/bench_hooks.py" "$P/bench_hooks.py"
 

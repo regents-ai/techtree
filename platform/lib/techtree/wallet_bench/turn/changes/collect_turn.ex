@@ -164,12 +164,13 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   end
 
   # What the translator charged in the turn: each answered call at its price,
-  # each stream the harness stopped reading at the most a call can cost.
+  # each interrupted stream at the most a call can cost, and each failed call at
+  # nothing or that most (bench_hooks.py).
   defp spend(calls) do
     calls
     |> String.split("\n", trim: true)
     |> Enum.map(&Jason.decode!/1)
-    |> Enum.filter(&(&1["event"] in ["answered", "interrupted"]))
+    |> Enum.filter(&(&1["event"] in ["answered", "interrupted", "failed"]))
     |> Enum.reduce(Decimal.new(0), &Decimal.add(Decimal.from_float(&1["cost"]), &2))
   end
 
