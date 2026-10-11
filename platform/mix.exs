@@ -114,7 +114,7 @@ defmodule Techtree.MixProject do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:decimal, "~> 3.1"},
+      {:decimal, "== 3.1.2"},
       {:dns_cluster, "~> 0.3.0"},
       {:bandit, "~> 1.5"}
     ]
