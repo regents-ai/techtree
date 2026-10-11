@@ -8,7 +8,7 @@
  * Moves in percent name both ends, so they stay a share of the panel's own
  * size instead of being converted to pixels.
  */
-import {spring} from "animejs"
+import {createScope, spring} from "animejs"
 import {BASE, EASE_OUT, SLOW, lastInputByPointer, play, still} from "./shared"
 import type {Hook} from "../../hook_composition"
 
@@ -34,7 +34,7 @@ export const backdrop = (el: Element) =>
 // How each kind of panel, named in `data-panel`, moves when it opens.
 const PANELS: Record<string, (el: Element) => unknown> = {drawer, sheet, menu}
 
-type PanelsHook = {el: HTMLElement; watch?: MutationObserver}
+type PanelsHook = {el: HTMLElement; scope?: ReturnType<typeof createScope>; watch?: MutationObserver}
 
 /**
  * An island whose panels, each marked `data-panel`, are opened by LiveView
@@ -45,6 +45,8 @@ type PanelsHook = {el: HTMLElement; watch?: MutationObserver}
  */
 export const MotionPanels: Hook = {
   mounted(this: PanelsHook) {
+    const scope = createScope({root: this.el})
+    this.scope = scope.add("open", (el: HTMLElement) => PANELS[el.dataset.panel ?? ""](el))
     const panels = () => [...this.el.querySelectorAll<HTMLElement>("[data-panel]")]
     const open = new Set(panels().filter(el => !el.hidden))
 
@@ -53,7 +55,7 @@ export const MotionPanels: Hook = {
         if (el.hidden) open.delete(el)
         if (el.hidden || open.has(el)) continue
         open.add(el)
-        if (lastInputByPointer() && !still(el)) PANELS[el.dataset.panel ?? ""](el)
+        if (lastInputByPointer() && !still(el)) scope.methods.open(el)
       }
     })
     this.watch.observe(this.el, {subtree: true, attributes: true, attributeFilter: ["hidden"]})
@@ -61,5 +63,6 @@ export const MotionPanels: Hook = {
 
   destroyed(this: PanelsHook) {
     this.watch?.disconnect()
+    this.scope?.revert()
   },
 }

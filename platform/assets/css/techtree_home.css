@@ -64,6 +64,7 @@
   color: var(--color-fg-muted);
   font-family: var(--font-family-ui);
   font-size: .875rem;
+  line-height: 2.75rem;
   cursor: pointer;
 }
 .hero--landing .installer__manual[open] > summary { margin-bottom: var(--space-2); }
