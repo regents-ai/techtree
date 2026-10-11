@@ -15,10 +15,13 @@ budget is refused, so calls made at the same moment cannot overshoot it together
 - failed: nothing when the model server answered with an error status, otherwise RESERVE_USD, because a call that
   lost its connection, timed out or failed after the answer arrived may have been billed.
 
-LiteLLM enforces its own budgets only with a database, which the machine does not run. The total is read back from the
-log when the translator starts, so a restart does not reset it, and a call sent before the restart but never charged
-is charged as interrupted then. The log starts empty with each attempt, because each attempt starts from the baseline
-disk.
+Only the harness's own tools reach the model, and no request runs in the background: OpenAI's hosted tools and
+background responses are billed apart from the answer and could cost more than a hold.
+
+LiteLLM enforces its own budgets only with a database, which the machine does not run. The total and the call ids
+already used are read back from the log when the translator starts, so a restart resets neither, and a call sent
+before the restart but never charged is charged as interrupted then. The log starts empty with each attempt, because
+each attempt starts from the baseline disk.
 """
 import json
 from datetime import datetime, timezone
@@ -31,6 +34,10 @@ BUDGET_USD = 5.0
 RESERVE_USD = 0.33
 CALLS = "/work/proxy/calls.jsonl"
 CHARGES = ("answered", "interrupted", "failed")
+# Tools OpenAI runs itself (web search, file search, code containers, image generation, remote MCP) are billed apart
+# from tokens and can cost more than a hold, so only tools the harness runs itself reach the model.
+RESPONSES_TOOLS = ("function", "custom", "local_shell", "shell", "apply_patch")
+CHAT_TOOLS = ("function", "custom")
 
 
 def _now() -> str:
@@ -42,17 +49,28 @@ def _log(entry: dict) -> None:
         f.write(json.dumps({"at": _now(), **entry}) + "\n")
 
 
-def _spent() -> float:
+def _ledger() -> tuple[float, set]:
+    """The amount charged so far and every call id already used, charging calls sent but never charged."""
     try:
         with open(CALLS) as f:
             entries = [json.loads(line) for line in f if line.strip()]
     except FileNotFoundError:
-        return 0.0
+        return 0.0, set()
     charged = {entry["call_id"] for entry in entries if entry["event"] in CHARGES}
     for call_id in sorted({entry["call_id"] for entry in entries if entry["event"] == "sent"} - charged):
         _log({"event": "interrupted", "call_id": call_id, "cost": RESERVE_USD, "call_type": None})
-        entries.append({"event": "interrupted", "cost": RESERVE_USD})
-    return sum(entry["cost"] for entry in entries if entry["event"] in CHARGES)
+        entries.append({"event": "interrupted", "call_id": call_id, "cost": RESERVE_USD})
+    spent = sum(entry["cost"] for entry in entries if entry["event"] in CHARGES)
+    return spent, {entry["call_id"] for entry in entries}
+
+
+def _harness_tools(call_type, tools: list) -> list:
+    """The tools the harness runs itself. An Anthropic Messages tool of the harness's own has a name and an input
+    schema; LiteLLM forwards the others, and turns Anthropic's web search into OpenAI's."""
+    if call_type == "anthropic_messages":
+        return [tool for tool in tools if "input_schema" in tool and tool.get("type", "custom") == "custom"]
+    allowed = RESPONSES_TOOLS if call_type in ("aresponses", "responses") else CHAT_TOOLS
+    return [tool for tool in tools if tool.get("type") in allowed]
 
 
 def _error_status(exception) -> bool:
@@ -68,15 +86,19 @@ def _error_status(exception) -> bool:
 class BenchHooks(CustomLogger):
     def __init__(self):
         super().__init__()
-        self.spent = _spent()
-        self.seen = set()
+        self.spent, self.seen = _ledger()
         self.held = set()
         self.interrupted = set()
 
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         call_id = data["litellm_call_id"]
-        # One answer per request: more choices would multiply a call's price past its hold.
+        # One answer per request: more choices would multiply a call's price past its hold. A background response
+        # keeps running and billing after its first answer, so every request is answered in the foreground.
         data.pop("n", None)
+        data.pop("background", None)
+        data.pop("web_search_options", None)
+        if "tools" in data:
+            data["tools"] = _harness_tools(call_type, data["tools"])
         if call_type in ("aresponses", "responses"):
             data["reasoning"] = {**(data.get("reasoning") or {}), "effort": "high"}
             data.pop("reasoning_effort", None)

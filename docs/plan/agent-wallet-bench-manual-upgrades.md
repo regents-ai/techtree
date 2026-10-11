@@ -47,7 +47,10 @@ written to the cache and 128,000 output tokens, at gpt-6-luna's long-prompt
 price), and a call that would take the recorded cost plus every held amount past
 $5 is refused. Calls a harness makes at the same moment therefore cannot overshoot
 the cap together, and each request gets one answer and reaches the model once. A
-request reusing an earlier call id is refused. A stream the harness stops reading
+request reusing an earlier call id is refused, also after a proxy restart. Only
+the harness's own tools reach the model, and no request runs in the background:
+OpenAI's hosted tools (web search, code containers and the like) and background
+responses are billed apart from the answer. A stream the harness stops reading
 is charged the full $0.33, because the model may have done more work than the
 part delivered shows. A failed call is free when the model server answered with
 an error, and costs $0.33 when no answer came back. After a proxy restart, a call
