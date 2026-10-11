@@ -8,6 +8,7 @@ defmodule Techtree.WalletBench.Batch do
 
   require Ash.Query
 
+  alias Techtree.BuildInfo
   alias Techtree.WalletBench
   alias Techtree.WalletBench.{Attempt, Catalog, Judge, Machine}
 
@@ -102,7 +103,12 @@ defmodule Techtree.WalletBench.Batch do
     manifest = validate!(manifest)
 
     Ash.transact([Machine, Attempt], fn ->
-      # Concurrent submissions are constrained by machine name and batch/pair/replicate identities.
+      # One admission per batch id at a time, so a second manifest naming the same
+      # id sees the first one's attempts and is refused, even with other pairs.
+      Techtree.Repo.query!("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
+        manifest["batch"]
+      ])
+
       existing = attempts(manifest["batch"])
 
       if existing == [] do
@@ -115,10 +121,11 @@ defmodule Techtree.WalletBench.Batch do
     end)
   end
 
-  @doc "Do not continue a frozen batch through changed scripts or review guides."
+  @doc "Do not continue a frozen batch through a new site release, changed scripts or review guides."
   def require_current!(nil), do: :ok
 
   def require_current!(spec) do
+    check(spec["revision"] == BuildInfo.source_revision(), "site release changed")
     check(spec["recipe"] == Catalog.recipe_digest(), "execution recipe changed")
     check(spec["protocol"] == Catalog.protocol_digest(), "test protocol changed")
     check(spec["judge"] == Judge.model(), "judge model changed")
@@ -180,6 +187,7 @@ defmodule Techtree.WalletBench.Batch do
     |> Map.drop(~w(harnesses wallets))
     |> Map.put("harness", manifest["harnesses"][harness])
     |> Map.put("wallet_version", manifest["wallets"][wallet])
+    |> Map.put("revision", BuildInfo.source_revision())
   end
 
   defp upgraded_pin(pin, version, options) do

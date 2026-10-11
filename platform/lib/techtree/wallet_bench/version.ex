@@ -48,10 +48,13 @@ defmodule Techtree.WalletBench.Version do
   end
 
   # Ignore command paths, failed commands and the subsequent package inventory.
+  # The section starts at the last marker: the wallet's help text, printed
+  # earlier, could carry a copy of it.
   defp successful_outputs(verification) do
-    case String.split(verification || "", "--- version attempts (exit)", parts: 2) do
-      [_, section] ->
-        section
+    case String.split(verification || "", "--- version attempts (exit)") do
+      [_ | [_ | _] = sections] ->
+        sections
+        |> List.last()
         |> String.split("--- npm packages", parts: 2)
         |> hd()
         |> String.split(~r/^\$ .*$/m)
@@ -63,9 +66,11 @@ defmodule Techtree.WalletBench.Version do
     end
   end
 
+  # The bench writes each command's exit status as the block's last line; an
+  # earlier "exit=0" is the command's own output and proves nothing.
   defp successful_output(block) do
-    case Regex.run(~r/\A(.*?)^exit=0\s*$/ms, block, capture: :all_but_first) do
-      [output] -> [output]
+    case Regex.run(~r/\A(.*)^exit=(\d+)\s*\z/ms, block, capture: :all_but_first) do
+      [output, "0"] -> [output]
       _ -> []
     end
   end

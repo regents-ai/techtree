@@ -16,6 +16,9 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
 
   @job "baseline"
   @wait_seconds 30
+  # A build still running after an hour is stopped and fails, so attempts that
+  # wait for this baseline end instead of waiting for ever.
+  @time_limit "3600"
 
   @impl true
   def change(changeset, _opts, _context) do
@@ -35,7 +38,15 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
 
   defp start(changeset, machine) do
     {pack, digest} = Catalog.recipe_pack()
-    script = ["bash", "/work/bin/machine/baseline.sh", machine.harness_id]
+
+    script = [
+      "timeout",
+      "--kill-after=60",
+      @time_limit,
+      "bash",
+      "/work/bin/machine/baseline.sh",
+      machine.harness_id
+    ]
 
     configuration = machine.configuration || Catalog.harness_pin!(machine.harness_id)
 
