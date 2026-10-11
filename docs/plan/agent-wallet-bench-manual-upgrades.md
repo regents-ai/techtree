@@ -51,7 +51,9 @@ request reusing an earlier call id is refused, also after a proxy restart. Only
 the harness's own tools reach the model, and no request runs in the background:
 OpenAI's hosted tools (web search, code containers and the like) and background
 responses are billed apart from the answer. The Responses route takes ordinary
-requests only, not its WebSocket mode, which would make many calls under one hold. A stream the harness stops reading
+requests only, not its WebSocket mode, which would make many calls under one hold.
+LiteLLM's own retries, fallbacks and several-model requests are removed, and the
+priority tier is not used. A stream the harness stops reading
 is charged the full $0.33, because the model may have done more work than the
 part delivered shows. A failed call is free when the model server answered with
 an error, and costs $0.33 when no answer came back. After a proxy restart, a call

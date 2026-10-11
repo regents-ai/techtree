@@ -17,7 +17,8 @@ budget is refused, so calls made at the same moment cannot overshoot it together
 
 Only the harness's own tools reach the model, and no request runs in the background: OpenAI's hosted tools and
 background responses are billed apart from the answer and could cost more than a hold. The Responses WebSocket mode is
-refused, because a session makes many calls after a single check.
+refused, because a session makes many calls after a single check, and so are LiteLLM's own retries, fallbacks and
+several-model requests, the priority tier and nested extras.
 
 LiteLLM enforces its own budgets only with a database, which the machine does not run. The total and the call ids
 already used are read back from the log when the translator starts, so a restart resets neither, and a call sent
@@ -39,6 +40,10 @@ CHARGES = ("answered", "interrupted", "failed")
 # from tokens and can cost more than a hold, so only tools the harness runs itself reach the model.
 RESPONSES_TOOLS = ("function", "custom", "local_shell", "shell", "apply_patch")
 CHAT_TOOLS = ("function", "custom")
+# LiteLLM's own request fields that would send one request to the model more than once: retries and fallbacks after a
+# failure, and the fastest of several models.
+REPEATS = ("num_retries", "max_retries", "fallbacks", "context_window_fallbacks", "content_policy_fallbacks",
+           "context_window_fallback_dict", "fastest_response")
 
 
 def _now() -> str:
@@ -95,6 +100,9 @@ class BenchHooks(CustomLogger):
         # A Responses WebSocket session makes a call for every message it receives, all after this one check.
         if call_type == "_aresponses_websocket":
             raise HTTPException(status_code=400, detail={"error": "Send each request over HTTP."})
+        # LiteLLM sends a chat request naming several models, separated by commas, to each of them.
+        if "," in str(data.get("model") or ""):
+            raise HTTPException(status_code=400, detail={"error": "Name one model."})
         call_id = data["litellm_call_id"]
         # LiteLLM merges extra_body over the request after this hook, so it could put back anything removed here.
         data.pop("extra_body", None)
@@ -102,6 +110,10 @@ class BenchHooks(CustomLogger):
         # keeps running and billing after its first answer, so every request is answered in the foreground.
         data.pop("n", None)
         data.pop("background", None)
+        for field in REPEATS:
+            data.pop(field, None)
+        # The priority tier costs more than the list price the hold is worked out from.
+        data.pop("service_tier", None)
         data.pop("web_search_options", None)
         tools = _harness_tools(call_type, data.pop("tools", None) or [])
         if tools:
