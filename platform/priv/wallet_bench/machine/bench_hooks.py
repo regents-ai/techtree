@@ -41,9 +41,9 @@ CHARGES = ("answered", "interrupted", "failed")
 RESPONSES_TOOLS = ("function", "custom", "local_shell", "shell", "apply_patch")
 CHAT_TOOLS = ("function", "custom")
 # LiteLLM's own request fields that would send one request to the model more than once: retries and fallbacks after a
-# failure, and the fastest of several models.
-REPEATS = ("num_retries", "max_retries", "fallbacks", "context_window_fallbacks", "content_policy_fallbacks",
-           "context_window_fallback_dict", "fastest_response")
+# failure (directly, by retry policy or as router settings), and the fastest of several models.
+REPEATS = ("num_retries", "max_retries", "model_group_retry_policy", "fallbacks", "context_window_fallbacks",
+           "content_policy_fallbacks", "context_window_fallback_dict", "router_settings_override", "fastest_response")
 
 
 def _now() -> str:
