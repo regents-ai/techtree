@@ -47,18 +47,15 @@ defmodule Techtree.WalletBench.Version do
     %{requested: expected, installed: if(verified, do: expected), verified: verified}
   end
 
-  # Ignore command paths, failed commands and the subsequent package inventory.
-  # The section starts at the last marker: the wallet's help text, printed
-  # earlier, could carry a copy of it.
+  # The install check ends with one line per version command: its exit status
+  # and its output in base64, which printed output cannot imitate. Only the
+  # last marker starts that section; earlier copies are part of what was printed.
   defp successful_outputs(verification) do
-    case String.split(verification || "", "--- version attempts (exit)") do
+    case String.split(verification || "", "--- version proof (exit, base64 output)\n") do
       [_ | [_ | _] = sections] ->
         sections
         |> List.last()
-        |> String.split("--- npm packages", parts: 2)
-        |> hd()
-        |> String.split(~r/^\$ .*$/m)
-        |> Enum.drop(1)
+        |> String.split("\n", trim: true)
         |> Enum.flat_map(&successful_output/1)
 
       _ ->
@@ -66,11 +63,11 @@ defmodule Techtree.WalletBench.Version do
     end
   end
 
-  # The bench writes each command's exit status as the block's last line; an
-  # earlier "exit=0" is the command's own output and proves nothing.
-  defp successful_output(block) do
-    case Regex.run(~r/\A(.*)^exit=(\d+)\s*\z/ms, block, capture: :all_but_first) do
-      [output, "0"] -> [output]
+  defp successful_output(line) do
+    with ["0", encoded] <- String.split(line, " ", parts: 2),
+         {:ok, output} <- Base.decode64(encoded) do
+      [output]
+    else
       _ -> []
     end
   end

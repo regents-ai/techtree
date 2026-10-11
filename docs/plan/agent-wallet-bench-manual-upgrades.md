@@ -41,13 +41,17 @@ source commit. The checked-in defaults are in
 ## Start only after operator approval
 
 Review the complete manifest and obtain Sean's approval for its provider costs.
-Each attempt's existing model proxy refuses new calls after $5 has been recorded;
-the final call may exceed that threshold. Judge calls and Sprite costs are
-additional. Four attempts therefore have a combined $20 model stop threshold,
-**not a $20 total spending ceiling**. The plan reports that threshold explicitly.
-Calls a harness makes at the same moment are each checked against the threshold
-before any of them is priced, so each in-flight call can add its own cost beyond
-it; at gpt-6-luna's price a single call costs at most about $0.10.
+Each attempt's model proxy caps the attempt's model calls at $5. Every call in
+flight holds $0.16, the most one call can be priced at (a full 922,000-token
+input and 128,000-token output at gpt-6-luna's list price), and a call that would
+take the recorded cost plus every held amount past $5 is refused. Calls a harness
+makes at the same moment therefore cannot overshoot the cap together. Four
+attempts have a combined $20 model cap, and the plan reports it. Judge calls and
+Sprite costs are additional.
+
+The proxy prices every call at gpt-6-luna's short-context list price. Check
+OpenAI's current price for long inputs before a paid run: a call priced higher
+there is recorded below its bill.
 
 The manifest contains no credentials. New batches are unassisted: they do not
 inherit the supplied Bankr account or paid hosted-agent access from earlier
@@ -135,13 +139,14 @@ after another.
 | | Amount |
 | --- | --- |
 | Expected, at the 9 October rate | about $3 |
-| Model stop thresholds, 4 × $5 | $20 |
-| Final-call overshoot, judging and machines, at most | about $5 |
+| Model cap, 4 × $5, enforced by each attempt's proxy | $20 |
+| Judging and machines, estimated from the 9 October rate with room to spare | up to about $5 |
 | Proposed total ceiling | $25 |
 
-The proxy stops each attempt's model calls after $5; nothing stops the batch as
-a whole. The operator therefore reads the ledger before each attempt starts and
-retires the batch if the amount spent plus $6.25 would pass the approved total.
+Only the $20 model part is enforced. Judging is a few calls per turn, and each
+turn's machine time is bounded by its 1,800-second limit, so neither can run
+away, but neither has its own cap. The ledger total is compared with the approved
+amount when the batch ends.
 
 Acceptance, in order:
 

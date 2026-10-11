@@ -85,14 +85,14 @@ defmodule Techtree.WalletBench.Batch do
     manifest
   end
 
-  @doc "Count and model stop threshold for review; judge and Sprite costs are additional."
+  @doc "Count and model spending cap for review; judge and Sprite costs are additional."
   def summary(manifest) do
     count = map_size(manifest["harnesses"]) * map_size(manifest["wallets"]) * manifest["repeats"]
 
     %{
       batch: manifest["batch"],
       attempts: count,
-      model_stop_threshold_usd: count * 5,
+      model_cap_usd: count * 5,
       access: "unassisted",
       money_tests: false
     }

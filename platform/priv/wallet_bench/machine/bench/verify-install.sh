@@ -19,7 +19,15 @@ echo "--- second help (exit)"; "$P" $HELP < /dev/null > /dev/null 2>&1; echo "ex
 echo "--- version attempts (exit)"
 # The bare word "version" only when help lists it as a command: some wallet CLIs send loose words to their AI.
 V="--version -V"; grep -qE "^\s+version\b" /tmp/verify-help.txt && V="$V version"
-for v in $V; do echo "\$ $P $v"; timeout 20 "$P" $v < /dev/null 2>&1 | head -3; echo "exit=${PIPESTATUS[0]}"; done
+# Each attempt is also kept as one line, its exit status and its output in base64, for the version proof at the end:
+# printed output cannot fake a line there.
+PROOF=""
+for v in $V; do
+  echo "\$ $P $v"
+  O=$(timeout 20 "$P" $v < /dev/null 2>&1 | head -3; exit "${PIPESTATUS[0]}"); E=$?
+  printf '%s\n' "$O"; echo "exit=$E"
+  PROOF="$PROOF$E $(printf '%s' "$O" | base64 -w0)"$'\n'
+done
 echo "--- npm packages (bench prefixes)"
 npm ls -g --depth=0 2>&1 | tail -n +1
 for p in ~/.local ~/.npm-global; do test -d $p/lib/node_modules && npm ls -g --prefix $p --depth=0 2>&1; done
@@ -30,3 +38,5 @@ ls -la ~/.local/bin ~/bin ~/.foundry/bin ~/go/bin 2>/dev/null
 echo "--- files owned by bench outside its home and the agent's log folder /logs/agent (expect none)"
 find / -xdev -user bench -not -path "/home/bench" -not -path "/home/bench/*" -not -path "/proc/*" -not -path "/tmp/*" \
   -not -path /logs/agent -not -path "/logs/agent/*" 2>/dev/null | head -20
+echo "--- version proof (exit, base64 output)"
+printf '%s' "$PROOF"
