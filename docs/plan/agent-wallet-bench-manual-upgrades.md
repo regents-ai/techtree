@@ -45,6 +45,9 @@ Each attempt's existing model proxy refuses new calls after $5 has been recorded
 the final call may exceed that threshold. Judge calls and Sprite costs are
 additional. Four attempts therefore have a combined $20 model stop threshold,
 **not a $20 total spending ceiling**. The plan reports that threshold explicitly.
+Calls a harness makes at the same moment are each checked against the threshold
+before any of them is priced, so each in-flight call can add its own cost beyond
+it; at gpt-6-luna's price a single call costs at most about $0.10.
 
 The manifest contains no credentials. New batches are unassisted: they do not
 inherit the supplied Bankr account or paid hosted-agent access from earlier
@@ -77,12 +80,16 @@ Each batch requests a new Sprite baseline for each selected harness. The existin
 runner builds it from the exact pin, verifies the installed harness version,
 checkpoints it and restores that clean checkpoint between attempts. Batches never
 borrow one another's baseline. A failed or retired baseline fails admission to
-that machine rather than waiting forever. Wallet CLIs are installed by the tested
-agent inside each clean attempt; there is no wallet-only Sprite pool.
+that machine rather than waiting forever, and a baseline build still running
+after an hour is stopped and fails. Wallet CLIs are installed by the tested
+agent inside each clean attempt; there is no wallet-only Sprite pool. These
+batches are unassisted, so a Bankr (W01) attempt resets the batch machine like
+any other; only an attempt given the operator's Bankr account retires it.
 
-Every new batch freezes the execution recipe, test protocol, model, reasoning
-level, judge and access conditions. A changed recipe, protocol or judge stops the
-batch; make a new plan rather than mixing conditions within it.
+Every new batch freezes the site release, execution recipe, test protocol,
+model, reasoning level, judge and access conditions. A new site release, or a
+changed recipe, protocol or judge, stops the batch; make a new plan rather than
+mixing conditions within it. Do not deploy Techtree while a batch is running.
 
 Installation and every wallet/signature turn must independently verify the exact
 requested wallet version in a successful version command. Failed commands,
@@ -113,3 +120,38 @@ new attempt/machine fields. Existing dependent views and grants remain intact.
 To add another harness later, implement its pinned Harbor adapter, register it in
 both catalogs and the public roster, and add its reviewed pin. Verify installation,
 first turn, resume and trajectory handling locally before admitting paid attempts.
+
+## First Prime batch: Linux acceptance and total budget
+
+Prime H16 has passed locally on macOS only. The first batch in the deployed
+release is also its Linux acceptance. It runs only after Sean approves both the
+release carrying the two migrations and a total budget for this batch.
+
+Cost basis: the ten approved Bankr reruns of 9 October cost $4.89 in all
+(coding and judge $2.77, Bankr $0.28, machine estimate $1.84), about $0.49 per
+attempt. The four Prime attempts share one baseline machine, so they run one
+after another.
+
+| | Amount |
+| --- | --- |
+| Expected, at the 9 October rate | about $3 |
+| Model stop thresholds, 4 × $5 | $20 |
+| Final-call overshoot, judging and machines, at most | about $5 |
+| Proposed total ceiling | $25 |
+
+The proxy stops each attempt's model calls after $5; nothing stops the batch as
+a whole. The operator therefore reads the ledger before each attempt starts and
+retires the batch if the amount spent plus $6.25 would pass the approved total.
+
+Acceptance, in order:
+
+1. The baseline installs the pinned Linux archive, matches its SHA-256, reports
+   Prime 0.10.0, and is checkpointed. A mismatch fails the baseline and admits
+   no attempt.
+2. Each attempt restores that checkpoint, and Prime completes a first turn and
+   resumes the same session for the next one.
+3. Installation and every wallet or signature turn verify the exact wallet
+   release. Any unverified turn shows an unknown version and cannot pass.
+4. Evidence is captured with canonical fingerprints and no supplied key or email.
+5. At the end there are no active attempts and every machine is retired. The
+   ledger total is reported against the approved amount.
