@@ -42,16 +42,15 @@ source commit. The checked-in defaults are in
 
 Review the complete manifest and obtain Sean's approval for its provider costs.
 Each attempt's model proxy caps the attempt's model calls at $5. Every call in
-flight holds $0.16, the most one call can be priced at (a full 922,000-token
-input and 128,000-token output at gpt-6-luna's list price), and a call that would
-take the recorded cost plus every held amount past $5 is refused. Calls a harness
-makes at the same moment therefore cannot overshoot the cap together. Four
-attempts have a combined $20 model cap, and the plan reports it. Judge calls and
-Sprite costs are additional.
-
-The proxy prices every call at gpt-6-luna's short-context list price. Check
-OpenAI's current price for long inputs before a paid run: a call priced higher
-there is recorded below its bill.
+flight holds $0.33, the most one call can be priced at (922,000 input tokens all
+written to the cache and 128,000 output tokens, at gpt-6-luna's long-prompt
+price), and a call that would take the recorded cost plus every held amount past
+$5 is refused. Calls a harness makes at the same moment therefore cannot overshoot
+the cap together, and each request gets one answer. The proxy prices calls at
+gpt-6-luna's list price, including cache writes and the higher price above
+272,000 input tokens; check it against OpenAI's model page before a paid run.
+Four attempts have a combined $20 model cap, and the plan reports it. Judge
+calls and Sprite costs are additional.
 
 The manifest contains no credentials. New batches are unassisted: they do not
 inherit the supplied Bankr account or paid hosted-agent access from earlier

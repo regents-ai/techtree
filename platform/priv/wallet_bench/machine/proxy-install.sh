@@ -3,8 +3,9 @@
 # reasoning effort high. It holds the real OpenAI key; the harness only gets a local token that works on 127.0.0.1.
 # Installed with the baseline but not started: credentials.sh writes the key and starts it for each attempt.
 #
-# gpt-6-luna's list price (short context, per token) lets LiteLLM price every call for the spend cap in
-# bench_hooks.py: input $0.10, cached input $0.01, output $0.50 per million tokens.
+# gpt-6-luna's list price lets LiteLLM price every call for the spend cap in bench_hooks.py: input $0.10, cached input
+# $0.01, cache writes $0.125 and output $0.50 per million tokens. A prompt over 272,000 input tokens costs twice as
+# much for input and cache, and one and a half times as much for output, across the whole request.
 set -euo pipefail
 source /work/bin/machine/common.sh
 LITELLM_VERSION=1.103.1
@@ -26,6 +27,11 @@ model_list:
       input_cost_per_token: 0.0000001
       cache_read_input_token_cost: 0.00000001
       output_cost_per_token: 0.0000005
+      cache_creation_input_token_cost: 0.000000125
+      input_cost_per_token_above_272k_tokens: 0.0000002
+      cache_read_input_token_cost_above_272k_tokens: 0.00000002
+      cache_creation_input_token_cost_above_272k_tokens: 0.00000025
+      output_cost_per_token_above_272k_tokens: 0.00000075
 litellm_settings:
   drop_params: true
   callbacks: bench_hooks.bench_hooks

@@ -20,13 +20,13 @@ echo "--- version attempts (exit)"
 # The bare word "version" only when help lists it as a command: some wallet CLIs send loose words to their AI.
 V="--version -V"; grep -qE "^\s+version\b" /tmp/verify-help.txt && V="$V version"
 # Each attempt is also kept as one line, its exit status and its output in base64, for the version proof at the end:
-# printed output cannot fake a line there.
+# printed output cannot fake a line there. The tools that build it are the system's own, not ones the account installed.
 PROOF=""
 for v in $V; do
   echo "\$ $P $v"
-  O=$(timeout 20 "$P" $v < /dev/null 2>&1 | head -3; exit "${PIPESTATUS[0]}"); E=$?
+  O=$(/usr/bin/timeout 20 "$P" $v < /dev/null 2>&1 | /usr/bin/head -3; exit "${PIPESTATUS[0]}"); E=$?
   printf '%s\n' "$O"; echo "exit=$E"
-  PROOF="$PROOF$E $(printf '%s' "$O" | base64 -w0)"$'\n'
+  PROOF="$PROOF$E $(printf '%s' "$O" | /usr/bin/base64 -w0)"$'\n'
 done
 echo "--- npm packages (bench prefixes)"
 npm ls -g --depth=0 2>&1 | tail -n +1
