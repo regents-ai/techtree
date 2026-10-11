@@ -16,7 +16,8 @@ budget is refused, so calls made at the same moment cannot overshoot it together
   lost its connection, timed out or failed after the answer arrived may have been billed.
 
 Only the harness's own tools reach the model, and no request runs in the background: OpenAI's hosted tools and
-background responses are billed apart from the answer and could cost more than a hold.
+background responses are billed apart from the answer and could cost more than a hold. The Responses WebSocket mode is
+refused, because a session makes many calls after a single check.
 
 LiteLLM enforces its own budgets only with a database, which the machine does not run. The total and the call ids
 already used are read back from the log when the translator starts, so a restart resets neither, and a call sent
@@ -91,14 +92,20 @@ class BenchHooks(CustomLogger):
         self.interrupted = set()
 
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
+        # A Responses WebSocket session makes a call for every message it receives, all after this one check.
+        if call_type == "_aresponses_websocket":
+            raise HTTPException(status_code=400, detail={"error": "Send each request over HTTP."})
         call_id = data["litellm_call_id"]
+        # LiteLLM merges extra_body over the request after this hook, so it could put back anything removed here.
+        data.pop("extra_body", None)
         # One answer per request: more choices would multiply a call's price past its hold. A background response
         # keeps running and billing after its first answer, so every request is answered in the foreground.
         data.pop("n", None)
         data.pop("background", None)
         data.pop("web_search_options", None)
-        if "tools" in data:
-            data["tools"] = _harness_tools(call_type, data["tools"])
+        tools = _harness_tools(call_type, data.pop("tools", None) or [])
+        if tools:
+            data["tools"] = tools
         if call_type in ("aresponses", "responses"):
             data["reasoning"] = {**(data.get("reasoning") or {}), "effort": "high"}
             data.pop("reasoning_effort", None)
