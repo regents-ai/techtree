@@ -33,28 +33,34 @@ most, more if Opus thinks longer than luna did. The judge costs what it did.
 `priv/wallet_bench/machine/proxy-install.sh`
 - Route every model name to `anthropic/claude-opus-5-5` with the Claude key.
 - Opus prices in place of luna's; Opus has no long-prompt tier.
-- LiteLLM 1.103.1 does not list Opus 5.5 (it stops at `claude-opus-5`). Move to
-  a release that lists it, installed with hashes (a B4 follow-up), or declare the
-  model's abilities in the relay's settings. Decided in the build.
+- LiteLLM 1.103.1 does not list Opus 5.5 (it stops at `claude-opus-5`).
+  LiteLLM 1.104.3 lists it, with adaptive thinking and `output_config`. It is
+  installed with every package it needs from `litellm-requirements.txt`, each
+  matched to its hashes (the B4 follow-up, done here).
 
 `priv/wallet_bench/machine/bench_hooks.py`
 - Effort: every call runs with adaptive thinking and `output_config.effort`
-  `high`. The OpenAI `reasoning_effort` and `reasoning` rewrites go.
-- Thinking stays valid across turns: the relay sets the
-  `thinking-binding-controls-2026-08-01` header and `drop_block`, so a harness
-  that edits its history loses that reasoning instead of failing the call.
+  `high`. Native Messages calls get both set directly; chat calls get
+  `reasoning_effort` `high` and Responses calls `reasoning.effort` `high`, which
+  LiteLLM turns into the same Anthropic fields.
+- No thinking-binding header or `drop_block`: Claude Code (H05) keeps its own
+  history as Anthropic expects, and translated harnesses carry no thinking
+  blocks between turns.
 - Removed before sending, because each costs more than the hold or calls other
   models: Anthropic's server tools (web search, web fetch, code execution, tool
   search, MCP servers, containers and skills, advisor), `fallbacks`, `speed`
   (fast mode costs twice), `service_tier`, `inference_geo`,
   `context_management`, and a one-hour cache time (forced to five minutes).
 - Hold: each call's output is capped at 32,000 tokens. Each call holds its
-  own most-possible price: its input tokens, counted exactly by Anthropic's free
-  token-count endpoint for native calls and bounded by the request's length for
-  translated ones, all priced as cache writes, plus 32,000 output tokens. This
-  replaces the fixed $0.33.
+  own most-possible price: its input tokens, all priced as five-minute cache
+  writes, plus 32,000 output tokens ($0.64). Native Messages calls are counted by
+  Anthropic's free token counter, plus a tenth because the counter is an
+  estimate. Translated calls are bounded by their length in bytes, since no
+  Claude token is shorter than a byte, plus 10,000 tokens for the tool
+  instructions Anthropic adds and 10,000 for each image or file. No hold counts
+  more input than the 1M context. This replaces the fixed $0.33.
 - The tool filter keeps the harness's own tools only: Anthropic custom tools,
-  and for translated calls the function tools LiteLLM turns into them.
+  and for translated calls the function and custom tools LiteLLM turns into them.
 - Logging reads effort from the Anthropic request shape.
 
 `credentials.sh`, `baseline.sh`, `calls.py`
@@ -63,20 +69,22 @@ most, more if Opus thinks longer than luna did. The judge costs what it did.
 ## The tested agents (runner side)
 
 `priv/wallet_bench/runner/awb_runner/roster.py`, `agents.py`, `prime.py`
-- Every harness asks for `claude-opus-5-5`. Where a harness can speak
-  Anthropic's own format to a set address, it does, so its thinking carries
-  across turns; otherwise LiteLLM translates.
+- Every harness asks for `claude-opus-5-5`. Each keeps the route it uses on the
+  live release; only the model name changes. Moving a harness to Anthropic's
+  format would mean a new, untested setup for each one, for no gain in the
+  first batch.
 
 | Harness | Route |
 | --- | --- |
 | H05 Claude Code | Anthropic's format, as now; the cleanest path |
-| H10 Codex | OpenAI Responses, translated. Risk: Codex's free-form patch tool has no Anthropic match |
-| H08 Pi, H09 oh-my-pi, H16 Prime | switch to their Anthropic setting |
-| H06 Cline, H07 Kilo, H13 OpenCode | Anthropic provider with a set address, if their pinned versions allow it; else translated |
-| H04 Hermes, H12 DeepSeek Harness | translated Chat Completions |
+| H10 Codex | OpenAI Responses, translated. Risk: its shell tools have no Anthropic form and LiteLLM drops them |
+| H04, H06–H09, H12, H13, H16 | OpenAI format, translated, as now |
 
-Each harness is checked against a stand-in model server before the release. Any
-that cannot run on Opus is named with the reason, and it stays out of batches.
+The relay's spending cap is checked against a stand-in Claude server before the
+release (kit in `artifacts/techtree-bench-claude-2026-10-12/relay-cap`). The
+first batch runs the harness Sean picks (decision 33; recommended Claude Code,
+the cleanest path). Other harnesses are checked on Opus in later batches; any
+that cannot run is named with the reason and stays out of batches.
 
 ## The judge and the site (server side)
 
@@ -88,8 +96,11 @@ that cannot run on Opus is named with the reason, and it stays out of batches.
   and the Bench pins it.
 - `lib/techtree/wallet_bench/judge.ex`: calls `RegentAnthropic`. Adaptive
   thinking, `high` effort, 32,000 output tokens.
-- `lib/techtree/wallet_bench/turn/changes/judge_turn.ex`: records the billed
-  cost of a failed judge call.
+- A judge call that fails after it was billed (refused, cut short, or not in
+  the asked shape) is not added to the turn's judge cost, and the job tries
+  again. The live release does the same at the same price (gpt-5.6-sol and
+  Opus 5.5 are both $4 in and $20 out per million tokens), so this is a
+  follow-up, not part of the move.
 - `lib/techtree/wallet_bench/batch.ex`: plans and validates
   `claude-opus-5-5`, `high`.
 - `config/config.exs`: `judge_model: "claude-opus-5-5"`.
@@ -108,7 +119,7 @@ that cannot run on Opus is named with the reason, and it stays out of batches.
 ## Order
 
 1. `regent_anthropic` in elixir-utils on its own branch; the owner reviews.
-2. Relay, hooks and runner; each harness against the stand-in server.
+2. Relay, hooks and runner; the spending cap against the stand-in server.
 3. Judge, batch, setup note, ignore list, runbook.
 4. Local checks; Codex read-only review; Sentinel.
 5. Release under Sean's go, then the first batch inside its ceiling, then a report.

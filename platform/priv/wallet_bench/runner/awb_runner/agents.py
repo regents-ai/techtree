@@ -35,7 +35,7 @@ from harbor.models.trajectories import (
 from harbor.utils.trajectory_utils import format_trajectory_json
 
 TRANSLATOR = "http://127.0.0.1:4000/v1"
-MODEL = "gpt-6-luna"
+MODEL = "claude-opus-5-5"
 TOKEN = "/home/bench/.model-token"
 INSTRUCTION = "AWB_INSTRUCTION"
 
@@ -292,17 +292,17 @@ class DeepSeekHarness(BaseInstalledAgent):
             "- id: llm-pi-ai\n"
             "  config:\n"
             "    providers:\n"
-            "      luna:\n"
+            "      translator:\n"
             "        displayName: Local translator\n"
             "        api: openai-completions\n"
             f"        baseURL: {TRANSLATOR}\n"
-            "        apiKeyEnv: LUNA_API_KEY\n"
+            "        apiKeyEnv: TRANSLATOR_API_KEY\n"
             "        models:\n"
             f"          - id: {MODEL}\n"
             f"            name: {MODEL}\n"
             "- id: agent-default-model\n"
             "  config:\n"
-            "    provider: luna\n"
+            "    provider: translator\n"
             f"    model: {MODEL}\n"
         )
         await self.exec_as_agent(
@@ -322,7 +322,7 @@ class DeepSeekHarness(BaseInstalledAgent):
         await self.exec_as_agent(
             environment,
             command=(
-                f'export LUNA_API_KEY="$(cat {TOKEN})"; '
+                f'export TRANSLATOR_API_KEY="$(cat {TOKEN})"; '
                 f"{_piped_instruction()} dsh --profile headless --json {resume}"
                 f"2>&1 | stdbuf -oL tee {shlex.quote(output)}"
             ),

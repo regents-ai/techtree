@@ -7,8 +7,8 @@ defmodule Techtree.WalletBench.Blank do
   operator keys regardless of what the agent left on disk. Each is
   blanked as written and as it appears inside a JSON string, and the blank
   names the file it came from. Then patterns: PEM private keys, sign-in links
-  that carry a code, email addresses, API keys with a vendor's prefix (OpenAI,
-  Bankr, Zerion, Privy, Circle), 32-byte hex values with or without `0x` (a
+  that carry a code, email addresses, API keys with a vendor's prefix (Anthropic,
+  OpenAI, Bankr, Zerion, Privy, Circle), 32-byte hex values with or without `0x` (a
   private key looks like a transaction hash, so the blank says it may be
   either), 64-byte base58 values (a Solana key looks like a Solana signature)
   and Solana keys written as 64 numbers, and runs of 12 or more

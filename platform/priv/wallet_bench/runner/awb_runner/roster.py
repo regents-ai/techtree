@@ -1,8 +1,9 @@
 """The ten agents the bench tests: each one's Harbor adapter, pinned version, and model.
 
-Every agent talks to gpt-6-luna through the machine's translator (LiteLLM on 127.0.0.1:4000), which sets the reasoning
-effort to high for every call, counts cost and refuses new calls once the attempt reaches $5. The agents only hold the
-machine's local translator token, never the OpenAI key.
+Every agent talks to claude-opus-5-5 through the machine's translator (LiteLLM on 127.0.0.1:4000), which sends every
+call to Anthropic with adaptive thinking at effort high, counts cost and refuses new calls once the attempt reaches $5.
+Claude Code speaks Anthropic's format; the others speak OpenAI's chat or Responses format, which the translator turns
+into Anthropic's. The agents only hold the machine's local translator token, never the Claude key.
 """
 import json
 import os
@@ -34,22 +35,25 @@ class Harness:
 
 
 ROSTER = {
-    "H04": Harness("Hermes Agent", HermesAgent, "0.21.5", "openai/gpt-6-luna", "hermes.txt"),
-    "H05": Harness("Claude Code", ClaudeCode, "2.1.286", "anthropic/gpt-6-luna", "claude-code.txt"),
+    "H04": Harness("Hermes Agent", HermesAgent, "0.21.5", "openai/claude-opus-5-5", "hermes.txt"),
+    "H05": Harness("Claude Code", ClaudeCode, "2.1.286", "claude-opus-5-5", "claude-code.txt"),
     "H06": Harness(
-        "Cline", ClineAgent, "3.0.67", "openai-compatible:gpt-6-luna", "cline.txt", {"cline_version": "3.0.67"}
+        "Cline", ClineAgent, "3.0.67", "openai-compatible:claude-opus-5-5", "cline.txt",
+        {"cline_version": "3.0.67"},
     ),
-    "H07": Harness("Kilo Code", KiloCode, "7.8.1", "openai/gpt-6-luna", "kilo.txt"),
+    "H07": Harness("Kilo Code", KiloCode, "7.8.1", "openai/claude-opus-5-5", "kilo.txt"),
     "H08": Harness(
-        "Pi", PiAgent, "1.0.0", "openai/gpt-6-luna", "pi.txt", {"model_api": "openai-completions", "thinking": "high"}
+        "Pi", PiAgent, "1.0.0", "openai/claude-opus-5-5", "pi.txt",
+        {"model_api": "openai-completions", "thinking": "high"},
     ),
-    "H09": Harness("oh-my-pi", OhMyPi, "v18.4.8", "openai/gpt-6-luna", "omp.txt"),
-    "H10": Harness("Codex CLI", Codex, "0.159.3", "openai/gpt-6-luna", "codex.txt"),
-    "H12": Harness("DeepSeek Harness", DeepSeekHarness, "0.2.0-rc.2", "openai/gpt-6-luna", "dsh.txt"),
+    "H09": Harness("oh-my-pi", OhMyPi, "v18.4.8", "openai/claude-opus-5-5", "omp.txt"),
+    "H10": Harness("Codex CLI", Codex, "0.159.3", "openai/claude-opus-5-5", "codex.txt"),
+    "H12": Harness("DeepSeek Harness", DeepSeekHarness, "0.2.0-rc.2", "openai/claude-opus-5-5", "dsh.txt"),
     "H13": Harness(
-        "OpenCode", OpenCode, "1.18.34", "openai/gpt-6-luna", "opencode.txt", {"opencode_config": {"autoupdate": False}}
+        "OpenCode", OpenCode, "1.18.34", "openai/claude-opus-5-5", "opencode.txt",
+        {"opencode_config": {"autoupdate": False}},
     ),
-    "H16": Harness("Prime Agent", PrimeAgent, "0.10.0", "bench/gpt-6-luna", "prime.txt"),
+    "H16": Harness("Prime Agent", PrimeAgent, "0.10.0", "bench/claude-opus-5-5", "prime.txt"),
 }
 
 PINS = json.loads((Path(__file__).parents[1] / "harnesses.json").read_text())

@@ -41,30 +41,36 @@ source commit. The checked-in defaults are in
 ## Start only after operator approval
 
 Review the complete manifest and obtain Sean's approval for its provider costs.
-Each attempt's model proxy caps the attempt's model calls at $5. Every call in
-flight holds $0.33, the most one call can be priced at (922,000 input tokens all
-written to the cache and 128,000 output tokens, at gpt-6-luna's long-prompt
-price), and a call that would take the recorded cost plus every held amount past
-$5 is refused. Calls a harness makes at the same moment therefore cannot overshoot
-the cap together, and each request gets one answer and reaches the model once. A
-request reusing an earlier call id is refused, also after a proxy restart. Only
-the harness's own tools reach the model (a shell tool only when it runs on the
-machine itself), and no request runs in the background: OpenAI's hosted tools
-(web search, code containers and the like) and background responses are billed
-apart from the answer. The Responses route takes ordinary
-requests only, not its WebSocket mode, which would make many calls under one hold.
-LiteLLM's own retries, retry policies, fallbacks and several-model requests are
-removed, and the priority tier is not used. The Messages token counter still goes
-to OpenAI outside the cap; it runs no model. A stream the harness stops reading
-is charged the full $0.33, because the model may have done more work than the
-part delivered shows. A failed call is free when the model server answered with
-an error, and costs $0.33 when no answer came back. After a proxy restart, a call
-that was still running is charged $0.33. The harness's token reaches only the
-chat, Responses and Anthropic Messages routes (with the token counter and model
-list), so LiteLLM's direct-forwarding, batch and file routes cannot skip the cap.
-The proxy prices calls at
-gpt-6-luna's list price, including cache writes and the higher price above
-272,000 input tokens; check it against OpenAI's model page before a paid run.
+Each attempt's model proxy caps the attempt's model calls at $5. Every model call
+goes to Anthropic as claude-opus-5-5 with adaptive thinking at high effort, and
+each answer is capped at 32,000 output tokens. Every call in flight holds the
+most it can be priced at: its input tokens, all priced as five-minute cache
+writes ($5 per million), and 32,000 output tokens ($0.64). An Anthropic Messages
+call's input is counted by Anthropic's free token counter, plus a tenth; a
+translated call's input is bounded by its length in bytes, plus 10,000 tokens for
+tool instructions and 10,000 for each image or file. A call that would take the
+recorded cost plus every held amount past $5 is refused. Calls a harness makes at
+the same moment therefore cannot overshoot the cap together, and each request
+gets one answer and reaches the model once. A request reusing an earlier call id
+is refused, also after a proxy restart. Only the harness's own tools reach the
+model, and nothing billed apart from tokens or above the list price: Anthropic's
+server tools (web search, web fetch, code execution and the like), MCP servers,
+containers and server-side context management are removed, and so are fast mode,
+the priority tier, a pinned inference region and one-hour cache writes. The
+Responses route takes ordinary requests only, not its WebSocket mode, which would
+make many calls under one hold. LiteLLM's own retries, retry policies, fallbacks
+and several-model requests are removed. The Messages token counter goes to
+Anthropic outside the cap; it runs no model and is free. A stream the harness
+stops reading is charged its full hold, because the model may have done more work
+than the part delivered shows. A failed call is free when the model server
+answered with an error, and costs its hold when no answer came back. After a
+proxy restart, a call that was still running is charged its hold. The harness's
+token reaches only the chat, Responses and Anthropic Messages routes (with the
+token counter and model list), so LiteLLM's direct-forwarding, batch and file
+routes cannot skip the cap. The proxy prices calls at claude-opus-5-5's list
+price: $4 input, $0.20 cache reads, $5 five-minute cache writes and $20 output
+per million tokens; check it against Anthropic's pricing page before a paid run.
+LiteLLM 1.104.3 and every package it needs are installed with their hashes.
 Four attempts have a combined $20 model cap, and the plan reports it. Judge
 calls and Sprite costs are additional.
 

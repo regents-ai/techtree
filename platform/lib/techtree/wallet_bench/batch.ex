@@ -59,7 +59,7 @@ defmodule Techtree.WalletBench.Batch do
       "recipe" => Catalog.recipe_digest(),
       "protocol" => Catalog.protocol_digest(),
       "access" => "unassisted",
-      "model" => "gpt-6-luna",
+      "model" => "claude-opus-5-5",
       "effort" => "high",
       "judge" => Judge.model()
     }
@@ -220,7 +220,7 @@ defmodule Techtree.WalletBench.Batch do
     check(manifest["access"] == "unassisted", "only unassisted access is supported")
 
     check(
-      manifest["model"] == "gpt-6-luna" && manifest["effort"] == "high",
+      manifest["model"] == "claude-opus-5-5" && manifest["effort"] == "high",
       "frozen model and effort"
     )
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds one harness's baseline, once, before the baseline checkpoint (the survey's baseline/baseline.sh). Runs as the
-# machine's owner account through job.sh. The OpenAI key is not here: it arrives for each attempt (credentials.sh).
+# machine's owner account through job.sh. The Claude key is not here: it arrives for each attempt (credentials.sh).
 #
 # Usage: baseline.sh <harness_id>
 # Writes /work/baseline/: environment.txt, runner-install.log, harness-install.log, bench-inventory.txt and, last,
@@ -63,8 +63,8 @@ release = dict(line.split("=", 1) for line in open("/etc/os-release").read().spl
 print(json.dumps({
     "harness_id": sys.argv[1],
     "harness_version": sys.argv[2],
-    "translator": "litellm 1.103.1",
-    "model": "gpt-6-luna",
+    "translator": "litellm 1.104.3",
+    "model": "claude-opus-5-5",
     "reasoning_effort": "high",
     "os": release.get("PRETTY_NAME", "").strip('"'),
     "kernel": platform.release(),

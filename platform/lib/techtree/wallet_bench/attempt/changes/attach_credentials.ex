@@ -50,7 +50,7 @@ defmodule Techtree.WalletBench.Attempt.Changes.AttachCredentials do
     end)
   end
 
-  @doc "The OpenAI key an attempt's harness calls the model with."
+  @doc "The Claude key an attempt's harness calls the model with."
   @spec model_key() :: String.t()
   def model_key, do: Application.fetch_env!(:techtree, Techtree.WalletBench)[:model_key]
 end

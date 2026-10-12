@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The attempt's OpenAI key, on and off the machine.
+# The attempt's Claude key, on and off the machine.
 #
 #   credentials.sh attach   reads the key from standard input, writes it owner-only and starts the translator as a
 #                           Sprites service; prints "attached" once it answers on 127.0.0.1:4000
@@ -12,8 +12,8 @@ P=$W/proxy
 case $1 in
   attach)
     lock
-    (umask 077; cat > "$P/openai.key")
-    test -s "$P/openai.key"
+    (umask 077; cat > "$P/anthropic.key")
+    test -s "$P/anthropic.key"
     api -X PUT http://sprite/v1/services/llmproxy -d '{"cmd":"/work/proxy/run.sh"}' > /dev/null
     for _ in $(seq 1 90); do
       curl -sf http://127.0.0.1:4000/health/liveliness > /dev/null && break
@@ -27,9 +27,9 @@ case $1 in
     if api http://sprite/v1/services | grep -q '"name":"llmproxy"'; then
       api -X DELETE http://sprite/v1/services/llmproxy > /dev/null
     fi
-    if [ -e "$P/openai.key" ]; then shred -u "$P/openai.key"; fi
-    test ! -e "$P/openai.key"
-    ! pgrep -f /work/proxy/bin/litellm > /dev/null
+    if [ -e "$P/anthropic.key" ]; then shred -u "$P/anthropic.key"; fi
+    test ! -e "$P/anthropic.key"
+    ! pgrep -f /work/proxy/venv/bin/litellm > /dev/null
     echo revoked
     ;;
   *)
