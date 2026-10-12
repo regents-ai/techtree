@@ -7,8 +7,8 @@ defmodule TechtreeWeb.AnimationsLive do
 
   use TechtreeWeb, :live_view
 
-  alias TechtreeWeb.Motion
   alias Regent.Primitives, as: P
+  alias TechtreeWeb.Motion
 
   # The versions each section offers.
   @choices %{
