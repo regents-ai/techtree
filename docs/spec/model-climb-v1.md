@@ -219,7 +219,7 @@ The check: the trainer's matched module list must equal the expected set exactly
 ^model\.language_model\.layers\.\d+\.mlp\.(gate_proj|up_proj|down_proj)$
 ```
 
-They match 248 modules, none missing and none unexpected. Text-only SFT resolves without a `[model.vlm]` block.
+They match 248 modules, none missing and none unexpected. Text-only SFT resolves without a `[model.vlm]` block. The recipe sets `[model.fusions] enabled = []`, so LoRA attaches to the separate projections the check counts, and admission fails unless the resolved configuration shows it.
 
 ### 7.3 Adapter export and serving
 
@@ -227,6 +227,7 @@ They match 248 modules, none missing and none unexpected. Text-only SFT resolves
 - Serving: `vllm serve` on the base revision with `--enable-lora`, `--max-lora-rank` equal to the recipe's rank, `--lora-modules` naming the adapter differently from the base model, and structured output through `response_format` `json_schema` (`guided_json` no longer exists).
 - vLLM packs `in_proj_qkv` with `in_proj_z`, and `in_proj_b` with `in_proj_a`. The test proves the trained adapter loads into those packed layers and changes the output.
 - Verifiers runs with `--no-push`; its default uploads results to Prime Intellect.
+- The trainer sends nothing anywhere: the recipe sets `dashboard = false`, and admission fails unless the resolved `heartbeat`, `monitors.prime` and `monitors.wandb` are all null. Metrics go only to a local `metrics.jsonl`.
 
 ### 7.4 The test
 
@@ -238,7 +239,6 @@ The output is the measured compatibility profile and its digest. It does not cla
 
 ## 8. Open items
 
-- prime-rl's resolved recipe enables its `gate_up` and `qkv` fusions. Whether the trained model still has separate `q_proj`/`k_proj`/`v_proj` and `gate_proj`/`up_proj` modules for the targets to match, or the recipe must turn those fusions off, is settled before 7.4 step 2.
 - Whether the weights load for text-only training without a `[model.vlm]` block (fixed by 7.4 step 2).
 - How long Autoresearch honours an `idempotency_key`; its documentation does not say.
 - Live Autoresearch prices; the plan reads them at resolve time and records them.

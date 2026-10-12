@@ -377,9 +377,9 @@ None of these commands rents a machine, calls a paid model or sends data anywher
   the assistant's answers, and prints the exact module paths the LoRA targets would match.
 - **Who may run it:** anyone with Docker.
 - **What it changes:** reuses the local container image built by `make model-climb-image` in a
-  regents-cli checkout, and downloads the model's
-  tokenizer and configuration (not its weights) from Hugging Face at the pinned revision. Writes
-  its report under `<techtree home>/model-climb/profiles/`. Nothing on the site.
+  regents-cli checkout; building that image downloads the model's tokenizer and configuration
+  (not its weights) from Hugging Face at the pinned revision. The check itself runs with no
+  network. Writes its report under `<techtree home>/model-climb/profiles/`. Nothing on the site.
 - **Route:** none. Operation `model_climb_profile_check` (draft).
 - **Inputs:**
   - `<profile>`: `m0-qwen3.5-9b`, the only profile in M0.
@@ -389,7 +389,8 @@ None of these commands rents a machine, calls a paid model or sends data anywher
   matched module list with its count against the expected 248.
 - **Refusals:**
   - `unsupported_capability`: Docker is missing, the image is missing (the answer names
-    `make model-climb-image`), or prime-rl's dry run cannot install on this machine. The answer names the step that failed; it never falls through to renting a machine.
+    `make model-climb-image`), or prime-rl's dry run cannot install on this machine. The answer
+    names the step that failed; it never falls through to renting a machine.
   - `validation_error`: an unknown profile, or `--dry-run` left out.
 - **History:** 2026-10-12 added.
 
