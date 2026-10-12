@@ -78,8 +78,8 @@ config :techtree,
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
-  queues: [sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
-  cron: [crontab: []],
+  queues: [default: 1, sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
+  cron: [crontab: [{"17 4 * * *", Techtree.ErrorPruner}]],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]
 
@@ -177,13 +177,13 @@ config :logger, :default_formatter,
 # Failed requests, pages and jobs are saved in the site's own schema (the
 # schema is chosen at boot in config/runtime.exs). Only server faults are saved
 # (Techtree.ErrorIgnorer), only where each one happened is kept
-# (Techtree.ErrorFilter), and a resolved error is cleared after a week.
+# (Techtree.ErrorFilter), and Techtree.ErrorPruner clears each one a week
+# after it was last seen.
 config :error_tracker,
   repo: Techtree.Repo,
   otp_app: :techtree,
   ignorer: Techtree.ErrorIgnorer,
-  filter: Techtree.ErrorFilter,
-  plugins: [{ErrorTracker.Plugins.Pruner, max_age: :timer.hours(24 * 7)}]
+  filter: Techtree.ErrorFilter
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

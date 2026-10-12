@@ -440,7 +440,8 @@ redirect must be unchanged.
 
 Server faults (failed requests, pages and jobs) are saved in the site's own
 schema by ErrorTracker, with only where each happened kept
-(`Techtree.ErrorFilter`). Until sign-in arrives and `/admin/errors` mounts with
+(`Techtree.ErrorFilter`). `Techtree.ErrorPruner` clears each one a week after
+it was last seen, every day at 04:17 UTC. Until sign-in arrives and `/admin/errors` mounts with
 the template's admin guard, read the latest twenty on the running machine:
 
     flyctl ssh console --app techtree-sh
