@@ -175,6 +175,12 @@ config :logger, :default_formatter,
   metadata: [:request_id]
 
 # Use Jason for JSON parsing in Phoenix
+config :sentry,
+  environment_name: config_env(),
+  json_library: Jason,
+  enable_metrics: false,
+  tags: %{app: "techtree"}
+
 config :phoenix, :json_library, Jason
 
 # Import environment specific config. This must remain at the bottom

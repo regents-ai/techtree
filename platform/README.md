@@ -293,6 +293,7 @@ monorepo root.
 | `PHX_HOST`, `PORT` | endpoint |
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
+| `SENTRY_DSN`, `SENTRY_RELEASE`, `SENTRY_ENVIRONMENT` | error reporting; unset means no reporting |
 
 No model-provider credential is read by this application.
 

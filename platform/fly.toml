@@ -59,6 +59,9 @@ swap_size_mb = 512
   # serving traffic is replaced. This is the only thing a deploy does to the
   # database.
   release_command = "/app/bin/migrate"
+  # New machines must pass /healthz before any old machine stops, so a release
+  # that cannot boot leaves the running site in place.
+  strategy = "bluegreen"
 
 [http_service]
   internal_port = 8080

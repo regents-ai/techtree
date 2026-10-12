@@ -1,5 +1,10 @@
 import Config
 
+config :sentry,
+  dsn: System.get_env("SENTRY_DSN"),
+  release: System.get_env("SENTRY_RELEASE"),
+  environment_name: System.get_env("SENTRY_ENVIRONMENT", to_string(config_env()))
+
 database_schema = System.get_env("TECHTREE_DB_SCHEMA", "public")
 
 unless database_schema in ["public", "techtree_app"] do
