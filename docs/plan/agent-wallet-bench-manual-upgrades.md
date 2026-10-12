@@ -48,7 +48,8 @@ most it can be priced at: its input tokens, all priced as five-minute cache
 writes ($5 per million), and 32,000 output tokens ($0.64). An Anthropic Messages
 call's input is counted by Anthropic's free token counter, plus a tenth; a
 translated call's input is bounded by its length in bytes, plus 10,000 tokens for
-tool instructions and 10,000 for each image or file. A call that would take the
+tool instructions and 10,000 for each image, and one carrying a file or
+document is refused. A call that would take the
 recorded cost plus every held amount past $5 is refused. Calls a harness makes at
 the same moment therefore cannot overshoot the cap together, and each request
 gets one answer and reaches the model once. A request reusing an earlier call id
@@ -59,11 +60,13 @@ containers and server-side context management are removed, and so are fast mode,
 the priority tier, a pinned inference region and one-hour cache writes. The
 Responses route takes ordinary requests only, not its WebSocket mode, which would
 make many calls under one hold. LiteLLM's own retries, retry policies, fallbacks
-and several-model requests are removed. The Messages token counter goes to
+and several-model requests are removed, and so is its resend of a request on a
+fresh connection after a broken one. Each call is charged once. The Messages token counter goes to
 Anthropic outside the cap; it runs no model and is free. A stream the harness
 stops reading is charged its full hold, because the model may have done more work
 than the part delivered shows. A failed call is free when the model server
-answered with an error, and costs its hold when no answer came back. After a
+answered with an error, and costs its hold when no answer came back or the
+error arrived inside a stream that had started. After a
 proxy restart, a call that was still running is charged its hold. The harness's
 token reaches only the chat, Responses and Anthropic Messages routes (with the
 token counter and model list), so LiteLLM's direct-forwarding, batch and file

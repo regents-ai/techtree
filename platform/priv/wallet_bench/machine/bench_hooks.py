@@ -9,7 +9,8 @@ charged: its input tokens, all priced as five-minute cache writes (the dearest i
 the cap every request is given. An Anthropic Messages request's input is counted by Anthropic's token counter, which
 is free and runs no model, plus a tenth, because the counter is an estimate. A translated request's input is bounded
 by its length in bytes, since no Claude token is shorter than a byte, plus TOOL_ALLOWANCE for the tool instructions
-Anthropic adds and MEDIA_ALLOWANCE for each image or file. No request is held for more input than the model's context
+Anthropic adds and MEDIA_ALLOWANCE for each image. Files and documents are refused in translated requests, because a
+short link or a small file can stand for many pages of input. No request is held for more input than the model's context
 window. A request that would take the recorded cost plus every held amount past the budget is refused, so calls made
 at the same moment cannot overshoot it together. A call is charged:
 
@@ -17,7 +18,11 @@ at the same moment cannot overshoot it together. A call is charged:
 - interrupted: its hold, for a stream the harness stopped reading, because the model may have generated more than was
   delivered;
 - failed: nothing when the model server answered with an error status, otherwise its hold, because a call that lost
-  its connection, timed out or failed after the answer arrived may have been billed.
+  its connection, timed out, failed inside a stream or failed after the answer arrived may have been billed.
+
+Each call is charged once, by whichever of these comes first. LiteLLM sends a request again on a fresh connection
+when the first connection breaks, even after Anthropic has received it; that second send is switched off, so a broken
+connection fails the call and charges its hold.
 
 Only the harness's own tools reach the model, and nothing billed apart from tokens or above the list price: Anthropic's
 server tools, MCP servers, containers and server-side context management are removed, and so are fast mode, the
@@ -38,6 +43,7 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import HTTPException
 from litellm.integrations.custom_logger import CustomLogger
+from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler
 
 BUDGET_USD = 5.0
 MODEL = "claude-opus-5-5"
@@ -56,7 +62,8 @@ CHARGES = ("answered", "interrupted", "failed")
 TRANSLATED_TOOLS = ("function", "custom")
 # The request fields that hold the conversation and its tools.
 CONTENT = ("system", "messages", "input", "instructions", "tools")
-MEDIA = ("image", "image_url", "input_image", "document", "file", "input_file", "input_audio")
+MEDIA = ("image", "image_url", "input_image", "input_audio")
+FILES = ("document", "file", "input_file")
 # Request fields billed apart from tokens or above the list price, or that send one request to more than one model:
 # LiteLLM's retries and fallbacks after a failure (directly, by retry policy or as router settings), the fastest of
 # several models, and Anthropic's own model fallbacks, server tools and pricing options.
@@ -117,12 +124,12 @@ def _capped(value) -> int:
     return min(value, MAX_OUTPUT) if isinstance(value, int) and value > 0 else MAX_OUTPUT
 
 
-def _media(value) -> int:
-    """How many images and files a translated request carries."""
+def _parts(value, types: tuple) -> int:
+    """How many parts of the given types a request carries."""
     if isinstance(value, dict):
-        return (value.get("type") in MEDIA) + sum(_media(item) for item in value.values())
+        return (value.get("type") in types) + sum(_parts(item, types) for item in value.values())
     if isinstance(value, list):
-        return sum(_media(item) for item in value)
+        return sum(_parts(item, types) for item in value)
     return 0
 
 
@@ -152,8 +159,11 @@ async def _counted(data: dict) -> int:
 def _bounded(data: dict) -> int:
     """A translated request's input tokens, at most: its length in bytes and the allowances."""
     content = {field: data.get(field) for field in CONTENT + ("response_format", "text")}
+    if _parts(content, FILES):
+        raise HTTPException(status_code=400, detail={"error": "Files and documents are not accepted; send text or "
+                                                              "images."})
     size = len(json.dumps(content, ensure_ascii=False).encode())
-    return size + TOOL_ALLOWANCE + MEDIA_ALLOWANCE * _media(content)
+    return size + TOOL_ALLOWANCE + MEDIA_ALLOWANCE * _parts(content, MEDIA)
 
 
 def _error_status(exception) -> bool:
@@ -166,12 +176,18 @@ def _error_status(exception) -> bool:
     return False
 
 
+async def _not_sent_again(self, **kwargs):
+    raise httpx.ConnectError("The connection broke; the request is not sent again.")
+
+
+AsyncHTTPHandler.single_connection_post_request = _not_sent_again
+
+
 class BenchHooks(CustomLogger):
     def __init__(self):
         super().__init__()
         self.spent, self.holds = _ledger()
         self.held = {}
-        self.interrupted = set()
 
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         # A Responses WebSocket session makes a call for every message it receives, all after this one check.
@@ -238,20 +254,13 @@ class BenchHooks(CustomLogger):
         finally:
             if not finished:
                 call_id = request_data["litellm_call_id"]
-                if call_id in self.held:
-                    self.held.pop(call_id)
-                    self.interrupted.add(call_id)
-                self._charge("interrupted", call_id, self.holds[call_id], request_data.get("call_type"))
+                self._settle("interrupted", call_id, self.holds[call_id], request_data.get("call_type"))
 
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
         call_id = kwargs["litellm_call_id"]
-        if call_id in self.interrupted:
-            self.interrupted.discard(call_id)
-            return
-        self.held.pop(call_id, None)
         # A call LiteLLM could not price counts at the most it could have cost.
         cost = kwargs.get("response_cost")
-        self._charge("answered", call_id, self.holds[call_id] if cost is None else float(cost), kwargs.get("call_type"))
+        self._settle("answered", call_id, self.holds[call_id] if cost is None else float(cost), kwargs.get("call_type"))
 
     async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
         call_id = kwargs["litellm_call_id"]
@@ -259,14 +268,14 @@ class BenchHooks(CustomLogger):
         if kwargs.get("litellm_no_upstream_llm_call"):
             self.held.pop(call_id, None)
             return
-        if call_id in self.interrupted:
-            self.interrupted.discard(call_id)
-            return
-        self.held.pop(call_id, None)
         cost = 0.0 if _error_status(kwargs.get("exception")) else self.holds[call_id]
-        self._charge("failed", call_id, cost, kwargs.get("call_type"))
+        self._settle("failed", call_id, cost, kwargs.get("call_type"))
 
-    def _charge(self, event, call_id, cost, call_type):
+    def _settle(self, event, call_id, cost, call_type):
+        """Charges a held call and releases its hold; a call already charged, or charged before a restart, is left
+        as it is."""
+        if self.held.pop(call_id, None) is None:
+            return
         self.spent += cost
         _log({"event": event, "call_id": call_id, "cost": cost, "call_type": call_type})
 

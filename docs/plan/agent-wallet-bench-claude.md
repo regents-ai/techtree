@@ -57,8 +57,15 @@ most, more if Opus thinks longer than luna did. The judge costs what it did.
   Anthropic's free token counter, plus a tenth because the counter is an
   estimate. Translated calls are bounded by their length in bytes, since no
   Claude token is shorter than a byte, plus 10,000 tokens for the tool
-  instructions Anthropic adds and 10,000 for each image or file. No hold counts
-  more input than the 1M context. This replaces the fixed $0.33.
+  instructions Anthropic adds and 10,000 for each image. Translated calls
+  carrying a file or document are refused, because a short link or small file
+  can stand for many pages. No hold counts more input than the 1M context. This
+  replaces the fixed $0.33.
+- Each call is charged once, by whichever of answered, interrupted or failed
+  comes first. LiteLLM's resend on a fresh connection after a broken one is
+  switched off, so a reset after Anthropic received a request fails the call
+  and charges its hold instead of sending it twice. An error inside a stream
+  that had started is charged its hold, since tokens may already be billed.
 - The tool filter keeps the harness's own tools only: Anthropic custom tools,
   and for translated calls the function and custom tools LiteLLM turns into them.
 - Logging reads effort from the Anthropic request shape.
