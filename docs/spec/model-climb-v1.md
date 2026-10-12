@@ -91,11 +91,14 @@ A Model Climb proof is a directory holding a `ModelUpliftReport`, every object i
 
 One operation id names the same action in every transport. A transport may expose fewer operations; it never gets more authority.
 
-Effect classes: `read`, `draft` (writes a draft, no compute), `request` (creates a review request, never a grant), `spend` (rents compute or calls a model), `deploy` (changes a service), `publish`.
+Effect classes: `read`, `draft` (writes a draft, no compute), `request` (creates a review request, never a grant), `grant` (issues a signed execution grant), `spend` (rents compute or calls a model), `deploy` (changes a service), `publish`.
 
 | Operation | Effect | CLI | HTTP | WebMCP | ChatGPT (initial) |
 |---|---|---|---|---|---|
 | `model_climb_capabilities` | read | yes | yes | yes | yes |
+| `model_climb_profile_check` | draft | yes | no | no | no |
+| `model_climb_profile_test` | spend | yes (operator only) | no | no | no |
+| `model_climb_grant_issue` | grant | yes (local-only operator) | no | no | no |
 | `model_climb_list`, `model_climb_get` | read | yes | yes | yes | yes |
 | `model_climb_prepare` | draft | yes | yes | yes | yes |
 | `model_climb_data_register`, `model_climb_data_validate` | draft | yes (runner only) | no | no | no |
@@ -162,7 +165,8 @@ issued_at, expires_at, nonce, use count
 - Changing any bound field invalidates the grant. A grant id alone authorizes nothing: the engine checks actor binding, expiry, revocation and policy on use.
 - Separate grants for: training spend, the GPU compatibility test, final-test (proving) access, extra egress, a budget increase, production promotion, publication.
 - The existing `--yes --reviewed-on` approval stays as it is for existing commands. It is not a grant and admits no Model Climb `spend` or `deploy` operation.
-- In local-only mode on the operator's own machine, a grant is operator-attested and says so in `attestation`. It is issued by `regents techtree model-climb grant issue`, which shows the full bound record and needs a typed confirmation, and is signed with the existing Techtree identity key (Ed25519). Its `attestation` is `participant` with `operator_attested`.
+- In local-only mode on the operator's own machine, a grant is operator-attested and says so in `attestation`. It is issued by `regents techtree model-climb grant issue`, which shows the full bound record and needs a typed confirmation, and is signed with the existing Techtree identity key (Ed25519). Its `attestation` is `participant` with `operator_attested`. Its approving human is the operator's login name on that machine, recorded as given; `operator_attested` says nobody else checked it.
+- Revocation and use counting are built with the first `spend` command (`model_climb_profile_test`); no command that spends exists without them.
 - Connected-mode grants come from the site, signed by a Techtree key whose public key this contract will publish. Until it does, the engine refuses every connected grant with `approval_required`.
 
 ### 6.1 Budget enforcement
@@ -173,7 +177,9 @@ Each plan names how its cap is enforced:
 - `bounded_operational_limit`: the runner stops the job at the cap less a shutdown allowance; the provider may bill a little past it.
 - `estimate_only`: no enforcement; refused for any plan that requires a limit.
 
-M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), paid from the operator's prepaid credit there, every job filed under the mission `regents-123`. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_cost_usd` and `max_duration_minutes` set from the grant. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with `max_cost_usd` as the runner's limit; with an operator attestation that automatic top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute.
+M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), paid from the operator's prepaid credit there, every job filed under the mission `regents-123`. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_cost_usd` and `max_duration_minutes` set from the grant. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with `max_cost_usd` as the runner's limit; with an operator attestation that automatic top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute. The operator set a $50 monthly spend limit on the workspace (Sean, 12 Oct 2026).
+
+The engine submits through Autoresearch's HTTP API or its `autor` CLI, signed in with a service token scoped to the workspace, which the operator creates; never through an operator's chat session. Every submission sets both `idempotency_key` and `label` to the attempt's intent id. After a submission whose outcome is unknown, the engine looks the job up by that label (`list_jobs`) and never submits again; if nothing is found it answers `job_indeterminate`, submits nothing, and a person decides what happens next.
 
 ## 7. M0 compatibility profile
 
@@ -205,7 +211,15 @@ MLP (32 layers):            gate_proj, up_proj, down_proj
 
 Expected matched modules in the text stack: 8×4 + 24×5 + 32×3 = **248**. Vision encoder and the multi-token-prediction layer: **0**.
 
-The check: the trainer's matched module list must equal the expected set exactly, and every adapter tensor must be nonzero in `lora_B` after training. Anything else fails admission, whatever the trainer reported. Targets are written as regexes anchored to the language-model layers once the M0 dry run (7.4 step 1) shows the exact module paths.
+The check: the trainer's matched module list must equal the expected set exactly, and every adapter tensor must be nonzero in `lora_B` after training. Anything else fails admission, whatever the trainer reported. The M0 dry run (12 Oct 2026) confirmed the module paths. The recipe's targets:
+
+```text
+^model\.language_model\.layers\.\d+\.self_attn\.(q_proj|k_proj|v_proj|o_proj)$
+^model\.language_model\.layers\.\d+\.linear_attn\.(in_proj_qkv|in_proj_z|in_proj_b|in_proj_a|out_proj)$
+^model\.language_model\.layers\.\d+\.mlp\.(gate_proj|up_proj|down_proj)$
+```
+
+They match 248 modules, none missing and none unexpected. Text-only SFT resolves without a `[model.vlm]` block.
 
 ### 7.3 Adapter export and serving
 
@@ -224,10 +238,10 @@ The output is the measured compatibility profile and its digest. It does not cla
 
 ## 8. Open items
 
-- The exact module paths prime-rl gives Qwen3.5 layers (fixed by 7.4 step 1).
-- Whether text-only SFT of a model with `vision_config` needs a `[model.vlm]` block (fixed by 7.4 step 1).
+- prime-rl's resolved recipe enables its `gate_up` and `qkv` fusions. Whether the trained model still has separate `q_proj`/`k_proj`/`v_proj` and `gate_proj`/`up_proj` modules for the targets to match, or the recipe must turn those fusions off, is settled before 7.4 step 2.
+- Whether the weights load for text-only training without a `[model.vlm]` block (fixed by 7.4 step 2).
+- How long Autoresearch honours an `idempotency_key`; its documentation does not say.
 - Live Autoresearch prices; the plan reads them at resolve time and records them.
-- How the engine submits an Autoresearch job: the `autor` CLI with its own sign-in, or the operator's MCP session. Autoresearch needs no API key for interactive use; unattended use is not yet checked.
 - Whether Autoresearch's cap stops a running job at `max_cost_usd` (fixed by 7.4 step 2); until then plans are `bounded_operational_limit`.
 - The sha256 of the exported JSON Schema (section 3.2), after Techtree's review.
 - The site's grant-signing public key (section 6), before connected mode.

@@ -376,19 +376,20 @@ None of these commands rents a machine, calls a paid model or sends data anywher
   the public synthetic fixtures with the Qwen3.5 renderer, checks that the loss mask covers only
   the assistant's answers, and prints the exact module paths the LoRA targets would match.
 - **Who may run it:** anyone with Docker.
-- **What it changes:** builds or reuses the local container image and downloads the model's
+- **What it changes:** reuses the local container image built by `make model-climb-image` in a
+  regents-cli checkout, and downloads the model's
   tokenizer and configuration (not its weights) from Hugging Face at the pinned revision. Writes
   its report under `<techtree home>/model-climb/profiles/`. Nothing on the site.
-- **Route:** none.
+- **Route:** none. Operation `model_climb_profile_check` (draft).
 - **Inputs:**
   - `<profile>`: `m0-qwen3.5-9b`, the only profile in M0.
-  - `--dry-run`: required in M0. The paid step (7.4 step 2) is a separate command, described
-    here when its grant exists.
+  - `--dry-run`: required in M0. The paid step (7.4 step 2) is a separate operation,
+    `model_climb_profile_test`, described here when its grant exists.
 - **Answer:** the resolved recipe digest, the renderer and loss-mask result per fixture, and the
   matched module list with its count against the expected 248.
 - **Refusals:**
-  - `unsupported_capability`: Docker is missing, or prime-rl's dry run cannot install on this
-    machine. The answer names the step that failed; it never falls through to renting a machine.
+  - `unsupported_capability`: Docker is missing, the image is missing (the answer names
+    `make model-climb-image`), or prime-rl's dry run cannot install on this machine. The answer names the step that failed; it never falls through to renting a machine.
   - `validation_error`: an unknown profile, or `--dry-run` left out.
 - **History:** 2026-10-12 added.
 
@@ -399,7 +400,7 @@ None of these commands rents a machine, calls a paid model or sends data anywher
 - **Who may run it:** the operator of this machine, in local-only mode.
 - **What it changes:** writes the signed grant to `<techtree home>/model-climb/grants/`. Nothing
   on the site, and nothing is spent until a command uses the grant.
-- **Route:** none.
+- **Route:** none. Operation `model_climb_grant_issue` (grant).
 - **Inputs:**
   - `--plan <digest>`: the resolved plan the grant binds.
   - `--operation <operation id>`: the one operation it admits.
