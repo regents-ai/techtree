@@ -216,6 +216,10 @@ class BenchHooks(CustomLogger):
         call_id = data["litellm_call_id"]
         # LiteLLM merges extra_body over the request after this hook, so it could put back anything removed here.
         data.pop("extra_body", None)
+        # The harness's own request headers, an anthropic-beta header among them, stay with the relay: a beta can switch
+        # on billing that no body field shows.
+        for field in ("headers", "extra_headers", "provider_specific_header"):
+            data.pop(field, None)
         for field in REMOVED:
             data.pop(field, None)
         tools = _harness_tools(call_type, data.pop("tools", None) or [])
