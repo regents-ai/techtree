@@ -343,3 +343,71 @@ remain available for public reads and offline work. Frozen prior releases remain
 The signed HTTP subset adds `agents whoami`, `agents pair`, `account balances`,
 `account credits-history` and `account points`. It does not replace the native engine,
 manage grants, activate Points, or move funds. Pairing codes go on stdin.
+
+## Model Climb: `regents techtree model-climb` (M0)
+
+Model Climb fine-tunes an open model privately and measures whether it got better. Its
+contract is [docs/spec/model-climb-v1.md](../docs/spec/model-climb-v1.md); its objects,
+operation ids, errors and grants are defined there, not here. Every `model-climb` command is
+native code in regents-cli and runs on this machine. None calls the Techtree site in M0, and
+`commands.json` names no `model-climb` path. The three commands below are the ones M0 needs;
+each other operation in the contract gets its section here before it is built.
+
+None of these commands rents a machine, calls a paid model or sends data anywhere.
+
+### regents techtree model-climb capabilities
+
+- **What it does:** says what this machine and this CLI can run: the contract version, the
+  compatibility profiles it knows (M0: Qwen3.5-9B on prime-rl 1e53181), whether Docker is
+  available, and which operations are built.
+- **Who may run it:** anyone.
+- **What it changes:** nothing.
+- **Route:** none. Operation `model_climb_capabilities` (read).
+- **Inputs:** none.
+- **Answer:** `{"schema_version": "techtree.model-climb.operation.v1alpha1", "operation_id":
+  "model_climb_capabilities", "contract": "model-climb-v1", "profiles": [...], "docker":
+  true | false, "operations": [<built operation ids>], "next_actions": [...]}`.
+- **History:** 2026-10-12 added.
+
+### regents techtree model-climb profile check \<profile\> --dry-run
+
+- **What it does:** the model-free step of the compatibility test (contract 7.4 step 1). In the
+  pinned Linux container it resolves the training recipe with prime-rl's `--dry-run`, renders
+  the public synthetic fixtures with the Qwen3.5 renderer, checks that the loss mask covers only
+  the assistant's answers, and prints the exact module paths the LoRA targets would match.
+- **Who may run it:** anyone with Docker.
+- **What it changes:** builds or reuses the local container image and downloads the model's
+  tokenizer and configuration (not its weights) from Hugging Face at the pinned revision. Writes
+  its report under `<techtree home>/model-climb/profiles/`. Nothing on the site.
+- **Route:** none.
+- **Inputs:**
+  - `<profile>`: `m0-qwen3.5-9b`, the only profile in M0.
+  - `--dry-run`: required in M0. The paid step (7.4 step 2) is a separate command, described
+    here when its grant exists.
+- **Answer:** the resolved recipe digest, the renderer and loss-mask result per fixture, and the
+  matched module list with its count against the expected 248.
+- **Refusals:**
+  - `unsupported_capability`: Docker is missing, or prime-rl's dry run cannot install on this
+    machine. The answer names the step that failed; it never falls through to renting a machine.
+  - `validation_error`: an unknown profile, or `--dry-run` left out.
+- **History:** 2026-10-12 added.
+
+### regents techtree model-climb grant issue
+
+- **What it does:** issues a local, operator-attested execution grant (contract section 6) for
+  one operation on one resolved plan, signed with this machine's Techtree identity key.
+- **Who may run it:** the operator of this machine, in local-only mode.
+- **What it changes:** writes the signed grant to `<techtree home>/model-climb/grants/`. Nothing
+  on the site, and nothing is spent until a command uses the grant.
+- **Route:** none.
+- **Inputs:**
+  - `--plan <digest>`: the resolved plan the grant binds.
+  - `--operation <operation id>`: the one operation it admits.
+  - `--max-usd`, `--max-hours`, `--max-attempts`, `--expires-in`: the limits it binds.
+- **Answer:** prints the full bound record (every field in contract section 6), then asks the
+  operator to type the plan's first 12 hex characters to confirm. `--yes` and `--reviewed-on`
+  are not accepted. On confirmation it answers with the grant id and its file.
+- **Refusals:**
+  - `plan_changed`: the plan's digest no longer matches the stored plan.
+  - `validation_error`: a missing limit, or the typed confirmation did not match.
+- **History:** 2026-10-12 added.

@@ -1,0 +1,233 @@
+# Model Climb v1 — contract
+
+**Status:** draft for M0. Nothing here is implemented, released or approved to spend.
+**Feature:** `model-climb-v1`, versioned apart from Techtree releases.
+**Schema namespace:** `techtree.model-climb.v1alpha1`.
+**Source:** the founder's engineering specification of 12 Oct 2026 ("Techtree Model Climb — Private fine-tuning, evaluation, and serving"). This document fixes the parts every repository must agree on: objects and digests, operations, errors, states, grants, the M0 compatibility profile and its test. Rationale and product scope stay in the specification.
+
+## 1. Baseline
+
+| Repository | Reference |
+|---|---|
+| `regents-ai/techtree` | `main` 60efb02dc1e3415b31bbfc1959f95eca9588d0e6 |
+| `regents-ai/regents-cli` | `main` d7deae0679f003b43933c9a2d41a7af949cf40a8 (CLI 1.9.1) |
+
+Each implementation pins its own baseline when it starts and rechecks this contract against it.
+
+## 2. Ownership
+
+| Part | Owner | Lives in |
+|---|---|---|
+| This contract and the native command descriptions | Techtree | `docs/spec/model-climb-v1.md`, `cli/COMMANDS.md` |
+| Signed HTTP command descriptions | Techtree | `cli/commands.json` names no Model Climb path until the site's routes exist (M3) |
+| Field-level schemas: one Pydantic model per `kind`, exported as JSON Schema | regents-cli, reviewed by Techtree | `src/regents_cli/techtree/model_climb/contracts.py` and its export, pinned in section 3.2 by sha256 |
+| Engine: data releases, plans, grants admission, trainer/evaluator/serving adapters, attempts, reports, proof verification | regents-cli | `src/regents_cli/techtree/model_climb/`, `commands/model_climb.py` |
+| Private workspace records, approvals, intents, runner leases, pages | Techtree | `platform/lib/techtree/model_climb/`, `platform/lib/techtree_web/live/model_climb_live/` |
+| Browser agent tools | Techtree | `platform/priv/tool_manifest.json`, `platform/assets/js/model_climb_tools.ts` |
+| Employee Skill | Techtree | `plugin/skills/fine-tune-and-serve-llm/` |
+| ChatGPT/Codex package | Techtree | `integrations/openai/` |
+| Delegated-client (OAuth) authentication, shared nested input validation for WebMCP | ash-template and the shared library first; Techtree consumes the pin | — |
+
+The existing `regents techtree model` group (ChatGPT plan sign-in) is unchanged. Model Climb is the new group `regents techtree model-climb`.
+
+## 3. Objects and digests
+
+### 3.1 Encoding
+
+- Canonical bytes are RFC 8785 JSON produced by regents-cli `techtree/canonical.py`. Digests are `sha256:<64 hex>` from the same module. No second canonicalizer.
+- Every scientific object has exactly three top-level members besides `schema_version` and `kind`:
+  - `spec`: everything that defines the science. The object's digest is the digest of `{schema_version, kind, spec}`.
+  - `operational`: storage handles, timestamps, provider job ids, hostnames, ports. Never digested, never compared.
+  - `digest`: the computed digest, checked on read.
+- An object names another only by that object's digest. A read recomputes the digest and refuses an object whose stored `digest` does not match.
+- `operational` is a closed set of fields declared per `kind` in the schema, never free-form. A field belongs to `spec` or `operational` by the schema, never by the producer's choice. Changing any `spec` field makes a new object with a new digest; objects are never edited in place.
+
+### 3.2 Objects
+
+| `kind` | `spec` must contain | Refers to |
+|---|---|---|
+| `ModelStudySpec` | workspace, task kind, hypothesis, allowed mutation (`model_weights` only in v1), baseline model, harness profile digests (prompt, output schema, decision policy), selection rule, metrics with constraints, budgets, data policy | `DatasetRelease`, `BenchmarkRelease` |
+| `DatasetRelease` | snapshot digest, source lineage, rights class, row schema, transformation digest, feature cutoff rule, label policy, duplicate-cluster rule, split membership commitments (train, validation, proving, optional debug), exclusion counts by reason | source snapshot |
+| `BenchmarkRelease` | verifier/environment refs, sealed proving membership commitment, output schema, sampling protocol, scorer test digest, qualification report digest | `DatasetRelease` |
+| `TrainingRecipe` | trainer revision and lock digest, image digest, model revision, renderer, loss mask, LoRA config including the full target list, optimizer, seed, batch/context/step limits, checkpoint selection rule | — |
+| `ResolvedModelPlan` | every input digest above, compute target (provider, GPU model and count, region), approved egress list, compatibility profile digest, budget reservation, expiry | all of the above |
+| `ModelArtifact` | base weights root, adapter root, adapter config, tokenizer and config refs, optional merged weights, derivation (plan + attempt), licence, privacy class | `ResolvedModelPlan`, `TrainingAttempt` |
+| `TrainingAttempt` | run and attempt ids, observed resolved config digest, steps and tokens, checkpoint refs, exit reason, measured cost, predecessor attempt and whether optimizer/RNG state was restored | `ResolvedModelPlan` |
+| `ModelUpliftReport` | native evaluator output refs, paired outcomes, uncertainty method and result, comparison validity, the six result fields (3.3), limitations | `ModelArtifact`, `BenchmarkRelease` |
+| `ServiceComparisonReport` | the exact deployments compared, load and latency protocol, paired business metrics, disclosed infrastructure differences, cost model | `DeploymentRelease` |
+| `DeploymentRelease` | model artifact, prompt, output schema, calibrator, policy version, runtime image, quantization, hardware profile, quota, fallback, predecessor release | `ModelArtifact` |
+
+`operational` for `TrainingAttempt` holds the upstream job id, pod id, event cursor and timestamps.
+
+Field names and types are the exported JSON Schema (section 2). Its sha256 is written here when Techtree has reviewed it; until then no object is stable.
+
+### 3.3 Result fields
+
+Six independent fields, never merged into one status:
+
+```text
+execution:   succeeded | failed | cancelled | indeterminate
+integrity:   verified | invalid | incomplete
+comparison:  valid | invalid | exploratory
+outcome:     uplift | tie | regression | inconclusive
+release_gate: pass | fail | insufficient_evidence | not_evaluated
+attestation: participant | identified_executor | independently_reproduced
+```
+
+A training run that succeeded says nothing about `outcome`. Too few positives or negatives for the declared sample plan gives `release_gate: insufficient_evidence`.
+
+### 3.4 Data and split commitments
+
+- v1 reads JSONL only. Other formats come later inside the engine image, not the ordinary CLI package.
+- Every row gets a stable private row id. A split's commitment is sha256 over the canonical, sorted list of HMAC-SHA256(salt, row id).
+- The salt stays in the operator's local store. It is never written into any object, `operational` included, and never published.
+- Proving membership is sealed: the trainer side receives the train and validation files and only the proving commitment.
+
+### 3.5 Proof bundle
+
+A Model Climb proof is a directory holding a `ModelUpliftReport`, every object it references by digest, and a manifest signed with the participant identity key. `regents techtree proof verify` chooses its check by the manifest's `schema_version`; existing bundles keep their current check unchanged.
+
+## 4. Operations
+
+One operation id names the same action in every transport. A transport may expose fewer operations; it never gets more authority.
+
+Effect classes: `read`, `draft` (writes a draft, no compute), `request` (creates a review request, never a grant), `spend` (rents compute or calls a model), `deploy` (changes a service), `publish`.
+
+| Operation | Effect | CLI | HTTP | WebMCP | ChatGPT (initial) |
+|---|---|---|---|---|---|
+| `model_climb_capabilities` | read | yes | yes | yes | yes |
+| `model_climb_list`, `model_climb_get` | read | yes | yes | yes | yes |
+| `model_climb_prepare` | draft | yes | yes | yes | yes |
+| `model_climb_data_register`, `model_climb_data_validate` | draft | yes (runner only) | no | no | no |
+| `model_climb_data_status` | read | yes | yes | yes | yes, sanitized |
+| `model_climb_plan` | draft | yes | yes | yes | yes |
+| `model_climb_request_approval` | request | yes | yes | yes | yes |
+| `model_climb_start` | spend | yes | yes | yes | no |
+| `model_climb_status`, `model_climb_events` | read | yes | yes | yes | yes |
+| `model_climb_cancel` | spend (stops spend) | yes | yes | yes | no; link to the owner's page |
+| `model_climb_prove` | spend | yes | yes | yes | no |
+| `model_climb_report` | read | yes | yes | yes | yes, approved projection |
+| `model_climb_deployment_prepare` | draft | yes | yes | yes | yes |
+| `model_climb_deployment_apply`, `_promote`, `_rollback` | deploy | yes | yes | yes | no |
+| `model_climb_runner_enroll`, `model_climb_runner_serve` | — | yes (runner only) | runner channel | no | no |
+
+No operation runs a shell, Python, SQL, an arbitrary URL fetch, exports a credential, reads raw proving data, or uploads an arbitrary artifact.
+
+### 4.1 HTTP
+
+- Private route family `/api/model-climb/v1/`: `capabilities`, `studies`, `plans`, `approval-requests`, `jobs`, `jobs/:id/cancel`, `reports`, `deployments`, `runners`, `events?cursor=`.
+- Wallet-agent requests carry the shared SIWA request proof exactly as the template's one SIWA header implementation defines it. No new headers.
+- Every mutation carries an `Idempotency-Key` and, where the resource changes, the expected resource version and plan digest. The server stores the request digest with the key; the same key with a different request is `idempotency_conflict`.
+- Long work answers 202 with a stable `job_id`; nothing holds a request open for training.
+
+### 4.2 Answers and errors
+
+Success: `{"schema_version": "techtree.model-climb.operation.v1alpha1", "operation_id", ...operation fields, "next_actions": [...]}`.
+
+Failure keeps regents-cli's envelope `{"error": {"code", "message", "details"?}}`. New codes:
+
+`approval_required`, `unsupported_capability`, `runner_unavailable`, `data_policy_denied`, `proving_access_denied`, `plan_changed`, `budget_exhausted`, `idempotency_conflict`, `job_indeterminate`, `evidence_incomplete`, `release_gate_failed`, `artifact_unavailable`.
+
+Existing codes (`validation_error`, `not_found`, `conflict`, ...) keep their meaning.
+
+## 5. States
+
+```text
+Study:      draft → data_ready → plan_frozen → awaiting_approval → training
+            → candidate_frozen → proving → evaluated → release_review → closed
+Attempt:    pending → admitted → provisioning → running → collecting
+            → succeeded | failed | cancelled | budget_exhausted | indeterminate
+Deployment: prepared → shadow → canary → production → retired; any of shadow, canary, production → rollback
+```
+
+- Upstream job id, pod id, intent id, lease generation and event cursor are written before the state advances.
+- A submission whose outcome is unknown becomes `indeterminate`. The engine looks up the recorded provider job before it ever submits again; it never submits a duplicate automatically.
+- Closing a browser, an HTTP request, an MCP session or a chat never cancels a job. Cancel is a request, then an observed termination.
+
+## 6. Execution grants
+
+A grant is a signed record bound to:
+
+```text
+issuer and approving human; workspace and authorized actor
+operation; resolved plan digest
+dataset, benchmark and model policy digests
+provider, region and GPU restriction
+maximum USD and maximum wall time
+maximum attempts and parallel jobs
+permitted egress destinations
+issued_at, expires_at, nonce, use count
+```
+
+- Changing any bound field invalidates the grant. A grant id alone authorizes nothing: the engine checks actor binding, expiry, revocation and policy on use.
+- Separate grants for: training spend, the GPU compatibility test, final-test (proving) access, extra egress, a budget increase, production promotion, publication.
+- The existing `--yes --reviewed-on` approval stays as it is for existing commands. It is not a grant and admits no Model Climb `spend` or `deploy` operation.
+- In local-only mode on the operator's own machine, a grant is operator-attested and says so in `attestation`. It is issued by `regents techtree model-climb grant issue`, which shows the full bound record and needs a typed confirmation, and is signed with the existing Techtree identity key (Ed25519). Its `attestation` is `participant` with `operator_attested`.
+- Connected-mode grants come from the site, signed by a Techtree key whose public key this contract will publish. Until it does, the engine refuses every connected grant with `approval_required`.
+
+### 6.1 Budget enforcement
+
+Each plan names how its cap is enforced:
+
+- `provider_hard_limit`: the provider stops spend at the cap.
+- `bounded_operational_limit`: the runner stops the job and deletes the pod at the cap less a shutdown allowance; the provider may bill a little past it.
+- `estimate_only`: no enforcement; refused for any plan that requires a limit.
+
+Prime Intellect has no spending limit or TTL field on a pod (checked 12 Oct 2026). Pods are deleted when the account's prepaid credit runs out, so a Prime plan is `bounded_operational_limit`. With an operator attestation that auto top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`.
+
+## 7. M0 compatibility profile
+
+### 7.1 Pinned tuple
+
+| Part | Pin | Note |
+|---|---|---|
+| Model | `Qwen/Qwen3.5-9B` @ `c202236235762e1c871ad0ccb60c8ee5ba337b9a` | Apache-2.0, not gated, 9.65B params, 19.3 GB bf16, `Qwen3_5ForConditionalGeneration` with a vision encoder |
+| Text/vision policy | text only; vision encoder frozen and not served | prime-rl LoRA forces `freeze_vision_encoder = true` |
+| Trainer | prime-rl `main` 1e5318108da29d10960e91e54b80305f597de39d (pyproject 0.9.0) | Python 3.12, Linux, CUDA 13, torch ≥ 2.13, transformers 5.6.2 |
+| Evaluator | `verifiers[harbor]` 0.3.2.dev208 | prime-rl main needs ≥ 0.3.2.dev158; stable 0.3.1 is too old |
+| Server | vLLM 0.31.0 (`db9527a46873454610df6dbedf79a36d6bf1a7f6`) | `Qwen3_5ForConditionalGeneration`: LoRA supported |
+| dtype | bf16 for weights, optimization and reduction | prime-rl defaults optimization to fp32; set `optimization_dtype = reduce_dtype = "bfloat16"` |
+| Hardware | 2 × H100 80GB, one training, one inference | the adapter in vLLM's format is written only by SFT with online evals (section 7.3) |
+
+The profile records the measured CUDA driver, kernel versions, peak memory per GPU and the matched module list. It certifies this tuple only.
+
+### 7.2 LoRA targets and the coverage check
+
+Qwen3.5-9B's text stack is 32 layers: 8 full-attention and 24 Gated DeltaNet. prime-rl's default targets reach attention only in the 8 full-attention layers and silently ignore names the model lacks.
+
+The recipe lists every target explicitly:
+
+```text
+full attention (8 layers):  q_proj, k_proj, v_proj, o_proj
+Gated DeltaNet (24 layers): in_proj_qkv, in_proj_z, in_proj_b, in_proj_a, out_proj
+MLP (32 layers):            gate_proj, up_proj, down_proj
+```
+
+Expected matched modules in the text stack: 8×4 + 24×5 + 32×3 = **248**. Vision encoder and the multi-token-prediction layer: **0**.
+
+The check: the trainer's matched module list must equal the expected set exactly, and every adapter tensor must be nonzero in `lora_B` after training. Anything else fails admission, whatever the trainer reported. Targets are written as regexes anchored to the language-model layers once the M0 dry run (7.4 step 1) shows the exact module paths.
+
+### 7.3 Adapter export and serving
+
+- prime-rl's DCP checkpoint exporter refuses LoRA checkpoints. The PEFT adapter (`adapter_model.safetensors`, `adapter_config.json`) is written by the filesystem weight broadcast, which SFT runs only with `[eval]` and `[inference]` configured.
+- Serving: `vllm serve` on the base revision with `--enable-lora`, `--max-lora-rank` equal to the recipe's rank, `--lora-modules` naming the adapter differently from the base model, and structured output through `response_format` `json_schema` (`guided_json` no longer exists).
+- vLLM packs `in_proj_qkv` with `in_proj_z`, and `in_proj_b` with `in_proj_a`. The test proves the trained adapter loads into those packed layers and changes the output.
+- Verifiers runs with `--no-push`; its default uploads results to Prime Intellect.
+
+### 7.4 The test
+
+1. **Model-free (no spend).** In a pinned Linux container: resolve the SFT config with `--dry-run`, render the fixtures with the Qwen3.5 renderer, and check the loss mask covers only assistant targets. Fixtures are synthetic and public; no customer data.
+2. **Paid, under its own grant.** On the granted pod: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`; confirm the adapter's answers differ from the base model's on the same fixture.
+3. **Cleanup.** Delete the pod and confirm the deletion through the provider API. Record the measured cost.
+
+The output is the measured compatibility profile and its digest. It does not claim uplift or general compatibility.
+
+## 8. Open items
+
+- The exact module paths prime-rl gives Qwen3.5 layers (fixed by 7.4 step 1).
+- Whether text-only SFT of a model with `vision_config` needs a `[model.vlm]` block (fixed by 7.4 step 1).
+- Live Prime prices; the plan reads them at resolve time and records them.
+- The sha256 of the exported JSON Schema (section 3.2), after Techtree's review.
+- The site's grant-signing public key (section 6), before connected mode.
+- The delegated-client sign-in for ChatGPT and Codex (section 2), owned by ash-template.
+- Whether stock vLLM loads the adapter without prime-rl's patches (fixed by 7.4 step 2).
