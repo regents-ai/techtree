@@ -57,7 +57,7 @@ The existing `regents techtree model` group (ChatGPT plan sign-in) is unchanged.
 | `ServiceComparisonReport` | the exact deployments compared, load and latency protocol, paired business metrics, disclosed infrastructure differences, cost model | `DeploymentRelease` |
 | `DeploymentRelease` | model artifact, prompt, output schema, calibrator, policy version, runtime image, quantization, hardware profile, quota, fallback, predecessor release | `ModelArtifact` |
 
-`operational` for `TrainingAttempt` holds the upstream job id, pod id, event cursor and timestamps.
+`operational` for `TrainingAttempt` holds the upstream job id, event cursor and timestamps.
 
 Field names and types are the exported JSON Schema (section 2). Its sha256 is written here when Techtree has reviewed it; until then no object is stable.
 
@@ -140,7 +140,7 @@ Attempt:    pending → admitted → provisioning → running → collecting
 Deployment: prepared → shadow → canary → production → retired; any of shadow, canary, production → rollback
 ```
 
-- Upstream job id, pod id, intent id, lease generation and event cursor are written before the state advances.
+- Upstream job id, intent id, lease generation and event cursor are written before the state advances.
 - A submission whose outcome is unknown becomes `indeterminate`. The engine looks up the recorded provider job before it ever submits again; it never submits a duplicate automatically.
 - Closing a browser, an HTTP request, an MCP session or a chat never cancels a job. Cancel is a request, then an observed termination.
 
@@ -170,10 +170,10 @@ issued_at, expires_at, nonce, use count
 Each plan names how its cap is enforced:
 
 - `provider_hard_limit`: the provider stops spend at the cap.
-- `bounded_operational_limit`: the runner stops the job and deletes the pod at the cap less a shutdown allowance; the provider may bill a little past it.
+- `bounded_operational_limit`: the runner stops the job at the cap less a shutdown allowance; the provider may bill a little past it.
 - `estimate_only`: no enforcement; refused for any plan that requires a limit.
 
-Prime Intellect has no spending limit or TTL field on a pod (checked 12 Oct 2026). Pods are deleted when the account's prepaid credit runs out, so a Prime plan is `bounded_operational_limit`. With an operator attestation that auto top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`.
+M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), paid from the operator's prepaid credit there, every job filed under the mission `regents-123`. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_cost_usd` and `max_duration_minutes` set from the grant. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with `max_cost_usd` as the runner's limit; with an operator attestation that automatic top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute.
 
 ## 7. M0 compatibility profile
 
@@ -187,7 +187,7 @@ Prime Intellect has no spending limit or TTL field on a pod (checked 12 Oct 2026
 | Evaluator | `verifiers[harbor]` 0.3.2.dev208 | prime-rl main needs ≥ 0.3.2.dev158; stable 0.3.1 is too old |
 | Server | vLLM 0.31.0 (`db9527a46873454610df6dbedf79a36d6bf1a7f6`) | `Qwen3_5ForConditionalGeneration`: LoRA supported |
 | dtype | bf16 for weights, optimization and reduction | prime-rl defaults optimization to fp32; set `optimization_dtype = reduce_dtype = "bfloat16"` |
-| Hardware | 2 × H100 80GB, one training, one inference | the adapter in vLLM's format is written only by SFT with online evals (section 7.3) |
+| Hardware | 2 × H100 80GB SXM in one Autoresearch batch job, one training, one inference | the adapter in vLLM's format is written only by SFT with online evals (section 7.3) |
 
 The profile records the measured CUDA driver, kernel versions, peak memory per GPU and the matched module list. It certifies this tuple only.
 
@@ -217,8 +217,8 @@ The check: the trainer's matched module list must equal the expected set exactly
 ### 7.4 The test
 
 1. **Model-free (no spend).** In a pinned Linux container: resolve the SFT config with `--dry-run`, render the fixtures with the Qwen3.5 renderer, and check the loss mask covers only assistant targets. Fixtures are synthetic and public; no customer data.
-2. **Paid, under its own grant.** On the granted pod: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`; confirm the adapter's answers differ from the base model's on the same fixture.
-3. **Cleanup.** Delete the pod and confirm the deletion through the provider API. Record the measured cost.
+2. **Paid, under its own grant.** In the granted batch job: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`; confirm the adapter's answers differ from the base model's on the same fixture.
+3. **Cleanup.** Confirm through the provider (`get_job`) that the job has ended and nothing of it is still running. Record the measured cost.
 
 The output is the measured compatibility profile and its digest. It does not claim uplift or general compatibility.
 
@@ -226,7 +226,9 @@ The output is the measured compatibility profile and its digest. It does not cla
 
 - The exact module paths prime-rl gives Qwen3.5 layers (fixed by 7.4 step 1).
 - Whether text-only SFT of a model with `vision_config` needs a `[model.vlm]` block (fixed by 7.4 step 1).
-- Live Prime prices; the plan reads them at resolve time and records them.
+- Live Autoresearch prices; the plan reads them at resolve time and records them.
+- How the engine submits an Autoresearch job: the `autor` CLI with its own sign-in, or the operator's MCP session. Autoresearch needs no API key for interactive use; unattended use is not yet checked.
+- Whether Autoresearch's cap stops a running job at `max_cost_usd` (fixed by 7.4 step 2); until then plans are `bounded_operational_limit`.
 - The sha256 of the exported JSON Schema (section 3.2), after Techtree's review.
 - The site's grant-signing public key (section 6), before connected mode.
 - The delegated-client sign-in for ChatGPT and Codex (section 2), owned by ash-template.
