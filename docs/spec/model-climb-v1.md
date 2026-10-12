@@ -59,7 +59,7 @@ The existing `regents techtree model` group (ChatGPT plan sign-in) is unchanged.
 
 `operational` for `TrainingAttempt` holds the intent id, the upstream job id, the event cursor and timestamps.
 
-Field names and types are the exported JSON Schema (section 2). Its sha256 is written here when Techtree has reviewed it; until then no object is stable.
+Field names and types are the exported JSON Schema (section 2), reviewed by Techtree on 12 Oct 2026: regents-cli 08bd5c3, `src/regents_cli/techtree/model_climb/contracts.schema.json`, sha256 `7b38f89af8d1294df4b294685b1c37d52ccf509eb2a8ca4e56757f7deff4a070`. A change to the schema changes this pin, and Techtree reviews it first.
 
 ### 3.3 Result fields
 
@@ -243,7 +243,6 @@ The output is the measured compatibility profile and its digest. It does not cla
 - How long Autoresearch honours an `idempotency_key`; its documentation does not say.
 - Live Autoresearch prices; the plan reads them at resolve time and records them.
 - Whether Autoresearch's cap stops a running job at `max_cost_usd` (fixed by 7.4 step 2); until then plans are `bounded_operational_limit`.
-- The sha256 of the exported JSON Schema (section 3.2), after Techtree's review.
 - The site's grant-signing public key (section 6), before connected mode.
 - The delegated-client sign-in for ChatGPT and Codex (section 2), owned by ash-template.
 - Whether stock vLLM loads the adapter without prime-rl's patches (fixed by 7.4 step 2).
