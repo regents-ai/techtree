@@ -50,14 +50,14 @@ The existing `regents techtree model` group (ChatGPT plan sign-in) is unchanged.
 | `DatasetRelease` | snapshot digest, source lineage, rights class, row schema, transformation digest, feature cutoff rule, label policy, duplicate-cluster rule, split membership commitments (train, validation, proving, optional debug), exclusion counts by reason | source snapshot |
 | `BenchmarkRelease` | verifier/environment refs, sealed proving membership commitment, output schema, sampling protocol, scorer test digest, qualification report digest | `DatasetRelease` |
 | `TrainingRecipe` | trainer revision and lock digest, image digest, model revision, renderer, loss mask, LoRA config including the full target list, optimizer, seed, batch/context/step limits, checkpoint selection rule | — |
-| `ResolvedModelPlan` | every input digest above, compute target (provider, GPU model and count, region), approved egress list, compatibility profile digest, budget reservation, expiry | all of the above |
+| `ResolvedModelPlan` | every input digest above, compute target (provider, mission, GPU model and count), approved egress list, compatibility profile digest, budget reservation, expiry | all of the above |
 | `ModelArtifact` | base weights root, adapter root, adapter config, tokenizer and config refs, optional merged weights, derivation (plan + attempt), licence, privacy class | `ResolvedModelPlan`, `TrainingAttempt` |
 | `TrainingAttempt` | run and attempt ids, observed resolved config digest, steps and tokens, checkpoint refs, exit reason, measured cost, predecessor attempt and whether optimizer/RNG state was restored | `ResolvedModelPlan` |
 | `ModelUpliftReport` | native evaluator output refs, paired outcomes, uncertainty method and result, comparison validity, the six result fields (3.3), limitations | `ModelArtifact`, `BenchmarkRelease` |
 | `ServiceComparisonReport` | the exact deployments compared, load and latency protocol, paired business metrics, disclosed infrastructure differences, cost model | `DeploymentRelease` |
 | `DeploymentRelease` | model artifact, prompt, output schema, calibrator, policy version, runtime image, quantization, hardware profile, quota, fallback, predecessor release | `ModelArtifact` |
 
-`operational` for `TrainingAttempt` holds the upstream job id, event cursor and timestamps.
+`operational` for `TrainingAttempt` holds the intent id, the upstream job id, the event cursor and timestamps.
 
 Field names and types are the exported JSON Schema (section 2). Its sha256 is written here when Techtree has reviewed it; until then no object is stable.
 
@@ -155,7 +155,7 @@ A grant is a signed record bound to:
 issuer and approving human; workspace and authorized actor
 operation; resolved plan digest
 dataset, benchmark and model policy digests
-provider, region and GPU restriction
+provider, mission and GPU restriction
 maximum USD and maximum wall time
 maximum attempts and parallel jobs
 permitted egress destinations
@@ -177,7 +177,7 @@ Each plan names how its cap is enforced:
 - `bounded_operational_limit`: the runner stops the job at the cap less a shutdown allowance; the provider may bill a little past it.
 - `estimate_only`: no enforcement; refused for any plan that requires a limit.
 
-M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), paid from the operator's prepaid credit there, every job filed under the mission `regents-123`. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_cost_usd` and `max_duration_minutes` set from the grant. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with `max_cost_usd` as the runner's limit; with an operator attestation that automatic top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute. The operator set a $50 monthly spend limit on the workspace (Sean, 12 Oct 2026).
+M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), provider id `sfcompute_autoresearch`, paid from the operator's prepaid credit there, every job filed under the mission `regents-123`. Autoresearch takes no region, so a compute target and a grant name the mission instead. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_cost_usd` and `max_duration_minutes` set from the grant. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with `max_cost_usd` as the runner's limit; with an operator attestation that automatic top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute. The operator set a $50 monthly spend limit on the workspace (Sean, 12 Oct 2026).
 
 The engine submits through Autoresearch's HTTP API or its `autor` CLI, signed in with a service token scoped to the workspace, which the operator creates; never through an operator's chat session. Every submission sets both `idempotency_key` and `label` to the attempt's intent id. After a submission whose outcome is unknown, the engine looks the job up by that label (`list_jobs`) and never submits again; if nothing is found it answers `job_indeterminate`, submits nothing, and a person decides what happens next.
 
