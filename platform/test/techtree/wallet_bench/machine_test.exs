@@ -7,6 +7,7 @@ defmodule Techtree.WalletBench.MachineTest do
   use Oban.Testing, repo: Techtree.Repo
 
   alias Techtree.WalletBench
+  alias Techtree.WalletBench.Catalog
   alias Techtree.WalletBench.Machine
 
   @name "wb-test-h05"
@@ -46,7 +47,7 @@ defmodule Techtree.WalletBench.MachineTest do
     assert ready.state == :ready
     assert ready.sprite_version == "0.0.1-rc48"
     assert ready.manifest["harness_version"] == "2.1.286 (Claude Code)"
-    assert ready.recipe_digest == "digest-1"
+    assert ready.recipe_digest == Catalog.recipe_digest()
 
     events = WalletBench.list_machine_events!(machine.id, authorize?: false)
 
@@ -164,6 +165,10 @@ defmodule Techtree.WalletBench.MachineTest do
         Process.put(:upload, body)
         frames(conn, "")
 
+      ["sh", "-c", _script, "sh", "/work/harness.json", "600"] ->
+        {:ok, _body, conn} = Plug.Conn.read_body(conn)
+        frames(conn, "")
+
       ["sh", "-c", _script, "/work/bin/machine/job.sh", "baseline"] ->
         frames(conn, Process.get(:baseline) <> "\n")
 
@@ -181,7 +186,7 @@ defmodule Techtree.WalletBench.MachineTest do
         )
 
       ["bash", "-c", "cd /work/bin && find" <> _rest] ->
-        frames(conn, "digest-1  -\n")
+        frames(conn, Catalog.recipe_digest() <> "  -\n")
 
       ["bash", "/work/bin/machine/readiness.sh", "H05"] ->
         account = %{
