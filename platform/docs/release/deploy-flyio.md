@@ -31,7 +31,7 @@ founder is asked to approve anything. Do it in that order.
 | --- | --- | --- |
 | Fly app | `techtree-sh` | free on the platform as of 2026-08-19 (`flyctl status -a techtree-sh` reports no such app) |
 | Organization | `regent` | the slug `flyctl orgs list` reports for the org displayed as "Regent". **Not** `regents` |
-| Postgres app | `techtree-sh-db` | one cluster, one consumer, named after it |
+| Database | `regents_prod` on the shared `regents-platform-prod` cluster (`dzx6qo6xqzvojpv5`), schema `techtree_app` | every Regent site shares one production database, each in its own schema |
 | Primary region | `iad` | the org's other production apps already run there, and Ashburn is Fly's largest US-East region. The surface is read-only behind an anycast proxy, so one region is enough |
 | Machine | shared CPU, 1 vCPU, 512 MB | the site serves files it already has and a handful of small reads. 256 MB is under what the BEAM plus a 10-connection pool wants during a release command; 512 MB is the next size up and leaves headroom without paying for a second core |
 | Internal port | 8080 | `PORT` in `fly.toml`, `internal_port` in `[http_service]`, Bandit binds it |
@@ -64,46 +64,28 @@ founder is asked to approve anything. Do it in that order.
 
     flyctl apps create techtree-sh --org regent
 
-### 2. Create the database
+### 2. The database
 
-    flyctl postgres create \
-      --name techtree-sh-db \
-      --org regent \
-      --region iad \
-      --initial-cluster-size 1 \
-      --vm-size shared-cpu-1x \
-      --vm-memory 512 \
-      --volume-size 1
+Techtree has no cluster of its own. It runs in the shared `regents_prod`
+database on the `regents-platform-prod` cluster (`dzx6qo6xqzvojpv5`), in the
+`techtree_app` schema, with two logins on that cluster: one serves the site
+and the other owns the schema and runs migrations.
 
-`--vm-memory 512` is not optional. `--vm-size shared-cpu-1x` alone gives the
-machine 256 MB, and Postgres 18 flex is killed by the kernel partway through
-step 6 — the import writes enough at once to exceed it. The failure looks like a
-client-side pool timeout (`tcp recv (idle): timeout`, `connection not available
-and request was dropped from queue`), and the cause is only visible in
-`flyctl logs --app techtree-sh-db`: `Out of memory: Killed process (postgres)`.
-An already-created 256 MB cluster is raised in place with
-`flyctl machine update <id> --vm-memory 512 --app techtree-sh-db`, and the
-import can then be re-run as-is; nothing was written, so there is nothing to
-clean up first.
+### 3. Set the database secrets
 
-Single node, smallest workable machine, 1 GB volume. No backups are requested,
-and that
-is deliberate rather than thrifty: every row in this database is reproduced
-exactly by importing the bundle the image already carries, so a backup would
-restore something the image can rebuild.
+Three secrets, staged with `flyctl secrets import --app techtree-sh --stage`
+so no value is typed on a command line or printed:
 
-The command prints a superuser password once. Save it somewhere the founder can
-reach; it is not recoverable.
+- `DATABASE_POOLED_URL`: the serving login.
+- `DATABASE_DIRECT_URL`: the migration login.
+- `TECHTREE_DB_SCHEMA=techtree_app`.
 
-### 3. Attach it
-
-    flyctl postgres attach techtree-sh-db --app techtree-sh
-
-This creates a database and a role for the consuming app and sets `DATABASE_URL`
-as a secret on `techtree-sh`. Do not set `DATABASE_URL` by hand — attach owns it.
-
-The URL points at the cluster over the organization's private network, which is
-IPv6 only. `fly.toml` sets `ECTO_IPV6 = "true"` for that reason.
+Both URLs name the cluster's direct host, `direct.dzx6qo6xqzvojpv5.flympg.net`,
+on port 5432 with no query options; the release refuses any other host and
+connects over IPv6 with verified TLS (`lib/techtree/database_config.ex`).
+`fly.toml` names the production role and the cluster the migrate command must
+reach. Never run `flyctl mpg attach` against `techtree-sh`: it creates its own
+login and prints its password.
 
 ### 4. Set the remaining secrets
 
@@ -519,6 +501,6 @@ belongs to a channel, and no rollback crosses between them.
   nosniff, frame, and referrer headers this application attaches to every static
   file.
 - `flyctl logs --app techtree-sh` for anything that goes wrong at boot. A
-  missing `PHX_HOST`, `SECRET_KEY_BASE`, `DATABASE_URL`, or
+  missing `PHX_HOST`, `SECRET_KEY_BASE`, `DATABASE_POOLED_URL`, or
   `TECHTREE_NETWORK_SIGNING_KEY` stops the release before it starts, by name,
   rather than booting into a wrong guess.

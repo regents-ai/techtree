@@ -40,6 +40,12 @@ tmp
 .idea
 .DS_Store
 
+# Python environments and caches from local runs of the bench's machine scripts.
+**/venv
+**/.venv
+**/__pycache__
+**/*.pyc
+
 # Documentation and host configuration describe the deploy; they are not in it.
 docs
 scripts
