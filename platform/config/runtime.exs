@@ -17,6 +17,21 @@ config :techtree, Techtree.Repo,
 
 config :techtree, Oban, prefix: database_schema
 
+# The motion lab at /animations (TechtreeWeb.Showcase). Production must choose
+# "public" or "off", and any other value stops the boot. Development and tests
+# are "public" unless told otherwise.
+showcase =
+  case {config_env(), System.get_env("TECHTREE_SHOWCASE")} do
+    {:prod, "public"} -> :public
+    {:prod, "off"} -> :off
+    {:prod, _setting} -> raise ~s(TECHTREE_SHOWCASE must be set to "public" or "off")
+    {_env, setting} when setting in [nil, "public"] -> :public
+    {_env, "off"} -> :off
+    {_env, _setting} -> raise ~s(TECHTREE_SHOWCASE must be "public" or "off")
+  end
+
+config :techtree, :showcase, showcase
+
 config :regent_sprites, token: System.get_env("SPRITES_TOKEN")
 
 # One Claude key for AgentWalletBench: the tested harness's model calls (sent to

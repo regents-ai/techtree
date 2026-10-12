@@ -1,14 +1,26 @@
 defmodule TechtreeWeb.Motion do
   @moduledoc """
-  The Regent standard motion, as Patchbay picked it: the version of each kind
-  of movement. Presses, menus and headlines move the same way on every page
-  from `assets/js/motion.ts`; a live part of a page names its version from here.
-
-  Techtree has one live part today, the list. A page that grows another part
-  adds that part's standard version here.
+  The standard motion: the version of each kind of movement the real pages use,
+  picked in the motion lab at `/animations` and shared by every Regent site. A
+  live part of a page names its version from here in `data-variant`.
   """
 
-  @standard %{"list" => "bounce"}
+  @standard %{
+    "drawer" => "spring",
+    "sheet" => "spring",
+    "menu" => "pop",
+    "note" => "peel",
+    "toast" => "pop",
+    "list" => "bounce",
+    "count" => "roll",
+    "stamp" => "thunk",
+    "tabs" => "glide",
+    "headline" => "rise",
+    "grid" => "cascade"
+  }
+
+  @doc "Every part's standard version."
+  def standard, do: @standard
 
   @doc "The standard version of one part, such as `\"list\"`."
   def standard(part), do: Map.fetch!(@standard, part)

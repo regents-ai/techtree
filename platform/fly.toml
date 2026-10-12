@@ -29,6 +29,10 @@ swap_size_mb = 512
   TECHTREE_DATABASE_CLUSTER_ID = "dzx6qo6xqzvojpv5"
   TECHTREE_DATABASE_CLUSTER_NAME = "regents-platform-prod"
 
+  # The motion lab at /animations is public (TechtreeWeb.Showcase); "off"
+  # removes it.
+  TECHTREE_SHOWCASE = "public"
+
   # PHX_HOST, SECRET_KEY_BASE, DATABASE_POOLED_URL, DATABASE_DIRECT_URL,
   # TECHTREE_DB_SCHEMA and TECHTREE_NETWORK_SIGNING_KEY are secrets, not
   # settings, and are set with `flyctl secrets set` (see the runbook). Both

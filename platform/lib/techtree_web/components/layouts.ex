@@ -218,6 +218,9 @@ defmodule TechtreeWeb.Layouts do
     do:
       "The terms for using Techtree: runs, published Results, and what each side is responsible for."
 
+  defp description_for_path("/animations"),
+    do: "Every motion Techtree uses, side by side."
+
   defp description_for_path("/results/" <> _digest),
     do: "Inspect one published Techtree Result and its task-level evidence."
 

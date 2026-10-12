@@ -76,6 +76,8 @@ export type Roll = {clip: boolean; move: (up: boolean) => AnimationParams}
 
 export const ROLLS: Record<string, Roll> = {
   roll: {clip: true, move: up => ({y: [up ? "100%" : "-100%", "0%"], duration: SLOW, ease: "outBack(1.4)"})},
+  // A balance that changed while the reader watches: the new digits flash in.
+  flash: {clip: false, move: () => ({opacity: [0, 1, 0.35, 1], scale: [1.35, 1], duration: SLOW * 3, ease: "outQuad"})},
 }
 
 // What a figure is worth, decimals included, so 1.75 to 2 rolls up.
@@ -151,27 +153,34 @@ export const countHook = (rolls: Record<string, Roll>): Hook => ({
 
 export const MotionCount = countHook(ROLLS)
 
-type RefusalHook = {el: HTMLElement; said?: string}
-
-// Shake while `data-refused` is on the message.
-function shake(hook: RefusalHook) {
-  if (hook.el.dataset.refused !== undefined) deny(hook.el)
-}
+type RefusalHook = {el: HTMLElement; scope?: Scope; said?: string}
 
 /**
  * A message a live page shows when it refuses something. It shakes once when
  * it appears and again whenever it says something new, while `data-refused`
- * is on it. Pages the server draws once shake their alerts from `motion.ts`.
+ * is on it. A shake still playing when the message goes stops with it. Pages
+ * the server draws once shake their alerts from `motion.ts`.
  */
 export const MotionRefusal: Hook = {
   mounted(this: RefusalHook) {
+    const scope = createScope({root: this.el})
     this.said = this.el.textContent ?? ""
-    shake(this)
+
+    this.scope = scope.add(() => {
+      scope.add("shake", () => {
+        if (this.el.dataset.refused !== undefined) deny(this.el)
+      })
+      scope.methods.shake()
+    })
   },
 
   updated(this: RefusalHook) {
     const said = this.el.textContent ?? ""
-    if (said !== this.said) shake(this)
+    if (said !== this.said) this.scope?.methods.shake()
     this.said = said
+  },
+
+  destroyed(this: RefusalHook) {
+    this.scope?.revert()
   },
 }

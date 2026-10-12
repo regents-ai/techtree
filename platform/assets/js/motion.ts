@@ -2,9 +2,9 @@
  * The standard motion on every page: a squish when something is pressed, a
  * shake when the answer is no, panels that slide or pop open, and on pages the
  * server draws once, the headline rising in word by word and the cards
- * settling into place the first time they scroll into view. The version of
- * each is named in `TechtreeWeb.Motion` and every version that was tried is
- * kept in the template's motion lab at /animations.
+ * settling into place the first time they scroll into view. The version of each is named in `TechtreeWeb.Motion`
+ * and every version that was tried is kept in the template's motion lab at
+ * /animations.
  *
  * A live page draws its own parts again whenever it changes, so only what the
  * server drew once moves as the page opens; live parts move from their hooks.

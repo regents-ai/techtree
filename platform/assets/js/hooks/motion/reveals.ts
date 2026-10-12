@@ -38,9 +38,10 @@ type ViewsHook = {el: HTMLElement; scope?: Scope; destination?: string; pointer:
 
 /**
  * The app's pages, switched by the server as the reader moves through the
- * navigation. The shell names where it is in `data-destination` and the
- * version in `data-variant`; a page chosen with a mouse or finger glides in,
- * one reached from the keyboard or the browser's back button is simply there.
+ * navigation: the links inside each `data-shell-nav`, in page order. The shell
+ * names where it is in `data-destination` and the version in `data-variant`; a
+ * page chosen with a mouse or finger glides in, one reached from the keyboard
+ * or the browser's back button is simply there.
  */
 export const ShellViews: Hook = {
   mounted(this: ViewsHook) {
@@ -50,7 +51,7 @@ export const ShellViews: Hook = {
 
     this.scope = scope.add(() => {
       const place = (path?: string) =>
-        [...this.el.querySelectorAll("#shell-sidebar a[href]")].findIndex(
+        [...this.el.querySelectorAll("[data-shell-nav] a[href]")].findIndex(
           link => link.getAttribute("href") === path,
         )
 

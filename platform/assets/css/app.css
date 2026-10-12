@@ -5,6 +5,7 @@
 @import "./techtree_pages.css";
 @import "./wallet_bench.css";
 @import "./components/motion.css";
+@import "./animations.css";
 
 /* Palette, type, cut skins and interaction sweeps come from Regent UI.
    Product CSS composes the bounded live crown hero and the ruled document. */

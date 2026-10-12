@@ -84,6 +84,7 @@ release_env=(
   --env SECRET_KEY_BASE="$(openssl rand -base64 48)"
   --env TECHTREE_NETWORK_SIGNING_KEY="$(openssl rand -base64 32)"
   --env TECHTREE_BOOTSTRAP_CHANNEL=stable
+  --env TECHTREE_SHOWCASE=public
 )
 
 echo "==> Migrating the database and importing catalog $catalog with the release commands"
