@@ -174,19 +174,16 @@ config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# Errors go to Sentry once SENTRY_DSN is set (config/runtime.exs): crashed
-# processes and failed requests, through the handler the application adds.
-# Each event leaves without its frames' arguments or a crashed process's state.
-config :sentry,
-  environment_name: config_env(),
-  json_library: Jason,
-  enable_metrics: false,
-  tags: %{app: "techtree"},
-  before_send: {Techtree.SentryScrub, :scrub}
-
-config :techtree, :logger, [
-  {:handler, :sentry_handler, Sentry.LoggerHandler, %{config: %{metadata: [:file, :line]}}}
-]
+# Failed requests, pages and jobs are saved in the site's own schema (the
+# schema is chosen at boot in config/runtime.exs). Only server faults are saved
+# (Techtree.ErrorIgnorer), only where each one happened is kept
+# (Techtree.ErrorFilter), and a resolved error is cleared after a week.
+config :error_tracker,
+  repo: Techtree.Repo,
+  otp_app: :techtree,
+  ignorer: Techtree.ErrorIgnorer,
+  filter: Techtree.ErrorFilter,
+  plugins: [{ErrorTracker.Plugins.Pruner, max_age: :timer.hours(24 * 7)}]
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

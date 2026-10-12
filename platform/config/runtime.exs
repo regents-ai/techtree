@@ -1,10 +1,5 @@
 import Config
 
-config :sentry,
-  dsn: System.get_env("SENTRY_DSN"),
-  release: System.get_env("SENTRY_RELEASE"),
-  environment_name: System.get_env("SENTRY_ENVIRONMENT", to_string(config_env()))
-
 database_schema = System.get_env("TECHTREE_DB_SCHEMA", "public")
 
 unless database_schema in ["public", "techtree_app"] do
@@ -16,6 +11,7 @@ config :techtree, Techtree.Repo,
   migration_default_prefix: database_schema
 
 config :techtree, Oban, prefix: database_schema
+config :error_tracker, prefix: database_schema
 
 # The motion lab at /animations (TechtreeWeb.Showcase). Production must choose
 # "public" or "off", and any other value stops the boot. Development and tests

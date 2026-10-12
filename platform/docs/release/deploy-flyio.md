@@ -436,6 +436,16 @@ digest in `priv/releases/climb-v0.1.0/checksums.json`. `/healthz` must still
 name channel `stable`. Then re-run the whole of step 12; the 405 and the
 redirect must be unchanged.
 
+## Saved errors
+
+Server faults (failed requests, pages and jobs) are saved in the site's own
+schema by ErrorTracker, with only where each happened kept
+(`Techtree.ErrorFilter`). Until sign-in arrives and `/admin/errors` mounts with
+the template's admin guard, read the latest twenty on the running machine:
+
+    flyctl ssh console --app techtree-sh
+    /app/bin/techtree rpc 'import Ecto.Query; ErrorTracker.Error |> order_by(desc: :last_occurrence_at) |> limit(20) |> Techtree.Repo.all() |> Enum.each(&IO.puts("#{&1.last_occurrence_at} #{&1.status} #{&1.kind}: #{&1.reason} (#{&1.source_function})"))'
+
 ## Rolling back
 
 The stable floor stays staged forever, so going back is one command:
