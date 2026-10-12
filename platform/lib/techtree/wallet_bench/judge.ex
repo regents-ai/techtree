@@ -1,8 +1,8 @@
 defmodule Techtree.WalletBench.Judge do
   @moduledoc """
-  The judge's model calls, through `regent_openai` with the model set in
-  `:techtree, Techtree.WalletBench, judge_model`, each answer held to a JSON
-  schema and its cost recorded.
+  The judge's model calls, through `regent_anthropic` with the model set in
+  `:techtree, Techtree.WalletBench, judge_model`, each with adaptive thinking at
+  high effort, its answer held to a JSON schema and its cost recorded.
 
   - `rule/3`: the ruling on a turn (`:install`, `:wallet`, or a money test:
     `:T3`, `:T4`, `:T5`), with the test's review guide
@@ -190,7 +190,7 @@ defmodule Techtree.WalletBench.Judge do
         test -> Map.fetch!(@money_schemas, test)
       end
 
-    with {:ok, reply} <- respond(guide, evidence, {"#{kind}_ruling", schema}) do
+    with {:ok, reply} <- respond(guide, evidence, schema) do
       {:ok, Map.put(reply.json, "model", reply.model), reply.cost_usd}
     end
   end
@@ -199,7 +199,7 @@ defmodule Techtree.WalletBench.Judge do
   @spec extract(String.t()) :: {:ok, map(), Decimal.t()} | {:error, term()}
   def extract(transcript) do
     with {:ok, reply} <-
-           respond(@extract_instructions, transcript, {"printed_wallet", @extract_schema}) do
+           respond(@extract_instructions, transcript, @extract_schema) do
       {:ok, reply.json, reply.cost_usd}
     end
   end
@@ -208,14 +208,14 @@ defmodule Techtree.WalletBench.Judge do
   @spec model() :: String.t()
   def model, do: Application.fetch_env!(:techtree, Techtree.WalletBench)[:judge_model]
 
-  defp respond(instructions, input, schema) do
-    RegentOpenAI.respond(
+  defp respond(system, input, schema) do
+    RegentAnthropic.respond(
       model: model(),
-      instructions: instructions,
+      system: system,
       input: input,
       schema: schema,
-      reasoning: "high",
-      max_output_tokens: 32_000,
+      effort: "high",
+      max_tokens: 32_000,
       receive_timeout: 600_000
     )
   end

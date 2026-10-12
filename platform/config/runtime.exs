@@ -19,11 +19,11 @@ config :techtree, Oban, prefix: database_schema
 
 config :regent_sprites, token: System.get_env("SPRITES_TOKEN")
 
-# AgentWalletBench's Claude key, sent to the machine per attempt for the tested
-# harness's model calls, and its OpenAI key for the judge.
-config :techtree, Techtree.WalletBench, model_key: System.get_env("WALLETBENCH_ANTHROPIC_API_KEY")
-
-config :regent_openai, api_key: System.get_env("WALLETBENCH_OPENAI_API_KEY")
+# One Claude key for AgentWalletBench: the tested harness's model calls (sent to
+# the machine per attempt) and the judge's.
+wallet_bench_anthropic_key = System.get_env("WALLETBENCH_ANTHROPIC_API_KEY")
+config :techtree, Techtree.WalletBench, model_key: wallet_bench_anthropic_key
+config :regent_anthropic, api_key: wallet_bench_anthropic_key
 
 # Optional operator-supplied Bankr access for the assisted W01 wallet test.
 # It is never included in a prompt, recipe, command argument or public record.

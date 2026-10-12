@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "1f6ce01364ad3da8f0593f21a620e9fe1c199145"
+  @elixir_utils_ref "e4e3d0fffaa19799c22ab5f765e4153ec6b0a691"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "57d2f982a07dde733c0f1e05a7bd3b1a97cd58e1"
 
@@ -69,10 +69,10 @@ defmodule Techtree.MixProject do
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
       {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
       {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
-      {:regent_openai, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "openai"},
+      {:regent_anthropic, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "anthropic"},
       # The wallet bench signs its funding sends with it.
       {:regent_chain, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "chain"},
-      # regent_openai names regent_http by a sibling path; this pin replaces it.
+      # regent_anthropic names regent_http by a sibling path; this pin replaces it.
       {:regent_http, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "http", override: true},
       # The ref regent_agents already brings; the bench recovers signatures with it.
       {:siwa,

@@ -84,7 +84,7 @@ config :techtree, Oban,
   lifeline: [rescue_after: {10, :minutes}]
 
 # The model that judges AgentWalletBench turns; it must be priced in
-# regent_openai. The key for the judge and the tested harness is set in
+# regent_anthropic. The key for the judge and the tested harness is set in
 # `config/runtime.exs`.
 #
 # The bench reads Base, and sends its funding, through `base_rpc`. Each funded
@@ -93,7 +93,7 @@ config :techtree, Oban,
 # Nothing is signed while Base needs a fee cap above 0.1 gwei per gas, or a
 # send needs more than 150,000 gas (its estimate and a fifth more).
 config :techtree, Techtree.WalletBench,
-  judge_model: "gpt-5.6-sol",
+  judge_model: "claude-opus-5-5",
   base_rpc: "https://mainnet.base.org",
   funding: [
     usdc_units: 250_000,
