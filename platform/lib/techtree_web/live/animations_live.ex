@@ -120,8 +120,15 @@ defmodule TechtreeWeb.AnimationsLive do
     end
   end
 
-  def handle_event("dismiss", %{"id" => id}, socket),
-    do: {:noreply, leave(socket, :toasts, String.to_integer(id))}
+  # Only a note still on the page can be dismissed; any other id is ignored.
+  def handle_event("dismiss", %{"id" => id}, socket) do
+    with {id, ""} <- Integer.parse(id),
+         true <- Enum.any?(socket.assigns.toasts, &(&1.id == id)) do
+      {:noreply, leave(socket, :toasts, id)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
 
   def handle_event("shuffle", _, socket), do: {:noreply, update(socket, :items, &Enum.shuffle/1)}
 
