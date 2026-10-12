@@ -20,9 +20,11 @@ at the same moment cannot overshoot it together. A call is charged:
 - failed: nothing when the model server answered with an error status, otherwise its hold, because a call that lost
   its connection, timed out, failed inside a stream or failed after the answer arrived may have been billed.
 
-Each call is charged once, by whichever of these comes first. LiteLLM sends a request again on a fresh connection
-when the first connection breaks, even after Anthropic has received it; that second send is switched off, so a broken
-connection fails the call and charges its hold.
+Each call is charged once, by whichever of these comes first. Every request is sent once. LiteLLM would send one again
+on a fresh connection when the first connection breaks, even after Anthropic has received it; to the address a 307 or
+308 redirect names; and, for an Anthropic Messages request refused for an invalid thinking block, without its thinking.
+All three are switched off: a broken connection fails the call and charges its hold, and a redirect or a refusal fails
+it and charges nothing.
 
 Only the harness's own tools reach the model, and nothing billed apart from tokens or above the list price: Anthropic's
 server tools, MCP servers, containers and server-side context management are removed, and so are fast mode, the
@@ -43,6 +45,7 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import HTTPException
 from litellm.integrations.custom_logger import CustomLogger
+from litellm.llms.base_llm.anthropic_messages.transformation import BaseAnthropicMessagesConfig
 from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler
 
 BUDGET_USD = 5.0
@@ -53,6 +56,8 @@ CONTEXT = 1_000_000
 CACHE_WRITE_USD = 0.000005
 OUTPUT_USD = 0.00002
 TOOL_ALLOWANCE = 10_000
+# Anthropic shrinks an image, a linked one too, to at most 4,784 tokens on Claude 4.7 and later models (Vision guide,
+# platform.claude.com, read 12 Oct 2026).
 MEDIA_ALLOWANCE = 10_000
 COUNT_TOKENS = "https://api.anthropic.com/v1/messages/count_tokens"
 CALLS = "/work/proxy/calls.jsonl"
@@ -180,7 +185,19 @@ async def _not_sent_again(self, **kwargs):
     raise httpx.ConnectError("The connection broke; the request is not sent again.")
 
 
+_post = AsyncHTTPHandler.post
+
+
+async def _post_once(self, *args, **kwargs):
+    # httpx sends a request again to wherever a 307 or 308 points; a redirect fails the call instead.
+    self.client.follow_redirects = False
+    return await _post(self, *args, **kwargs)
+
+
 AsyncHTTPHandler.single_connection_post_request = _not_sent_again
+AsyncHTTPHandler.post = _post_once
+# An Anthropic Messages request that Anthropic refuses for an invalid thinking block is sent again without thinking.
+BaseAnthropicMessagesConfig.max_retry_on_anthropic_messages_http_error = property(lambda self: 1)
 
 
 class BenchHooks(CustomLogger):
