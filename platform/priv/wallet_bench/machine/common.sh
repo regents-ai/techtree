@@ -26,11 +26,21 @@ api() {
   sudo curl -sS --fail-with-body --unix-socket "$ADMIN/api.sock" -H 'Content-Type: application/json' "$@"
 }
 
-# Runs one of the scripts in machine/bench/ as the tested account, in a login shell from its home.
+# Node's own folder, which goes ahead of /.sprite/bin: the Sprite's npm launcher calls itself forever when the account
+# has a ~/.nvm with no Node in it yet, which is where Harbor's Node install puts it.
+node_dir() {
+  dirname "$(/.sprite/bin/node -e 'process.stdout.write(process.execPath)')"
+}
+
+# Runs one of the scripts in machine/bench/ as the tested account, from its home. The tested agent can change the
+# account's startup files and its own folders, so the script starts with an empty environment and none of those files,
+# and the system's folders come first on its PATH: the commands the checks use are the system's own.
 as_bench() {
   local script=$1
   shift
-  sudo -u bench -H bash -lc "cd ~"$'\n'"$(cat "$W/bin/machine/bench/$script")" "$script" "$@"
+  sudo -u bench -H env -i HOME=/home/bench \
+    PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$(node_dir):/.sprite/bin:/home/bench/.local/bin" \
+    bash --noprofile --norc -c "cd ~"$'\n'"$(cat "$W/bin/machine/bench/$script")" "$script" "$@"
 }
 
 # The bench's runner (runner/), as root: it drives the tested agent through its Harbor adapter, running the agent's

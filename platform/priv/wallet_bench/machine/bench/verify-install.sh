@@ -6,7 +6,9 @@ shift
 HELP="$*"
 echo "captured_at=$(date -u +%FT%TZ)"
 echo "--- which"
-if P=$(command -v "$EXE"); then echo "$P"; readlink -f "$P"
+# Looked up in a login shell of its own, as the agent would find it; only the path it prints is kept.
+P=$(bash -lc 'command -v "$1"' bash "$EXE" 2>/dev/null | tail -1)
+if [ -f "$P" ] && [ -x "$P" ]; then echo "$P"; readlink -f "$P"
 else
   P=$(find ~ -name "$EXE" \( -type f -o -type l \) -perm -u+x \( -not -path "*/node_modules/*" -o -path "*/node_modules/.bin/*" \) 2>/dev/null | head -1)
   echo "NOT ON PATH in a login shell; found by search: ${P:-nothing}"
@@ -20,7 +22,8 @@ echo "--- version attempts (exit)"
 # The bare word "version" only when help lists it as a command: some wallet CLIs send loose words to their AI.
 V="--version -V"; grep -qE "^\s+version\b" /tmp/verify-help.txt && V="$V version"
 # Each attempt is also kept as one line, its exit status and its output in base64, for the version proof at the end:
-# printed output cannot fake a line there. The tools that build it are the system's own, not ones the account installed.
+# printed output cannot fake a line there. The tools that build it are the system's own, not ones the account installed,
+# and none of the account's startup files run first (common.sh as_bench).
 PROOF=""
 for v in $V; do
   echo "\$ $P $v"

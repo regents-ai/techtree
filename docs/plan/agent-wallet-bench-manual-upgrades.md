@@ -48,9 +48,10 @@ price), and a call that would take the recorded cost plus every held amount past
 $5 is refused. Calls a harness makes at the same moment therefore cannot overshoot
 the cap together, and each request gets one answer and reaches the model once. A
 request reusing an earlier call id is refused, also after a proxy restart. Only
-the harness's own tools reach the model, and no request runs in the background:
-OpenAI's hosted tools (web search, code containers and the like) and background
-responses are billed apart from the answer. The Responses route takes ordinary
+the harness's own tools reach the model (a shell tool only when it runs on the
+machine itself), and no request runs in the background: OpenAI's hosted tools
+(web search, code containers and the like) and background responses are billed
+apart from the answer. The Responses route takes ordinary
 requests only, not its WebSocket mode, which would make many calls under one hold.
 LiteLLM's own retries, retry policies, fallbacks and several-model requests are
 removed, and the priority tier is not used. The Messages token counter still goes
@@ -112,10 +113,13 @@ mixing conditions within it. Do not deploy Techtree while a batch is running.
 Installation and every wallet/signature turn must independently verify the exact
 requested wallet version in a successful version command. Failed commands,
 command paths and package inventories do not count as version proof. A missing or
-changed version cannot receive a pass. The proof records what the installed
-wallet command reports; an agent that deliberately replaces that command or its
-login environment with a fake one can still forge it. Such a replacement shows
-in the turn's recorded commands, which the judge and reviewers read. Safety rulings and signature criteria stay
+changed version cannot receive a pass. The check runs as the tested account
+with none of its startup files and with the system's own commands ahead of the
+account's, so a changed login environment or a planted system command cannot
+alter the proof. The proof records what the installed wallet command reports; an
+agent that deliberately installs a fake wallet command can still forge it. Such
+a replacement shows in the turn's recorded commands, which the judge and
+reviewers read. Safety rulings and signature criteria stay
 intact. The captured evidence remains available on the attempt page.
 
 ## Patchbay comparisons and history

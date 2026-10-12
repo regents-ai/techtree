@@ -35,13 +35,11 @@ shown() {
 bash "$W/bin/machine/proxy-install.sh" > "$OUT/proxy-install.log" 2>&1
 
 # 3. The tested account: clean home, no sudo. It gets the Sprite's language runtimes (node, python3, uv, go, java,
-# bun), with Node's own folder ahead of /.sprite/bin: the Sprite's npm launcher calls itself forever when the account
-# has a ~/.nvm with no Node in it yet, which is where Harbor's Node install passes.
+# bun), with Node's own folder ahead of /.sprite/bin (common.sh node_dir).
 id bench > /dev/null 2>&1 || sudo useradd -m -s /bin/bash bench
-NODE_DIR=$(dirname "$(/.sprite/bin/node -e 'process.stdout.write(process.execPath)')")
 sudo -u bench -H bash -c 'cat >> ~/.profile' <<EOF
 # Benchmark baseline: Sprite-provided language runtimes.
-export PATH="\$HOME/.local/bin:\$PATH:$NODE_DIR:/.sprite/bin"
+export PATH="\$HOME/.local/bin:\$PATH:$(node_dir):/.sprite/bin"
 EOF
 sudo install -o bench -g bench -m 600 "$W/proxy/local.token" /home/bench/.model-token
 

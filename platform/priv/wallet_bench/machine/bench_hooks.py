@@ -76,7 +76,9 @@ def _harness_tools(call_type, tools: list) -> list:
     if call_type == "anthropic_messages":
         return [tool for tool in tools if "input_schema" in tool and tool.get("type", "custom") == "custom"]
     allowed = RESPONSES_TOOLS if call_type in ("aresponses", "responses") else CHAT_TOOLS
-    return [tool for tool in tools if tool.get("type") in allowed]
+    # The shell tool runs on the harness's machine only with a local environment; otherwise OpenAI starts a container.
+    return [tool for tool in tools if tool.get("type") in allowed
+            and (tool.get("type") != "shell" or (tool.get("environment") or {"type": "local"}).get("type") == "local")]
 
 
 def _error_status(exception) -> bool:
