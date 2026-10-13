@@ -182,6 +182,10 @@ defmodule Techtree.WalletBench.Catalog do
     return: 900
   }
 
+  # The release of each tested wallet a batch asks for unless it names another (Sean, 13 October 2026: recent
+  # releases). Each had been public for three days or more when it was chosen, and the wallet's notes describe it.
+  @wallet_versions %{"W01" => "0.3.45", "W03" => "1.100.1", "W07" => "1.8.5", "W13" => "1.11.0"}
+
   @type harness :: %{id: String.t(), name: String.t(), tests: [atom()]}
   @type wallet :: %{
           id: String.t(),
@@ -271,6 +275,10 @@ defmodule Techtree.WalletBench.Catalog do
 
   @spec wallet!(String.t()) :: wallet()
   def wallet!(id), do: Map.fetch!(@wallets, id)
+
+  @doc "The release of a tested wallet a batch asks for unless it names another."
+  @spec wallet_version!(String.t()) :: String.t()
+  def wallet_version!(id), do: Map.fetch!(@wallet_versions, id)
 
   @doc "The pair's name as the survey wrote it, such as `H05-W07`."
   @spec pair(String.t(), String.t()) :: String.t()

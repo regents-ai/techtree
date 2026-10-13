@@ -30,7 +30,7 @@ defmodule Techtree.WalletBench.Batch do
     wallets =
       for id <- Enum.sort(Catalog.tested_wallet_ids()),
           into: %{},
-          do: {id, Catalog.wallet!(id).survey_version}
+          do: {id, Catalog.wallet_version!(id)}
 
     {harnesses, wallets} =
       case axis do
