@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.7.3 (2026-10-13)
+
+### Changed
+
+- Techtree now names regents-cli 1.10.2, with the same Climbs, catalog,
+  engines and starter Skills as v0.7.2. Every answer from regents-cli 1.10
+  ends with what to do next: the exact command to run, or what your person
+  has to do first. A payment that may have gone through is never offered as
+  a plain rerun. Install it with
+  `uv tool install --python 3.12 regents-cli==1.10.2`, or upgrade with
+  `uv tool upgrade regents-cli`. The Hermes plugin is 0.7.3.
+
 ## v0.7.2 (2026-10-08)
 
 ### Changed
