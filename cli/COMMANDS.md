@@ -470,8 +470,8 @@ machine, calls a paid model or sends data anywhere.
 - **Refusals:**
   - `validation_error`: an unknown profile, `--max-usd` above 20 or too small to buy one
     minute, or no successful `profile check --dry-run` report for this profile's recipe.
-  - `unsupported_capability`: the provider's price or usage could not be read, which includes
-    a service token without the `org:read` scope.
+  - `unsupported_capability`: the provider's price, usage or billing could not be read, which
+    includes a service token without the `org:read` scope.
   - `runner_unavailable`: the operator's mission is not open at the provider.
 - **History:** 2026-10-13 added. 2026-10-13 refuses when the operator's mission is not open;
   answers with the month's build minutes and says the image build is not in the figure.
@@ -502,14 +502,17 @@ machine, calls a paid model or sends data anywhere.
   the measured cost, and that the egress list was declared and not enforced by the provider.
 - **Refusals:**
   - `approval_required`: no grant, a grant for another operation, plan or actor, an expired or
-    revoked grant, a grant with no `issued` line, or one whose uses are spent.
+    revoked grant, a grant with no `issued` line, or one whose uses are spent. Also when the
+    provider shows automatic top-up on, which the grant's operator attested was off.
   - `plan_changed`: the plan's digest no longer matches the stored plan, or the provider's
     rate or the image folder differs from the plan's. Nothing is recorded or submitted.
   - `budget_exhausted`: the provider's worst-case cost for the job is more than the grant
     allows, or the provider would not take the job because of a spending cap. Found at the
     free preflight, nothing is recorded or submitted; found after the submission, the job is
-    cancelled before it runs. A job the provider holds in its queue for an empty balance is
-    cancelled the same way.
+    cancelled before it runs. Also: the account's balance, read before anything is recorded,
+    is at zero or below the job's worst-case cost; or the provider is holding the submitted
+    job in its queue for an empty balance, a spending limit or an account past due, in which
+    case the job is cancelled.
   - `runner_unavailable`: the provider's free preflight would not take the job for any other
     reason. Nothing is recorded or submitted.
   - `job_indeterminate`: the submission's outcome is unknown and no job carries the intent id;
