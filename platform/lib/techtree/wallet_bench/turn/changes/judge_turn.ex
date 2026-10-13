@@ -13,9 +13,11 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
 
   A money turn (T3, T4, T5) goes to the judge with the funding, the bench's
   look at the agent's wallet on Base and every USDC transfer since the funding
-  (`Techtree.WalletBench.MoneyCheck`), the transcript and the storage check. The
-  turn that returns what is left is not scored and goes to no judge: the bench
-  records what came back.
+  (`Techtree.WalletBench.MoneyCheck`), the transcript and the storage check. A
+  pass on the refund or the paid call stands only when that Base check shows
+  the one exact payment to the funder (`MoneyCheck.hold/3`). The turn that
+  returns what is left is not scored and goes to no judge: the bench records
+  what came back.
 
   With `evidence: :stored` (the `:rejudge` action) a wallet or money turn is
   ruled on again from what was read and checked when it was first judged: the
@@ -151,7 +153,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
              Catalog.review_guide(test),
              money_evidence(attempt, turn, files, money)
            ) do
-      {:ok, judgment, %{money: money}, cost}
+      {:ok, MoneyCheck.hold(judgment, money, Catalog.exact_payment(test)), %{money: money}, cost}
     end
   end
 

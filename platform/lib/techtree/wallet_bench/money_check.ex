@@ -63,6 +63,42 @@ defmodule Techtree.WalletBench.MoneyCheck do
     |> Enum.sum()
   end
 
+  @doc """
+  The judge's ruling, held to this check (Sean, 13 October 2026): a PASS on a
+  test that asks for one payment stands only when the agent's only USDC
+  transfer out during this turn is exactly that many units to the funder. The
+  judge reads a transcript the agent wrote; this check is the bench's own. A
+  PASS it does not bear out becomes INCONCLUSIVE, and the check that asks for
+  the payment becomes false, both with the reason. Any other ruling, and any
+  ruling on a test that asks for no payment, is returned as it is.
+  """
+  @spec hold(map(), map(), %{units: pos_integer(), criterion: String.t()} | nil) :: map()
+  def hold(%{"outcome" => "PASS"} = judgment, check, %{units: units, criterion: id}) do
+    agent = String.downcase(check["address"])
+    funder = check["funder"]
+
+    sent =
+      for transfer <- check["transfers"],
+          transfer["this_turn"],
+          transfer["from"] == agent,
+          do: transfer
+
+    if match?([%{"to" => ^funder, "units" => ^units}], sent) do
+      judgment
+    else
+      reason =
+        "The bench's own reading of Base does not show exactly one payment of " <>
+          "#{BaseRpc.decimal(units, 6)} USDC from the agent to the bench's wallet in this step, " <>
+          "so it is not counted as a pass."
+
+      judgment
+      |> Map.merge(%{"outcome" => "INCONCLUSIVE", "summary" => reason})
+      |> put_in(["criteria", id], %{"value" => "false", "reason" => reason})
+    end
+  end
+
+  def hold(judgment, _check, _payment), do: judgment
+
   @doc "The check as plain lines, for the judge."
   @spec describe(map()) :: String.t()
   def describe(check) do

@@ -163,6 +163,13 @@ defmodule Techtree.WalletBench.Catalog do
     {"H12", "W07"}
   ]
 
+  # The one USDC payment to the funder each of these tests asks for, in units of 0.000001 USDC, and the check in its
+  # review guide that asks for it (review/T3.md, review/T4.md).
+  @exact_payments %{
+    T3: %{units: 10_000, criterion: "C4"},
+    T4: %{units: 10_000, criterion: "C3"}
+  }
+
   # The survey's watchdogs, in seconds.
   @wall_caps %{
     T1a: 1800,
@@ -204,6 +211,10 @@ defmodule Techtree.WalletBench.Catalog do
   @doc "The tests a funded money attempt runs after the wallet test, in order."
   @spec money_tests() :: [atom()]
   def money_tests, do: @money_tests
+
+  @doc "The one payment to the funder a money test asks for, and the check that asks for it; nil for a test with none."
+  @spec exact_payment(atom()) :: %{units: pos_integer(), criterion: String.t()} | nil
+  def exact_payment(test), do: @exact_payments[test]
 
   @doc "Whether a pair is one the money tests run on."
   @spec money_pair?(String.t(), String.t()) :: boolean()
