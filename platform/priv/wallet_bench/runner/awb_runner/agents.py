@@ -48,7 +48,11 @@ def _piped_instruction() -> str:
 
 class ClaudeCodeAgent(ClaudeCode):
     """Claude Code from Anthropic's own installer, which is how Harbor installs it on this machine, with the installed
-    binary checked against the digest Anthropic publishes for that release."""
+    binary checked against the digest Anthropic publishes for that release.
+
+    What this does not show: the installer script is fetched on the day, and it has run, and has run the binary it
+    fetched, before the digest is compared. No model key is on the machine during the build, and a mismatch stops the
+    build before any attempt."""
 
     # The pinned release binary's published SHA-256 (the release's manifest.json, linux-x64), set from the pin.
     BINARY_SHA256 = ""
