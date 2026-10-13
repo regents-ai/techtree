@@ -361,6 +361,16 @@ One command rents a machine: `profile test`, and only with the operator's grant 
 `plan --profile` reads the provider's price and rents nothing. No other command here rents a
 machine, calls a paid model or sends data anywhere.
 
+Three limits are accepted for M0 and are stated here so nobody is surprised by them (contract
+6 and 6.1):
+
+- The grant's figure is GPU time only. The provider bills the image build separately, at a
+  rate it does not publish; the first run is where that cost is measured.
+- The grant ledger's lines are signed but not chained, so an operator who deletes their own
+  `used` line gives themselves another use.
+- This is a tool for one operator on their own machine. Nobody else checks the grant, the
+  ledger or the answers.
+
 ### regents techtree model-climb capabilities
 
 - **What it does:** says what this machine and this CLI can run: the contract version, the
@@ -426,14 +436,16 @@ machine, calls a paid model or sends data anywhere.
 - **Refusals:**
   - `plan_changed`: the plan's digest no longer matches the stored plan.
   - `validation_error`: a missing limit, a compatibility-test plan above 20 USD, a
-    compatibility-test grant for more than one attempt, an attestation not given, or the typed
-    confirmation did not match.
+    compatibility-test grant for more than one attempt, limits that leave the job fewer than
+    three minutes, an attestation not given, or the typed confirmation did not match.
   - `approval_required`: the grant ledger cannot be read or holds a line that does not verify.
+  - `idempotency_conflict`: another command is using the grant ledger; nothing is done.
 - **History:** 2026-10-12 added. 2026-10-13 the typed confirmation is the maximum USD, and the
   grant ledger and the two attestations are added, with the first paid step. 2026-10-13 the
   review says what the typed figure covers and what it does not. 2026-10-13 the review's
   minutes are the job's under this grant, the maximum USD is per attempt, and a
-  compatibility-test grant is for one attempt.
+  compatibility-test grant is for one attempt. 2026-10-13 refuses limits that leave the job
+  fewer than three minutes.
 
 ### regents techtree model-climb grant revoke \<grant id\>
 
@@ -441,17 +453,20 @@ machine, calls a paid model or sends data anywhere.
   afterwards.
 - **Who may run it:** the operator of this machine, in local-only mode.
 - **What it changes:** writes the grant's `revoked` line to the grant ledger. Revoking a revoked
-  grant changes nothing. It does not stop a job already submitted, and nothing on the site
-  changes.
+  grant changes nothing. It does not itself stop a job already submitted, and nothing on the
+  site changes.
 - **Route:** none. Operation `model_climb_grant_revoke` (grant).
 - **Inputs:**
   - `<grant id>`: the grant to revoke.
 - **Answer:** the grant id and that it is revoked. It asks for no typed confirmation, because
-  it only removes authority.
+  it only removes authority. When a job under the grant may still be running the answer says
+  so (`job_may_be_running`) and names `profile test` as the next action; that run cancels the
+  job.
 - **Refusals:**
   - `validation_error`: no grant with that id on this machine.
   - `approval_required`: the grant ledger cannot be read or holds a line that does not verify.
-- **History:** 2026-10-13 added.
+  - `idempotency_conflict`: another command is using the grant ledger; nothing is done.
+- **History:** 2026-10-13 added. 2026-10-13 says when a job may still be running.
 
 ### regents techtree model-climb plan --profile \<profile\> --max-usd \<n\>
 
@@ -459,7 +474,8 @@ machine, calls a paid model or sends data anywhere.
   7.4 step 2). It writes the fixed study, dataset release, benchmark release and recipe for
   that profile from the profile's own pinned values and the four public synthetic fixtures,
   reads the provider's current rate, and works out the job's minutes: the largest multiple of
-  three whose cost is no more than `--max-usd`. It also reads the operator's mission from the
+  three whose cost, at the rate read rounded up to a whole cent per GPU-hour, is no more than
+  `--max-usd`. It also reads the operator's mission from the
   provider, so that a paid run cannot fail on a missing mission after its grant use is spent.
 - **Who may run it:** anyone on the operator's machine. It rents nothing.
 - **What it changes:** writes the plan and its objects under `<techtree home>/model-climb/`.
@@ -469,7 +485,8 @@ machine, calls a paid model or sends data anywhere.
   - `--profile <profile>`: `m0-qwen3.5-9b`, the only profile in M0.
   - `--max-usd <n>`: the most the test may cost. At most 20 for a profile test.
 - **Answer:** the plan digest, the GPUs, the minutes, the rate read, the most the GPU time can
-  cost, the egress list, what the provider's usage shows for image builds this month, and the
+  cost, the egress list, what the provider's usage line `builds` shows for image builds this
+  month, and the
   sentence of contract 6.1 saying that the image build is billed separately,
   for at most 60 minutes, at a rate the provider does not publish, and is not in the figure.
 - **Refusals:**
@@ -498,21 +515,30 @@ machine, calls a paid model or sends data anywhere.
   tighter. Before anything is recorded it reads the
   provider's rate and the image folder again and sends the job to the provider's free
   preflight. Then, before submitting, it writes a `used` line with the attempt's intent id to
-  the grant ledger. A submission the provider refuses leaves that use spent. Writes the attempt and the measured
+  the grant ledger. A submission the provider refuses closes the attempt as `failed` and leaves that use spent. Writes the attempt and the measured
   profile under `<techtree home>/model-climb/`. Nothing on the site.
 - **Route:** none. Operation `model_climb_profile_test` (spend).
 - **Inputs:**
   - `<profile>`: `m0-qwen3.5-9b`.
   - `--grant <grant id>`: the grant that admits this run.
-- **Answer:** while the job runs, that it is running. Once it has ended, the measured
+- **Answer:** while the job runs, that it is running, with the provider's reason when it is
+  waiting in the queue (`queue_wait_reason`). Once it has ended, the measured
   compatibility profile and its digest, the built image's digest from the provider's receipt,
   the measured cost, and that the egress list was declared and not enforced by the provider.
   The measured cost is what the provider's receipt for the job shows, for a job the command
-  cancelled too; when the provider gives no figure the answer says none was given.
+  cancelled too; when the provider gives no figure the answer says none was given. The stored
+  outcome carries `charged_usd_micros` and `billed_seconds_per_gpu`, each empty when not
+  given. A job already submitted is always read and collected, under an expired grant or a
+  changed image folder too. A failure at the provider after the submission answers with the
+  job id and the intent id and says that this look at it did not finish.
 - **Refusals:**
   - `approval_required`: no grant, a grant for another operation, plan or actor, an expired or
     revoked grant, a grant with no `issued` line, or one whose uses are spent. Also when the
-    provider shows automatic top-up on, which the grant's operator attested was off.
+    provider shows automatic top-up on, which the grant's operator attested was off. Also
+    when the grant has too little time left: the job is submitted with a queue limit of the
+    minutes left before the grant expires less the 60-minute build limit, and under one
+    minute nothing is recorded or submitted. Also when the grant was revoked while its job
+    may still be running: the job is cancelled and the attempt ends `cancelled`.
   - `plan_changed`: the plan's digest no longer matches the stored plan, or the provider's
     rate or the image folder differs from the plan's. Nothing is recorded or submitted.
   - `budget_exhausted`: the provider's worst-case cost for the job is more than the grant
@@ -524,11 +550,17 @@ machine, calls a paid model or sends data anywhere.
     case the job is cancelled.
   - `runner_unavailable`: the provider's free preflight would not take the job for any other
     reason. Nothing is recorded or submitted.
-  - `job_indeterminate`: the submission's outcome is unknown and no job carries the intent id;
-    nothing is submitted again and a person decides what happens next.
+  - `job_indeterminate`: the submission's outcome is unknown and no job carries the intent id,
+    or two jobs carry it; nothing is submitted or cancelled and a person decides what happens
+    next.
+  - `unsupported_capability`: the provider's answer about the job could not be read. The job
+    is cancelled and the attempt stays open, so a later run can still collect it.
+  - `idempotency_conflict`: another command is using the grant ledger; nothing is done.
 - **History:** 2026-10-13 added. 2026-10-13 never waits; checks the rate, the image folder and
   the provider's free preflight before a grant use is recorded. 2026-10-13 the job's minutes
   come from the grant, and a cancelled job's cost is read from the provider's receipt.
+  2026-10-13 a queue limit, one command at a time, a revoked grant cancels its job, and a
+  submitted job is always collected.
 
 ### regents techtree model-climb submit \<proof folder\> (M3)
 
