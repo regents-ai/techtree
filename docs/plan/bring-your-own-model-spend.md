@@ -24,7 +24,7 @@ would hold a secret it does not need, and spend from it on the person's behalf.
 
 | Product | Who pays now | Fits self-run? | Gap |
 | --- | --- | --- | --- |
-| Model Climb | The operator's SF Compute account (Sean's today, `regents-123`, $0.063 per GPU-minute, $50 monthly limit, top-up off) | Yes, by design: the operator's machine, the operator's `gmnt_` token, a local grant and a signed run record (`docs/spec/model-climb-v1.md`) | The website side (M3): publish the grant-signing public key, accept an uploaded signed record, show it as a participant claim |
+| Model Climb | The operator's own SF Compute account, under a monthly spend limit with automatic top-up off | Yes, by design: the operator's machine, the operator's `gmnt_` token, a local grant and a signed run record (`docs/spec/model-climb-v1.md`) | The website side (M3): publish the grant-signing public key, accept an uploaded signed record, show it as a participant claim |
 | Wallet Bench | Techtree: our Sprite machines, our `WALLETBENCH_ANTHROPIC_API_KEY` through the LiteLLM relay with caps, our judge. Batches are operator-only | Not yet: the harness only runs on our machines | A local runner, an upload route and labels (route a), or Credits charging on hosted batches (route b) |
 | Skill climbs | Operator only, not yet public | Same shape as Model Climb | Follows Model Climb's M3 |
 
