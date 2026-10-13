@@ -27,8 +27,10 @@ defmodule Techtree.Repo.Migrations.WalletBenchPairSummary do
   - `cost_per_success_usd` and `seconds_per_success`: all model and judge spend,
     and all time, of every run in the set on this test, successful or not,
     divided by the successes. NULL when there are none, and NULL when any turn
-    in the set recorded no spend, or no time: an unknown figure is never shown
-    as zero. A run with no turn on the test spent nothing.
+    in the set recorded neither model spend nor judge cost, or no time: an
+    unknown figure is never shown as zero. A turn that recorded only one of the
+    two costs counts the other as nothing, and a run with no turn on the test
+    spent nothing.
 
   Every named context field on record is text or not recorded; a result with
   no recorded context at all is a set of its own with an empty
