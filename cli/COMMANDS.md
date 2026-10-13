@@ -432,7 +432,9 @@ Three limits are accepted for M0 and are stated here so nobody is surprised by t
   the job will be given under this grant. Directly under it it asks the operator to type the grant's
   maximum USD as shown (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On
   confirmation it writes the grant's `issued` line, with the two answers by name, to the grant
-  ledger and answers with the grant id and its file.
+  ledger and answers with the grant id and its file. The command holds the grant ledger
+  from start to end, the time the person spends typing included, so a `profile test` run from
+  another terminal answers `idempotency_conflict` until they finish.
 - **Refusals:**
   - `plan_changed`: the plan's digest no longer matches the stored plan.
   - `validation_error`: a missing limit, a compatibility-test plan above 20 USD, a
