@@ -222,7 +222,10 @@ class BenchHooks(CustomLogger):
             data.pop(field, None)
         for field in REMOVED:
             data.pop(field, None)
-        tools = _harness_tools(call_type, data.pop("tools", None) or [])
+        tools = data.pop("tools", None) or []
+        if not isinstance(tools, list) or not all(isinstance(tool, dict) for tool in tools):
+            raise HTTPException(status_code=400, detail={"error": "Send tools as a list of objects."})
+        tools = _harness_tools(call_type, tools)
         if tools:
             data["tools"] = tools
         # The request-wide cache setting, then each block's.
