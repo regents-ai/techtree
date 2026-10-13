@@ -237,6 +237,13 @@ No plan for `model_climb_profile_test` may reserve more than 2000 cents (Sean, 1
 
 Autoresearch does not restrict a batch job's outbound network: its manual gives a job the open internet, less a short blocked list. A plan's and a grant's egress list is therefore a declaration the provider does not enforce. The engine holds the job to it in the ways it can: the job's own commands fetch only the pinned model revision from the named host, and everything after that download runs with the model hub offline, `dashboard = false` and `--no-push` (section 7.3). The profile says the list was declared and not enforced by the provider. For M0 the list is `huggingface.co`, meaning that host and the download hosts it redirects a model file to.
 
+Because the provider leaves the job's network open, four rules hold for every job, so that an open network puts at risk only the rented minutes, which the grant already bounds (Sentinel, 13 Oct 2026):
+
+- The job holds nothing worth sending: no Techtree identity key, no provider service token and no write token of any kind, in its environment or its files. If the pinned model needs a hub token, that token is read-only and limited to that one model, it is set through the provider's environment setting and never in the command, and the plan records that one is present.
+- Nothing is installed while the job runs; every package comes from the built image. The image build has an open network too, so the Dockerfile's installs are pinned by hash, or the plan says plainly that they are not yet.
+- Results leave only through the provider's own output folder. The job's commands write nowhere else.
+- The data is the four public synthetic fixtures of section 7.4. A job that holds private data could send it anywhere, so the first real data set on this provider is a decision for Sean, not a note.
+
 The engine submits through Autoresearch's HTTP API or its `autor` CLI, signed in with a service token scoped to the workspace, which the operator creates; never through an operator's chat session. Every submission sets both `idempotency_key` and `label` to the attempt's intent id. After a submission whose outcome is unknown, the engine looks the job up by that label (`list_jobs`) and never submits again; if nothing is found it answers `job_indeterminate`, submits nothing, and a person decides what happens next.
 
 ## 7. M0 compatibility profile
