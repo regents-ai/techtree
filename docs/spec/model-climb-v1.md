@@ -241,8 +241,8 @@ Autoresearch does not restrict a batch job's outbound network: its manual gives 
 
 Because the provider leaves the job's network open, four rules hold for every job, so that an open network puts at risk only the rented minutes, which the grant already bounds (Sentinel, 13 Oct 2026):
 
-- The job holds nothing worth sending: no Techtree identity key, no provider service token and no write token of any kind, in its environment or its files. If the pinned model needs a hub token, that token is read-only and limited to that one model, it is set through the provider's environment setting and never in the command, and the plan records that one is present.
-- Nothing is installed while the job runs; every package comes from the built image. The image build has an open network too, so the Dockerfile's installs are pinned by hash, or the plan says plainly that they are not yet.
+- The job holds nothing worth sending: no Techtree identity key, no provider service token and no write token of any kind, in its environment or its files. If the pinned model needs a hub token, that token is read-only and limited to that one model, it is set through the provider's environment setting and never in the command, and the `plan --profile` answer and the measured profile say that one is present.
+- Nothing is installed while the job runs; every package comes from the built image. The image build has an open network too, so the Dockerfile's installs are pinned by hash, or the `plan --profile` answer and the measured profile say plainly which are not yet. The sealed plan binds the fact itself through the recipe's image digest.
 - Results leave only through the provider's own output folder. The job's commands write nowhere else.
 - The data is the four public synthetic fixtures of section 7.4. A job that holds private data could send it anywhere, so the first real data set on this provider is a decision for Sean, not a note.
 
@@ -299,10 +299,19 @@ They match 248 modules, none missing and none unexpected. Text-only SFT resolves
 ### 7.4 The test
 
 1. **Model-free (no spend).** In a pinned Linux container: resolve the SFT config with `--dry-run`, render the fixtures with the Qwen3.5 renderer, and check the loss mask covers only assistant targets. Fixtures are synthetic and public; no customer data.
-2. **Paid, under its own grant.** In the granted batch job: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`; confirm the adapter's answers differ from the base model's on the same fixture.
+2. **Paid, under its own grant.** In the granted batch job: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`; confirm the adapter changes the base model's output on the same fixture, as defined below.
 3. **Cleanup.** Confirm through the provider (`get_job`) that the job has ended and nothing of it is still running. Record the measured cost.
 
-Steps 1 and 2 use the same four synthetic fixtures (`scripts/techtree/model-climb-image/fixtures.jsonl` in regents-cli), and the plan records their digest.
+Steps 1 and 2 use the same four synthetic fixtures (`src/regents_cli/techtree/resources/model-climb-image/fixtures.jsonl` in regents-cli), and the plan records their digest.
+
+"Changes the output" is measured, because structured output can force a base model and a working adapter into the same text. From one fresh vLLM process, at temperature 0 with token log-probabilities, the job asks each fixture's prompt of the base model twice and of the adapter once:
+
+- Noise is the largest difference in any token's log-probability between the two base answers.
+- Signal is the largest difference in any token's log-probability between the adapter's answer and the first base answer, over the tokens the two texts share, position by position.
+- The check holds when the adapter's text differs from the base model's, or the text is the same and signal is more than both 0.01 and ten times noise.
+- If the two base answers differ in text, nothing can be concluded and the profile fails.
+
+The profile records the case, the noise and the signal for all four fixtures. Only the Verifiers fixture (invoice-fields) decides.
 
 The output is the measured compatibility profile and its digest, with the built image's manifest digest from the provider's receipt. It does not claim uplift or general compatibility.
 
