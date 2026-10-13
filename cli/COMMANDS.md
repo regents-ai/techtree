@@ -415,8 +415,10 @@ machine, calls a paid model or sends data anywhere.
 - **Answer:** prints the full bound record (every field in contract section 6). For a plan that
   counts on the account's spending limit (contract 6.1) it then asks the operator to attest two
   things, one at a time: that automatic top-up is off, and that the balance is no more than the
-  workspace's monthly limit. Last, it asks the operator to type the grant's maximum USD as
-  shown (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On
+  workspace's monthly limit. Last, it prints the sentence of contract 6.1 saying what the
+  figure covers (GPU time) and what it does not (the image build, billed separately at a rate
+  the provider does not publish), and directly under it asks the operator to type the grant's
+  maximum USD as shown (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On
   confirmation it writes the grant's `issued` line, with the two answers by name, to the grant
   ledger and answers with the grant id and its file.
 - **Refusals:**
@@ -425,7 +427,8 @@ machine, calls a paid model or sends data anywhere.
     attestation not given, or the typed confirmation did not match.
   - `approval_required`: the grant ledger cannot be read or holds a line that does not verify.
 - **History:** 2026-10-12 added. 2026-10-13 the typed confirmation is the maximum USD, and the
-  grant ledger and the two attestations are added, with the first paid step.
+  grant ledger and the two attestations are added, with the first paid step. 2026-10-13 the
+  review says what the typed figure covers and what it does not.
 
 ### regents techtree model-climb grant revoke \<grant id\>
 
@@ -460,14 +463,17 @@ machine, calls a paid model or sends data anywhere.
 - **Inputs:**
   - `--profile <profile>`: `m0-qwen3.5-9b`, the only profile in M0.
   - `--max-usd <n>`: the most the test may cost. At most 20 for a profile test.
-- **Answer:** the plan digest, the GPUs, the minutes, the rate read, the worst-case cost, the
-  egress list, and that the image build is not inside the maximum.
+- **Answer:** the plan digest, the GPUs, the minutes, the rate read, the most the GPU time can
+  cost, the egress list, the build minutes the provider has billed and given free so far this
+  month, and the sentence of contract 6.1 saying that the image build is billed separately,
+  for at most 60 minutes, at a rate the provider does not publish, and is not in the figure.
 - **Refusals:**
   - `validation_error`: an unknown profile, `--max-usd` above 20 or too small to buy one
     minute, or no successful `profile check --dry-run` report for this profile's recipe.
   - `unsupported_capability`: the provider's price could not be read.
   - `runner_unavailable`: the operator's mission is not open at the provider.
-- **History:** 2026-10-13 added. 2026-10-13 refuses when the operator's mission is not open.
+- **History:** 2026-10-13 added. 2026-10-13 refuses when the operator's mission is not open;
+  answers with the month's build minutes and says the image build is not in the figure.
 
 ### regents techtree model-climb profile test \<profile\> --grant \<grant id\>
 

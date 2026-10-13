@@ -233,9 +233,14 @@ Autoresearch takes no dollar limit on a job. It answers one: `max_cost_usd`, wor
 - The engine reads back the provider's `max_cost_usd` for the job and cancels the job, before it runs, if that is more than the grant allows. Cancelling a queued or building job costs nothing.
 - Every job carries the provider's required checks block with one success check: the profile file exists in the output folder.
 
-The image build is outside the grant's maximum USD. The provider's published API description says a job "bills only the running attempt (builds bill after a monthly free allowance; queued and preempted time is free)" and gives neither the allowance nor the build rate (read 13 Oct 2026). The plan says the build is outside the maximum, and the measured profile records what the provider's usage shows for the build.
+A grant's maximum USD is the most the rented GPU time of its job can cost. It is not the most the run can cost: building the image is billed separately. The provider's published API description says a job "bills only the running attempt (builds bill after a monthly free allowance; queued and preempted time is free)", its usage answer counts build minutes as billed or free, and it publishes neither the allowance nor a rate for a build minute (read 13 Oct 2026). So no dollar figure can be put on the build, and nothing in this contract calls the grant's figure a total. The engine holds the build to what it can:
 
-No plan for `model_climb_profile_test` may reserve more than 2000 cents (Sean, 13 Oct 2026: "$5-20 per run max"); the engine refuses a larger one at admission. The first plan reserves 1000.
+- Every job sets `build_timeout_minutes` to 60, so one run can be billed at most 60 build minutes.
+- `plan --profile` reads the provider's usage and answers with the build minutes billed and free so far this month.
+- `plan --profile` and the grant review both carry this sentence, with the plan's own figures: "Up to $10.00 for GPU time (79 minutes on 2 GPUs). Building the software image is billed separately by the provider: at most 60 minutes, free within its monthly allowance and charged past it at a rate the provider does not publish. That charge is not in the $10.00." The grant review prints it directly above the line where the operator types the maximum USD, so the typed figure is agreed to as GPU time and nothing more.
+- The measured profile records the build minutes billed and free for the run, from the provider's usage.
+
+No plan for `model_climb_profile_test` may reserve more than 2000 cents (Sean, 13 Oct 2026: "$5-20 per run max"); the engine refuses a larger one at admission. The first plan reserves 1000. That limit is on GPU time. Whether an unpriced image build may sit outside it is Sean's to decide (section 8), and no grant for a paid run is asked of him without that question beside it.
 
 Autoresearch does not restrict a batch job's outbound network: its manual gives a job the open internet, less a short blocked list. A plan's and a grant's egress list is therefore a declaration the provider does not enforce. The engine holds the job to it in the ways it can: the job's own commands fetch only the pinned model revision from the named host, and everything after that download runs with the model hub offline, `dashboard = false` and `--no-push` (section 7.3). The profile says the list was declared and not enforced by the provider. For M0 the list is `huggingface.co`, meaning that host and the download hosts it redirects a model file to.
 
@@ -330,5 +335,6 @@ The output is the measured compatibility profile and its digest, with the built 
 - Live Autoresearch prices; the plan reads them at resolve time and records them.
 - Whether Autoresearch's cap stops a running job at `max_cost_usd` (fixed by 7.4 step 2); until then plans are `bounded_operational_limit`.
 - The site's grant-signing public key (section 6), before connected mode.
+- What the provider charges for a build minute and how large the monthly free allowance is. Until both are known, a run's image build has no dollar figure, and whether it may sit outside Sean's 20 USD per-run limit is his decision at the first run ask. An image built beforehand and named by digest has no build at the provider; whether its import is billed is not stated either.
 - The delegated-client sign-in for ChatGPT and Codex (section 2), owned by ash-template.
 - Whether stock vLLM loads the adapter without prime-rl's patches (fixed by 7.4 step 2).
