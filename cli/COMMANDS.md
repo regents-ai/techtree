@@ -415,7 +415,7 @@ None of these commands rents a machine, calls a paid model or sends data anywher
   - `validation_error`: a missing limit, or the typed confirmation did not match.
 - **History:** 2026-10-12 added.
 
-### regents techtree model-climb report submit \<proof folder\> (M3)
+### regents techtree model-climb submit \<proof folder\> (M3)
 
 - **What it does:** sends a signed Model Climb proof to Techtree, which checks it (contract
   3.5, eight checks) and keeps it privately for the person this agent is paired with. Nothing
@@ -450,7 +450,7 @@ None of these commands rents a machine, calls a paid model or sends data anywher
 - **Route:** `GET /api/model-climb/v1/reports` → `model_climb_reports` (read).
 - **Inputs:** none.
 - **Answer:** `{"schema_version": ..., "operation_id": "model_climb_reports", "reports": [...],
-  "next_actions": []}`, each report as in `report submit`.
+  "next_actions": []}`, each report as in `model-climb submit`.
 - **History:** 2026-10-13 added.
 
 ### regents techtree model-climb report \<digest\> (M3)
@@ -461,6 +461,6 @@ None of these commands rents a machine, calls a paid model or sends data anywher
 - **What it changes:** nothing.
 - **Route:** `GET /api/model-climb/v1/reports/{digest}` → `model_climb_report` (read).
 - **Inputs:** `<digest>`: the report's digest, `sha256:` and 64 lowercase hex characters.
-- **Answer:** the report as in `report submit`, plus `proof`, the document exactly as kept.
+- **Answer:** the report as in `model-climb submit`, plus `proof`, the document exactly as kept.
 - **Refusals:** `not_found`: no report with that digest belongs to this person.
 - **History:** 2026-10-13 added.
