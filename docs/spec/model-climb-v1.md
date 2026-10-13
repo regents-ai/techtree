@@ -63,6 +63,8 @@ When the provider builds the image from a build context sent with the job, as Au
 
 Field names and types are the exported JSON Schema (section 2), reviewed by Techtree on 12 Oct 2026: regents-cli 08bd5c3, `src/regents_cli/techtree/model_climb/contracts.schema.json`, sha256 `7b38f89af8d1294df4b294685b1c37d52ccf509eb2a8ca4e56757f7deff4a070`. A change to the schema changes this pin, and Techtree reviews it first.
 
+Four digest fields may be `null`, which means nothing of that kind exists: a dataset release's `transformation_digest`, a benchmark release's `scorer_test_digest` and `qualification_report_digest`, and a harness profile's `decision_policy_digest`. Nothing is ever put there to stand for nothing. Only the plan `plan --profile` writes for `model_climb_profile_test` may refer to an object that holds one of these nulls; every other `spend` operation refuses such a plan at admission with `validation_error`, naming the field. (Decided 13 Oct 2026; the schema pin above moves when regents-cli exports the schema that allows it.)
+
 ### 3.3 Result fields
 
 Six independent fields, never merged into one status:
