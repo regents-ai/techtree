@@ -59,6 +59,8 @@ The existing `regents techtree model` group (ChatGPT plan sign-in) is unchanged.
 
 `operational` for `TrainingAttempt` holds the intent id, the upstream job id, the event cursor and timestamps.
 
+When the provider builds the image from a build context sent with the job, as Autoresearch does, a recipe's image digest is the digest of that context: the Dockerfile, whose base images are named by digest, and every file beside it. The built image's own manifest digest comes from the provider's receipt for the finished job and is recorded with the attempt's measured results. A recipe that names a prebuilt image carries that image's manifest digest instead.
+
 Field names and types are the exported JSON Schema (section 2), reviewed by Techtree on 12 Oct 2026: regents-cli 08bd5c3, `src/regents_cli/techtree/model_climb/contracts.schema.json`, sha256 `7b38f89af8d1294df4b294685b1c37d52ccf509eb2a8ca4e56757f7deff4a070`. A change to the schema changes this pin, and Techtree reviews it first.
 
 ### 3.3 Result fields
@@ -203,6 +205,10 @@ issued_at, expires_at, nonce, use count
 - The existing `--yes --reviewed-on` approval stays as it is for existing commands. It is not a grant and admits no Model Climb `spend` or `deploy` operation.
 - In local-only mode on the operator's own machine, a grant is operator-attested and says so in `attestation`. It is issued by `regents techtree model-climb grant issue`, which shows the full bound record and needs a typed confirmation, and is signed with the existing Techtree identity key (Ed25519). Its `attestation` is `participant` with `operator_attested`. Its approving human is the operator's login name on that machine, recorded as given; `operator_attested` says nobody else checked it.
 - Revocation and use counting are built with the first `spend` command (`model_climb_profile_test`); no command that spends exists without them.
+- In local-only mode they live in a grant ledger: an append-only file beside the grants, one line per event, each line signed with the same identity key and naming the grant's digest and nonce. It is the engine's own local record, not a contract object, and section 3.2's schema pin does not cover it. Three rules hold:
+  - `grant issue` writes the grant's `issued` line. A grant with no `issued` line in the ledger is refused.
+  - A `used` line, carrying the attempt's intent id, is written before the job is submitted, never after. The engine refuses a grant whose `used` lines have reached `uses_allowed` or `max_attempts`, and any grant with a `revoked` line.
+  - The ledger is the operator's own file on the operator's own machine. Like the grant, it is `operator_attested`: it stops mistakes and repeats, and nobody else has checked it. The provider lookup by intent id (section 6.1) is what stops a second submission.
 - Connected-mode grants come from the site, signed by a Techtree key whose public key this contract will publish. Until it does, the engine refuses every connected grant with `approval_required`.
 
 ### 6.1 Budget enforcement
@@ -214,6 +220,12 @@ Each plan names how its cap is enforced:
 - `estimate_only`: no enforcement; refused for any plan that requires a limit.
 
 M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), provider id `sfcompute_autoresearch`, paid from the operator's prepaid credit there, every job filed under the operator's mission. Autoresearch takes no region, so a compute target and a grant name the mission instead. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_cost_usd` and `max_duration_minutes` set from the grant. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with `max_cost_usd` as the runner's limit; with an operator attestation that automatic top-up is off and the balance is no more than the cap, the plan also records `credit_ceiling_attested`. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute. The operator sets a monthly spend limit on the workspace and turns automatic top-up off; each plan's grant review still asks the operator to attest both before it records `credit_ceiling_attested`.
+
+Autoresearch's `max_cost_usd` is the ceiling of one attempt, and a job may bill up to `max_restarts + 1` attempts. Every submission therefore sets `max_restarts` to 0 and asks for no rescheduling, so the job's ceiling is the plan's. The engine sets `max_duration_minutes` from the grant's wall time and refuses a plan whose minutes, at the price read at resolve time, come to more than its `max_cost_usd`.
+
+No plan for `model_climb_profile_test` may reserve more than 2000 cents (Sean, 13 Oct 2026: "$5-20 per run max"); the engine refuses a larger one at admission. The first plan reserves 1000.
+
+Autoresearch does not restrict a batch job's outbound network: its manual gives a job the open internet, less a short blocked list. A plan's and a grant's egress list is therefore a declaration the provider does not enforce. The engine holds the job to it in the ways it can: the job's own commands fetch only the pinned model revision from the named host, and everything after that download runs with the model hub offline, `dashboard = false` and `--no-push` (section 7.3). The profile says the list was declared and not enforced by the provider. For M0 the list is `huggingface.co`, meaning that host and the download hosts it redirects a model file to.
 
 The engine submits through Autoresearch's HTTP API or its `autor` CLI, signed in with a service token scoped to the workspace, which the operator creates; never through an operator's chat session. Every submission sets both `idempotency_key` and `label` to the attempt's intent id. After a submission whose outcome is unknown, the engine looks the job up by that label (`list_jobs`) and never submits again; if nothing is found it answers `job_indeterminate`, submits nothing, and a person decides what happens next.
 
@@ -271,7 +283,9 @@ They match 248 modules, none missing and none unexpected. Text-only SFT resolves
 2. **Paid, under its own grant.** In the granted batch job: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`; confirm the adapter's answers differ from the base model's on the same fixture.
 3. **Cleanup.** Confirm through the provider (`get_job`) that the job has ended and nothing of it is still running. Record the measured cost.
 
-The output is the measured compatibility profile and its digest. It does not claim uplift or general compatibility.
+Steps 1 and 2 use the same four synthetic fixtures (`scripts/techtree/model-climb-image/fixtures.jsonl` in regents-cli), and the plan records their digest.
+
+The output is the measured compatibility profile and its digest, with the built image's manifest digest from the provider's receipt. It does not claim uplift or general compatibility.
 
 ## 8. Open items
 
