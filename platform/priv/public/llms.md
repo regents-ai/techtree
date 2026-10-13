@@ -13,6 +13,7 @@
 - A quick look at how a comparison runs, with the Hello World Climb and a starter Skill.
 - Improving a Skill for hard programming problems, with the Frontier-CS Open-Ended Climb: ten open-ended problems, each scored from 0 to 1 by its own checker (experimental).
 - Verifying someone else's published Result offline, without trusting this site.
+- Finding which coding agent works with which wallet tool, from the Wallet Bench.
 
 When not to use it: Techtree is not a general benchmark of a model's broad
 capability, and it does not run your agent for you in the cloud. Runs happen on
@@ -22,6 +23,7 @@ the person's own computer.
 
 - [Agent access and recovery](https://techtree.sh/agents.md): identity, pairing and protected operations.
 
+- [Wallet Bench](https://techtree.sh/wallet-bench.md): which coding agent works with which wallet tool, as Markdown, with every test that has a result. The page is [/wallet-bench](https://techtree.sh/wallet-bench).
 - [Docs](https://techtree.sh/docs): install, run, verify, publish and integrate, with the API's errors, rate limits and versioning.
 - [OpenAPI description](https://techtree.sh/openapi.json): every public API address, typed.
 - [Tool manifest](https://techtree.sh/capabilities): the browser tools below, as JSON.

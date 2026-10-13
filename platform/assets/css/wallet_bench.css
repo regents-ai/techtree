@@ -4,6 +4,19 @@
 .wallet-bench__steps { display: grid; gap: var(--space-1); margin-top: var(--space-1); max-width: 65ch; padding-left: 1.5rem; color: var(--color-fg-muted); list-style: decimal; }
 .wallet-bench__frame { overflow-x: auto; border-block: 1px solid var(--hairline); }
 .wallet-bench__frame:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.wallet-bench__answer { display: grid; gap: var(--space-2); }
+.wallet-bench .wallet-bench__grid { min-width: 0; }
+.wallet-bench__grid th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--color-bg); white-space: nowrap; font-weight: 600; }
+.wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: 1; }
+.wallet-bench__cell { white-space: nowrap; }
+.wallet-bench__cell > a, .wallet-bench__cell > span { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.75rem; }
+.wallet-bench__cell > a::before { content: ""; flex: 0 0 auto; width: .5rem; height: .5rem; background: var(--color-warning); }
+.wallet-bench__cell--pass > a::before { background: var(--color-success); }
+.wallet-bench__cell--fail > a::before { background: var(--color-error); }
+.wallet-bench__listing { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.wallet-bench__listing a { display: inline-flex; align-items: center; min-height: 2.75rem; }
+.wallet-bench__how { max-width: 65ch; }
+.wallet-bench__how > p { margin-top: var(--space-2); color: var(--color-fg-muted); }
 .wallet-bench__failure { display: block; margin-top: var(--space-1); color: var(--color-error); max-width: 65ch; }
 .wallet-bench h2 { font-size: 1.5rem; letter-spacing: -.02em; }
 .wallet-bench h3 { font-size: 1rem; }

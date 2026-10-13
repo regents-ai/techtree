@@ -104,6 +104,7 @@ defmodule TechtreeWeb.Router do
     get "/sitemap.xml", SitemapController, :index
     get "/robots.txt", PublicPagesController, :robots
     get "/agents.md", PublicPagesController, :agents
+    get "/wallet-bench.md", WalletBenchController, :markdown
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security

@@ -68,6 +68,12 @@ defmodule TechtreeWeb.Layouts do
             <a href={~p"/results"} aria-current={current_section(@current_path, "/results")}>
               Results
             </a>
+            <a
+              href={~p"/wallet-bench"}
+              aria-current={current_section(@current_path, "/wallet-bench")}
+            >
+              Wallet Bench
+            </a>
             <a href={~p"/verify"} aria-current={current_section(@current_path, "/verify")}>
               Verify
             </a>

@@ -127,6 +127,12 @@ defmodule TechtreeWeb.SkillController do
     says so. Everything else stays in Techtree's folder on their computer until
     they share it. No Techtree account exists.
 
+    ## Wallet Bench
+
+    To learn which coding agent can set up and use which wallet tool, read
+    https://techtree.sh/wallet-bench.md: each pair's newest judged result, then
+    every test with a result, each linked to its evidence.
+
     Documentation: https://techtree.sh/docs
     """
   end

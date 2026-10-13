@@ -242,6 +242,54 @@ defmodule TechtreeWeb.WalletBenchCopy do
   @spec wallet_result([map()]) :: map() | nil
   def wallet_result(turns), do: ruling(turns, [:T2, :T2_signature])
 
+  @doc """
+  Which agent works with which wallet: for every agent asked the wallet
+  question, each tested wallet's newest judged wallet result and the attempt it
+  came from (nil when none is judged). Takes attempts newest first, with turns.
+  """
+  @spec answer([map()]) :: %{wallets: [String.t()], rows: [map()]}
+  def answer(attempts) do
+    wallets =
+      Catalog.tested_wallet_ids() |> Enum.map(&Catalog.wallet!/1) |> Enum.sort_by(& &1.name)
+
+    harnesses =
+      for id <- Catalog.harness_ids(), :T2 in Catalog.tests(id), do: Catalog.harness!(id)
+
+    rows =
+      for harness <- Enum.sort_by(harnesses, & &1.name) do
+        %{
+          agent: harness.name,
+          cells: for(wallet <- wallets, do: newest_judged(attempts, harness.id, wallet.id))
+        }
+      end
+
+    %{wallets: Enum.map(wallets, & &1.name), rows: rows}
+  end
+
+  @doc "A wallet ruling in the answer's few words."
+  @spec verdict(map()) :: String.t()
+  def verdict(%{"outcome" => "PASS*"}), do: "Pass, flagged"
+  def verdict(judgment), do: outcome(judgment)
+
+  @doc "Whether an attempt is in the short list: still running, or with a ruling."
+  @spec settled_or_running?(map()) :: boolean()
+  def settled_or_running?(%{state: state})
+      when state in [:leased, :testing, :funding, :sending, :revoking],
+      do: true
+
+  def settled_or_running?(attempt),
+    do: install_result(attempt.turns) != nil or wallet_result(attempt.turns) != nil
+
+  defp newest_judged(attempts, harness_id, wallet_id) do
+    Enum.find_value(attempts, fn
+      %{harness_id: ^harness_id, wallet_id: ^wallet_id} = attempt ->
+        if ruling = wallet_result(attempt.turns), do: %{attempt: attempt, ruling: ruling}
+
+      _other ->
+        nil
+    end)
+  end
+
   @spec dollars(Decimal.t() | nil) :: String.t()
   def dollars(nil), do: "$0.00"
 
