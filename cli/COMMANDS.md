@@ -453,8 +453,8 @@ machine, calls a paid model or sends data anywhere.
 - **What it does:** drafts the resolved plan for a profile's paid compatibility test (contract
   7.4 step 2). It writes the fixed study, dataset release, benchmark release and recipe for
   that profile from the profile's own pinned values and the four public synthetic fixtures,
-  reads the provider's current rate, and works out the job's minutes: the largest whole number
-  whose cost is no more than `--max-usd`. It also reads the operator's mission from the
+  reads the provider's current rate, and works out the job's minutes: the largest multiple of
+  three whose cost is no more than `--max-usd`. It also reads the operator's mission from the
   provider, so that a paid run cannot fail on a missing mission after its grant use is spent.
 - **Who may run it:** anyone on the operator's machine. It rents nothing.
 - **What it changes:** writes the plan and its objects under `<techtree home>/model-climb/`.
@@ -464,13 +464,14 @@ machine, calls a paid model or sends data anywhere.
   - `--profile <profile>`: `m0-qwen3.5-9b`, the only profile in M0.
   - `--max-usd <n>`: the most the test may cost. At most 20 for a profile test.
 - **Answer:** the plan digest, the GPUs, the minutes, the rate read, the most the GPU time can
-  cost, the egress list, the build minutes the provider has billed and given free so far this
-  month, and the sentence of contract 6.1 saying that the image build is billed separately,
+  cost, the egress list, what the provider's usage shows for image builds this month, and the
+  sentence of contract 6.1 saying that the image build is billed separately,
   for at most 60 minutes, at a rate the provider does not publish, and is not in the figure.
 - **Refusals:**
   - `validation_error`: an unknown profile, `--max-usd` above 20 or too small to buy one
     minute, or no successful `profile check --dry-run` report for this profile's recipe.
-  - `unsupported_capability`: the provider's price could not be read.
+  - `unsupported_capability`: the provider's price or usage could not be read, which includes
+    a service token without the `org:read` scope.
   - `runner_unavailable`: the operator's mission is not open at the provider.
 - **History:** 2026-10-13 added. 2026-10-13 refuses when the operator's mission is not open;
   answers with the month's build minutes and says the image build is not in the figure.
@@ -505,9 +506,10 @@ machine, calls a paid model or sends data anywhere.
   - `plan_changed`: the plan's digest no longer matches the stored plan, or the provider's
     rate or the image folder differs from the plan's. Nothing is recorded or submitted.
   - `budget_exhausted`: the provider's worst-case cost for the job is more than the grant
-    allows, or the provider would not take the job because of a spending cap or an empty
-    balance. Found at the free preflight, nothing is recorded or submitted; found after the
-    submission, the job is cancelled before it runs.
+    allows, or the provider would not take the job because of a spending cap. Found at the
+    free preflight, nothing is recorded or submitted; found after the submission, the job is
+    cancelled before it runs. A job the provider holds in its queue for an empty balance is
+    cancelled the same way.
   - `runner_unavailable`: the provider's free preflight would not take the job for any other
     reason. Nothing is recorded or submitted.
   - `job_indeterminate`: the submission's outcome is unknown and no job carries the intent id;
