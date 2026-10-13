@@ -224,7 +224,7 @@ Each plan names how its cap is enforced:
 - `bounded_operational_limit`: the runner stops the job at the cap less a shutdown allowance; the provider may bill a little past it.
 - `estimate_only`: no enforcement; refused for any plan that requires a limit.
 
-M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), provider id `sfcompute_autoresearch`, paid from the operator's prepaid credit there, every job filed under the operator's mission. Autoresearch takes no region, so a compute target and a grant name the mission instead. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_restarts: 0`, no resume and no checkpointing, and `max_duration_minutes` set to the largest whole number of minutes whose cost, at the rate read at resolve time, is no more than the grant's maximum USD. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with the job's minutes as the runner's limit; its budget also says `credit_ceiling_attested`, which means the plan counts on the account's own spending limit and may be granted only on the operator's word for it. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute. The operator sets a monthly spend limit on the workspace and turns automatic top-up off; the plan is sealed before anyone reviews it, so the plan cannot hold the operator's word. The grant review asks the operator to attest both, each time, and the grant's `issued` ledger line is where the two answers are kept (section 6).
+M0's compute is San Francisco Compute's Autoresearch (Sean, 12 Oct 2026), provider id `sfcompute_autoresearch`, paid from the operator's prepaid credit there, every job filed under the operator's mission. The operator opens that mission; `plan --profile` reads it from the provider, which costs nothing, and refuses when it is not open, so a submission cannot fail on a missing mission after a grant use is spent. Autoresearch takes no region, so a compute target and a grant name the mission instead. A paid step is one batch job (`submit_job`) with `chip: "h100"`, `chip_count: 2`, `max_restarts: 0`, no resume and no checkpointing, and `max_duration_minutes` set to the largest whole number of minutes whose cost, at the rate read at resolve time, is no more than the grant's maximum USD. Its documentation says preflight refuses a job whose worst-case cost exceeds what remains under the workspace or organization cap, and that a cap or an empty balance stops a running job. Until the first paid run shows that, an Autoresearch plan is `bounded_operational_limit`, with the job's minutes as the runner's limit; its budget also says `credit_ceiling_attested`, which means the plan counts on the account's own spending limit and may be granted only on the operator's word for it. Prices checked 12 Oct 2026: $0.063 per GPU-minute for batch jobs, so the two-GPU test costs $0.126 a minute. The operator sets a monthly spend limit on the workspace and turns automatic top-up off; the plan is sealed before anyone reviews it, so the plan cannot hold the operator's word. The grant review asks the operator to attest both, each time, and the grant's `issued` ledger line is where the two answers are kept (section 6).
 
 Autoresearch takes no dollar limit on a job. It answers one: `max_cost_usd`, worked out from the minutes, the GPUs and the rate, and the ceiling of one attempt. So the engine holds only two levers, minutes and restarts, and uses both:
 
@@ -233,7 +233,7 @@ Autoresearch takes no dollar limit on a job. It answers one: `max_cost_usd`, wor
 - The engine reads back the provider's `max_cost_usd` for the job and cancels the job, before it runs, if that is more than the grant allows. Cancelling a queued or building job costs nothing.
 - Every job carries the provider's required checks block with one success check: the profile file exists in the output folder.
 
-The image build is outside the grant's maximum USD. The provider's published API description says a job "bills only the running attempt (builds bill after a monthly free allowance; queued and preempted time is free)" and gives neither the allowance nor the build rate (read 13 Oct 2026). The plan says the build is outside the maximum, and the attempt records what the provider's usage shows for the build.
+The image build is outside the grant's maximum USD. The provider's published API description says a job "bills only the running attempt (builds bill after a monthly free allowance; queued and preempted time is free)" and gives neither the allowance nor the build rate (read 13 Oct 2026). The plan says the build is outside the maximum, and the measured profile records what the provider's usage shows for the build.
 
 No plan for `model_climb_profile_test` may reserve more than 2000 cents (Sean, 13 Oct 2026: "$5-20 per run max"); the engine refuses a larger one at admission. The first plan reserves 1000.
 
@@ -242,11 +242,19 @@ Autoresearch does not restrict a batch job's outbound network: its manual gives 
 Because the provider leaves the job's network open, four rules hold for every job, so that an open network puts at risk only the rented minutes, which the grant already bounds (Sentinel, 13 Oct 2026):
 
 - The job holds nothing worth sending: no Techtree identity key, no provider service token and no write token of any kind, in its environment or its files. If the pinned model needs a hub token, that token is read-only and limited to that one model, it is set through the provider's environment setting and never in the command, and the `plan --profile` answer and the measured profile say that one is present.
-- Nothing is installed while the job runs; every package comes from the built image. The image build has an open network too, so the Dockerfile's installs are pinned by hash, or the `plan --profile` answer and the measured profile say plainly which are not yet. The sealed plan binds the fact itself through the recipe's image digest.
+- Nothing is installed while the job runs; every package comes from the built image. The image holds itself to this: its package tools are set so they can neither look a package up nor fetch one, so a step that tries to install fails instead of installing, and the job's result records those settings as seen inside the job. This covers programs a library prepares on first use, such as the small chat program Verifiers runs as the model's side of an evaluation: the build prepares it from a lock that names every wheel by hash. The image build has an open network too, so the Dockerfile's installs are pinned by hash, or the `plan --profile` answer and the measured profile say plainly which are not yet. The sealed plan binds the fact itself through the recipe's image digest.
 - Results leave only through the provider's own output folder. The job's commands write nowhere else.
 - The data is the four public synthetic fixtures of section 7.4. A job that holds private data could send it anywhere, so the first real data set on this provider is a decision for Sean, not a note.
 
 The engine submits through Autoresearch's HTTP API or its `autor` CLI, signed in with a service token scoped to the workspace, which the operator creates; never through an operator's chat session. Every submission sets both `idempotency_key` and `label` to the attempt's intent id. After a submission whose outcome is unknown, the engine looks the job up by that label (`list_jobs`) and never submits again; if nothing is found it answers `job_indeterminate`, submits nothing, and a person decides what happens next.
+
+The order around a submission is fixed, so that a grant use is spent only on a job the provider has said it would take:
+
+1. The engine reads the provider's rate and the image folder again. If either differs from the sealed plan it answers `plan_changed`.
+2. It sends the job itself to the provider's free preflight. If the provider names a maximum above the grant's, or would not take the job because of a spending cap or an empty balance, it answers `budget_exhausted`; if it would not take the job for any other reason, `runner_unavailable`. Nothing has been recorded or submitted at this point.
+3. It writes the use to the ledger.
+4. It submits once. A submission the provider refuses closes the attempt and leaves the use spent.
+5. It reads back the provider's maximum for the job. If that is above the grant's, or the answer does not carry one, it cancels the job and the attempt ends `budget_exhausted`.
 
 ## 7. M0 compatibility profile
 
@@ -299,7 +307,7 @@ They match 248 modules, none missing and none unexpected. Text-only SFT resolves
 ### 7.4 The test
 
 1. **Model-free (no spend).** In a pinned Linux container: resolve the SFT config with `--dry-run`, render the fixtures with the Qwen3.5 renderer, and check the loss mask covers only assistant targets. Fixtures are synthetic and public; no customer data.
-2. **Paid, under its own grant.** In the granted batch job: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`; confirm the adapter changes the base model's output on the same fixture, as defined below.
+2. **Paid, under its own grant.** In the granted batch job: load the exact revision; run a short SFT on the fixtures with online evals; record peak memory and matched modules; run the coverage check; start a fresh vLLM process with the adapter; run one Verifiers fixture against it with `--no-push`, where an episode that ends in an error fails the test and the score is recorded without being judged; confirm the adapter changes the base model's output on the same fixture, as defined below.
 3. **Cleanup.** Confirm through the provider (`get_job`) that the job has ended and nothing of it is still running. Record the measured cost.
 
 Steps 1 and 2 use the same four synthetic fixtures (`src/regents_cli/techtree/resources/model-climb-image/fixtures.jsonl` in regents-cli), and the plan records their digest.
@@ -313,7 +321,7 @@ Steps 1 and 2 use the same four synthetic fixtures (`src/regents_cli/techtree/re
 
 The profile records the case, the noise and the signal for all four fixtures. Only the Verifiers fixture (invoice-fields) decides.
 
-The output is the measured compatibility profile and its digest, with the built image's manifest digest from the provider's receipt. It does not claim uplift or general compatibility.
+The output is the measured compatibility profile and its digest, with the built image's manifest digest from the provider's receipt. The test seals no `TrainingAttempt`: it measures no tokens, and what happened to its one job is in the measured profile. It does not claim uplift or general compatibility.
 
 ## 8. Open items
 

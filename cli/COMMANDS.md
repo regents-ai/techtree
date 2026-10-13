@@ -451,10 +451,11 @@ machine, calls a paid model or sends data anywhere.
   7.4 step 2). It writes the fixed study, dataset release, benchmark release and recipe for
   that profile from the profile's own pinned values and the four public synthetic fixtures,
   reads the provider's current rate, and works out the job's minutes: the largest whole number
-  whose cost is no more than `--max-usd`.
+  whose cost is no more than `--max-usd`. It also reads the operator's mission from the
+  provider, so that a paid run cannot fail on a missing mission after its grant use is spent.
 - **Who may run it:** anyone on the operator's machine. It rents nothing.
 - **What it changes:** writes the plan and its objects under `<techtree home>/model-climb/`.
-  It reads the provider's price; it submits nothing. Nothing on the site.
+  It reads the provider's price and the mission; it submits nothing. Nothing on the site.
 - **Route:** none. Operation `model_climb_plan` (draft).
 - **Inputs:**
   - `--profile <profile>`: `m0-qwen3.5-9b`, the only profile in M0.
@@ -465,36 +466,48 @@ machine, calls a paid model or sends data anywhere.
   - `validation_error`: an unknown profile, `--max-usd` above 20 or too small to buy one
     minute, or no successful `profile check --dry-run` report for this profile's recipe.
   - `unsupported_capability`: the provider's price could not be read.
-- **History:** 2026-10-13 added.
+  - `runner_unavailable`: the operator's mission is not open at the provider.
+- **History:** 2026-10-13 added. 2026-10-13 refuses when the operator's mission is not open.
 
 ### regents techtree model-climb profile test \<profile\> --grant \<grant id\>
 
 - **What it does:** the paid step of the compatibility test (contract 7.4 steps 2 and 3): one
   batch job on two H100s that loads the pinned model revision, runs a short training on the
   fixtures, checks the adapter, serves it, compares its answer with the base model's, then
-  confirms with the provider that the job has ended and records what it cost.
+  confirms with the provider that the job has ended and records what it cost. The command
+  never waits. The first run submits the job and answers that it is running; each later run
+  of the same command looks at that job and submits nothing; the run that finds the job ended
+  judges the result and writes the measured profile.
 - **Who may run it:** the operator, with a grant issued for `model_climb_profile_test` on this
   profile's plan. This is the only form of the command; nothing is rented without the grant.
 - **What it changes:** rents compute on the operator's account at the provider, up to the
-  grant's maximum, in one attempt with no restart. Before submitting it writes a `used` line
-  with the attempt's intent id to the grant ledger. Writes the attempt and the measured
+  grant's maximum, in one attempt with no restart. Before anything is recorded it reads the
+  provider's rate and the image folder again and sends the job to the provider's free
+  preflight. Then, before submitting, it writes a `used` line with the attempt's intent id to
+  the grant ledger. A submission the provider refuses leaves that use spent. Writes the attempt and the measured
   profile under `<techtree home>/model-climb/`. Nothing on the site.
 - **Route:** none. Operation `model_climb_profile_test` (spend).
 - **Inputs:**
   - `<profile>`: `m0-qwen3.5-9b`.
   - `--grant <grant id>`: the grant that admits this run.
-- **Answer:** the measured compatibility profile and its digest, the built image's digest from
-  the provider's receipt, the measured cost, and that the egress list was declared and not
-  enforced by the provider.
+- **Answer:** while the job runs, that it is running. Once it has ended, the measured
+  compatibility profile and its digest, the built image's digest from the provider's receipt,
+  the measured cost, and that the egress list was declared and not enforced by the provider.
 - **Refusals:**
   - `approval_required`: no grant, a grant for another operation, plan or actor, an expired or
     revoked grant, a grant with no `issued` line, or one whose uses are spent.
-  - `plan_changed`: the plan's digest no longer matches the stored plan.
+  - `plan_changed`: the plan's digest no longer matches the stored plan, or the provider's
+    rate or the image folder differs from the plan's. Nothing is recorded or submitted.
   - `budget_exhausted`: the provider's worst-case cost for the job is more than the grant
-    allows; the job is cancelled before it runs.
+    allows, or the provider would not take the job because of a spending cap or an empty
+    balance. Found at the free preflight, nothing is recorded or submitted; found after the
+    submission, the job is cancelled before it runs.
+  - `runner_unavailable`: the provider's free preflight would not take the job for any other
+    reason. Nothing is recorded or submitted.
   - `job_indeterminate`: the submission's outcome is unknown and no job carries the intent id;
     nothing is submitted again and a person decides what happens next.
-- **History:** 2026-10-13 added.
+- **History:** 2026-10-13 added. 2026-10-13 never waits; checks the rate, the image folder and
+  the provider's free preflight before a grant use is recorded.
 
 ### regents techtree model-climb submit \<proof folder\> (M3)
 
