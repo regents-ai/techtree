@@ -1,7 +1,8 @@
 """The runner's commands, run as root on the machine by the machine scripts.
 
   python -m awb_runner setup <harness_id>
-      Installs the agent for the baseline (Harbor's setup) and prints its version.
+      Installs the agent for the baseline (Harbor's setup) and prints its version. An agent npm installs is held to
+      its pinned fingerprint (npm.py), and what npm resolved for it is written to /work/baseline/npm.json.
   python -m awb_runner version <harness_id>
       Prints the installed agent's version, asked as the tested account.
   python -m awb_runner turn <harness_id> <turn_dir> <wall_cap_seconds> <resume_session_id | ->
@@ -21,14 +22,20 @@ from pathlib import Path
 from harbor.agents.installed.base import NonZeroAgentExitCodeError
 from harbor.models.agent.context import AgentContext
 
-from . import transcript
+from . import npm, transcript
 from .machine import Machine
-from .roster import LOGS, ROSTER, agent
+from .roster import LOGS, ROSTER, agent, pin
 
 
 async def setup(harness_id: str) -> None:
     tested = agent(harness_id)
-    await tested.setup(Machine())
+    machine = Machine()
+    package = ROSTER[harness_id].package
+    # An agent npm installs is held to its pinned fingerprint before anything from its package runs, and again after.
+    registry = await npm.published(machine, package, pin(harness_id)) if package else None
+    await tested.setup(machine)
+    if package:
+        await npm.check(machine, package, pin(harness_id), registry)
     print(await version_of(harness_id))
 
 

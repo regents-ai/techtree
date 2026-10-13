@@ -1,12 +1,12 @@
 {
-  "H04": {"version": "0.21.5", "source_ref": "f97608f178d1ffeca59860195ab7da295f7c8e5f"},
-  "H05": {"version": "2.1.286"},
-  "H06": {"version": "3.0.67"},
-  "H07": {"version": "7.8.1"},
-  "H08": {"version": "1.0.0"},
-  "H09": {"version": "v18.4.8", "archive_sha256": "1b88f7a0da3f61edda915d836e11f63f20f2b56aeac2ddfa4ece0faa726f31c2"},
-  "H10": {"version": "0.159.3"},
-  "H12": {"version": "0.2.0-rc.2"},
-  "H13": {"version": "1.18.34"},
+  "H04": {"version": "0.21.6", "source_ref": "818c13be1dc4fd28987e1e881a9408224afd4535"},
+  "H05": {"version": "2.1.296", "archive_sha256": "24972e3bc859fab2b46ed4c1e51f7d6130f06d3bd550811a114640de3370d0de"},
+  "H06": {"version": "3.0.70", "integrity": "sha512-ekeGJ7YdVKL9p//KF0F5nxFXMvgSuhwPxvCUkS+SaBDJJoOUt+HMeJS+J+hkF3ezPekbSvpK1wCPGraZbAEO8A=="},
+  "H07": {"version": "7.8.8", "integrity": "sha512-kL9LPPAghiD2mpWjbmdKsgVB18vApI60pQ5wb6gaeuYhXezw6K+IGGRDA8Fw664039kJ0k+BkYZSXUhcq+/5Ww=="},
+  "H08": {"version": "1.1.0", "integrity": "sha512-SeEi/4hdcHNgA9UWlefZl7ZZpm3dzi2OoxNjDHsBJ9o298LNOtbL4DGKgitlEj6uCTccvtw6f2hlCkTPVJ2RXg=="},
+  "H09": {"version": "v18.8.9", "archive_sha256": "cacc12d5cdd46ff207f3452b36a0d0cfa7c5b8aee0d403aa83c5ab1f46bccb58"},
+  "H10": {"version": "0.162.1", "integrity": "sha512-NWZdi/kxyjv/8EUGFupziGU38YyleugZRM4JXgY5XFH7FUmaFA33NZS2Bmq0HPazf7S3jJQQWsZ/jAK9jsrV3Q=="},
+  "H12": {"version": "0.2.0-rc.2", "integrity": "sha512-EAJ3gPNcVt/uv8X19PMm9NkVhWgT7xXNMk0UKCVm+IQ5rpSQOcsMUa0HWlnYYVybKMsccjcRB21vVVsaXQ6IdA=="},
+  "H13": {"version": "1.19.0", "integrity": "sha512-lddJhFwZI3GLlw8VyOo4yNwBVGeVN/mxH6ORh60h69zAXL7QhjSWY9orj10rwO2kxVnxH9dh45uDCWNuiqPb8A=="},
   "H16": {"version": "0.10.0", "archive_sha256": "c16bd2af5e77b53f49b914a44742c4cf6a67c5ed5000041430b78dbd4c3bcbec"}
 }

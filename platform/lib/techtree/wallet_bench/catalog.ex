@@ -231,7 +231,7 @@ defmodule Techtree.WalletBench.Catalog do
   @spec harness!(String.t()) :: harness()
   def harness!(id), do: Map.fetch!(@harnesses, id)
 
-  @doc "The exact default release and, where needed, source or archive checksum."
+  @doc "The exact default release with its fingerprint: a source commit, an archive checksum or npm's published integrity."
   def harness_pin!(id),
     do: "runner/harnesses.json" |> read!() |> Jason.decode!() |> Map.fetch!(id)
 

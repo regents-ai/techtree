@@ -1,4 +1,4 @@
-"""The ten agents the bench tests: each one's Harbor adapter, pinned version, and model.
+"""The ten agents the bench tests: each one's Harbor adapter and model. Their pinned releases are in harnesses.json.
 
 Every agent talks to claude-opus-5-5 through the machine's translator (LiteLLM on 127.0.0.1:4000), which sends every
 call to Anthropic with adaptive thinking at effort high, counts cost and refuses new calls once the attempt reaches $5.
@@ -7,16 +7,25 @@ into Anthropic's. The agents only hold the machine's local translator token, nev
 """
 import json
 import os
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 from harbor.agents.installed.base import BaseInstalledAgent
-from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.codex import Codex
 from harbor.agents.installed.opencode import OpenCode
 
-from .agents import TOKEN, TRANSLATOR, ClineAgent, DeepSeekHarness, HermesAgent, KiloCode, OhMyPi, PiAgent
+from .agents import (
+    TOKEN,
+    TRANSLATOR,
+    ClaudeCodeAgent,
+    ClineAgent,
+    DeepSeekHarness,
+    HermesAgent,
+    KiloCode,
+    OhMyPi,
+    PiAgent,
+)
 from .prime import PrimeAgent
 
 # Where every adapter keeps the agent's sessions and output on the machine, for the whole attempt.
@@ -27,47 +36,53 @@ LOGS = Path("/logs/agent")
 class Harness:
     name: str
     adapter: type[BaseInstalledAgent]
-    version: str
     model: str
     # The agent's own output for one turn, under LOGS; it becomes the turn's stream.jsonl.
     output: str
     options: dict[str, Any] = field(default_factory=dict)
+    # The npm package the agent's installer installs, for the agents npm installs (npm.py).
+    package: str | None = None
 
 
 ROSTER = {
-    "H04": Harness("Hermes Agent", HermesAgent, "0.21.5", "openai/claude-opus-5-5", "hermes.txt"),
-    "H05": Harness("Claude Code", ClaudeCode, "2.1.286", "claude-opus-5-5", "claude-code.txt"),
-    "H06": Harness(
-        "Cline", ClineAgent, "3.0.67", "openai-compatible:claude-opus-5-5", "cline.txt",
-        {"cline_version": "3.0.67"},
-    ),
-    "H07": Harness("Kilo Code", KiloCode, "7.8.1", "openai/claude-opus-5-5", "kilo.txt"),
+    "H04": Harness("Hermes Agent", HermesAgent, "openai/claude-opus-5-5", "hermes.txt"),
+    "H05": Harness("Claude Code", ClaudeCodeAgent, "claude-opus-5-5", "claude-code.txt"),
+    "H06": Harness("Cline", ClineAgent, "openai-compatible:claude-opus-5-5", "cline.txt", package="cline"),
+    "H07": Harness("Kilo Code", KiloCode, "openai/claude-opus-5-5", "kilo.txt", package="@kilocode/cli"),
     "H08": Harness(
-        "Pi", PiAgent, "1.0.0", "openai/claude-opus-5-5", "pi.txt",
+        "Pi", PiAgent, "openai/claude-opus-5-5", "pi.txt",
         {"model_api": "openai-completions", "thinking": "high"},
+        package="@earendil-works/pi-coding-agent",
     ),
-    "H09": Harness("oh-my-pi", OhMyPi, "v18.4.8", "openai/claude-opus-5-5", "omp.txt"),
-    "H10": Harness("Codex CLI", Codex, "0.159.3", "openai/claude-opus-5-5", "codex.txt"),
-    "H12": Harness("DeepSeek Harness", DeepSeekHarness, "0.2.0-rc.2", "openai/claude-opus-5-5", "dsh.txt"),
+    "H09": Harness("oh-my-pi", OhMyPi, "openai/claude-opus-5-5", "omp.txt"),
+    "H10": Harness("Codex CLI", Codex, "openai/claude-opus-5-5", "codex.txt", package="@openai/codex"),
+    "H12": Harness(
+        "DeepSeek Harness", DeepSeekHarness, "openai/claude-opus-5-5", "dsh.txt", package="@deepseek-ai/dsh"
+    ),
     "H13": Harness(
-        "OpenCode", OpenCode, "1.18.34", "openai/claude-opus-5-5", "opencode.txt",
+        "OpenCode", OpenCode, "openai/claude-opus-5-5", "opencode.txt",
         {"opencode_config": {"autoupdate": False}},
+        package="opencode-ai",
     ),
-    "H16": Harness("Prime Agent", PrimeAgent, "0.10.0", "bench/claude-opus-5-5", "prime.txt"),
+    "H16": Harness("Prime Agent", PrimeAgent, "bench/claude-opus-5-5", "prime.txt"),
 }
 
 PINS = json.loads((Path(__file__).parents[1] / "harnesses.json").read_text())
-ROSTER = {id: replace(harness, version=PINS[id]["version"]) for id, harness in ROSTER.items()}
+
+
+def pin(harness_id: str) -> dict:
+    """The release this machine was asked to build: the batch's, written by the controller, else the default pin."""
+    config_file = os.environ.get("AWB_HARNESS_CONFIG")
+    return json.loads(Path(config_file).read_text()) if config_file else PINS[harness_id]
 
 
 def agent(harness_id: str) -> BaseInstalledAgent:
     """The harness's adapter, pointed at the translator with the machine's local token."""
     harness = ROSTER[harness_id]
-    config_file = os.environ.get("AWB_HARNESS_CONFIG")
-    pin = json.loads(Path(config_file).read_text()) if config_file else PINS[harness_id]
+    release = pin(harness_id)
     options = dict(harness.options)
     if harness_id == "H06":
-        options["cline_version"] = pin["version"]
+        options["cline_version"] = release["version"]
     token = Path(TOKEN).read_text().strip()
     os.environ.update(
         OPENAI_API_KEY=token,
@@ -80,13 +95,13 @@ def agent(harness_id: str) -> BaseInstalledAgent:
         logs_dir=LOGS,
         environment_logs_dir=PurePosixPath(LOGS),
         model_name=harness.model,
-        version=pin["version"],
+        version=release["version"],
         **options,
     )
     if harness_id == "H04":
-        tested.COMMIT = pin["source_ref"]
-    if harness_id == "H09":
-        tested.BINARY_SHA256 = pin["archive_sha256"]
+        tested.COMMIT = release["source_ref"]
+    if harness_id in ("H05", "H09"):
+        tested.BINARY_SHA256 = release["archive_sha256"]
     if harness_id == "H16":
-        tested.archive_sha256 = pin["archive_sha256"]
+        tested.archive_sha256 = release["archive_sha256"]
     return tested

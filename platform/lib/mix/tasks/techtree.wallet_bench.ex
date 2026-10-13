@@ -30,6 +30,7 @@ defmodule Mix.Tasks.Techtree.WalletBench do
           operator: :string,
           source_ref: :string,
           archive_sha256: :string,
+          integrity: :string,
           repeats: :integer,
           output: :string,
           manifest: :string,

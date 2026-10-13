@@ -13,10 +13,11 @@ defmodule Techtree.WalletBench.Batch do
   alias Techtree.WalletBench.{Attempt, Catalog, Judge, Machine}
 
   @fields ~w(format batch axis target operator harnesses wallets repeats recipe protocol access model effort judge)
-  @pin_fields ~w(version source_ref archive_sha256)
+  @pin_fields ~w(version source_ref archive_sha256 integrity)
   @version ~r/\Av?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z/
   @sha ~r/\A[0-9a-f]{64}\z/
   @ref ~r/\A[0-9a-f]{40}\z/
+  @integrity ~r/\Asha512-[A-Za-z0-9+\/]{86}==\z/
 
   @doc "Resolve one upgraded harness against all wallets, or one wallet against all harnesses."
   def plan(options) do
@@ -193,7 +194,7 @@ defmodule Techtree.WalletBench.Batch do
   defp upgraded_pin(pin, version, options) do
     pin = if pin["version"] == version, do: pin, else: %{"version" => version}
 
-    Enum.reduce([:source_ref, :archive_sha256], pin, fn key, acc ->
+    Enum.reduce([:source_ref, :archive_sha256, :integrity], pin, fn key, acc ->
       put_pin(acc, key, options[key])
     end)
   end
@@ -276,7 +277,7 @@ defmodule Techtree.WalletBench.Batch do
     check(Map.keys(pin) -- ~w(version source_ref) == [], "Hermes pin fields")
   end
 
-  defp validate_source!(id, pin) when id in ["H09", "H16"] do
+  defp validate_source!(id, pin) when id in ["H05", "H09", "H16"] do
     check(
       is_binary(pin["archive_sha256"]) && Regex.match?(@sha, pin["archive_sha256"]),
       "release archive requires SHA-256"
@@ -285,7 +286,15 @@ defmodule Techtree.WalletBench.Batch do
     check(Map.keys(pin) -- ~w(version archive_sha256) == [], "archive pin fields")
   end
 
-  defp validate_source!(_id, pin), do: check(Map.keys(pin) == ["version"], "package pin fields")
+  # The agents npm installs: the registry's published fingerprint for that exact version.
+  defp validate_source!(_id, pin) do
+    check(
+      is_binary(pin["integrity"]) && Regex.match?(@integrity, pin["integrity"]),
+      "npm package requires its published integrity"
+    )
+
+    check(Map.keys(pin) -- ~w(version integrity) == [], "package pin fields")
+  end
 
   defp validate_existing!(existing, manifest) do
     check(length(existing) == summary(manifest).attempts, "existing batch is incomplete")

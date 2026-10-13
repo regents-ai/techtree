@@ -17,6 +17,7 @@ from typing import Any
 
 from harbor.agents.installed.base import BaseInstalledAgent
 from harbor.agents.capabilities import AgentCapabilities
+from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.cline.cline import ClineCli, ExecInput
 from harbor.agents.installed.hermes import Hermes
 from harbor.agents.installed.opencode import OpenCode
@@ -45,10 +46,29 @@ def _piped_instruction() -> str:
     return f'printf "%s" "${INSTRUCTION}" |'
 
 
-class HermesAgent(Hermes):
-    """Hermes Agent v0.21.5 (release v2026.9.24), installed from its pinned commit as in the survey."""
+class ClaudeCodeAgent(ClaudeCode):
+    """Claude Code from Anthropic's own installer, which is how Harbor installs it on this machine, with the installed
+    binary checked against the digest Anthropic publishes for that release."""
 
-    COMMIT = "f97608f178d1ffeca59860195ab7da295f7c8e5f"
+    # The pinned release binary's published SHA-256 (the release's manifest.json, linux-x64), set from the pin.
+    BINARY_SHA256 = ""
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        await super().install(environment)
+        await self.exec_as_agent(
+            environment,
+            command=(
+                'export PATH="$HOME/.local/bin:$PATH" && '
+                f"""echo "{self.BINARY_SHA256}  $(readlink -f "$(command -v claude)")" | sha256sum -c -"""
+            ),
+        )
+
+
+class HermesAgent(Hermes):
+    """Hermes Agent, installed from its pinned commit as in the survey."""
+
+    # The pinned release's full commit, set from the pin (roster.py).
+    COMMIT = ""
     resume_session_id: str | None = None
 
     async def install(self, environment: BaseEnvironment) -> None:
@@ -86,7 +106,7 @@ class HermesAgent(Hermes):
 
 
 class ClineAgent(ClineCli):
-    """Cline CLI 3.0.67, signed in to the translator as an OpenAI-compatible provider at baseline, as in the survey.
+    """Cline CLI, signed in to the translator as an OpenAI-compatible provider at baseline, as in the survey.
 
     Cline cannot continue a conversation from a script, so the bench gives it the install test only (Sean's 5 a).
     """
@@ -122,7 +142,7 @@ class ClineAgent(ClineCli):
 
 
 class KiloCode(OpenCode):
-    """Kilo Code CLI 7.8.1. Kilo is built on OpenCode and prints the same JSON events, so OpenCode's converter reads
+    """Kilo Code CLI. Kilo is built on OpenCode and prints the same JSON events, so OpenCode's converter reads
     its turns. The translator is an OpenAI-compatible provider in Kilo's own config, as in the survey."""
 
     _OUTPUT_FILENAME = "kilo.txt"
@@ -183,7 +203,7 @@ class KiloCode(OpenCode):
 
 
 class PiAgent(Pi):
-    """Pi 1.0.0 with the survey's settings: no install telemetry. Harbor runs Pi from its own settings folder, so the
+    """Pi with the survey's settings: no install telemetry. Harbor runs Pi from its own settings folder, so the
     settings go there."""
 
     SETTINGS_DIR = "/tmp/harbor-pi-agent"
@@ -200,10 +220,11 @@ class PiAgent(Pi):
 
 
 class OhMyPi(Pi):
-    """oh-my-pi v18.4.8, the release binary checked against its published digest, as in the survey. It is a fork of
+    """oh-my-pi, the release binary checked against its published digest, as in the survey. It is a fork of
     Pi and keeps Pi's session format, so Pi's converter reads its sessions once they are copied where Pi keeps them."""
 
-    BINARY_SHA256 = "1b88f7a0da3f61edda915d836e11f63f20f2b56aeac2ddfa4ece0faa726f31c2"
+    # The pinned release binary's published SHA-256, set from the pin (roster.py).
+    BINARY_SHA256 = ""
     _OUTPUT_FILENAME = "omp.txt"
     resume_session_id: str | None = None
 
