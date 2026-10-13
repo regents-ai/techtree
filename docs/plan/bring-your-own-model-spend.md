@@ -53,15 +53,20 @@ operator-attested grant (`model_climb_grant_issue`), and writes a signed record.
 
 To build:
 
-1. Publish the grant-signing public key at a stable Techtree address so anyone
-   can check a record.
-2. An upload route: the person's agent signs in (SIWA), posts the signed run
-   record, Techtree checks the signature, the schema pin (regents-cli
-   `08bd5c3`, sha256 `7b38f89a…a070` per spec 3.2) and size limits, and stores it
-   as `participant`.
-3. A public page per record with its level, its recipe, its numbers and the
-   provider it ran on. No combined score with `identified_executor` runs.
-4. Later: an "ask for a reproduction" button that runs as a hosted job (section 6).
+1. An upload route: the person's agent signs in (SIWA), posts the signed proof
+   directory, Techtree checks the manifest against the participant identity key
+   (the same check as `regents techtree proof verify`), the schema pin
+   (regents-cli `08bd5c3`, sha256 `7b38f89a…a070` per spec 3.2) and size limits,
+   and stores it as `participant`. The site's grant-signing key (spec section 6)
+   is only needed for connected-mode grants, which self-run does not use.
+2. The record shows on the person's own tab, visible only to them, with its
+   level, its recipe, its numbers and the provider it ran on (open decision
+   TT-BYO-MC-PRIVATE asks whether Model Climb follows the Bench rule).
+3. Later: an "ask for a reproduction" button that runs as a hosted job (section 6).
+
+No real proof exists yet: the first paid run waits Sean's go, the grant and the
+`gmnt_` token. Until then the upload route can only be exercised with a proof
+made locally for testing.
 
 Each person's spend limit lives in their own SF Compute account; Techtree
 never holds or reads it. The grant review keeps asking the operator to attest
@@ -80,15 +85,22 @@ their limit and top-up setting, as it does now.
 4. Upload: the agent signs the result with its SIWA key; Techtree checks the
    signature, the harness version, the task digests and size limits, and stores
    it as `participant`.
-5. The results page shows self-run rows with their label (open decision
-   TT-BYO-BOARD).
+5. Self-run results go on the person's own tab and are private to them (Sean,
+   TT-BYO-BOARD, 13 Oct 2026: "user tab, private"). They never appear on the
+   public results pages.
 
 What Techtree pays: storage and pages only.
 
 ## 6. Wallet Bench, route b: hosted, paid in Credits
 
+Sean, 13 Oct 2026: "wallet bench we prove the benchmark first, then sprites let
+people run a row or column of the benchmark". The grid is agents by wallets: a
+row is one agent across every wallet, a column is one wallet across every
+agent. Techtree first runs and publishes the full grid itself; only then are
+row and column runs opened to people.
+
 1. The person (or their paired agent, within the allowance the person set)
-   asks for a batch. Techtree quotes a cap from the attempts asked for.
+   asks for a row or a column. Techtree quotes a cap from the attempts in it.
 2. Techtree places a Credits hold for the cap through the template's Credits
    library (`RegentCredits.hold`, the template's agent spend path, Sean 111 a),
    which already refuses a hold the person cannot cover and handles two agents
@@ -109,22 +121,23 @@ relay's per-batch cap set from the hold.
 | --- | --- | --- |
 | P0 | This plan | No |
 | P1 | Model Climb M3 (section 4) | No |
-| P2 | Bench self-run (section 5) | No; the person's own key |
-| P3 | Bench hosted in Credits (section 6), then hosted reproductions | Yes, Credits; needs Sean's go to switch charging on |
+| P2 | Prove the Bench: Techtree runs and publishes the full grid | Yes, Techtree's own spend; each batch its own go |
+| P3 | Row and column runs on our Sprites for people (section 6) | Who pays is open (TT-BYO-SPRITE-PAY) |
+| P4 | Bench self-run (section 5), private to the person | No; the person's own key |
 
 Each step ships as its own release item through the orchestrator's sense check,
 then to Sean.
 
 ## 8. Open decisions
 
-- **TT-BYO-ORDER.** Which step comes first. Recommendation: P1 Model Climb M3,
-  because it already runs on the person's own spend and only the website side is
-  missing.
-- **TT-BYO-JUDGE.** In self-run Bench, who pays the judge. Recommendation: the
-  person's own key, so a self-run result is wholly the person's claim; a
-  hosted reproduction is the path to a Techtree-checked score.
-- **TT-BYO-BOARD.** Where self-run Bench results appear. Recommendation: a
-  separate tab beside the verified results, labelled with the level, so the
-  default view stays Techtree-run.
-- **Later, at P3:** the hosted price rule (cost plus a margin, or a flat price per
-  attempt) and switching Credits charging on for Techtree.
+Answered 13 Oct 2026: TT-BYO-ORDER a (Model Climb M3 first; the Bench is proved
+before row and column runs open), TT-BYO-BOARD "user tab, private".
+
+- **TT-BYO-JUDGE.** In self-run Bench, who pays the judge: the person's key, or
+  Techtree grading and charging Credits. Sean undecided; needed by P4.
+- **TT-BYO-SPRITE-PAY.** Who pays the model on a row or column run on our
+  Sprites: Credits (our key, actual cost charged), or the person's own key
+  placed in that Sprite for that run.
+- **TT-BYO-MC-PRIVATE.** Whether uploaded Model Climb records are private to the
+  person's tab, like self-run Bench results.
+- **Later, at P3:** the price rule and switching Credits charging on for Techtree.
