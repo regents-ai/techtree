@@ -53,6 +53,17 @@ the participant's budget. Publishing is optional and uses signed publication
 material; a web profile does not grant authority over another publication key.
 Private Episodes and Traces stay local.
 
+## In a browser, or on the person's computer
+
+- In a browser, or as an agent with only web access: read and explain Climbs,
+  published Results and what a run would need, with the browser tools below or
+  the public API. Nothing you read or call on techtree.sh starts a run.
+- On the person's computer, through the CLI: installing, preparing a Skill,
+  running, comparing and publishing. To hand this over, give the person or their
+  local agent https://techtree.sh/skill.md. It names the one release to install,
+  how to check it and the first command; every answer after that names its next
+  step.
+
 ## Pair with a person's account
 
 When your person gives you a pairing code from their Account page on

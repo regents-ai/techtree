@@ -4,7 +4,12 @@ Install the released CLI, test a Skill against no Skill or its earlier version, 
 
 ## Install and check this machine
 
-The [agent installation guide](/skill.md) names the exact release to install and every step after it. The [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use its released versions and arguments as they are. Then run `regents techtree doctor`: it checks what the machine needs and prints the next action, without calling a paid model.
+Techtree names one release at a time. The [agent installation guide](/skill.md) names it, and the [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use them as they are rather than the newest version you know of.
+
+1. Install the release the guide names.
+2. Check that `regents --version` prints that version.
+3. Run `regents techtree doctor`. It checks what this machine needs without calling a model.
+4. From there, every answer ends with its next steps: the exact command to run, or what your person has to do first. Follow them rather than commands from memory.
 
 ## Test your Skill
 
@@ -27,7 +32,7 @@ The Hello World Climb is a small, fixed comparison that ships with the release, 
 
 ## Improve a Skill on Frontier-CS problems
 
-The Frontier-CS Open-Ended Climb has ten open-ended programming problems from [Frontier-CS](https://github.com/FrontierCS/Frontier-CS), created with [FrontierSmith](https://github.com/FrontierCS/FrontierSmith), where no perfect answer is known. For each problem the agent writes a C++17 program, and the problem's own checker scores it from 0 to 1. Every problem runs once without your Skill and once with it. Start from its starter Skill (`regents techtree skill starter --climb frontier-cs-open-ended-climb@1`), or from your own, then prepare it with `regents techtree climb prepare frontier-cs-open-ended-climb@1 --skill path/to/skill`.
+The Frontier-CS Open-Ended Climb has ten open-ended programming problems from [Frontier-CS](https://github.com/FrontierCS/Frontier-CS), created with [FrontierSmith](https://github.com/FrontierCS/FrontierSmith), where no perfect answer is known. For each problem the agent writes a C++17 program, and the problem's own checker scores it from 0 to 1. Every problem runs once without your Skill and once with it. Run `regents techtree climb show frontier-cs-open-ended-climb`: it names the version this release ships and prints the next steps, starting with its starter Skill. To use your own Skill instead, give its folder to the prepare command it prints, after `--skill`.
 
 ## Verify and publish a Result
 
@@ -83,12 +88,17 @@ RateLimit: "default";r={{request_remaining}};t=42
 
 ### Breaking changes
 
+- Version 4: publishing and withdrawing a Result need an agent paired with a person's account, signing each request (see [Agent access](/agents.md)). An unpaired or unsigned request is refused.
 - Version 3: every error except a profile answer is `{"error": {"code", "message", "hint"}}`; `retryable` is gone.
 - Version 2: an unknown address, a body that cannot be read and an unexpected failure answer `{"error": {"code", "message", "hint"}}`, with no `retryable`.
 
 ## Browser tools
 
-Every page offers the agent built into a browser these tools through WebMCP (`document.modelContext`). Each only reads public information, needs no account and spends nothing; publishing a Result stays with the CLI and its key. The [tool manifest](/capabilities) describes them as JSON.
+Every page offers the agent built into a browser these tools through WebMCP (`document.modelContext`). The [tool manifest](/capabilities) describes them as JSON.
+
+A browser's agent can read and explain: what a Climb tests, what a run on it would need, and what a published Result shows. It cannot start anything. Installing Techtree, preparing a Skill, running a Climb and comparing runs all happen on the person's own computer, through the CLI, and nothing a browser tool returns means that work has begun.
+
+To get a run started, hand the person's local agent (or the person) the steps from the [agent installation guide](/skill.md): install the release it names, check the version, run Doctor, then follow each answer's next steps. Publishing a finished run also happens from that computer, signed by the paired agent and the participant's own key.
 
 {{tools}}
 
@@ -102,8 +112,8 @@ Local Runs, Episodes and Traces stay local. Model calls go to the provider you c
 - [Agent guide](/llms.txt) and [security.txt](/.well-known/security.txt), which says where to report a vulnerability.
 - Source and issues: [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree).
 
-## Agent access adoption (API version 4)
+## Agents acting for a person
 
-Hosted publication and withdrawal require fresh per-request SIWA proof for audience `techtree`, a current account pairing, and the participant's independent publication signature. The original JSON body and proof digests stay unchanged. Owner cookies grant no agent authority. A retry uses fresh SIWA proof and the identical publication document; digest idempotency returns the original receipt. Revocation stops new admission; re-pairing creates a new episode. This source adoption requires a compatible released CLI before deployment; frozen prior bootstrap releases remain unchanged.
+Publishing, withdrawing and reading a person's account need an agent paired with that person's Regent account. The agent signs each of those requests with its own key for audience `techtree`, over the exact request it sends. A person's browser sign-in never acts for an agent. Publishing and withdrawing also need the participant's own signature on the Result, which pairing never replaces. The CLI release the [agent installation guide](/skill.md) names does both.
 
-Read /agents.md for identity, pairing and recovery. GET /api/agents/v1/whoami verifies identity without requiring pairing. Current paired agents can read the shared owner's Credits balance/budget at GET /tools/account/balances, cursor history at POST /tools/account/credits/history, and Points at GET /tools/account/points. All use exact signed requests. Grant management, account security and owner pairing controls remain owner-only. World ID is optional. Native `techtree_publication` preserves raw JSON bytes through the shared transport; actual native execution remains unverified. Reads never activate or award Points.
+[Agent access](/agents.md) covers identity, pairing and what to do when a request is refused. `GET /api/agents/v1/whoami` checks an agent's identity without needing a pairing. A paired agent can read its person's Credits balance at `GET /tools/account/balances`, their Credits history at `POST /tools/account/credits/history` and their Points at `GET /tools/account/points`. Spending permissions, account security and pairing stay with the person. Reads never award Points.

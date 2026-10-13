@@ -17,11 +17,10 @@ defmodule TechtreeWeb.DocsLive do
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
 
-  @frontier "frontier-cs-open-ended-climb@3"
-
   @impl true
   def mount(_params, _session, socket) do
     release = ReleaseInfo.current()
+    frontier = release && ReleaseInfo.climb(release, "frontier-cs-open-ended-climb")
 
     {:ok,
      assign(socket,
@@ -30,7 +29,8 @@ defmodule TechtreeWeb.DocsLive do
        instruction: StartLive.instruction(),
        plugin_commands: plugin_commands(release),
        introductory_routes: release && routes(release.introductory_reference),
-       frontier_routes: release && routes(@frontier)
+       frontier: frontier,
+       frontier_routes: routes(frontier)
      )}
   end
 
@@ -74,6 +74,7 @@ defmodule TechtreeWeb.DocsLive do
             <.docs_group
               title="API"
               links={[
+                {"Agents for a person", "#agents"},
                 {"Errors", "#errors"},
                 {"Rate limits", "#rate-limits"},
                 {"Versioning", "#versioning"}
@@ -139,14 +140,17 @@ defmodule TechtreeWeb.DocsLive do
                   id="copy-docs-install"
                   lines={[
                     {:command, @release.install_argv},
+                    {:comment, "It should print #{@release.version}:"},
+                    {:command, ["regents", "--version"]},
                     {:command,
                      ["regents", "techtree", "doctor", "--climb", @release.introductory_reference]}
                   ]}
-                  label="Install, then run Doctor"
+                  label="Install, check, then run Doctor"
                 />
                 <p class="small quiet">
-                  Doctor checks prerequisites and prints the next action. It does not start paid
-                  model inference.
+                  Doctor checks what this machine needs without calling a model. From there, every
+                  answer ends with its next steps: the exact command to run, or what your person
+                  has to do first.
                 </p>
               <% true -> %>
                 <p>This release does not name an introductory Climb.</p>
@@ -331,13 +335,13 @@ defmodule TechtreeWeb.DocsLive do
               :if={@frontier_routes}
               id="copy-docs-frontier"
               lines={
-                [{:command, ["regents", "techtree", "skill", "starter", "--climb", frontier()]}] ++
+                [{:command, ["regents", "techtree", "skill", "starter", "--climb", @frontier]}] ++
                   ModelAccess.prepare_lines(@frontier_routes, [
                     "regents",
                     "techtree",
                     "climb",
                     "prepare",
-                    frontier(),
+                    @frontier,
                     "--skill",
                     "path/to/skill"
                   ])
@@ -445,6 +449,7 @@ defmodule TechtreeWeb.DocsLive do
           <section
             :for={
               {id, heading} <- [
+                {"agents", "Agents acting for a person"},
                 {"errors", "Errors"},
                 {"rate-limits", "Rate limits"},
                 {"versioning", "Versioning and deprecation"}
@@ -507,8 +512,6 @@ defmodule TechtreeWeb.DocsLive do
   end
 
   defp plugin_commands(_release), do: nil
-
-  defp frontier, do: @frontier
 
   # The routes a Climb offers, each with its own prepare command.
   defp routes(nil), do: nil

@@ -40,15 +40,25 @@ defmodule TechtreeWeb.SkillController do
     compare. Everything runs on their own computer, and every step that calls a
     model waits for the person's yes.
 
+    ## Where this runs
+
+    Every command here runs on the person's own computer. A browser or web-only
+    agent cannot run them, and nothing it reads on techtree.sh starts a run: give
+    the person, or their local agent, this page's address
+    (https://techtree.sh/skill.md) and let them follow it there.
+
     ## Agent access
 
-    Read https://techtree.sh/agents.md before hosted publication or private account reads.
-    Hosted publication and withdrawal require current owner-approved agent pairing,
-    fresh SIWA proof over the exact request for audience `techtree`, and the independent
-    participant proof. Local work and public reads remain available without pairing.
-    Use a compatible CLI release; the frozen installation contract below is unchanged.
+    Read https://techtree.sh/agents.md before publishing or reading the person's
+    account. Publishing and withdrawing need you paired with the person's Regent
+    account and signing each request with your own key for audience `techtree`,
+    as well as the participant's own signature on the Result, which pairing never
+    replaces. Local work and public reads need no pairing. The release below signs
+    these requests.
 
     ## Install
+
+    Install this release, not the newest one you know of:
 
     ```sh
     #{Enum.join(release.install_argv, " ")}
@@ -59,7 +69,13 @@ defmodule TechtreeWeb.SkillController do
     Release fingerprint: `#{release.digest}`
     Source revision: `#{release.source_revision}`
 
-    If `regents --version` already prints #{release.version}, it is installed.
+    Then check it: `regents --version` prints #{release.version}. Anything else
+    is not this release; install this one before going on.
+
+    Run `regents techtree doctor`. It checks what the machine needs without
+    calling a model. From there, every answer ends with its next steps: the exact
+    command to run next, or what the person has to do first. Follow those; the
+    commands below show the shape of each step.
 
     ## Make the tasks
 

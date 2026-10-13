@@ -17,6 +17,7 @@ defmodule TechtreeWeb.ReleaseInfo do
 
   @type t :: %{
           channel: String.t() | nil,
+          climbs: [String.t()],
           digest: String.t(),
           install_argv: [String.t()],
           installable?: boolean(),
@@ -66,12 +67,20 @@ defmodule TechtreeWeb.ReleaseInfo do
   @spec label(t()) :: String.t()
   def label(release), do: "v#{release.version} · #{short(release.digest)}"
 
+  @doc """
+  The exact reference (`slug@version`) this release ships for a Climb slug, or
+  `nil` when the release does not ship it.
+  """
+  @spec climb(t(), String.t()) :: String.t() | nil
+  def climb(%{climbs: climbs}, slug), do: Enum.find(climbs, &String.starts_with?(&1, slug <> "@"))
+
   defp describe(instructions, digest) do
     cli = Map.get(instructions, "cli", %{})
     hermes_plugin = Map.get(instructions, "hermes_plugin", %{})
 
     %{
       channel: instructions["channel"],
+      climbs: instructions |> Map.get("climbs", %{}) |> Map.keys() |> Enum.sort(),
       digest: digest,
       install_argv: Map.get(cli, "install_argv", []),
       installable?: instructions["placeholder_release"] == false,
