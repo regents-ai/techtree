@@ -528,7 +528,12 @@ Three limits are accepted for M0 and are stated here so nobody is surprised by t
   The measured cost is what the provider's receipt for the job shows, for a job the command
   cancelled too; when the provider gives no figure the answer says none was given. The stored
   outcome carries `charged_usd_micros` and `billed_seconds_per_gpu`, each empty when not
-  given. A job already submitted is always read and collected, under an expired grant or a
+  given. Beside the receipt's figure the answer prints the provider's image-build usage for
+  the month as read before the job was submitted and as read now, and the stored outcome
+  keeps both (`build_usage.before_submit`, `build_usage.after`). A job the command cancelled
+  is closed only once the provider's receipt is there: until then the answer carries the same
+  code and says the provider has not yet said what it charged, and the next run records it. A
+  job already submitted is always read and collected, under an expired grant or a
   changed image folder too. A failure at the provider after the submission answers with the
   job id and the intent id and says that this look at it did not finish.
 - **Refusals:**
@@ -554,13 +559,16 @@ Three limits are accepted for M0 and are stated here so nobody is surprised by t
     or two jobs carry it; nothing is submitted or cancelled and a person decides what happens
     next.
   - `unsupported_capability`: the provider's answer about the job could not be read. The job
-    is cancelled and the attempt stays open, so a later run can still collect it.
+    is cancelled and the attempt stays open, so a later run can still collect it. Also when
+    the look-up after a submission of unknown outcome itself failed: a job may have been
+    created, the next run looks again, and nothing is submitted again.
   - `idempotency_conflict`: another command is using the grant ledger; nothing is done.
 - **History:** 2026-10-13 added. 2026-10-13 never waits; checks the rate, the image folder and
   the provider's free preflight before a grant use is recorded. 2026-10-13 the job's minutes
   come from the grant, and a cancelled job's cost is read from the provider's receipt.
   2026-10-13 a queue limit, one command at a time, a revoked grant cancels its job, and a
-  submitted job is always collected.
+  submitted job is always collected. 2026-10-13 prints the month's image-build usage before
+  and after, and closes a cancelled job only once its receipt is there.
 
 ### regents techtree model-climb submit \<proof folder\> (M3)
 
