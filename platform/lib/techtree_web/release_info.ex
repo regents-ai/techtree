@@ -73,13 +73,10 @@ defmodule TechtreeWeb.ReleaseInfo do
   """
   @spec climb(t(), String.t()) :: String.t() | nil
   def climb(%{climbs: climbs}, slug) do
-    prefix = slug <> "@"
-
+    # Versions are whole numbers, and a longer one is a higher one.
     climbs
-    |> Enum.filter(&String.starts_with?(&1, prefix))
-    |> Enum.max_by(&(&1 |> String.replace_prefix(prefix, "") |> String.to_integer()), fn ->
-      nil
-    end)
+    |> Enum.filter(&String.starts_with?(&1, slug <> "@"))
+    |> Enum.max_by(&{String.length(&1), &1}, fn -> nil end)
   end
 
   defp describe(instructions, digest) do
