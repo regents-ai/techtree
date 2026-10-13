@@ -1,3 +1,7 @@
 /* The box each rising word or digit sits in (CLIPPED_WORD and CLIPPED_CHAR in the
    motion kit), hiding it until it reaches its place. */
 .split-clip { display: inline-block; overflow: clip; }
+
+/* What a wallet button squishes when pressed, so the button itself keeps its size
+   and a quick second press near its edge still lands on it. A transform needs a box. */
+[data-press-label] { display: inline-block; }

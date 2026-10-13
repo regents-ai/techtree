@@ -25,7 +25,8 @@ defmodule TechtreeWeb.ModelClimbReportController do
           conn,
           400,
           :validation_error,
-          "Send one Idempotency-Key header of 1 to 255 characters."
+          "Send one Idempotency-Key header of 1 to 255 characters.",
+          "Use the proof's digest as the key, and the same key when you retry."
         )
     end
   end
@@ -48,7 +49,13 @@ defmodule TechtreeWeb.ModelClimbReportController do
         )
 
       {:ok, nil} ->
-        refuse(conn, 404, :not_found, "No report with that digest is yours.")
+        refuse(
+          conn,
+          404,
+          :not_found,
+          "No report with that digest is yours.",
+          "`regents techtree model-climb reports` lists your reports."
+        )
     end
   end
 
@@ -70,18 +77,38 @@ defmodule TechtreeWeb.ModelClimbReportController do
               conn,
               409,
               :idempotency_conflict,
-              "This Idempotency-Key was already used for a different proof."
+              "This Idempotency-Key was already used for a different proof.",
+              "Send this proof with its own key; resend the first proof with this one."
             )
 
           %{field: :proof, message: message, vars: vars} ->
-            refuse(conn, 400, :validation_error, message, %{check: Keyword.get(vars, :check)})
+            refuse(
+              conn,
+              400,
+              :validation_error,
+              message,
+              "`regents techtree proof verify` runs every check on your machine; fix the one named and send again.",
+              %{check: Keyword.get(vars, :check)}
+            )
 
           _other ->
-            refuse(conn, 400, :validation_error, "The proof could not be read.")
+            refuse(
+              conn,
+              400,
+              :validation_error,
+              "The proof could not be read.",
+              "Send the proof document of contract 3.5 as the JSON body."
+            )
         end
 
       _other ->
-        refuse(conn, 503, :unavailable, "The report could not be kept. Try again.")
+        refuse(
+          conn,
+          503,
+          :unavailable,
+          "The report could not be kept.",
+          "Send the same request again with the same Idempotency-Key."
+        )
     end
   end
 
@@ -108,8 +135,8 @@ defmodule TechtreeWeb.ModelClimbReportController do
     )
   end
 
-  defp refuse(conn, status, code, message, details \\ nil) do
-    error = %{code: code, message: message}
+  defp refuse(conn, status, code, message, hint, details \\ nil) do
+    error = %{code: code, message: message, hint: hint}
     error = if details, do: Map.put(error, :details, details), else: error
 
     conn

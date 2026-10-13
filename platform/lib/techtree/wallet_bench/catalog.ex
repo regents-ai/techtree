@@ -30,7 +30,8 @@ defmodule Techtree.WalletBench.Catalog do
                  %{id: "H09", name: "oh-my-pi", tests: [:T1a, :T1b, :T2, :T2_signature]},
                  %{id: "H10", name: "Codex CLI", tests: [:T1a, :T1b, :T2, :T2_signature]},
                  %{id: "H12", name: "DeepSeek Harness", tests: [:T1a, :T1b, :T2, :T2_signature]},
-                 %{id: "H13", name: "OpenCode", tests: [:T1a, :T1b, :T2, :T2_signature]}
+                 %{id: "H13", name: "OpenCode", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H16", name: "Prime Agent", tests: [:T1a, :T1b, :T2, :T2_signature]}
                ],
                &{&1.id, &1}
              )
@@ -215,6 +216,48 @@ defmodule Techtree.WalletBench.Catalog do
   @spec harness!(String.t()) :: harness()
   def harness!(id), do: Map.fetch!(@harnesses, id)
 
+  @doc "The exact default release and, where needed, source or archive checksum."
+  def harness_pin!(id),
+    do: "runner/harnesses.json" |> read!() |> Jason.decode!() |> Map.fetch!(id)
+
+  @doc "Digest of prompts, review guides and wallet notes, separate from execution scripts."
+  # Sources are only under the fixed packaged bench directories.
+  # sobelow_skip ["Traversal.FileModule"]
+  def protocol_digest do
+    ["prompts", "review", "wallets"]
+    |> Enum.flat_map(&Path.wildcard(Path.join([root(), &1, "**", "*"])))
+    |> Enum.filter(&File.regular?/1)
+    |> Enum.map(&{Path.relative_to(&1, root()), File.read!(&1)})
+    |> Enum.sort()
+    |> digest()
+  end
+
+  @doc "A manual batch's prompt names its exact wallet release and disclosed access."
+  def attempt_prompt(attempt, test, error \\ nil) do
+    spec = attempt.run_spec
+
+    text =
+      if spec && test == :T2 && attempt.wallet_id == "W01" do
+        read!("prompts/T2.txt") <>
+          "\n" <>
+          (read!("prompts/T2-bankr.txt")
+           |> String.replace("{pair}", pair(attempt.harness_id, "W01")))
+      else
+        prompt(test, attempt.harness_id, attempt.wallet_id, error)
+      end
+
+    if spec do
+      text <>
+        "\n\nRelease comparison: use exactly wallet version " <>
+        spec["wallet_version"] <>
+        ". Do not substitute another release or upgrade it during this attempt. " <>
+        "Report the installed version. If that release cannot be installed, report the blocker. " <>
+        "Access is unassisted: no operator account or paid hosted-agent access is supplied."
+    else
+      text
+    end
+  end
+
   @spec wallet!(String.t()) :: wallet()
   def wallet!(id), do: Map.fetch!(@wallets, id)
 
@@ -319,6 +362,7 @@ defmodule Techtree.WalletBench.Catalog do
 
     ["machine", "runner"]
     |> Enum.flat_map(&Path.wildcard(Path.join([root, &1, "**", "*"])))
+    |> Enum.reject(&("__pycache__" in Path.split(&1) || Path.extname(&1) == ".pyc"))
     |> Enum.filter(&File.regular?/1)
     |> Enum.map(&{Path.relative_to(&1, root), File.read!(&1)})
     |> Enum.sort()

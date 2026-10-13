@@ -16,6 +16,9 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
 
   @job "baseline"
   @wait_seconds 30
+  # A build still running after an hour is stopped and fails, so attempts that
+  # wait for this baseline end instead of waiting for ever.
+  @time_limit "3600"
 
   @impl true
   def change(changeset, _opts, _context) do
@@ -34,14 +37,38 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
   end
 
   defp start(changeset, machine) do
-    {pack, _digest} = Catalog.recipe_pack()
-    script = ["bash", "/work/bin/machine/baseline.sh", machine.harness_id]
+    {pack, digest} = Catalog.recipe_pack()
 
-    with :ok <- Remote.upload_pack(machine.name, pack),
+    script = [
+      "timeout",
+      "--kill-after=60",
+      @time_limit,
+      "bash",
+      "/work/bin/machine/baseline.sh",
+      machine.harness_id
+    ]
+
+    configuration = machine.configuration || Catalog.harness_pin!(machine.harness_id)
+
+    with true <- is_nil(machine.recipe_digest) || machine.recipe_digest == digest,
+         :ok <- Remote.upload_pack(machine.name, pack),
+         :ok <-
+           RegentSprites.write_file(
+             machine.name,
+             "/work/harness.json",
+             Jason.encode!(configuration)
+           ),
          :ok <- Remote.start_job(machine.name, @job, script) do
       wait(changeset)
     else
-      {:error, error} -> Ash.Changeset.add_error(changeset, error)
+      false ->
+        Ash.Changeset.add_error(
+          changeset,
+          "The baseline execution recipe changed; make a new plan."
+        )
+
+      {:error, error} ->
+        Ash.Changeset.add_error(changeset, error)
     end
   end
 
@@ -54,7 +81,12 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
 
   defp built(changeset, machine) do
     with {:ok, manifest} <- Remote.json(machine.name, ["cat", "/work/baseline/manifest.json"]),
-         {:ok, digest} <- Remote.recipe_digest(machine.name) do
+         {:ok, digest} <- Remote.recipe_digest(machine.name),
+         true <- is_nil(machine.recipe_digest) || machine.recipe_digest == digest,
+         true <-
+           is_nil(machine.configuration) ||
+             String.trim_leading(manifest["harness_version"], "v") ==
+               String.trim_leading(machine.configuration["version"], "v") do
       changeset
       |> Ash.Changeset.force_change_attributes(%{
         state: :built,
@@ -63,6 +95,7 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
       })
       |> put_detail(%{manifest: manifest, recipe_digest: digest})
     else
+      false -> failed(changeset, machine, "did not match the requested harness version or recipe")
       {:error, error} -> Ash.Changeset.add_error(changeset, error)
     end
   end

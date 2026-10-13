@@ -140,7 +140,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             <%= if version = turn.checks["version"] do %>
               <dt>Version installed</dt>
               <dd>
-                {if version["installed"] == "", do: "Not shown", else: version["installed"]}{version_note(
+                {if version["installed"] in ["", nil], do: "Not shown", else: version["installed"]}{version_note(
                   version
                 )}
               </dd>
@@ -251,6 +251,11 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
 
   # The last turn of a money attempt is the bench's own check, not a ruling.
   defp scored?(turn), do: turn.judgment != nil and turn.judgment["outcome"] != "UNSCORED"
+
+  defp version_note(%{"matches_requested" => true}), do: ", the release this run asked for."
+
+  defp version_note(%{"matches_requested" => false, "requested" => requested}),
+    do: ", not the #{requested} this run asked for."
 
   defp version_note(%{"matches_survey" => true}), do: ", the same as the survey."
 

@@ -11,14 +11,30 @@ config :techtree, Techtree.Repo,
   migration_default_prefix: database_schema
 
 config :techtree, Oban, prefix: database_schema
+config :error_tracker, prefix: database_schema
+
+# The motion lab at /animations (TechtreeWeb.Showcase). Production must choose
+# "public" or "off", and any other value stops the boot. Development and tests
+# are "public" unless told otherwise.
+showcase =
+  case {config_env(), System.get_env("TECHTREE_SHOWCASE")} do
+    {:prod, "public"} -> :public
+    {:prod, "off"} -> :off
+    {:prod, _setting} -> raise ~s(TECHTREE_SHOWCASE must be set to "public" or "off")
+    {_env, setting} when setting in [nil, "public"] -> :public
+    {_env, "off"} -> :off
+    {_env, _setting} -> raise ~s(TECHTREE_SHOWCASE must be "public" or "off")
+  end
+
+config :techtree, :showcase, showcase
 
 config :regent_sprites, token: System.get_env("SPRITES_TOKEN")
 
-# One OpenAI key for AgentWalletBench: the tested harness's model calls (sent to
+# One Claude key for AgentWalletBench: the tested harness's model calls (sent to
 # the machine per attempt) and the judge's.
-wallet_bench_openai_key = System.get_env("WALLETBENCH_OPENAI_API_KEY")
-config :techtree, Techtree.WalletBench, model_key: wallet_bench_openai_key
-config :regent_openai, api_key: wallet_bench_openai_key
+wallet_bench_anthropic_key = System.get_env("WALLETBENCH_ANTHROPIC_API_KEY")
+config :techtree, Techtree.WalletBench, model_key: wallet_bench_anthropic_key
+config :regent_anthropic, api_key: wallet_bench_anthropic_key
 
 # Optional operator-supplied Bankr access for the assisted W01 wallet test.
 # It is never included in a prompt, recipe, command argument or public record.
@@ -161,22 +177,14 @@ if config_env() == :prod do
     """
   end
 
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
+  # bin/migrate marks its command, which connects with the release login; every other
+  # command and the server connect with the serving login.
+  database_config =
+    if System.get_env("TECHTREE_RELEASE_COMMAND") == "migrate",
+      do: Techtree.DatabaseConfig.release_config!(),
+      else: Techtree.DatabaseConfig.runtime_config!()
 
-  maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
-
-  config :techtree, Techtree.Repo,
-    # ssl: true,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    # For machines with several cores, consider starting multiple pools of `pool_size`
-    # pool_count: 4,
-    socket_options: maybe_ipv6
+  config :techtree, Techtree.Repo, database_config
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

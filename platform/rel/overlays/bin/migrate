@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 cd -P -- "$(dirname -- "$0")"
-exec ./techtree eval Techtree.Release.migrate
+TECHTREE_RELEASE_COMMAND=migrate exec ./techtree eval Techtree.Release.migrate

@@ -133,9 +133,14 @@ defmodule Techtree.WalletBench.Machine do
 
     create :request do
       description "Ask for a new machine for a harness; jobs take it from here. Operator only."
-      accept [:name, :harness_id]
+      accept [:name, :harness_id, :batch_id, :configuration]
       validate one_of(:harness_id, Catalog.harness_ids())
       change set_attribute(:state, :requested)
+
+      change fn changeset, _ ->
+        Ash.Changeset.force_change_attribute(changeset, :recipe_digest, Catalog.recipe_digest())
+      end
+
       change RecordEvent
       change run_oban_trigger(:create_sprite)
     end
@@ -284,6 +289,9 @@ defmodule Techtree.WalletBench.Machine do
 
   attributes do
     uuid_primary_key :id
+
+    attribute :batch_id, :uuid, public?: true
+    attribute :configuration, :map, public?: true
 
     attribute :name, :string do
       description "The machine's name on Sprites."

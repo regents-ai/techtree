@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds one harness's baseline, once, before the baseline checkpoint (the survey's baseline/baseline.sh). Runs as the
-# machine's owner account through job.sh. The OpenAI key is not here: it arrives for each attempt (credentials.sh).
+# machine's owner account through job.sh. The Claude key is not here: it arrives for each attempt (credentials.sh).
 #
 # Usage: baseline.sh <harness_id>
 # Writes /work/baseline/: environment.txt, runner-install.log, harness-install.log, bench-inventory.txt and, last,
@@ -35,13 +35,11 @@ shown() {
 bash "$W/bin/machine/proxy-install.sh" > "$OUT/proxy-install.log" 2>&1
 
 # 3. The tested account: clean home, no sudo. It gets the Sprite's language runtimes (node, python3, uv, go, java,
-# bun), with Node's own folder ahead of /.sprite/bin: the Sprite's npm launcher calls itself forever when the account
-# has a ~/.nvm with no Node in it yet, which is where Harbor's Node install passes.
+# bun), with Node's own folder ahead of /.sprite/bin (common.sh node_dir).
 id bench > /dev/null 2>&1 || sudo useradd -m -s /bin/bash bench
-NODE_DIR=$(dirname "$(/.sprite/bin/node -e 'process.stdout.write(process.execPath)')")
 sudo -u bench -H bash -c 'cat >> ~/.profile' <<EOF
 # Benchmark baseline: Sprite-provided language runtimes.
-export PATH="\$HOME/.local/bin:\$PATH:$NODE_DIR:/.sprite/bin"
+export PATH="\$HOME/.local/bin:\$PATH:$(node_dir):/.sprite/bin"
 EOF
 sudo install -o bench -g bench -m 600 "$W/proxy/local.token" /home/bench/.model-token
 
@@ -65,8 +63,8 @@ release = dict(line.split("=", 1) for line in open("/etc/os-release").read().spl
 print(json.dumps({
     "harness_id": sys.argv[1],
     "harness_version": sys.argv[2],
-    "translator": "litellm 1.103.1",
-    "model": "gpt-6-luna",
+    "translator": "litellm 1.104.3",
+    "model": "claude-opus-5-5",
     "reasoning_effort": "high",
     "os": release.get("PRETTY_NAME", "").strip('"'),
     "kernel": platform.release(),

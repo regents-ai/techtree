@@ -1,0 +1,599 @@
+@layer regents-product {
+/* The motion lab at /animations, on the Overview grammar: one ground,
+   hairline panels, the display face for headings and a mono voice for
+   kickers and versions. Nothing here sets a CSS transition on transform or
+   opacity: the islands move those, and a transition would drag behind them. */
+
+.motion-lab {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 72rem;
+  margin-inline: auto;
+  padding: var(--space-5) var(--rg-page-gutter) var(--space-8);
+}
+
+/* Panels and items the page hides stay hidden whatever layout they have. */
+.motion-lab [hidden] {
+  display: none;
+}
+
+.motion-lab h1,
+.motion-lab h2,
+.motion-lab h3,
+.motion-lab h4 {
+  margin: 0;
+  font-family: var(--font-family-title);
+  font-weight: 400;
+}
+
+.motion-lab p {
+  margin: 0;
+}
+
+.motion-lab__head {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.motion-lab__head h1 {
+  font-size: var(--type-display-size);
+  line-height: var(--type-display-line);
+}
+
+.motion-lab__kicker {
+  color: var(--color-fg-muted);
+  font: 0.72rem/1 var(--font-family-mono);
+  letter-spacing: var(--tracking-microlabel);
+  text-transform: uppercase;
+}
+
+.motion-lab__kicker a {
+  color: inherit;
+}
+
+.motion-lab__lede {
+  max-width: 40rem;
+  color: var(--color-fg-muted);
+}
+
+.motion-lab__section {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.motion-lab__section-head {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.motion-lab__section-head h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--type-headline-size);
+  line-height: var(--type-headline-line);
+}
+
+.motion-lab__section-head h2 span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  background: var(--ash-accent-warm);
+  color: var(--color-fg-on-accent);
+  font: 1rem/1 var(--font-family-mono);
+}
+
+.motion-lab__section-head p {
+  max-width: 44rem;
+  color: var(--color-fg-muted);
+}
+
+.motion-lab__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.motion-lab__row--tight {
+  gap: var(--space-1);
+}
+
+.motion-lab__standard {
+  margin-inline-start: 0.45em;
+  padding: 0.1em 0.35em;
+  border: 1px solid currentColor;
+  font: 0.625rem/1 var(--font-family-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A segmented control: the chosen version is filled with ink. */
+.motion-lab__picker {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-self: start;
+  border: 1px solid var(--ash-line-strong);
+}
+
+.motion-lab__picker button {
+  min-height: 2.25rem;
+  padding: 0.3rem 0.8rem;
+  border: 0;
+  border-inline-end: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-fg-muted);
+  font: 0.8rem/1 var(--font-family-mono);
+  cursor: pointer;
+}
+
+.motion-lab__picker button:last-child {
+  border-inline-end: 0;
+}
+
+.motion-lab__picker button[aria-pressed="true"] {
+  background: var(--color-fg);
+  color: var(--color-bg);
+}
+
+.motion-lab__picker button:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.motion-lab__pickers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.motion-lab__pickers > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.motion-lab__pickers dt {
+  color: var(--color-fg-muted);
+  font: 0.72rem/1 var(--font-family-mono);
+  letter-spacing: var(--tracking-microlabel);
+  text-transform: uppercase;
+}
+
+.motion-lab__pickers dd {
+  margin: 0;
+}
+
+.motion-lab__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-3);
+}
+
+.motion-lab__card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--rg-panel-padding);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.motion-lab__card h3 {
+  font-size: 1.25rem;
+}
+
+/* Sparks, rings and stitches float over everything and never catch a press. */
+.motion-lab__fx {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.motion-lab__fx-spark,
+.motion-lab__fx-ring,
+.motion-lab__fx-stitch {
+  position: absolute;
+  display: block;
+}
+
+.motion-lab__fx-spark {
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: var(--fx-color);
+}
+
+.motion-lab__fx-ring {
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border: 2px solid var(--fx-color);
+  border-radius: 50%;
+}
+
+.motion-lab__fx-stitch {
+  margin: -0.6em 0 0 -0.3em;
+  color: var(--fx-color);
+  font: 700 1.3rem/1 var(--font-family-mono);
+}
+
+/* Panels */
+.motion-lab__menu-anchor {
+  position: relative;
+}
+
+.motion-lab__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 30;
+  display: grid;
+  min-width: 13rem;
+  border: 1px solid var(--ash-line-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  transform-origin: 1.5rem 0;
+}
+
+.motion-lab__menu button {
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-fg);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.motion-lab__menu button:last-child {
+  border-bottom: 0;
+}
+
+.motion-lab__menu button:hover,
+.motion-lab__menu button:focus-visible {
+  background: var(--ash-panel-strong);
+  outline: none;
+}
+
+.motion-lab__shade {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in oklch, var(--color-bg) 72%, transparent);
+}
+
+.motion-lab__drawer,
+.motion-lab__sheet {
+  position: fixed;
+  z-index: 70;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  padding: var(--rg-panel-padding);
+  background: var(--color-surface);
+  color: var(--color-fg);
+}
+
+/* The drawer comes from the left edge, like the phone menu. */
+.motion-lab__drawer {
+  inset: 0 auto 0 0;
+  width: min(24rem, 88vw);
+  border-inline-end: 1px solid var(--ash-line-strong);
+  transform-origin: 0 100%;
+}
+
+.motion-lab__sheet {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: min(36rem, 100%);
+  margin-inline: auto;
+  border: 1px solid var(--ash-line-strong);
+  border-bottom: 0;
+  padding-bottom: max(var(--rg-panel-padding), env(safe-area-inset-bottom));
+}
+
+.motion-lab__drawer header,
+.motion-lab__sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.motion-lab__sheet ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.motion-lab__sheet li {
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+.motion-lab__close {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border: 1px solid var(--ash-line-strong);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.motion-lab__note {
+  position: fixed;
+  bottom: var(--space-3);
+  left: var(--space-3);
+  z-index: 65;
+  display: grid;
+  gap: var(--space-1);
+  width: min(15rem, calc(100vw - 2 * var(--space-3)));
+  padding: var(--space-2);
+  border: 1px solid var(--ash-line-strong);
+  background: color-mix(in oklab, var(--ash-accent-warm) 22%, var(--color-surface));
+  box-shadow: var(--shadow-md);
+  rotate: -2deg;
+  transform-origin: 0 100%;
+}
+
+.motion-lab__note p {
+  font-weight: var(--font-weight-semibold);
+}
+
+.motion-lab__note .motion-lab__close {
+  justify-self: start;
+  font-size: 0.85rem;
+}
+
+/* Things that change */
+.motion-lab__stage {
+  position: relative;
+  min-height: 17rem;
+  padding: var(--space-2);
+  border: 1px dashed var(--ash-line-strong);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+/* The dock holds the place; the list inside it stays in normal flow, so its
+   notes move within the stage rather than against the window. */
+.motion-lab__toast-dock {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  width: min(17rem, calc(100% - 2 * var(--space-2)));
+}
+
+.motion-lab__toasts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.motion-lab__toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: 0.6rem 0.6rem 0.6rem 0.9rem;
+  border: 1px solid var(--ash-line-strong);
+  border-inline-start: 4px solid var(--ash-accent-warm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.85rem;
+}
+
+.motion-lab__toast button {
+  flex: none;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  background: none;
+  color: var(--color-fg-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.motion-lab__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.motion-lab__items li {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid var(--ash-line-strong);
+  background: var(--color-bg);
+  font: 0.8rem/1.2 var(--font-family-mono);
+  white-space: nowrap;
+}
+
+.motion-lab__count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.motion-lab__count [data-count] {
+  font: 3rem/1.1 var(--font-family-title);
+  font-variant-numeric: tabular-nums;
+}
+
+.motion-lab__count-label {
+  color: var(--color-fg-muted);
+}
+
+.motion-lab__task {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--ash-line-strong);
+  background: var(--color-bg);
+}
+
+.motion-lab__task h4 {
+  max-width: 14rem;
+  font-size: 1.1rem;
+}
+
+.motion-lab__stamp {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 3px solid var(--color-success);
+  color: var(--color-success);
+  font: 1.1rem/1 var(--font-family-title);
+  text-transform: uppercase;
+  rotate: -8deg;
+}
+
+.motion-lab__stamp svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: square;
+}
+
+/* Moving between views */
+.motion-lab__tabs {
+  max-width: 36rem;
+}
+
+.motion-lab__tablist {
+  position: relative;
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--ash-line-strong);
+}
+
+.motion-lab__tablist [role="tab"] {
+  padding: 0.8rem 1rem;
+  border: 0;
+  background: none;
+  color: var(--color-fg-muted);
+  font: var(--font-weight-semibold) 0.95rem/1 var(--font-family-ui);
+  cursor: pointer;
+}
+
+.motion-lab__tablist [role="tab"][aria-selected="true"] {
+  color: var(--color-fg);
+}
+
+.motion-lab__tablist [role="tab"]:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.motion-lab__ink {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100px;
+  height: 3px;
+  background: var(--ash-accent-warm);
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+.motion-lab__tabpanel {
+  padding: var(--space-2) 0;
+}
+
+.motion-lab__tabpanel ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.motion-lab__tabpanel li {
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+/* Arriving */
+.motion-lab__headline,
+.motion-lab__cascade {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+.motion-lab__headline p {
+  font: clamp(1.8rem, 5vw, 2.8rem)/1.15 var(--font-family-title);
+}
+
+.motion-lab__cascade ul {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-1);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.motion-lab__cascade li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--ash-line-strong);
+  background: var(--color-bg);
+  font: 0.75rem/1.2 var(--font-family-mono);
+  overflow-wrap: anywhere;
+}
+
+.motion-lab__cascade li span {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  background: var(--ash-accent);
+  color: var(--color-bg);
+  font: 1rem/1 var(--font-family-title);
+}
+
+.motion-lab__cascade li:nth-child(even) span {
+  background: var(--ash-accent-warm);
+}
+
+@media (max-width: 40rem) {
+  .motion-lab__cascade ul {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+}

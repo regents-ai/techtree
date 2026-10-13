@@ -163,7 +163,7 @@ No operation runs a shell, Python, SQL, an arbitrary URL fetch, exports a creden
 
 Success: `{"schema_version": "techtree.model-climb.operation.v1alpha1", "operation_id", ...operation fields, "next_actions": [...]}`.
 
-Failure keeps regents-cli's envelope `{"error": {"code", "message", "details"?}}`. New codes:
+Failure keeps the site's envelope `{"error": {"code", "message", "hint", "details"?}}`; `hint` says what to do next. New codes:
 
 `approval_required`, `unsupported_capability`, `runner_unavailable`, `data_policy_denied`, `proving_access_denied`, `plan_changed`, `budget_exhausted`, `idempotency_conflict`, `job_indeterminate`, `evidence_incomplete`, `release_gate_failed`, `artifact_unavailable`.
 

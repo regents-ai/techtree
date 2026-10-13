@@ -10,6 +10,15 @@ defmodule Techtree.Repo do
   @impl true
   def default_options(_operation), do: [prefix: default_prefix()]
 
+  # PostgreSQL's own catalog (`pg_class`, `pg_namespace`, ...) is never in the
+  # site's schema, so a read of it drops the default above. ErrorTracker's
+  # migration reads it.
+  @impl true
+  def prepare_query(_operation, %{from: %{source: {"pg_" <> _table, nil}}} = query, opts),
+    do: {query, Keyword.delete(opts, :prefix)}
+
+  def prepare_query(_operation, query, opts), do: {query, opts}
+
   @impl true
   def installed_extensions do
     # Add extensions here, and the migration generator will install them.

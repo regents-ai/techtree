@@ -127,7 +127,7 @@ defmodule Techtree.WalletBench.Attempt do
 
     create :request do
       description "Ask for one pair to be tested; jobs take it from here. Operator only."
-      accept [:harness_id, :wallet_id, :plan]
+      accept [:harness_id, :wallet_id, :plan, :batch_id, :replicate, :run_spec]
       validate one_of(:harness_id, Catalog.harness_ids())
       validate one_of(:wallet_id, Catalog.tested_wallet_ids())
 
@@ -415,6 +415,10 @@ defmodule Techtree.WalletBench.Attempt do
   attributes do
     uuid_primary_key :id
 
+    attribute :batch_id, :uuid, public?: true
+    attribute :replicate, :integer, public?: true, constraints: [min: 1, max: 3]
+    attribute :run_spec, :map, public?: true
+
     attribute :harness_id, :string, allow_nil?: false, public?: true
     attribute :wallet_id, :string, allow_nil?: false, public?: true
 
@@ -478,5 +482,9 @@ defmodule Techtree.WalletBench.Attempt do
   aggregates do
     sum :model_spend_usd, :turns, :model_spend_usd, public?: true
     sum :judge_cost_usd, :turns, :judge_cost_usd, public?: true
+  end
+
+  identities do
+    identity :batch_pair_replicate, [:batch_id, :harness_id, :wallet_id, :replicate]
   end
 end

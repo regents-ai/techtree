@@ -20,8 +20,9 @@ defmodule Techtree.WalletBench.Attempt.Changes.LeaseMachine do
   def change(changeset, _opts, _context) do
     Ash.Changeset.before_action(changeset, fn changeset ->
       attempt = changeset.data
+      Techtree.WalletBench.Batch.require_current!(attempt.run_spec)
 
-      case ready_machine(attempt.harness_id) do
+      case ready_machine(attempt) do
         {:ok, nil} ->
           Ash.Changeset.add_error(
             changeset,
@@ -37,18 +38,48 @@ defmodule Techtree.WalletBench.Attempt.Changes.LeaseMachine do
     end)
   end
 
-  defp ready_machine(harness_id) do
-    digest = Catalog.recipe_digest()
+  defp ready_machine(attempt) do
+    harness_id = attempt.harness_id
+    digest = if attempt.run_spec, do: attempt.run_spec["recipe"], else: Catalog.recipe_digest()
+    batch_id = attempt.batch_id
 
-    Machine
-    |> Ash.Query.filter(
-      state == :ready and harness_id == ^harness_id and recipe_digest == ^digest
-    )
+    query =
+      Machine
+      |> Ash.Query.filter(
+        state == :ready and harness_id == ^harness_id and recipe_digest == ^digest
+      )
+
+    query =
+      if batch_id,
+        do: Ash.Query.filter(query, batch_id == ^batch_id),
+        else: Ash.Query.filter(query, is_nil(batch_id))
+
+    query
     |> Ash.Query.lock("FOR UPDATE SKIP LOCKED")
     |> Ash.Query.limit(1)
     # The attempt's own step, inside its authorized action.
     |> Ash.read_one(authorize?: false)
+    |> baseline_failure(attempt)
   end
+
+  defp baseline_failure({:ok, nil}, %{batch_id: batch} = attempt) when not is_nil(batch) do
+    harness = attempt.harness_id
+    query = Machine |> Ash.Query.filter(batch_id == ^batch and harness_id == ^harness)
+
+    case Ash.read_one(query) do
+      {:ok, %{state: state}} when state in [:failed, :retiring, :retired] ->
+        {:error,
+         "The batch's harness baseline failed or was retired; inspect its status and make a new plan."}
+
+      {:error, error} ->
+        {:error, error}
+
+      _ ->
+        {:ok, nil}
+    end
+  end
+
+  defp baseline_failure(result, _attempt), do: result
 
   defp lease(changeset, machine, attempt) do
     machine

@@ -11,12 +11,14 @@ defmodule Techtree.WalletBench.Attempt.Changes.AttachCredentials do
 
   import Techtree.WalletBench.Attempt.Changes.RecordEvent, only: [put_detail: 2]
 
-  alias Techtree.WalletBench.{Catalog, Machine, Remote}
+  alias Techtree.WalletBench.{Batch, Catalog, Machine, Remote}
 
   @impl true
   def change(changeset, _opts, _context) do
     changeset
     |> Ash.Changeset.before_transaction(fn changeset ->
+      Batch.require_current!(changeset.data.run_spec)
+
       with {:ok, machine} <- Ash.get(Machine, changeset.data.machine_id),
            {:ok, "attached\n"} <-
              Remote.run(machine.name, ["bash", "/work/bin/machine/credentials.sh", "attach"],
@@ -37,7 +39,7 @@ defmodule Techtree.WalletBench.Attempt.Changes.AttachCredentials do
       |> Ash.Changeset.for_create(:queue, %{
         attempt_id: attempt.id,
         test: :T1a,
-        prompt: Catalog.prompt(:T1a, attempt.harness_id, attempt.wallet_id, nil)
+        prompt: Catalog.attempt_prompt(attempt, :T1a)
       })
       # Turns have no public writer; the attempt's own step queues the first.
       |> Ash.create(authorize?: false)
@@ -48,7 +50,7 @@ defmodule Techtree.WalletBench.Attempt.Changes.AttachCredentials do
     end)
   end
 
-  @doc "The OpenAI key an attempt's harness calls the model with."
+  @doc "The Claude key an attempt's harness calls the model with."
   @spec model_key() :: String.t()
   def model_key, do: Application.fetch_env!(:techtree, Techtree.WalletBench)[:model_key]
 end

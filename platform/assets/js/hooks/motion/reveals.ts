@@ -38,9 +38,10 @@ type ViewsHook = {el: HTMLElement; scope?: Scope; destination?: string; pointer:
 
 /**
  * The app's pages, switched by the server as the reader moves through the
- * navigation. The shell names where it is in `data-destination` and the
- * version in `data-variant`; a page chosen with a mouse or finger glides in,
- * one reached from the keyboard or the browser's back button is simply there.
+ * navigation: the links inside each `data-shell-nav`, in page order. The shell
+ * names where it is in `data-destination` and the version in `data-variant`; a
+ * page chosen with a mouse or finger glides in, one reached from the keyboard
+ * or the browser's back button is simply there.
  */
 export const ShellViews: Hook = {
   mounted(this: ViewsHook) {
@@ -50,7 +51,7 @@ export const ShellViews: Hook = {
 
     this.scope = scope.add(() => {
       const place = (path?: string) =>
-        [...this.el.querySelectorAll("#shell-sidebar a[href]")].findIndex(
+        [...this.el.querySelectorAll("[data-shell-nav] a[href]")].findIndex(
           link => link.getAttribute("href") === path,
         )
 
@@ -171,13 +172,40 @@ export const GRIDS: Record<string, (cards: Element[]) => JSAnimation> = {
 // are simply there.
 export const CASCADE = 12
 
+/**
+ * Calls `arrive` once, the first time `el` scrolls into view. One already in
+ * view when the page opens, or reached from the keyboard, is simply there.
+ * Returns what stops the watch.
+ */
+export function onFirstSight(el: HTMLElement, arrive: () => void) {
+  let first = true
+  const done = () => {
+    watch.disconnect()
+    el.removeEventListener("focusin", done)
+  }
+  const watch = new IntersectionObserver(([entry]) => {
+    const seen = entry.isIntersecting
+    if (first) {
+      first = false
+      if (seen) done()
+      return
+    }
+    if (!seen) return
+    done()
+    arrive()
+  })
+
+  watch.observe(el)
+  el.addEventListener("focusin", done)
+  return done
+}
+
 type CascadeHook = {el: HTMLElement; scope?: Scope}
 
 /**
  * A list of cards on a live page that settles in as `data-variant` names in
- * `GRIDS`, once, the first time it scrolls into view. One already in view when
- * the page opens, or reached from the keyboard, is simply there. Pages the
- * server draws once cascade their `data-cascade` lists from `motion.ts`.
+ * `GRIDS`, once, the first time it scrolls into view (`onFirstSight`). Pages
+ * the server draws once cascade their `data-cascade` lists from `motion.ts`.
  */
 export const MotionCascade: Hook = {
   mounted(this: CascadeHook) {
@@ -186,27 +214,9 @@ export const MotionCascade: Hook = {
 
     this.scope = scope.add(self => {
       self!.add("cascade", () => GRIDS[list.dataset.variant ?? ""]([...list.children].slice(0, CASCADE)))
-
-      let first = true
-      const done = () => {
-        watch.disconnect()
-        list.removeEventListener("focusin", done)
-      }
-      const watch = new IntersectionObserver(([entry]) => {
-        const seen = entry.isIntersecting
-        if (first) {
-          first = false
-          if (seen) done()
-          return
-        }
-        if (!seen) return
-        done()
+      return onFirstSight(list, () => {
         if (!still(list)) scope.methods.cascade()
       })
-
-      watch.observe(list)
-      list.addEventListener("focusin", done)
-      return done
     })
   },
 

@@ -38,6 +38,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /.well-known/security.txt",
              "get /about",
              "get /agents.md",
+             "get /animations",
              "get /api/model-climb/v1/reports",
              "get /api/model-climb/v1/reports/:digest",
              "get /api/v1/bootstrap",

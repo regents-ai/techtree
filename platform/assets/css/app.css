@@ -5,6 +5,7 @@
 @import "./techtree_pages.css";
 @import "./wallet_bench.css";
 @import "./components/motion.css";
+@import "./animations.css";
 
 /* Palette, type, cut skins and interaction sweeps come from Regent UI.
    Product CSS composes the bounded live crown hero and the ruled document. */
@@ -82,7 +83,7 @@ code { font-size: .9em; }
   /* The prism sits .5rem inside its press target, so an 8px column gap leaves 16px beside it. */
   align-items: center; gap: var(--space-3) var(--space-1);
 }
-.masthead__name { display: inline-flex; align-items: center; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
+.masthead__name { display: inline-flex; align-items: center; min-height: 2.75rem; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
 .masthead__mark { width: 1.5rem; flex: 0 0 auto; }
 .masthead__nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: .875rem; min-width: 0; }
 .masthead__selector { display: flex; flex-wrap: wrap; min-width: 0; }
@@ -117,7 +118,7 @@ code { font-size: .9em; }
 }
 .product-links > .rg-disclosure { flex: 1 1 18rem; max-width: 40rem; margin-left: auto; }
 .product-links__related { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.product-links a { display: inline-flex; align-items: center; min-height: 2.75rem; }
+.product-links a { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; }
 
 /* Product-owned links consume the same primary skin/label as real buttons.
    No local pseudo-element or animation overrides the canonical shimmer. */
@@ -253,7 +254,7 @@ code { font-size: .9em; }
 .pagecopy { position: relative; display: inline-flex; align-items: stretch; max-width: 100%; gap: 1px; }
 .pagecopy__main { min-height: 2.75rem; font-size: .875rem; }
 .pagecopy details { position: static; }
-.pagecopy summary { min-height: 100%; display: flex; align-items: center; padding: var(--space-1) var(--space-2); border: 1px solid var(--hairline-strong); cursor: pointer; list-style: none; }
+.pagecopy summary { min-width: 2.75rem; min-height: 100%; display: flex; align-items: center; justify-content: center; padding: var(--space-1) var(--space-2); border: 1px solid var(--hairline-strong); cursor: pointer; list-style: none; }
 .pagecopy summary::-webkit-details-marker { display: none; }
 .pagecopy__menu { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: 30; width: 20rem; max-width: calc(100vw - 4rem); border: 1px solid var(--hairline-strong); background: var(--color-surface); padding: var(--space-1); transform-origin: 100% 0; }
 .pagecopy__item { display: block; width: 100%; text-align: left; font-size: .875rem; }

@@ -4,9 +4,9 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "1564d79eb3b653f06ab11b6c422bd4d6283ea199"
+  @elixir_utils_ref "e4e3d0fffaa19799c22ab5f765e4153ec6b0a691"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "9faee245bad741a40e0dcd232dddb29e244b8c2e"
+  @design_system_ref "d3408b5757732e05aaf208d829f65f1bb12147c0"
 
   def project do
     [
@@ -69,11 +69,12 @@ defmodule Techtree.MixProject do
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
       {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
       {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
-      {:regent_openai, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "openai"},
+      {:regent_anthropic, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "anthropic"},
       # The wallet bench signs its funding sends with it.
+      # regent_credits names regent_chain by a sibling path; this pin replaces it.
       {:regent_chain,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "chain", override: true},
-      # regent_openai names regent_http by a sibling path; this pin replaces it.
+      # regent_anthropic names regent_http by a sibling path; this pin replaces it.
       {:regent_http, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "http", override: true},
       # The ref regent_agents already brings; the bench recovers signatures with it.
       {:siwa,
@@ -87,6 +88,7 @@ defmodule Techtree.MixProject do
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ash_components/identity"},
       {:regent_agents,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ash_components/agents", override: true},
+      {:error_tracker, "~> 0.9"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
@@ -121,7 +123,7 @@ defmodule Techtree.MixProject do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:decimal, "~> 3.1"},
+      {:decimal, "== 3.1.2"},
       {:dns_cluster, "~> 0.3.0"},
       {:bandit, "~> 1.5"}
     ]

@@ -286,11 +286,14 @@ monorepo root.
 
 | Variable | What it is for |
 | --- | --- |
-| `DATABASE_URL` | required in production |
+| `DATABASE_POOLED_URL` | the serving login, required in production |
+| `DATABASE_DIRECT_URL` | the migration login, required by `bin/migrate` |
+| `TECHTREE_DEPLOYMENT_ROLE` | `production` on techtree.sh, `staging` in the release smoke check; required |
 | `SECRET_KEY_BASE` | required in production |
 | `PHX_HOST`, `PORT` | endpoint |
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
+| `TECHTREE_SHOWCASE` | `public` or `off`: whether the motion lab at `/animations` exists; required in production, `public` elsewhere unless set |
 
 No model-provider credential is read by this application.
 
@@ -299,7 +302,7 @@ No model-provider credential is read by this application.
 
 Development and test databases use `public` by default. Production runs on the shared
 `regents_prod` database (Fly Managed Postgres cluster `regents-platform-prod`) with
-`TECHTREE_DB_SCHEMA=techtree_app`, set as a Fly secret together with the two attached
+`TECHTREE_DB_SCHEMA=techtree_app`, set as a Fly secret together with the two
 database URLs; that namespace holds the complete product schema, publication sequence
 and migration ledger. Regents' historical `techtree` schema is a separate retained source.
 
@@ -324,11 +327,10 @@ identified shared destination, before enabling profiles on consumers.
 
 ### Separate migration credentials
 
-`Techtree.Release.migrate()` requires `DATABASE_DIRECT_URL`, a PostgreSQL URL
-with explicit migration-owner credentials and no query parameters or fragment.
-`DATABASE_URL` remains the runtime connection. Run migration commands in a fresh
-release `eval` process; they refuse an already-running Repo and restore its
-configuration afterward. Local `mix ecto.migrate` keeps its existing development
-configuration. The selected product schema, TLS and socket options are retained;
-supply transport settings appropriate to the direct endpoint. Existing imported
-history must be present before selecting the shared product namespace.
+`bin/migrate` runs `Techtree.Release.migrate()` with the migration login,
+`DATABASE_DIRECT_URL`; the server and every other release command use the
+serving login, `DATABASE_POOLED_URL`. Both must name the shared cluster's direct
+host (`lib/techtree/database_config.ex`), and in production the migrate command
+also requires the cluster settings in `fly.toml`. Local `mix ecto.migrate` keeps
+its development configuration. Existing imported history must be present
+before selecting the shared product namespace.

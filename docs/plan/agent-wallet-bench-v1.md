@@ -179,10 +179,12 @@ Techtree; an attempt only leases a machine whose digest matches, so a changed re
 - `harness/H05/`: the survey's Claude Code install, turn command and stream parser, unchanged.
 
 The translator is the survey's LiteLLM 1.103.1 setup (every call `gpt-6-luna` at high effort) with two additions:
-gpt-6-luna's list price (input $0.10, cached input $0.01, output $0.50 per million tokens, short context) so it can
-count spend, and a small hook (`machine/bench_hooks.py`) that adds up LiteLLM's own cost for each answered call and
-refuses further calls once an attempt has spent $5. LiteLLM's built-in `max_budget` is not used: without a database it
-is not enforced. Every call's cost is logged beside its model and effort. The translator's own output goes to a file under `/work`, never to the Sprites
+gpt-6-luna's list price (`machine/proxy-install.sh`, long prompts and cache writes included) so it can count spend,
+and a small hook (`machine/bench_hooks.py`) that caps an attempt's model calls at $5: each call in flight holds the
+most one call can cost, and each call is charged its price, or that most when the harness cut its stream or no answer
+came back. Only the harness's own tools reach the model and nothing runs in the background, because OpenAI bills its
+hosted tools and background responses apart from the answer. LiteLLM's built-in `max_budget` is not used: without a database it is not enforced. Every call's charge is
+logged beside its model and effort. The translator's own output goes to a file under `/work`, never to the Sprites
 service log, which any account can read.
 
 ### Found while building: the tested account could reach the machine's controls

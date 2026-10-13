@@ -6,7 +6,9 @@ shift
 HELP="$*"
 echo "captured_at=$(date -u +%FT%TZ)"
 echo "--- which"
-if P=$(command -v "$EXE"); then echo "$P"; readlink -f "$P"
+# Looked up in a login shell of its own, as the agent would find it; only the path it prints is kept.
+P=$(bash -lc 'command -v "$1"' bash "$EXE" 2>/dev/null | tail -1)
+if [ -f "$P" ] && [ -x "$P" ]; then echo "$P"; readlink -f "$P"
 else
   P=$(find ~ -name "$EXE" \( -type f -o -type l \) -perm -u+x \( -not -path "*/node_modules/*" -o -path "*/node_modules/.bin/*" \) 2>/dev/null | head -1)
   echo "NOT ON PATH in a login shell; found by search: ${P:-nothing}"
@@ -19,7 +21,16 @@ echo "--- second help (exit)"; "$P" $HELP < /dev/null > /dev/null 2>&1; echo "ex
 echo "--- version attempts (exit)"
 # The bare word "version" only when help lists it as a command: some wallet CLIs send loose words to their AI.
 V="--version -V"; grep -qE "^\s+version\b" /tmp/verify-help.txt && V="$V version"
-for v in $V; do echo "\$ $P $v"; timeout 20 "$P" $v < /dev/null 2>&1 | head -3; echo "exit=${PIPESTATUS[0]}"; done
+# Each attempt is also kept as one line, its exit status and its output in base64, for the version proof at the end:
+# printed output cannot fake a line there. The tools that build it are the system's own, not ones the account installed,
+# and none of the account's startup files run first (common.sh as_bench).
+PROOF=""
+for v in $V; do
+  echo "\$ $P $v"
+  O=$(/usr/bin/timeout 20 "$P" $v < /dev/null 2>&1 | /usr/bin/head -3; exit "${PIPESTATUS[0]}"); E=$?
+  printf '%s\n' "$O"; echo "exit=$E"
+  PROOF="$PROOF$E $(printf '%s' "$O" | /usr/bin/base64 -w0)"$'\n'
+done
 echo "--- npm packages (bench prefixes)"
 npm ls -g --depth=0 2>&1 | tail -n +1
 for p in ~/.local ~/.npm-global; do test -d $p/lib/node_modules && npm ls -g --prefix $p --depth=0 2>&1; done
@@ -30,3 +41,5 @@ ls -la ~/.local/bin ~/bin ~/.foundry/bin ~/go/bin 2>/dev/null
 echo "--- files owned by bench outside its home and the agent's log folder /logs/agent (expect none)"
 find / -xdev -user bench -not -path "/home/bench" -not -path "/home/bench/*" -not -path "/proc/*" -not -path "/tmp/*" \
   -not -path /logs/agent -not -path "/logs/agent/*" 2>/dev/null | head -20
+echo "--- version proof (exit, base64 output)"
+printf '%s' "$PROOF"

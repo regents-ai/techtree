@@ -38,6 +38,11 @@ defmodule TechtreeWeb.Router do
     plug TechtreeWeb.Plugs.PairedAgent
   end
 
+  # The motion lab: public unless the showcase is off (TechtreeWeb.Showcase).
+  pipeline :motion_lab do
+    plug TechtreeWeb.Showcase, :motion_lab
+  end
+
   # The public profile page is temporarily withdrawn. Keep the owner-only
   # API and implementation intact for its later return.
   scope "/api/v1", TechtreeWeb do
@@ -78,6 +83,14 @@ defmodule TechtreeWeb.Router do
     # The addresses release documents already point at, unchanged.
     live "/start", StartLive
     live "/climbs/:slug", ClimbsLive.Show
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through [:motion_lab, :html_only, :browser]
+
+    live_session :motion_lab, on_mount: [{TechtreeWeb.Showcase, :motion_lab}] do
+      live "/animations", AnimationsLive, :index
+    end
   end
 
   scope "/", TechtreeWeb do

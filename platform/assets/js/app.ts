@@ -15,6 +15,7 @@ import {Optics, type OpticsHook} from "./optics_controller"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList} from "./hooks/motion/moments"
+import {hooks as labHooks} from "./motion_lab"
 import {installPublicTools} from "./public_tools"
 
 mountMotion(document)
@@ -179,6 +180,8 @@ const Hooks: Record<string, object> = {
     },
   },
   MotionList,
+  // The motion lab's own presses and moments, used only on /animations.
+  ...labHooks,
 }
 
 type AgentVersionsHook = {

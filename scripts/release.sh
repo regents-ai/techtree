@@ -9,9 +9,10 @@
 # dependency at the version the lockfiles pin; the shared libraries'
 # repositories are public, so the build takes no credentials.
 #
-# The smoke check starts the image against a throwaway PostgreSQL 17 on its own
-# Docker network and removes both afterwards. It runs the release's migrate
-# command against it, imports the catalog snapshot this tree added last on the
+# The smoke check starts the image, in the staging role, against a throwaway
+# PostgreSQL 17 named as the staging database on its own Docker network, and
+# removes both afterwards. It runs the release's migrate command against it,
+# imports the catalog snapshot this tree added last on the
 # stable channel, as production does, starts the server, and checks the health
 # endpoint, the home page, a built stylesheet and the running server's
 # database connection. The signing key and secret are thrown away with it.
@@ -24,7 +25,7 @@ commit="$(git rev-parse HEAD)"
 image="techtree:${commit:0:12}"
 run="techtree-smoke-$$"
 context="$(mktemp -d)"
-database_url="postgres://smoke:smoke@db/techtree_smoke"
+database_url="postgres://smoke:smoke@regents-staging-db.internal/techtree_smoke"
 catalog="$(git log -1 --no-renames --diff-filter=A --name-only --format= "$commit" -- platform/priv/catalog/sources | head -n 1 | cut -d/ -f5)"
 
 cleanup() {
@@ -68,7 +69,7 @@ digest="$(docker image inspect --format '{{.Id}}' "$image")"
 echo "==> Starting a throwaway database"
 docker network create --ipv6 "$run" >/dev/null
 docker run --detach --name "$run-db" --network "$run" \
-  --network-alias db \
+  --network-alias regents-staging-db.internal \
   --env POSTGRES_USER=smoke --env POSTGRES_DB=techtree_smoke \
   --env POSTGRES_HOST_AUTH_METHOD=trust \
   docker.io/library/postgres:17 >/dev/null
@@ -76,12 +77,14 @@ wait_for "the database" docker exec "$run-db" pg_isready --quiet --host 127.0.0.
 
 release_env=(
   --network "$run"
-  --env DATABASE_URL="$database_url"
+  --env TECHTREE_DEPLOYMENT_ROLE=staging
+  --env DATABASE_POOLED_URL="$database_url"
   --env DATABASE_DIRECT_URL="$database_url"
   --env PHX_HOST=localhost
   --env SECRET_KEY_BASE="$(openssl rand -base64 48)"
   --env TECHTREE_NETWORK_SIGNING_KEY="$(openssl rand -base64 32)"
   --env TECHTREE_BOOTSTRAP_CHANNEL=stable
+  --env TECHTREE_SHOWCASE=public
 )
 
 echo "==> Migrating the database and importing catalog $catalog with the release commands"
