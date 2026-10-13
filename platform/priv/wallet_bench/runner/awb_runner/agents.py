@@ -35,6 +35,8 @@ from harbor.models.trajectories import (
 )
 from harbor.utils.trajectory_utils import format_trajectory_json
 
+from . import digest
+
 TRANSLATOR = "http://127.0.0.1:4000/v1"
 MODEL = "claude-opus-5-5"
 TOKEN = "/home/bench/.model-token"
@@ -59,13 +61,8 @@ class ClaudeCodeAgent(ClaudeCode):
 
     async def install(self, environment: BaseEnvironment) -> None:
         await super().install(environment)
-        await self.exec_as_agent(
-            environment,
-            command=(
-                'export PATH="$HOME/.local/bin:$PATH" && '
-                f"""echo "{self.BINARY_SHA256}  $(readlink -f "$(command -v claude)")" | sha256sum -c -"""
-            ),
-        )
+        claude = '$(export PATH="$HOME/.local/bin:$PATH"; readlink -f "$(command -v claude)")'
+        await digest.held(self, environment, self.BINARY_SHA256, claude)
 
 
 class HermesAgent(Hermes):
@@ -260,8 +257,14 @@ class OhMyPi(Pi):
             command=(
                 "set -euo pipefail; "
                 "curl -fsSL https://omp.sh/install -o /tmp/omp-install.sh && "
-                f"sh /tmp/omp-install.sh --binary --ref {self._version} && "
-                f"echo '{self.BINARY_SHA256}  .local/bin/omp' | sha256sum -c - && "
+                f"sh /tmp/omp-install.sh --binary --ref {self._version}"
+            ),
+        )
+        await digest.held(self, environment, self.BINARY_SHA256, "$HOME/.local/bin/omp")
+        await self.exec_as_agent(
+            environment,
+            command=(
+                "set -euo pipefail; "
                 "mkdir -p ~/.omp/agent && "
                 f"echo {shlex.quote(models)} > ~/.omp/agent/models.yml && "
                 f"printf 'modelRoles:\\n  default: translator/{MODEL}\\n' > ~/.omp/agent/config.yml && "

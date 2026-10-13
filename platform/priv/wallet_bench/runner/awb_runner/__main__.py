@@ -3,6 +3,8 @@
   python -m awb_runner setup <harness_id>
       Installs the agent for the baseline (Harbor's setup) and prints its version. An agent npm installs is held to
       its pinned fingerprint (npm.py), and what npm resolved for it is written to /work/baseline/npm.json.
+      An agent installed from a file with a pinned SHA-256 has sha256sum's own line printed and written to
+      /work/baseline/digest.json (digest.py).
   python -m awb_runner version <harness_id>
       Prints the installed agent's version, asked as the tested account.
   python -m awb_runner turn <harness_id> <turn_dir> <wall_cap_seconds> <resume_session_id | ->

@@ -4,7 +4,7 @@
 #
 # Usage: baseline.sh <harness_id>
 # Writes /work/baseline/: environment.txt, runner-install.log, harness-install.log, npm.json (agents npm installs),
-# bench-inventory.txt and, last,
+# digest.json (agents installed from a file with a pinned SHA-256), bench-inventory.txt and, last,
 # manifest.json (what readiness and every attempt compare against).
 set -euo pipefail
 source /work/bin/machine/common.sh
@@ -73,6 +73,8 @@ print(json.dumps({
     "memory_bytes": os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES"),
     # For an agent npm installs: the registry, the pinned fingerprint and everything npm resolved (runner npm.py).
     **({"npm": json.load(open("/work/baseline/npm.json"))} if os.path.exists("/work/baseline/npm.json") else {}),
+    # For an agent installed from a file with a pinned SHA-256: the digest and sha256sum's own line (runner digest.py).
+    **({"digest": json.load(open("/work/baseline/digest.json"))} if os.path.exists("/work/baseline/digest.json") else {}),
 }))
 EOF
 cat "$OUT/manifest.json"

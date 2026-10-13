@@ -13,6 +13,7 @@ from harbor.agents.model_connection import ModelConnectionSpec
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
+from . import digest
 from .agents import INSTRUCTION, MODEL, TOKEN, TRANSLATOR, _piped_instruction
 
 
@@ -49,8 +50,11 @@ class PrimeAgent(Pi):
             "set -euo pipefail; "
             'test "$(uname -m)" = x86_64; '
             'mkdir -p "$HOME/.local/share/prime-agent" "$HOME/.local/bin" "$HOME/.prime/agent"; '
-            f"curl --proto '=https' --proto-redir '=https' -fsSL {shlex.quote(url)} -o /tmp/prime-agent.tgz; "
-            f"printf '%s  /tmp/prime-agent.tgz\\n' {shlex.quote(self.archive_sha256)} | sha256sum -c -; "
+            f"curl --proto '=https' --proto-redir '=https' -fsSL {shlex.quote(url)} -o /tmp/prime-agent.tgz"
+        ))
+        await digest.held(self, environment, self.archive_sha256, "/tmp/prime-agent.tgz")
+        await self.exec_as_agent(environment, command=(
+            "set -euo pipefail; "
             'tar -xzf /tmp/prime-agent.tgz -C "$HOME/.local/share/prime-agent"; '
             'ln -s "$HOME/.local/share/prime-agent/prime-agent" "$HOME/.local/bin/prime-agent"; '
             f"printf '%s\\n' {shlex.quote(json.dumps(models))} > ~/.prime/agent/models.json; "
