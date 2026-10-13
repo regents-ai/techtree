@@ -353,11 +353,13 @@ Model Climb fine-tunes an open model privately and measures whether it got bette
 contract is [docs/spec/model-climb-v1.md](../docs/spec/model-climb-v1.md); its objects,
 operation ids, errors and grants are defined there, not here. Every `model-climb` command is
 native code in regents-cli and runs on this machine, except the two private report reads
-(M3), which `commands.json` describes. The three M0 commands below call nothing on the site;
+(M3), which `commands.json` describes. The five M0 commands below call nothing on the site;
 the three M3 commands after them send and read a person's private reports. Each other
 operation in the contract gets its section here before it is built.
 
-None of these commands rents a machine, calls a paid model or sends data anywhere.
+One command rents a machine: `profile test`, and only with the operator's grant for that run.
+`plan --profile` reads the provider's price and rents nothing. No other command here rents a
+machine, calls a paid model or sends data anywhere.
 
 ### regents techtree model-climb capabilities
 
@@ -388,7 +390,7 @@ None of these commands rents a machine, calls a paid model or sends data anywher
 - **Inputs:**
   - `<profile>`: `m0-qwen3.5-9b`, the only profile in M0.
   - `--dry-run`: required in M0. The paid step (7.4 step 2) is a separate operation,
-    `model_climb_profile_test`, described here when its grant exists.
+    `model_climb_profile_test`, below.
 - **Answer:** the resolved recipe digest, the renderer and loss-mask result per fixture, and the
   matched module list with its count against the expected 248.
 - **Refusals:**
@@ -411,12 +413,67 @@ None of these commands rents a machine, calls a paid model or sends data anywher
   - `--operation <operation id>`: the one operation it admits.
   - `--max-usd`, `--max-hours`, `--max-attempts`, `--expires-in`: the limits it binds.
 - **Answer:** prints the full bound record (every field in contract section 6), then asks the
-  operator to type the plan's first 12 hex characters to confirm. `--yes` and `--reviewed-on`
-  are not accepted. On confirmation it answers with the grant id and its file.
+  operator two things: to attest that automatic top-up is off and the balance is no more than
+  the workspace's monthly limit (contract 6.1), and to type the grant's maximum USD as shown
+  (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On confirmation
+  it writes the grant's `issued` line to the grant ledger and answers with the grant id and its
+  file.
 - **Refusals:**
   - `plan_changed`: the plan's digest no longer matches the stored plan.
   - `validation_error`: a missing limit, or the typed confirmation did not match.
-- **History:** 2026-10-12 added.
+- **History:** 2026-10-12 added. 2026-10-13 the typed confirmation is the maximum USD, and the
+  grant ledger and the two attestations are added, with the first paid step.
+
+### regents techtree model-climb plan --profile \<profile\> --max-usd \<n\>
+
+- **What it does:** drafts the resolved plan for a profile's paid compatibility test (contract
+  7.4 step 2). It writes the fixed study, dataset release, benchmark release and recipe for
+  that profile from the profile's own pinned values and the four public synthetic fixtures,
+  reads the provider's current rate, and works out the job's minutes: the largest whole number
+  whose cost is no more than `--max-usd`.
+- **Who may run it:** anyone on the operator's machine. It rents nothing.
+- **What it changes:** writes the plan and its objects under `<techtree home>/model-climb/`.
+  It reads the provider's price; it submits nothing. Nothing on the site.
+- **Route:** none. Operation `model_climb_plan` (draft).
+- **Inputs:**
+  - `--profile <profile>`: `m0-qwen3.5-9b`, the only profile in M0.
+  - `--max-usd <n>`: the most the test may cost. At most 20 for a profile test.
+- **Answer:** the plan digest, the GPUs, the minutes, the rate read, the worst-case cost, the
+  egress list, and that the image build is not inside the maximum.
+- **Refusals:**
+  - `validation_error`: an unknown profile, `--max-usd` above 20 or too small to buy one
+    minute, or no successful `profile check --dry-run` report for this profile's recipe.
+  - `unsupported_capability`: the provider's price could not be read.
+- **History:** 2026-10-13 added.
+
+### regents techtree model-climb profile test \<profile\> --grant \<grant id\>
+
+- **What it does:** the paid step of the compatibility test (contract 7.4 steps 2 and 3): one
+  batch job on two H100s that loads the pinned model revision, runs a short training on the
+  fixtures, checks the adapter, serves it, compares its answer with the base model's, then
+  confirms with the provider that the job has ended and records what it cost.
+- **Who may run it:** the operator, with a grant issued for `model_climb_profile_test` on this
+  profile's plan. This is the only form of the command; nothing is rented without the grant.
+- **What it changes:** rents compute on the operator's account at the provider, up to the
+  grant's maximum, in one attempt with no restart. Before submitting it writes a `used` line
+  with the attempt's intent id to the grant ledger. Writes the attempt and the measured
+  profile under `<techtree home>/model-climb/`. Nothing on the site.
+- **Route:** none. Operation `model_climb_profile_test` (spend).
+- **Inputs:**
+  - `<profile>`: `m0-qwen3.5-9b`.
+  - `--grant <grant id>`: the grant that admits this run.
+- **Answer:** the measured compatibility profile and its digest, the built image's digest from
+  the provider's receipt, the measured cost, and that the egress list was declared and not
+  enforced by the provider.
+- **Refusals:**
+  - `approval_required`: no grant, a grant for another operation, plan or actor, an expired or
+    revoked grant, a grant with no `issued` line, or one whose uses are spent.
+  - `plan_changed`: the plan's digest no longer matches the stored plan.
+  - `budget_exhausted`: the provider's worst-case cost for the job is more than the grant
+    allows; the job is cancelled before it runs.
+  - `job_indeterminate`: the submission's outcome is unknown and no job carries the intent id;
+    nothing is submitted again and a person decides what happens next.
+- **History:** 2026-10-13 added.
 
 ### regents techtree model-climb submit \<proof folder\> (M3)
 
