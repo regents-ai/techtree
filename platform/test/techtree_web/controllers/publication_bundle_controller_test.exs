@@ -27,7 +27,7 @@ defmodule TechtreeWeb.PublicationBundleControllerTest do
   setup do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
-    :ok
+    NetworkFixture.sign_as(NetworkFixture.paired_agent())
   end
 
   describe "downloading a published run" do
@@ -37,6 +37,7 @@ defmodule TechtreeWeb.PublicationBundleControllerTest do
       posted =
         conn
         |> from_own_address()
+        |> NetworkFixture.signed()
         |> put_req_header("content-type", "application/json")
         |> post("/api/v1/publications", submitted)
 
@@ -101,6 +102,7 @@ defmodule TechtreeWeb.PublicationBundleControllerTest do
 
       conn
       |> from_own_address()
+      |> NetworkFixture.signed()
       |> put_req_header("content-type", "application/json")
       |> post("/api/v1/publications", NetworkFixture.withdrawal(entry.bundle_digest, keys))
       |> then(&assert(&1.status == 200))

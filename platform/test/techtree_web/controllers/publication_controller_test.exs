@@ -43,6 +43,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
   setup %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
+    NetworkFixture.sign_as(NetworkFixture.paired_agent())
 
     {:ok, conn: from_own_address(conn)}
   end
@@ -135,6 +136,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
     test "a body that is not sent as JSON is refused before anything is read", %{conn: conn} do
       conn =
         conn
+        |> NetworkFixture.signed()
         |> put_req_header("content-type", "application/octet-stream")
         |> post("/api/v1/publications", NetworkFixture.submission())
 
@@ -927,6 +929,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
 
   defp publish(conn, body) do
     conn
+    |> NetworkFixture.signed()
     |> put_req_header("content-type", "application/json")
     |> post("/api/v1/publications", body)
   end

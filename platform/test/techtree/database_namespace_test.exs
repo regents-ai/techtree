@@ -8,10 +8,12 @@ defmodule Techtree.DatabaseNamespaceTest do
   alias Techtree.Repo
 
   setup do
-    unless Repo.config()[:database] == "techtree_test" <> System.fetch_env!("MIX_TEST_PARTITION") do
+    unless Repo.config()[:database] == "techtree_test" <> System.get_env("MIX_TEST_PARTITION", "") do
       raise "Namespace tests require the prepared disposable database"
     end
 
+    # Agent pairings are read through the named repository (`RegentAgents.Authority`).
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
     original = Application.fetch_env!(:techtree, Repo)
     on_exit(fn -> Application.put_env(:techtree, Repo, original) end)
     Application.put_env(:techtree, Repo, Keyword.put(original, :default_prefix, "techtree_app"))

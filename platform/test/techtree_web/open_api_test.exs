@@ -7,19 +7,24 @@ defmodule TechtreeWeb.OpenAPITest do
 
   use ExUnit.Case, async: true
 
-  test "every /api/v1 route, agent request and /healthz is described with an operation id" do
+  test "every API route, account tool, agent request and /healthz is described with an operation id" do
     paths = TechtreeWeb.OpenAPI.document()["paths"]
 
     routes =
       for %{verb: verb, path: path} <- TechtreeWeb.Router.__routes__(),
-          path == "/healthz" or String.starts_with?(path, "/api/v1/"),
+          path == "/healthz" or
+            String.starts_with?(path, ["/api/v1/", "/api/model-climb/v1/", "/tools/account/"]),
           do: {Regex.replace(~r/:(\w+)/, path, "{\\1}"), Atom.to_string(verb)}
 
-    # The agent requests are one mount, answering two requests.
+    # The agent requests are one mount, answering three requests.
     routes =
       routes ++
         for %{plug: RegentAgents.HTTP} <- TechtreeWeb.Router.__routes__(),
-            request <- [{"/api/agents/v1/pair", "post"}, {"/api/agents/v1/me", "get"}],
+            request <- [
+              {"/api/agents/v1/pair", "post"},
+              {"/api/agents/v1/me", "get"},
+              {"/api/agents/v1/whoami", "get"}
+            ],
             do: request
 
     for {path, verb} <- routes do

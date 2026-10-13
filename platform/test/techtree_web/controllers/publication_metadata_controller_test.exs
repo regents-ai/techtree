@@ -8,12 +8,13 @@ defmodule TechtreeWeb.PublicationMetadataControllerTest do
   setup do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
-    :ok
+    NetworkFixture.sign_as(NetworkFixture.paired_agent())
   end
 
   test "passes the two metadata headers to the immutable publication projection", %{conn: conn} do
     conn =
       conn
+      |> NetworkFixture.signed()
       |> put_req_header("content-type", "application/json")
       |> put_req_header("x-techtree-skill-name", "controller-skill")
       |> put_req_header(

@@ -27,6 +27,8 @@ defmodule Techtree.NetworkFixture do
   alias Techtree.Canonical
   alias Techtree.Catalog.Digest
   alias Techtree.Network.Key
+  alias Ecto.Adapters.SQL
+  alias Techtree.Repo
 
   @root Path.expand("fixtures/proof-v4", __DIR__)
   @cli_submission Path.expand("fixtures/publication/v3-submission.json", __DIR__)
@@ -37,6 +39,7 @@ defmodule Techtree.NetworkFixture do
   @withdrawal_schema_version "techtree.publication-withdrawal.v1alpha1"
   @report_schema_version "techtree.uplift-report.v3"
   @manifest "bundle.json"
+  @fixture_proof "fixture-proof"
 
   @doc """
   Every file of the bundle, keyed by its path inside it.
@@ -378,22 +381,110 @@ defmodule Techtree.NetworkFixture do
   def publish(submitted \\ submission(), options \\ []) do
     {:ok, key} = Key.load()
 
-    Techtree.Network.Ingest.accept(
-      submitted,
-      key,
-      Keyword.put_new(options, :origin, TechtreeWeb.Endpoint.url())
-    )
+    options =
+      options
+      |> Keyword.put_new(:origin, TechtreeWeb.Endpoint.url())
+      |> Keyword.put_new_lazy(:actor, &paired_agent/0)
+
+    Techtree.Network.Ingest.accept(submitted, key, options)
   end
 
   @doc """
-  Withdraw one published entry through the ingest, with the network key and
-  origin the controller would hand it.
+  Withdraw one published entry through the ingest, with the network key,
+  origin and paired agent the controller would hand it.
   """
   @spec withdraw(binary()) :: term()
   def withdraw(request) do
     {:ok, key} = Key.load()
 
-    Techtree.Network.Ingest.withdraw(request, key, TechtreeWeb.Endpoint.url())
+    Techtree.Network.Ingest.withdraw(request, key, TechtreeWeb.Endpoint.url(),
+      actor: paired_agent()
+    )
+  end
+
+  @doc """
+  Answer each signature check the site sends the sign-in service as `agent`'s,
+  the way the service answers a valid proof, for a request carrying `signed/1`'s
+  header, and as a missing proof otherwise. Only the stub's verdict is
+  fixture; the pairing and account checks after it are the site's own.
+  """
+  @spec sign_as(%{wallet: String.t()}) :: :ok
+  def sign_as(%{wallet: wallet}) do
+    Req.Test.stub(RegentAgents.Broker, fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+
+      if Jason.decode!(body)["headers"]["x-siwa-signature"] == @fixture_proof do
+        Req.Test.json(conn, %{
+          code: "http_envelope_valid",
+          data: %{
+            verified: true,
+            walletAddress: wallet,
+            agentBook: nil,
+            agentRegistration: nil,
+            principal: %{
+              kind: "wallet",
+              wallet_address: wallet,
+              chain_id: 8453,
+              audience: "techtree"
+            }
+          }
+        })
+      else
+        conn
+        |> Plug.Conn.put_status(401)
+        |> Req.Test.json(%{
+          error: %{
+            code: "http_headers_missing",
+            message: "Signed agent proof required",
+            hint: "Sign with SIWA"
+          }
+        })
+      end
+    end)
+
+    :ok
+  end
+
+  @doc "A request carrying the proof `sign_as/1` accepts."
+  @spec signed(Plug.Conn.t()) :: Plug.Conn.t()
+  def signed(conn), do: Plug.Conn.put_req_header(conn, "x-siwa-signature", @fixture_proof)
+
+  @doc """
+  An agent paired with a person's Regent account: the account row and the
+  pairing row, written where Regents writes them (`test/support/shared_tables.sql`
+  and regent_agents' own schema), returned as the publication routes hand it
+  to the ingest. Both go through the named repository, which is where
+  `RegentAgents.Authority` reads pairings, even while a test runs on a
+  dynamic one.
+  """
+  @spec paired_agent() :: %{id: String.t(), privy_user_id: String.t(), wallet: String.t()}
+  def paired_agent do
+    owner = "did:privy:" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
+    wallet = "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
+
+    SQL.query!(
+      Repo,
+      """
+      INSERT INTO regent_names.platform_human_users
+        (privy_user_id, wallet_address, wallet_addresses, created_at, updated_at)
+      VALUES ($1, $2::varchar, ARRAY[$2::varchar], now(), now())
+      """,
+      [owner, wallet]
+    )
+
+    %{rows: [[id]]} =
+      SQL.query!(
+        Repo,
+        """
+        INSERT INTO regent_agents.paired_agents
+          (privy_user_id, wallet, name, harness, paired_at, last_contact_at)
+        VALUES ($1, $2, 'Probe', 'Hermes Agent', now(), now())
+        RETURNING id
+        """,
+        [owner, wallet]
+      )
+
+    %{id: Ecto.UUID.load!(id), privy_user_id: owner, wallet: wallet}
   end
 
   @doc """

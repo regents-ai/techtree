@@ -100,7 +100,8 @@ defmodule Techtree.Network.PublicationMetadataTest do
                key,
                skill_name: "header-label",
                skill_github_url: "https://github.com/example/header-label",
-               origin: TechtreeWeb.Endpoint.url()
+               origin: TechtreeWeb.Endpoint.url(),
+               actor: NetworkFixture.paired_agent()
              )
 
     assert entry.submission_bytes == NetworkFixture.submission()

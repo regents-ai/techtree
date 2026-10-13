@@ -4,7 +4,7 @@ defmodule TechtreeWeb.SharedProfileControllerTest do
   setup_all do
     database = Techtree.Repo.config()[:database]
 
-    unless database == "techtree_test" <> System.fetch_env!("MIX_TEST_PARTITION"),
+    unless database == "techtree_test" <> System.get_env("MIX_TEST_PARTITION", ""),
       do: raise("Profile tests require the prepared disposable database")
 
     RegentIdentity.Migrator.up(Techtree.Repo)

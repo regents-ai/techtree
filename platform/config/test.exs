@@ -37,6 +37,10 @@ config :techtree, :request_rate_limit, limit: 1_000_000, window_seconds: 60
 
 config :techtree, Oban, testing: :manual
 
+# Agents' signed requests reach a stub of the sign-in service, never the real
+# one (`Req.Test.stub(RegentAgents.Broker, ...)`, `Techtree.NetworkFixture.sign_as/1`).
+config :regent_agents, req_options: [plug: {Req.Test, RegentAgents.Broker}]
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 
