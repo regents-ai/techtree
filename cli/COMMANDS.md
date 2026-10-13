@@ -464,3 +464,22 @@ None of these commands rents a machine, calls a paid model or sends data anywher
 - **Answer:** the report as in `model-climb submit`, plus `proof`, the document exactly as kept.
 - **Refusals:** `not_found`: no report with that digest belongs to this person.
 - **History:** 2026-10-13 added.
+
+### regents techtree proof verify \<proof folder\> for a Model Climb proof (M3)
+
+- **What it does:** checks a Model Climb proof on this machine, with nothing sent anywhere. It
+  picks this check when the manifest's `schema_version` is
+  `techtree.model-climb.proof.v1alpha1`. Every other proof keeps its current check unchanged.
+- **Who may run it:** anyone.
+- **What it changes:** nothing.
+- **Route:** none.
+- **Inputs:** `<proof folder>`: `manifest.json` plus `objects/<hex>.json`, as contract 3.5
+  lays it out.
+- **What it checks:** the site's eight checks (contract 3.5), in the same order. Then the full
+  graph: every digest that any carried object refers to (the "Refers to" column of 3.2) is
+  carried, and every object matches the pinned schema (7b38f89a) field by field.
+- **Answer:** each check with its result, and `valid: true` only when all of them hold.
+- **Refusals:** `validation_error` naming the first check that did not hold, with the same
+  `details.check` names the site uses. The full-graph steps are named `graph` and `schema`.
+- **History:** 2026-10-13 added.
+
