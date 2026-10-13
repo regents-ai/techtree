@@ -11,7 +11,8 @@
 #
 # The smoke check starts the image, in the staging role, against a throwaway
 # PostgreSQL 17 named as the staging database on its own Docker network, and
-# removes both afterwards. It runs the release's migrate command against it,
+# removes both afterwards. It prepares that empty database with the release's
+# bootstrap-staging command, runs the release's migrate command against it,
 # imports the catalog snapshot this tree added last on the
 # stable channel, as production does, starts the server, and checks the health
 # endpoint, the home page, a built stylesheet and the running server's
@@ -87,7 +88,8 @@ release_env=(
   --env TECHTREE_SHOWCASE=public
 )
 
-echo "==> Migrating the database and importing catalog $catalog with the release commands"
+echo "==> Preparing and migrating the database and importing catalog $catalog with the release commands"
+docker run --rm "${release_env[@]}" "$image" /app/bin/bootstrap-staging
 docker run --rm "${release_env[@]}" "$image" /app/bin/migrate
 docker run --rm "${release_env[@]}" "$image" \
   /app/bin/techtree eval "Techtree.Release.import_catalog(\"$catalog\")"
@@ -123,7 +125,7 @@ git show "$commit:platform/mix.lock" | grep -oE '\{:git, "[^"]+", "[0-9a-f]{40}"
   sed -E 's/\{:git, "([^"]+)", "([0-9a-f]+)"/  shared library  \1 \2/'
 echo "  image           $image"
 echo "  image digest    $digest"
-echo "  migrations      migrate succeeded; pending: $pending"
+echo "  migrations      bootstrap-staging and migrate succeeded; pending: $pending"
 echo "  catalog         $catalog imported on stable"
 echo "  health          $base/healthz answered ok for $commit"
 echo "  static asset    $stylesheet answered $stylesheet_answer"

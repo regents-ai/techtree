@@ -334,3 +334,11 @@ host (`lib/techtree/database_config.ex`), and in production the migrate command
 also requires the cluster settings in `fly.toml`. Local `mix ecto.migrate` keeps
 its development configuration. Existing imported history must be present
 before selecting the shared product namespace.
+
+`bin/bootstrap-staging` runs `Techtree.Release.bootstrap_staging()` with the
+same login. It prepares an empty staging database for `bin/migrate`: the tables
+this repository reads but does not own, every migration here, then the shared
+agent, Credits, Points and identity tables. It runs only when
+`TECHTREE_DEPLOYMENT_ROLE` is exactly `staging`, refuses a database that already
+has state, and is what the release smoke check runs first. It never runs in
+production, where Regents owns those tables.

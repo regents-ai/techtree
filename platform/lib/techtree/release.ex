@@ -19,6 +19,16 @@ defmodule Techtree.Release do
   @imported_through 20_260_828_235_308
 
   @default_starter_skill_root {:priv, "release"}
+  @platform_schema "regent_names"
+
+  @table_exists """
+  SELECT EXISTS (
+    SELECT 1 FROM pg_catalog.pg_class AS c
+    JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace
+    WHERE n.nspname = $1 AND c.relname = $2 AND c.relkind IN ('r', 'p')
+  )
+  """
+  @schema_exists "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_namespace WHERE nspname = $1)"
 
   @doc """
   Run every pending migration, through the release login bin/migrate selects.
@@ -43,6 +53,42 @@ defmodule Techtree.Release do
   def require_signed_access_schema!(repo) do
     :ok = RegentAgents.Migrator.require_pairing_history!(repo)
     RegentCredits.Migrator.require_pairing_grants!(repo)
+  end
+
+  @doc """
+  Prepares an empty staging database for the first deployment: creates a
+  staging-only copy of the tables this repository reads but does not own
+  (`regent_names.platform_human_users`), in the test suite's shape, runs every
+  migration of this repository, then creates the shared agent, Credits, Points
+  and identity tables, which Regents migrates in production. It refuses a
+  database that already carries migration state or the regent_names schema and
+  repairs nothing: recovery from a half-finished bootstrap is to destroy and
+  recreate the staging database.
+  """
+  @spec bootstrap_staging() :: :ok
+  def bootstrap_staging do
+    # Read before anything opens a connection, so no configuration mistake can
+    # point this command at a database outside staging.
+    if System.get_env("TECHTREE_DEPLOYMENT_ROLE") != "staging",
+      do: raise("bootstrap-staging requires TECHTREE_DEPLOYMENT_ROLE to be exactly staging")
+
+    load_app()
+
+    for repo <- repos() do
+      {:ok, _result, _apps} =
+        Ecto.Migrator.with_repo(repo, fn repo ->
+          refuse_existing_state!(repo)
+          # The fixture is the only definition of these tables' shape in the repository.
+          Techtree.LocalDatabaseFixture.create_shared_tables!()
+          Ecto.Migrator.run(repo, :up, all: true, prefix: repo.default_prefix())
+          RegentAgents.Migrator.up(repo)
+          RegentCredits.Migrator.up(repo)
+          RegentPoints.Migrator.up(repo)
+          RegentIdentity.Migrator.up(repo)
+        end)
+    end
+
+    :ok
   end
 
   @doc """
@@ -159,6 +205,29 @@ defmodule Techtree.Release do
         raise "Import the complete Techtree schema and migration history before migrating"
       end
     end
+  end
+
+  defp refuse_existing_state!(repo) do
+    prefix = repo.default_prefix()
+    source = repo.config()[:migration_source] || "schema_migrations"
+
+    if table_exists?(repo, prefix, source) do
+      raise "#{prefix}.#{source} already exists: destroy and recreate the staging database"
+    end
+
+    if schema_exists?(repo, @platform_schema) do
+      raise "#{@platform_schema} schema already exists: destroy and recreate the staging database"
+    end
+  end
+
+  defp table_exists?(repo, prefix, table) do
+    %{rows: [[exists?]]} = Ecto.Adapters.SQL.query!(repo, @table_exists, [prefix, table])
+    exists?
+  end
+
+  defp schema_exists?(repo, schema) do
+    %{rows: [[exists?]]} = Ecto.Adapters.SQL.query!(repo, @schema_exists, [schema])
+    exists?
   end
 
   defp load_app do

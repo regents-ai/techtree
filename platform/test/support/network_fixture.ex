@@ -451,7 +451,7 @@ defmodule Techtree.NetworkFixture do
 
   @doc """
   An agent paired with a person's Regent account: the account row and the
-  pairing row, written where Regents writes them (`test/support/shared_tables.sql`
+  pairing row, written where Regents writes them (`priv/repo/shared_tables.sql`
   and regent_agents' own schema), returned as the publication routes hand it
   to the ingest. Both go through the named repository, which is where
   `RegentAgents.Authority` reads pairings, even while a test runs on a

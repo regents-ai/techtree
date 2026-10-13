@@ -1,8 +1,8 @@
 -- Tables this repository reads but does not own, in the shape the test suite
--- runs on (Keyfleet's priv/repo/shared_tables.sql). Production has the real
--- table: regent_names.platform_human_users is owned by Regents. Nothing here
--- runs against production. Every statement is idempotent, so the suite loads
--- this file on every run.
+-- and the staging bootstrap run on (ash-template's priv/repo/shared_tables.sql).
+-- Production has the real table: regent_names.platform_human_users is owned by
+-- Regents. Nothing here runs against production. Every statement is idempotent,
+-- so the suite loads this file on every run.
 CREATE SCHEMA IF NOT EXISTS regent_names;
 CREATE TABLE IF NOT EXISTS regent_names.platform_human_users (
     id bigserial PRIMARY KEY,
