@@ -411,24 +411,29 @@ machine, calls a paid model or sends data anywhere.
 - **Inputs:**
   - `--plan <digest>`: the resolved plan the grant binds.
   - `--operation <operation id>`: the one operation it admits.
-  - `--max-usd`, `--max-hours`, `--max-attempts`, `--expires-in`: the limits it binds.
+  - `--max-usd`, `--max-hours`, `--max-attempts`, `--expires-in`: the limits it binds. The
+    maximum USD is per attempt. A compatibility-test grant takes `--max-attempts 1` only.
 - **Answer:** prints the full bound record (every field in contract section 6). For a plan that
   counts on the account's spending limit (contract 6.1) it then asks the operator to attest two
   things, one at a time: that automatic top-up is off, and that the balance is no more than the
   workspace's monthly limit. Last, it prints the sentence of contract 6.1 saying what the
   figure covers (GPU time) and what it does not (the image build, billed separately at a rate
-  the provider does not publish), and directly under it asks the operator to type the grant's
+  the provider does not publish), with the grant's own figures: its maximum USD and the minutes
+  the job will be given under this grant. Directly under it it asks the operator to type the grant's
   maximum USD as shown (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On
   confirmation it writes the grant's `issued` line, with the two answers by name, to the grant
   ledger and answers with the grant id and its file.
 - **Refusals:**
   - `plan_changed`: the plan's digest no longer matches the stored plan.
-  - `validation_error`: a missing limit, a compatibility-test plan above 20 USD, an
-    attestation not given, or the typed confirmation did not match.
+  - `validation_error`: a missing limit, a compatibility-test plan above 20 USD, a
+    compatibility-test grant for more than one attempt, an attestation not given, or the typed
+    confirmation did not match.
   - `approval_required`: the grant ledger cannot be read or holds a line that does not verify.
 - **History:** 2026-10-12 added. 2026-10-13 the typed confirmation is the maximum USD, and the
   grant ledger and the two attestations are added, with the first paid step. 2026-10-13 the
-  review says what the typed figure covers and what it does not.
+  review says what the typed figure covers and what it does not. 2026-10-13 the review's
+  minutes are the job's under this grant, the maximum USD is per attempt, and a
+  compatibility-test grant is for one attempt.
 
 ### regents techtree model-climb grant revoke \<grant id\>
 
@@ -488,7 +493,9 @@ machine, calls a paid model or sends data anywhere.
 - **Who may run it:** the operator, with a grant issued for `model_climb_profile_test` on this
   profile's plan. This is the only form of the command; nothing is rented without the grant.
 - **What it changes:** rents compute on the operator's account at the provider, up to the
-  grant's maximum, in one attempt with no restart. Before anything is recorded it reads the
+  grant's maximum, in one attempt with no restart. The job's minutes are worked out from the
+  grant when it submits (contract 6.1), so they are fewer than the plan's when the grant is
+  tighter. Before anything is recorded it reads the
   provider's rate and the image folder again and sends the job to the provider's free
   preflight. Then, before submitting, it writes a `used` line with the attempt's intent id to
   the grant ledger. A submission the provider refuses leaves that use spent. Writes the attempt and the measured
@@ -500,6 +507,8 @@ machine, calls a paid model or sends data anywhere.
 - **Answer:** while the job runs, that it is running. Once it has ended, the measured
   compatibility profile and its digest, the built image's digest from the provider's receipt,
   the measured cost, and that the egress list was declared and not enforced by the provider.
+  The measured cost is what the provider's receipt for the job shows, for a job the command
+  cancelled too; when the provider gives no figure the answer says none was given.
 - **Refusals:**
   - `approval_required`: no grant, a grant for another operation, plan or actor, an expired or
     revoked grant, a grant with no `issued` line, or one whose uses are spent. Also when the
@@ -518,7 +527,8 @@ machine, calls a paid model or sends data anywhere.
   - `job_indeterminate`: the submission's outcome is unknown and no job carries the intent id;
     nothing is submitted again and a person decides what happens next.
 - **History:** 2026-10-13 added. 2026-10-13 never waits; checks the rate, the image folder and
-  the provider's free preflight before a grant use is recorded.
+  the provider's free preflight before a grant use is recorded. 2026-10-13 the job's minutes
+  come from the grant, and a cancelled job's cost is read from the provider's receipt.
 
 ### regents techtree model-climb submit \<proof folder\> (M3)
 
