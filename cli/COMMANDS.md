@@ -353,7 +353,7 @@ Model Climb fine-tunes an open model privately and measures whether it got bette
 contract is [docs/spec/model-climb-v1.md](../docs/spec/model-climb-v1.md); its objects,
 operation ids, errors and grants are defined there, not here. Every `model-climb` command is
 native code in regents-cli and runs on this machine, except the two private report reads
-(M3), which `commands.json` describes. The five M0 commands below call nothing on the site;
+(M3), which `commands.json` describes. The six M0 commands below call nothing on the site;
 the three M3 commands after them send and read a person's private reports. Each other
 operation in the contract gets its section here before it is built.
 
@@ -412,17 +412,38 @@ machine, calls a paid model or sends data anywhere.
   - `--plan <digest>`: the resolved plan the grant binds.
   - `--operation <operation id>`: the one operation it admits.
   - `--max-usd`, `--max-hours`, `--max-attempts`, `--expires-in`: the limits it binds.
-- **Answer:** prints the full bound record (every field in contract section 6), then asks the
-  operator two things: to attest that automatic top-up is off and the balance is no more than
-  the workspace's monthly limit (contract 6.1), and to type the grant's maximum USD as shown
-  (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On confirmation
-  it writes the grant's `issued` line to the grant ledger and answers with the grant id and its
-  file.
+- **Answer:** prints the full bound record (every field in contract section 6). For a plan that
+  counts on the account's spending limit (contract 6.1) it then asks the operator to attest two
+  things, one at a time: that automatic top-up is off, and that the balance is no more than the
+  workspace's monthly limit. Last, it asks the operator to type the grant's maximum USD as
+  shown (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On
+  confirmation it writes the grant's `issued` line, with the two answers by name, to the grant
+  ledger and answers with the grant id and its file.
 - **Refusals:**
   - `plan_changed`: the plan's digest no longer matches the stored plan.
-  - `validation_error`: a missing limit, or the typed confirmation did not match.
+  - `validation_error`: a missing limit, a compatibility-test plan above 20 USD, an
+    attestation not given, or the typed confirmation did not match.
+  - `approval_required`: the grant ledger cannot be read or holds a line that does not verify.
 - **History:** 2026-10-12 added. 2026-10-13 the typed confirmation is the maximum USD, and the
   grant ledger and the two attestations are added, with the first paid step.
+
+### regents techtree model-climb grant revoke \<grant id\>
+
+- **What it does:** takes a local grant's authority away. No command accepts the grant
+  afterwards.
+- **Who may run it:** the operator of this machine, in local-only mode.
+- **What it changes:** writes the grant's `revoked` line to the grant ledger. Revoking a revoked
+  grant changes nothing. It does not stop a job already submitted, and nothing on the site
+  changes.
+- **Route:** none. Operation `model_climb_grant_revoke` (grant).
+- **Inputs:**
+  - `<grant id>`: the grant to revoke.
+- **Answer:** the grant id and that it is revoked. It asks for no typed confirmation, because
+  it only removes authority.
+- **Refusals:**
+  - `validation_error`: no grant with that id on this machine.
+  - `approval_required`: the grant ledger cannot be read or holds a line that does not verify.
+- **History:** 2026-10-13 added.
 
 ### regents techtree model-climb plan --profile \<profile\> --max-usd \<n\>
 
