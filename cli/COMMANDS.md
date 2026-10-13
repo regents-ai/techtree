@@ -558,7 +558,7 @@ machine, calls a paid model or sends data anywhere.
   lays it out.
 - **What it checks:** the site's eight checks (contract 3.5), in the same order. Then the full
   graph: every digest that any carried object refers to (the "Refers to" column of 3.2) is
-  carried, and every object matches the pinned schema (7b38f89a) field by field.
+  carried, and every object matches the pinned schema (d77f64d6) field by field.
 - **Answer:** each check with its result, and `valid: true` only when all of them hold.
 - **Refusals:** `validation_error` naming the first check that did not hold, with the same
   `details.check` names the site uses. The full-graph steps are named `graph` and `schema`.
