@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes release readiness
+.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli release readiness
 
-check: check-plugin check-platform check-required-fixes check-contracts
+check: check-plugin check-platform check-required-fixes check-cli check-contracts
 
 check-plugin:
 	$(MAKE) -C plugin check
@@ -22,6 +22,13 @@ check-required-fixes:
 	&& gh api -H "Accept: application/vnd.github.raw" "$(TEMPLATE)/contents/platform/scripts/check_required_fixes.exs?ref=$$rev" > _build/check_required_fixes.exs \
 	&& gh api -H "Accept: application/vnd.github.raw" "$(TEMPLATE)/contents/security/required-fixes.json?ref=$$rev" > _build/required-fixes.json \
 	&& elixir _build/check_required_fixes.exs "ash-template $$rev" < _build/required-fixes.json
+
+# The command description check is regents-cli's own checker at the commit pinned
+# here, run by uv straight from GitHub. Move the pin in a commit.
+REGENTS_CLI_REV := 41da3144bea4443100bedda4b24a8cb7121e419f
+check-cli:
+	uv run --no-project --with "regents-cli[check] @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" \
+	  python -m regents_cli.check_commands cli/commands.json cli/openapi.json
 
 .PHONY: check-contracts
 check-contracts:

@@ -15,7 +15,7 @@
       "method": "GET",
       "path": "/api/agents/v1/whoami",
       "description": "Verify the signing agent and current pairing; no pairing prerequisite.",
-      "authority": "wallet-proof",
+      "authority": "signed_agent",
       "effect": "read",
       "webmcp": "agent_whoami"
     },
@@ -25,7 +25,7 @@
       "method": "POST",
       "path": "/api/agents/v1/pair",
       "description": "Redeem the owner-approved single-use private pairing code. Current pairing grants no spending authority.",
-      "authority": "wallet-proof",
+      "authority": "signed_agent",
       "effect": "write",
       "stdin_fields": [
         {
@@ -54,7 +54,7 @@
       "method": "GET",
       "path": "/tools/account/balances",
       "description": "Read the current paired owner's Credits balance and episode-bound spending grant.",
-      "authority": "wallet-proof",
+      "authority": "paired_agent",
       "effect": "read",
       "webmcp": "account_balances"
     },
@@ -64,7 +64,7 @@
       "method": "POST",
       "path": "/tools/account/credits/history",
       "description": "Read one page of the current paired owner's Credits history.",
-      "authority": "wallet-proof",
+      "authority": "paired_agent",
       "effect": "read",
       "webmcp": "credits_history",
       "stdin_fields": [
@@ -82,7 +82,7 @@
       "method": "GET",
       "path": "/tools/account/points",
       "description": "Read the current paired canonical owner's Points; awards and activates nothing.",
-      "authority": "wallet-proof",
+      "authority": "paired_agent",
       "effect": "read",
       "webmcp": "points_balance"
     },
@@ -92,7 +92,7 @@
       "method": "GET",
       "path": "/api/model-climb/v1/reports",
       "description": "List the Model Climb reports the current paired owner has kept, newest first; private to that owner.",
-      "authority": "wallet-proof",
+      "authority": "paired_agent",
       "effect": "read"
     },
     {
@@ -101,7 +101,7 @@
       "method": "GET",
       "path": "/api/model-climb/v1/reports/{digest}",
       "description": "Read one of the current paired owner's Model Climb reports with its whole signed proof.",
-      "authority": "wallet-proof",
+      "authority": "paired_agent",
       "effect": "read",
       "arguments": [
         {

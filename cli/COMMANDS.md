@@ -344,6 +344,9 @@ The signed HTTP subset adds `agents whoami`, `agents pair`, `account balances`,
 `account credits-history`, `account points`, `model-climb reports` and `model-climb report`. It does not replace the native engine,
 manage grants, activate Points, or move funds. Pairing codes go on stdin.
 
+Who may run them: `agents whoami` and `agents pair` need only the agent's own signed request.
+The other five need a paired agent: one whose person has paired it with their account.
+
 ## Model Climb: `regents techtree model-climb` (M0)
 
 Model Climb fine-tunes an open model privately and measures whether it got better. Its
