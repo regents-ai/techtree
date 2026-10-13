@@ -1,7 +1,7 @@
-# Runs as the tested account (common.sh as_bench). The images the account saved since the turn started, such as T4's
-# self-portrait: PNG, JPEG or WebP files in its home, outside caches and the agents' own folders, at most 5 MB each, the
-# first five by path. Without an index, prints their paths; with one, prints that image's bytes. Reading as `bench`
-# means only what the agent itself could read is ever copied.
+# Runs as the tested account (common.sh as_bench). The images the account saved since the turn started: PNG, JPEG or
+# WebP files in its home, outside caches and the agents' own folders, at most 5 MB each, the first five by path.
+# Without an index, prints their paths; with one, prints that image's bytes. Reading as `bench` means only what the
+# agent itself could read is ever copied.
 # Usage: new-images.sh <turn_start_utc> [index]
 START=$1 INDEX=${2:-}
 images=()

@@ -9,7 +9,7 @@ defmodule Techtree.WalletBench.Attempt do
   the reason.
 
   An attempt of the `money` plan (only on `Catalog.money_pair?/2` pairs) goes
-  on after a passed wallet test: `funding` (the bench signs 0.25 USDC and
+  on after a passed wallet test: `funding` (the bench signs 0.02 USDC and
   0.00003 ETH for the agent's address, `Techtree.WalletBench.Funding`),
   `sending` (the sends are broadcast and their receipts read), then `testing`
   again for T3, T4, T5 and the turn that returns what is left. When the agent

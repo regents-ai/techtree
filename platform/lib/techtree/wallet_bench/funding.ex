@@ -1,6 +1,6 @@
 defmodule Techtree.WalletBench.Funding do
   @moduledoc """
-  Funding a money attempt from the bench's funder wallet: 0.25 USDC and
+  Funding a money attempt from the bench's funder wallet: 0.02 USDC and
   0.00003 ETH for gas (the amounts in `:techtree, Techtree.WalletBench,
   funding`), as two sends on Base.
 

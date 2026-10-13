@@ -115,15 +115,17 @@ config :techtree, Oban,
 # `config/runtime.exs`.
 #
 # The bench reads Base, and sends its funding, through `base_rpc`. Each funded
-# money attempt gets 0.25 USDC and 0.00003 ETH for gas, and the funder never
-# sends more than 10 USDC and 0.002 ETH in all (Sean, 8 October 2026: 2 a, 5 a).
+# money attempt gets 0.02 USDC and 0.00003 ETH for gas (Sean, 13 October 2026:
+# 0.01 goes back in the refund test and 0.01 pays the paid call), and the
+# funder never sends more than 10 USDC and 0.002 ETH in all (Sean, 8 October
+# 2026: 5 a).
 # Nothing is signed while Base needs a fee cap above 0.1 gwei per gas, or a
 # send needs more than 150,000 gas (its estimate and a fifth more).
 config :techtree, Techtree.WalletBench,
   judge_model: "claude-opus-5-5",
   base_rpc: "https://mainnet.base.org",
   funding: [
-    usdc_units: 250_000,
+    usdc_units: 20_000,
     eth_wei: 30_000_000_000_000,
     total_usdc_units: 10_000_000,
     total_eth_wei: 2_000_000_000_000_000,

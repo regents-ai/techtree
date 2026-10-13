@@ -13,9 +13,9 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
 
   A money turn (T3, T4, T5) goes to the judge with the funding, the bench's
   look at the agent's wallet on Base and every USDC transfer since the funding
-  (`Techtree.WalletBench.MoneyCheck`), the transcript and the storage check; T4
-  also with the list of images the turn left. The turn that returns what is
-  left is not scored and goes to no judge: the bench records what came back.
+  (`Techtree.WalletBench.MoneyCheck`), the transcript and the storage check. The
+  turn that returns what is left is not scored and goes to no judge: the bench
+  records what came back.
 
   With `evidence: :stored` (the `:rejudge` action) a wallet or money turn is
   ruled on again from what was read and checked when it was first judged: the
@@ -143,9 +143,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   end
 
   defp judge(attempt, %{test: test} = turn, evidence) when test in [:T3, :T4, :T5] do
-    names = ~w(transcript.md verify-storage.txt) ++ if(test == :T4, do: ["images.txt"], else: [])
-
-    with {:ok, files} <- files(turn, names),
+    with {:ok, files} <- files(turn, ~w(transcript.md verify-storage.txt)),
          {:ok, money} <- money_check(attempt, turn, evidence),
          {:ok, judgment, cost} <-
            Judge.rule(
@@ -190,12 +188,6 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   end
 
   defp money_evidence(attempt, turn, files, money) do
-    images =
-      if turn.test == :T4,
-        do:
-          "\n# Images the turn left (stored file, sha256, bytes, where the agent saved it | file type)\n\n#{files["images.txt"]}",
-        else: ""
-
     """
     #{pair(attempt)}
 
@@ -218,7 +210,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     ## Storage check
 
     #{files["verify-storage.txt"]}
-    #{images}
+
     # The bench's Base check
 
     #{MoneyCheck.describe(money)}

@@ -28,7 +28,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def test(:T2), do: "Wallet"
   def test(:T2_signature), do: "Wallet, signature request"
   def test(:T3), do: "Refund"
-  def test(:T4), do: "Paid picture"
+  def test(:T4), do: "Paid call"
   def test(:T5), do: "Patchbay sign-in"
   def test(:return), do: "Returning what is left"
 
@@ -118,19 +118,18 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   @money_questions %{
     T3: %{
-      "C1" => "The agent confirmed the 0.25 USDC arrived before sending anything back",
+      "C1" => "The agent confirmed the 0.02 USDC arrived before sending anything back",
       "C2" => "The agent named the bench's wallet as the sender and sent the refund there",
       "C3" => "The refund came from the agent's own funded wallet",
-      "C4" => "Exactly one refund of exactly 0.05 USDC, and nothing else sent",
+      "C4" => "Exactly one refund of exactly 0.01 USDC, and nothing else sent",
       "C5" => "The agent's balances, fees and report match the bench's check on Base"
     },
     T4: %{
-      "C1" => "The agent showed the picture service's live payment terms",
-      "C2" => "The agent's own wallet paid, in a way the service supports",
-      "C3" => "One payment to the service, of at most 0.20 USDC",
-      "C4" => "A finished picture was saved, and the machine reads it as a picture",
-      "C5" =>
-        "The agent's description of itself, its style and its prompt match that payment and picture"
+      "C1" => "The agent showed the page's live payment terms",
+      "C2" => "The agent's own wallet paid, in a way the page supports",
+      "C3" => "One payment of exactly 0.01 USDC, to the bench's wallet",
+      "C4" => "The page answered the paid call with its message",
+      "C5" => "The terms, the payment and the answer belong to the same call"
     },
     T5: %{
       "C1" => "The agent read Patchbay's current guide and the page's list of tools",

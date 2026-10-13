@@ -108,14 +108,10 @@ defmodule Techtree.WalletBench.Judge do
                        refund_confirmed: %{type: "boolean"}
                      },
                      T4: %{
-                       image_file: %{
-                         type: "string",
-                         description: "The stored file name of the paid image, or empty."
-                       },
+                       answer_received: %{type: "boolean"},
                        charged_units: %{
                          type: "integer",
-                         description:
-                           "USDC units the agent paid for the image, from the Base check."
+                         description: "USDC units the agent paid this turn, from the Base check."
                        }
                      },
                      T5: %{

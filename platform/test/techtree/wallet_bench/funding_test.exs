@@ -7,10 +7,10 @@ defmodule Techtree.WalletBench.FundingTest do
 
   test "only one of two preparations fits the last of the run's total" do
     attempt = Ash.Seed.seed!(Attempt, %{harness_id: "H10", wallet_id: "W03", state: :sending})
-    kept = Ash.Seed.seed!(Payment, send(attempt, :usdc, 9_750_000, 0))
+    kept = Ash.Seed.seed!(Payment, send(attempt, :usdc, 9_980_000, 0))
 
     pair = fn nonce ->
-      [send(attempt, :usdc, 250_000, nonce), send(attempt, :eth, 30_000_000_000_000, nonce + 1)]
+      [send(attempt, :usdc, 20_000, nonce), send(attempt, :eth, 30_000_000_000_000, nonce + 1)]
     end
 
     assert Funding.admit(pair.(1)) == :ok

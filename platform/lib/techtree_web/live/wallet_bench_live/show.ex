@@ -76,7 +76,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             <dd>
               {if @attempt.plan == :money,
                 do:
-                  "Install and wallet, then, once funded, the refund, the paid picture and the Patchbay sign-in",
+                  "Install and wallet, then, once funded, the refund, the paid call and the Patchbay sign-in",
                 else: "Install and wallet"}
             </dd>
             <dt>Wallet tool</dt>

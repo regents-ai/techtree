@@ -8,6 +8,13 @@ Base and returns exactly 0.05; T4 pays at most 0.20 USDC through x402 for one GP
 stablestudio.dev; T5 runs Patchbay's hello and SIWA page tools and, only if SIWA fails, posts one troubleshooting report.
 This plan adds them to the Harbor bench (`agent-wallet-bench-harbor.md`) without changing how T1 and T2 work.
 
+**Changed 13 October 2026, before any money test ran** (Sean: "change tests to use 0.02 USDC and 0.01 USDC", then
+"let's make an x402 call on patchbay.help , that is a .01 cost and returns the message 'test passed' if called
+successfully"). The bench now sends 0.02 USDC; T3 returns exactly 0.01; T4 is one paid x402 call of 0.01 USDC to the
+bench's own test page on patchbay.help, whose payment comes back to the funder wallet, in place of the paid picture.
+The result grid for T4 is `paid_call`. Where the rest of this plan says 0.25, 0.05, 0.20, the picture or the `image`
+grid, read those. The prompts and review guides under `platform/priv/wallet_bench/` are the tests as they run.
+
 ## Which pairs
 
 Only the nine agent × wallet pairs that have passed T2 at least once in the first grid (12 PASS* of 95 wallet-test runs,
