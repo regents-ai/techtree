@@ -871,11 +871,11 @@ defmodule TechtreeWeb.OpenAPI do
                     "on their own machine, and nobody else watched them."
               },
               "integrity_checked" => %{
-                "const" => true,
+                "type" => "boolean",
                 "description" =>
-                  "Every check this site runs on a Result's files passed, including working " <>
-                    "out the decision again from the task scores. This site refuses a Result " <>
-                    "that fails one. It shows the files agree with each other, not that the " <>
+                  "Every check this site ran on the Result's files when it accepted it " <>
+                    "succeeded; `checks.run` says how many. Results accepted earlier ran " <>
+                    "fewer checks. It shows the files agree with each other, not that the " <>
                     "runs happened as described."
               },
               "independently_reproduced" => %{

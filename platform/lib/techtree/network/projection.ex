@@ -30,16 +30,6 @@ defmodule Techtree.Network.Projection do
   @list_schema_version "techtree.publication-log.v1alpha1"
   @entry_schema_version "techtree.publication-entry.v1alpha1"
 
-  # The three claims a Result can make, kept apart. Every published Result is
-  # signed by its participant, and ingest refuses a bundle that fails any check,
-  # so the first two always hold. Nothing on this site can establish that
-  # anyone independent ran the comparison again, so the third never does.
-  @claims %{
-    "participant_attested" => true,
-    "integrity_checked" => true,
-    "independently_reproduced" => false
-  }
-
   @doc """
   One page of the log, as the bytes `GET /api/v1/publications` returns.
   """
@@ -87,6 +77,18 @@ defmodule Techtree.Network.Projection do
   def entry_url(%PublicationEntry{bundle_digest: digest}, origin),
     do: origin <> "/results/" <> digest
 
+  # The three claims a Result can make, kept apart. Every published Result is
+  # signed by its participant. Integrity is the checks this site ran when it
+  # accepted the Result, which were fewer for older Results. Nothing on this
+  # site can establish that anyone independent ran the comparison again.
+  defp claims(%PublicationEntry{} = entry) do
+    %{
+      "participant_attested" => true,
+      "integrity_checked" => entry.verification_checks_passed == entry.verification_checks_run,
+      "independently_reproduced" => false
+    }
+  end
+
   defp summary(%PublicationEntry{} = entry, origin) do
     %{
       "log_sequence" => entry.log_sequence,
@@ -130,7 +132,7 @@ defmodule Techtree.Network.Projection do
         "run" => entry.verification_checks_run,
         "passed" => entry.verification_checks_passed
       },
-      "claims" => @claims
+      "claims" => claims(entry)
     }
   end
 end

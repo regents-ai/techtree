@@ -57,7 +57,9 @@ Private Episodes and Traces stay local.
 
 - In a browser, or as an agent with only web access: read and explain Climbs,
   published Results and what a run would need, with the browser tools below or
-  the public API. Nothing you read or call on techtree.sh starts a run.
+  the public API. Nothing you read or call on techtree.sh starts a run. Paired
+  with the person's account, you can also publish or withdraw a Result with
+  `techtree_publication`, once it has been run and signed on their computer.
 - On the person's computer, through the CLI: installing, preparing a Skill,
   running, comparing and publishing. To hand this over, give the person or their
   local agent https://techtree.sh/skill.md. It names the one release to install,

@@ -96,9 +96,11 @@ RateLimit: "default";r={{request_remaining}};t=42
 
 Every page offers the agent built into a browser these tools through WebMCP (`document.modelContext`). The [tool manifest](/capabilities) describes them as JSON.
 
-A browser's agent can read and explain: what a Climb tests, what a run on it would need, and what a published Result shows. It cannot start anything. Installing Techtree, preparing a Skill, running a Climb and comparing runs all happen on the person's own computer, through the CLI, and nothing a browser tool returns means that work has begun.
+A browser's agent can read and explain: what a Climb tests, what a run on it would need, and what a published Result shows. It cannot install, prepare, run or compare anything. That work happens on the person's own computer, through the CLI, and nothing a browser tool returns means it has begun.
 
-To get a run started, hand the person's local agent (or the person) the steps from the [agent installation guide](/skill.md): install the release it names, check the version, run Doctor, then follow each answer's next steps. Publishing a finished run also happens from that computer, signed by the paired agent and the participant's own key.
+To get a run started, hand the person's local agent (or the person) the steps from the [agent installation guide](/skill.md): install the release it names, check the version, run Doctor, then follow each answer's next steps.
+
+One browser tool changes something: `techtree_publication` publishes or withdraws a Result. It needs an agent paired with the person's account that signs the request, and a Result already run and signed with the participant's own key on the person's computer. It runs nothing.
 
 {{tools}}
 

@@ -406,9 +406,8 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert has_element?(
                live,
                "#badge-integrity-checked",
-               "This site ran its #{Techtree.Network.Bundle.check_count()} checks on the " <>
-                 "Result's files, including one that worked out the averages, the change " <>
-                 "and the decision again from the task scores"
+               "This site ran #{Techtree.Network.Bundle.check_count()} checks on the " <>
+                 "Result's files when it accepted it, and every one succeeded."
              )
 
       assert has_element?(live, "#badge-attested", "Participant-attested")

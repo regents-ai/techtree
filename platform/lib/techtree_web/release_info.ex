@@ -68,11 +68,19 @@ defmodule TechtreeWeb.ReleaseInfo do
   def label(release), do: "v#{release.version} · #{short(release.digest)}"
 
   @doc """
-  The exact reference (`slug@version`) this release ships for a Climb slug, or
-  `nil` when the release does not ship it.
+  The exact reference (`slug@version`) this release ships for a Climb slug, the
+  highest version if it ships more than one, or `nil` when it ships none.
   """
   @spec climb(t(), String.t()) :: String.t() | nil
-  def climb(%{climbs: climbs}, slug), do: Enum.find(climbs, &String.starts_with?(&1, slug <> "@"))
+  def climb(%{climbs: climbs}, slug) do
+    prefix = slug <> "@"
+
+    climbs
+    |> Enum.filter(&String.starts_with?(&1, prefix))
+    |> Enum.max_by(&(&1 |> String.replace_prefix(prefix, "") |> String.to_integer()), fn ->
+      nil
+    end)
+  end
 
   defp describe(instructions, digest) do
     cli = Map.get(instructions, "cli", %{})

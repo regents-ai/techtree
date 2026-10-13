@@ -231,7 +231,7 @@ defmodule TechtreeWeb.RunsLive.Show do
               Integrity-checked
             </Regent.Primitives.status>
             <p>
-              This site ran its {@entry.verification_checks_run} checks on the Result's files, including one that worked out the averages, the change and the decision again from the task scores, and every check passed. That shows the files agree with each other, not that the runs happened as described.
+              This site ran {@entry.verification_checks_run} checks on the Result's files when it accepted it, and every one succeeded. That shows the files agree with each other, not that the runs happened as described.
               <a href={~p"/proofs"}>How verification works.</a>
             </p>
           </li>
