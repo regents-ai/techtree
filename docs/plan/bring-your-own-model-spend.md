@@ -60,8 +60,8 @@ To build:
    and stores it as `participant`. The site's grant-signing key (spec section 6)
    is only needed for connected-mode grants, which self-run does not use.
 2. The record shows on the person's own tab, visible only to them, with its
-   level, its recipe, its numbers and the provider it ran on (open decision
-   TT-BYO-MC-PRIVATE asks whether Model Climb follows the Bench rule).
+   level, its recipe, its numbers and the provider it ran on (Sean,
+   TT-BYO-MC-PRIVATE a).
 3. Later: an "ask for a reproduction" button that runs as a hosted job (section 6).
 
 No real proof exists yet: the first paid run waits Sean's go, the grant and the
@@ -77,7 +77,8 @@ their limit and top-up setting, as it does now.
 1. A regents-cli command runs one Bench attempt locally: the same task images in
    the person's Docker, the same local Anvil chain, the person's own model key
    from their environment, the same checks.
-2. The judge runs on the person's key too (open decision TT-BYO-JUDGE).
+2. The judge: both versions ship (Sean, TT-BYO-JUDGE): on the person's own key,
+   or graded by Techtree and charged in Credits.
 3. Before upload, the CLI scrubs the transcript on the person's machine with the
    same safety rules as hosted runs. The Prime batch's W07 shows why: the public
    Anvil test key appearing in a transcript is a safety failure, and a personal
@@ -122,7 +123,7 @@ relay's per-batch cap set from the hold.
 | P0 | This plan | No |
 | P1 | Model Climb M3 (section 4) | No |
 | P2 | Prove the Bench: Techtree runs and publishes the full grid | Yes, Techtree's own spend; each batch its own go |
-| P3 | Row and column runs on our Sprites for people (section 6) | Who pays is open (TT-BYO-SPRITE-PAY) |
+| P3 | Row and column runs on our Sprites for people (section 6) | Yes, Credits at actual cost (TT-BYO-SPRITE-PAY a) |
 | P4 | Bench self-run (section 5), private to the person | No; the person's own key |
 
 Each step ships as its own release item through the orchestrator's sense check,
@@ -133,11 +134,9 @@ then to Sean.
 Answered 13 Oct 2026: TT-BYO-ORDER a (Model Climb M3 first; the Bench is proved
 before row and column runs open), TT-BYO-BOARD "user tab, private".
 
-- **TT-BYO-JUDGE.** In self-run Bench, who pays the judge: the person's key, or
-  Techtree grading and charging Credits. Sean undecided; needed by P4.
-- **TT-BYO-SPRITE-PAY.** Who pays the model on a row or column run on our
-  Sprites: Credits (our key, actual cost charged), or the person's own key
-  placed in that Sprite for that run.
-- **TT-BYO-MC-PRIVATE.** Whether uploaded Model Climb records are private to the
-  person's tab, like self-run Bench results.
+Answered 13 Oct 2026: TT-BYO-SPRITE-PAY a (row and column runs use our key and
+charge the actual cost in Credits), TT-BYO-MC-PRIVATE a (uploaded Model Climb
+records are private to the person's tab), TT-BYO-MC-START a (build M3 now
+against a locally made test proof), TT-BYO-JUDGE "build both versions" (P4
+ships both: the person's own key, and Techtree grading charged in Credits).
 - **Later, at P3:** the price rule and switching Credits charging on for Techtree.
