@@ -88,7 +88,13 @@ config :spark,
 
 config :techtree,
   ecto_repos: [Techtree.Repo],
-  ash_domains: [Techtree.Accounts, Techtree.Catalog, Techtree.Network, Techtree.WalletBench],
+  ash_domains: [
+    Techtree.Accounts,
+    Techtree.Catalog,
+    Techtree.Network,
+    Techtree.WalletBench,
+    Techtree.ModelClimb
+  ],
   generators: [timestamp_type: :utc_datetime]
 
 # Background jobs. The schema they live in is set in `config/runtime.exs`, beside

@@ -87,11 +87,45 @@ A training run that succeeded says nothing about `outcome`. Too few positives or
 
 A Model Climb proof is a directory holding a `ModelUpliftReport`, every object it references by digest, and a manifest signed with the participant identity key. `regents techtree proof verify` chooses its check by the manifest's `schema_version`; existing bundles keep their current check unchanged.
 
+On disk: `manifest.json` and `objects/<64 hex>.json`, one file per object, named by its digest. Sent to Techtree it is one JSON document with exactly three members:
+
+```text
+schema_version  "techtree.model-climb.proof.v1alpha1"
+manifest        a signed envelope: exactly payload, payload_digest, signature
+objects         every object the manifest lists, each exactly as in 3.1
+```
+
+The manifest's `payload` has exactly four members:
+
+```text
+schema_version  "techtree.model-climb.proof.v1alpha1"
+report          the ModelUpliftReport's digest
+objects         every object's digest, report included, sorted, each once
+signer          {kind: "local_ed25519", algorithm: "ed25519", key_id, public_key}
+```
+
+`payload_digest` is the digest (3.1) of `payload`. `signature` is `{algorithm: "ed25519", key_id, signature}`: Ed25519 over the ASCII bytes of `payload_digest`, base64. `key_id` is `sha256:` over the raw 32-byte public key, and `public_key` is that key in base64. This is the same envelope and identity Techtree's published Skill results use; the key is the existing Techtree identity key.
+
+Techtree accepts a proof (`model_climb_report_submit`) only when all of these hold, checked in this order, and otherwise answers `validation_error` naming the first that did not:
+
+1. The document is at most 1,048,576 bytes and has exactly the three members, the right `schema_version` and at most 64 objects.
+2. Every object has exactly `schema_version`, `kind`, `spec`, `operational` and `digest`; its `schema_version` is `techtree.model-climb.v1alpha1`, its `kind` one of 3.2, and its `digest` recomputes. No digest appears twice.
+3. The manifest is exactly as above, and its `payload_digest` recomputes.
+4. `key_id` is the digest of `public_key`, and the signature verifies under it.
+5. The objects carried are exactly the digests the manifest lists.
+6. `report` names the one `ModelUpliftReport` carried. Its `spec` has the fields 3.2 names, its paired outcomes add up (each case in one of four cells, each case positive or negative), its uncertainty interval is in order with a confidence between 0 and 1, and its result fields (3.3) take only their listed values.
+7. The report's `artifact` and `benchmark_release` are carried, as a `ModelArtifact` and a `BenchmarkRelease`.
+8. The report's `attestation` is `participant`. Techtree gives `identified_executor` and `independently_reproduced` itself, to runs it executed; an upload never claims them.
+
+The full graph check (every reference, field-level schema) stays with `regents techtree proof verify`; the site records which checks it ran, these eight, and nothing more.
+
+An accepted proof is private: it belongs to the person whose agent sent it (the agent's current pairing), and only that person's paired agents read it, through `model_climb_reports` and `model_climb_report`. Nothing in it is shown on a public page (Sean, TT-BYO-MC-PRIVATE a, 13 Oct 2026).
+
 ## 4. Operations
 
 One operation id names the same action in every transport. A transport may expose fewer operations; it never gets more authority.
 
-Effect classes: `read`, `draft` (writes a draft, no compute), `request` (creates a review request, never a grant), `grant` (issues a signed execution grant), `spend` (rents compute or calls a model), `deploy` (changes a service), `publish`.
+Effect classes: `read`, `draft` (writes a draft, no compute), `submit` (sends a signed record to the owner's private Techtree records; nothing becomes public), `request` (creates a review request, never a grant), `grant` (issues a signed execution grant), `spend` (rents compute or calls a model), `deploy` (changes a service), `publish`.
 
 | Operation | Effect | CLI | HTTP | WebMCP | ChatGPT (initial) |
 |---|---|---|---|---|---|
@@ -109,16 +143,18 @@ Effect classes: `read`, `draft` (writes a draft, no compute), `request` (creates
 | `model_climb_status`, `model_climb_events` | read | yes | yes | yes | yes |
 | `model_climb_cancel` | spend (stops spend) | yes | yes | yes | no; link to the owner's page |
 | `model_climb_prove` | spend | yes | yes | yes | no |
-| `model_climb_report` | read | yes | yes | yes | yes, approved projection |
+| `model_climb_report`, `model_climb_reports` | read | yes | yes | yes | yes, approved projection |
+| `model_climb_report_submit` | submit | yes | yes | no | no |
 | `model_climb_deployment_prepare` | draft | yes | yes | yes | yes |
 | `model_climb_deployment_apply`, `_promote`, `_rollback` | deploy | yes | yes | yes | no |
 | `model_climb_runner_enroll`, `model_climb_runner_serve` | — | yes (runner only) | runner channel | no | no |
 
-No operation runs a shell, Python, SQL, an arbitrary URL fetch, exports a credential, reads raw proving data, or uploads an arbitrary artifact.
+No operation runs a shell, Python, SQL, an arbitrary URL fetch, exports a credential, reads raw proving data, or uploads an arbitrary artifact. A signed proof (3.5) is not an arbitrary artifact: it holds only contract objects, and Techtree checks it before keeping it.
 
 ### 4.1 HTTP
 
 - Private route family `/api/model-climb/v1/`: `capabilities`, `studies`, `plans`, `approval-requests`, `jobs`, `jobs/:id/cancel`, `reports`, `deployments`, `runners`, `events?cursor=`.
+- Built first (M3, 13 Oct 2026): `POST reports` (`model_climb_report_submit`, body: the proof document of 3.5), `GET reports` (`model_climb_reports`) and `GET reports/:digest` (`model_climb_report`), the caller's owner's reports only; another person's digest answers `not_found`. A repeat of the same proof answers with the record already kept.
 - Wallet-agent requests carry the shared SIWA request proof exactly as the template's one SIWA header implementation defines it. No new headers.
 - Every mutation carries an `Idempotency-Key` and, where the resource changes, the expected resource version and plan digest. The server stores the request digest with the key; the same key with a different request is `idempotency_conflict`.
 - Long work answers 202 with a stable `job_id`; nothing holds a request open for training.

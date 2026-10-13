@@ -40,7 +40,9 @@ defmodule TechtreeWeb.PublicationRate do
 
   @impl Plug
   def call(conn, _options) do
-    if PublicationAddress.post?(conn), do: count(conn), else: conn
+    if PublicationAddress.post?(conn) or PublicationAddress.model_climb_post?(conn),
+      do: count(conn),
+      else: conn
   end
 
   defp count(conn) do

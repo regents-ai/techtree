@@ -121,6 +121,17 @@ defmodule TechtreeWeb.Router do
     post "/publications", PublicationController, :create
   end
 
+  # Model Climb proofs: a paired agent sends its person's signed proofs and
+  # reads them back; each is private to that person. The proof's exact bytes
+  # are read by `TechtreeWeb.PublicationBody` and counted by
+  # `TechtreeWeb.PublicationRate`, like a publication.
+  scope "/api/model-climb/v1", TechtreeWeb do
+    pipe_through [:api, :paired_agent]
+    post "/reports", ModelClimbReportController, :create
+    get "/reports", ModelClimbReportController, :index
+    get "/reports/:digest", ModelClimbReportController, :show
+  end
+
   scope "/tools/account", TechtreeWeb do
     pipe_through [:api, :paired_agent]
     get "/balances", AgentAccountController, :balances

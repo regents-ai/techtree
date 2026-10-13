@@ -85,6 +85,33 @@
       "authority": "wallet-proof",
       "effect": "read",
       "webmcp": "points_balance"
+    },
+    {
+      "command": "model-climb reports",
+      "operation_id": "model_climb_reports",
+      "method": "GET",
+      "path": "/api/model-climb/v1/reports",
+      "description": "List the Model Climb reports the current paired owner has kept, newest first; private to that owner.",
+      "authority": "wallet-proof",
+      "effect": "read"
+    },
+    {
+      "command": "model-climb report <digest>",
+      "operation_id": "model_climb_report",
+      "method": "GET",
+      "path": "/api/model-climb/v1/reports/{digest}",
+      "description": "Read one of the current paired owner's Model Climb reports with its whole signed proof.",
+      "authority": "wallet-proof",
+      "effect": "read",
+      "arguments": [
+        {
+          "name": "digest",
+          "type": "string",
+          "in": "path",
+          "field": "digest",
+          "description": "The report's digest, `sha256:` and 64 lowercase hex characters; `regents techtree model-climb reports` names them."
+        }
+      ]
     }
   ]
 }

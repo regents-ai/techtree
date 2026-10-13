@@ -45,6 +45,7 @@ defmodule TechtreeWeb.PublicationBody do
   def read_body(conn, options) do
     cond do
       PublicationAddress.post?(conn) -> publication_body(conn, options)
+      PublicationAddress.model_climb_post?(conn) -> model_climb_body(conn, options)
       agent_request?(conn) -> Siwa.AgentAuthPlug.read_body(conn, options, @agent_maximum_bytes)
       true -> RegentIdentity.BodyReader.read_body(conn, options)
     end
@@ -57,6 +58,9 @@ defmodule TechtreeWeb.PublicationBody do
       _other -> false
     end
   end
+
+  defp model_climb_body(conn, options),
+    do: Siwa.AgentAuthPlug.read_body(conn, options, Techtree.ModelClimb.Proof.maximum_bytes())
 
   defp publication_body(conn, options) do
     case Siwa.AgentAuthPlug.read_body(conn, options, Techtree.Network.maximum_body_bytes()) do

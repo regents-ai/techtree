@@ -341,7 +341,7 @@ request. Only `https://techtree.sh` may receive production proof; arbitrary base
 remain available for public reads and offline work. Frozen prior releases remain intact.
 
 The signed HTTP subset adds `agents whoami`, `agents pair`, `account balances`,
-`account credits-history` and `account points`. It does not replace the native engine,
+`account credits-history`, `account points`, `model-climb reports` and `model-climb report`. It does not replace the native engine,
 manage grants, activate Points, or move funds. Pairing codes go on stdin.
 
 ## Model Climb: `regents techtree model-climb` (M0)
@@ -349,9 +349,10 @@ manage grants, activate Points, or move funds. Pairing codes go on stdin.
 Model Climb fine-tunes an open model privately and measures whether it got better. Its
 contract is [docs/spec/model-climb-v1.md](../docs/spec/model-climb-v1.md); its objects,
 operation ids, errors and grants are defined there, not here. Every `model-climb` command is
-native code in regents-cli and runs on this machine. None calls the Techtree site in M0, and
-`commands.json` names no `model-climb` path. The three commands below are the ones M0 needs;
-each other operation in the contract gets its section here before it is built.
+native code in regents-cli and runs on this machine, except the two private report reads
+(M3), which `commands.json` describes. The three M0 commands below call nothing on the site;
+the three M3 commands after them send and read a person's private reports. Each other
+operation in the contract gets its section here before it is built.
 
 None of these commands rents a machine, calls a paid model or sends data anywhere.
 
@@ -413,3 +414,53 @@ None of these commands rents a machine, calls a paid model or sends data anywher
   - `plan_changed`: the plan's digest no longer matches the stored plan.
   - `validation_error`: a missing limit, or the typed confirmation did not match.
 - **History:** 2026-10-12 added.
+
+### regents techtree model-climb report submit \<proof folder\> (M3)
+
+- **What it does:** sends a signed Model Climb proof to Techtree, which checks it (contract
+  3.5, eight checks) and keeps it privately for the person this agent is paired with. Nothing
+  in it appears on a public page.
+- **Who may run it:** a paired agent; the request is signed like every other signed request.
+- **What it changes:** adds one private report for the agent's person. Sending the same proof
+  again changes nothing and answers with the report already kept.
+- **Route:** `POST /api/model-climb/v1/reports` → `model_climb_report_submit` (submit). Native
+  code, not in `commands.json`: the body is the whole proof document and the request carries an
+  `Idempotency-Key` header, neither of which a command description can say.
+- **Inputs:**
+  - `<proof folder>`: `manifest.json` plus `objects/<hex>.json`, as contract 3.5 lays it out.
+    The command reads them into the one document `{schema_version, manifest, objects}`, objects
+    sorted by digest, and refuses before sending if it is over 1,048,576 bytes or 64 objects.
+  - The `Idempotency-Key` is the document's own digest (3.1), so a retry reuses it.
+- **Answer:** `{"schema_version": "techtree.model-climb.operation.v1alpha1", "operation_id":
+  "model_climb_report_submit", "report": {report_digest, signer_key_id, results,
+  paired_outcomes, received_at}, "next_actions": [{"operation_id": "model_climb_report",
+  "path": ...}]}`.
+- **Refusals:**
+  - `validation_error`: a check did not hold; `details.check` names which (`document`,
+    `objects`, `manifest`, `signature`, `carried`, `report`, `references`, `attestation`).
+  - `idempotency_conflict`: the key was already used for a different proof.
+  - `agent_not_paired`: this agent has no current pairing.
+- **History:** 2026-10-13 added.
+
+### regents techtree model-climb reports (M3)
+
+- **What it does:** lists the Model Climb reports this agent's person has kept, newest first.
+- **Who may run it:** a paired agent. Each person sees only their own reports.
+- **What it changes:** nothing.
+- **Route:** `GET /api/model-climb/v1/reports` → `model_climb_reports` (read).
+- **Inputs:** none.
+- **Answer:** `{"schema_version": ..., "operation_id": "model_climb_reports", "reports": [...],
+  "next_actions": []}`, each report as in `report submit`.
+- **History:** 2026-10-13 added.
+
+### regents techtree model-climb report \<digest\> (M3)
+
+- **What it does:** reads one of this agent's person's reports, with the whole signed proof it
+  was read from, so it can be checked again offline.
+- **Who may run it:** a paired agent. Another person's digest answers `not_found`.
+- **What it changes:** nothing.
+- **Route:** `GET /api/model-climb/v1/reports/{digest}` → `model_climb_report` (read).
+- **Inputs:** `<digest>`: the report's digest, `sha256:` and 64 lowercase hex characters.
+- **Answer:** the report as in `report submit`, plus `proof`, the document exactly as kept.
+- **Refusals:** `not_found`: no report with that digest belongs to this person.
+- **History:** 2026-10-13 added.

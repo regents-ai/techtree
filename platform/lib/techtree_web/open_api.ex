@@ -1,8 +1,8 @@
 defmodule TechtreeWeb.OpenAPI do
   @moduledoc """
   The OpenAPI 3.1 description of every machine address this site answers:
-  the public read API, the paired-agent write, the owner-only profile, and the
-  health check.
+  the public read API, the paired-agent writes, a person's private Model Climb
+  reports, the owner-only profile, and the health check.
 
   Each operation says what its controller actually sends. Documents this site
   serves byte for byte (the catalog, the bootstrap contract, catalog objects)
@@ -30,7 +30,8 @@ defmodule TechtreeWeb.OpenAPI do
         "description" =>
           "The public catalog of Climbs, the log of published Results, the one address " <>
             "that accepts a signed Result bundle or its withdrawal, an agent's pairing " <>
-            "with its person's Regent account, and the owner-only shared profile. Public reads need no account; private account reads require a current paired agent. Every error is an `error` object " <>
+            "with its person's Regent account, a person's private Model Climb reports, and " <>
+            "the owner-only shared profile. Public reads need no account; private account reads require a current paired agent. Every error is an `error` object " <>
             "with a stable code: a refusal from an address says whether retrying could " <>
             "help, and an unknown address, an unreadable body, a request over the rate " <>
             "limit or an unexpected failure says what to do next. A breaking change " <>
@@ -447,6 +448,101 @@ defmodule TechtreeWeb.OpenAPI do
               }
             }
           )
+      },
+      "/api/model-climb/v1/reports" => %{
+        "post" => %{
+          "operationId" => "model_climb_report_submit",
+          "summary" => "Keep a signed Model Climb proof privately for the agent's person",
+          "description" =>
+            "The whole proof document is the body (Model Climb contract, section 3.5). " <>
+              "The site checks every object, the signature and the report before keeping " <>
+              "it, and only the person's own paired agents can read it back. Sending the " <>
+              "same proof again answers with the record already kept.",
+          "security" => [%{"AgentSignature" => []}],
+          "parameters" => [
+            Map.put(
+              header_parameter(
+                "idempotency-key",
+                "1 to 255 characters. Reusing it for a different proof is refused."
+              ),
+              "required",
+              true
+            )
+          ],
+          "requestBody" => %{
+            "required" => true,
+            "content" => %{"application/json" => %{"schema" => ref("ModelClimbProof")}}
+          },
+          "responses" => %{
+            "200" =>
+              json(
+                "The report is kept, or was already kept.",
+                model_climb_answer(%{"report" => ref("ModelClimbReport")})
+              ),
+            "400" =>
+              error(
+                "`validation_error`: the Idempotency-Key header is missing, or a check did " <>
+                  "not hold; `details.check` names it."
+              ),
+            "401" => error("Fresh exact-request SIWA proof is required."),
+            "403" => error(pairing_refusal()),
+            "409" =>
+              error(
+                "`idempotency_conflict`: this Idempotency-Key was already used for a different proof."
+              ),
+            "413" => error("The body is larger than 1 MiB."),
+            "503" =>
+              error(
+                "`pairing_unavailable` or `account_unavailable`: the pairing or account could " <>
+                  "not be checked. `unavailable`: the report could not be kept. Try again."
+              )
+          }
+        },
+        "get" => %{
+          "operationId" => "model_climb_reports",
+          "summary" => "The Model Climb reports the agent's person has kept, newest first",
+          "security" => [%{"AgentSignature" => []}],
+          "responses" => %{
+            "200" =>
+              json(
+                "The person's reports.",
+                model_climb_answer(%{
+                  "reports" => %{"type" => "array", "items" => ref("ModelClimbReport")}
+                })
+              ),
+            "401" => error("Fresh exact-request SIWA proof is required."),
+            "403" => error(pairing_refusal())
+          }
+        }
+      },
+      "/api/model-climb/v1/reports/{digest}" => %{
+        "get" => %{
+          "operationId" => "model_climb_report",
+          "summary" => "One of the person's Model Climb reports, with its whole proof",
+          "security" => [%{"AgentSignature" => []}],
+          "parameters" => [digest_parameter("digest", "The report's digest.")],
+          "responses" => %{
+            "200" =>
+              json(
+                "The report and the proof it was read from.",
+                model_climb_answer(%{
+                  "report" => %{
+                    "allOf" => [
+                      ref("ModelClimbReport"),
+                      %{
+                        "type" => "object",
+                        "required" => ["proof"],
+                        "properties" => %{"proof" => ref("ModelClimbProof")}
+                      }
+                    ]
+                  }
+                })
+              ),
+            "401" => error("Fresh exact-request SIWA proof is required."),
+            "403" => error(pairing_refusal()),
+            "404" => error("`not_found`: no report with that digest belongs to this person.")
+          }
+        }
       },
       "/api/v1/profile" => %{
         "get" => %{
@@ -1007,6 +1103,46 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       },
+      "ModelClimbProof" => %{
+        "type" => "object",
+        "description" =>
+          "A signed Model Climb proof (`techtree.model-climb.proof.v1alpha1`, contract " <>
+            "section 3.5): a signed manifest and every contract object it names. At most " <>
+            "64 objects and 1 MiB.",
+        "required" => ["schema_version", "manifest", "objects"],
+        "properties" => %{
+          "schema_version" => %{"const" => "techtree.model-climb.proof.v1alpha1"},
+          "manifest" => %{
+            "type" => "object",
+            "required" => ["payload", "payload_digest", "signature"],
+            "properties" => %{
+              "payload" => %{"type" => "object"},
+              "payload_digest" => ref("Digest"),
+              "signature" => %{"type" => "object"}
+            },
+            "additionalProperties" => false
+          },
+          "objects" => %{"type" => "array", "maxItems" => 64, "items" => %{"type" => "object"}}
+        },
+        "additionalProperties" => false
+      },
+      "ModelClimbReport" => %{
+        "type" => "object",
+        "required" => [
+          "report_digest",
+          "signer_key_id",
+          "results",
+          "paired_outcomes",
+          "received_at"
+        ],
+        "properties" => %{
+          "report_digest" => ref("Digest"),
+          "signer_key_id" => ref("Digest"),
+          "results" => %{"type" => "object"},
+          "paired_outcomes" => %{"type" => "object"},
+          "received_at" => %{"type" => "string", "format" => "date-time"}
+        }
+      },
       "PairedAgent" => %{
         "type" => "object",
         "required" => [
@@ -1060,6 +1196,24 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       }
+    }
+  end
+
+  defp pairing_refusal,
+    do:
+      "`agent_not_paired`: this agent has no current pairing. `person_not_here`: the " <>
+        "paired owner has no Regent account."
+
+  defp model_climb_answer(fields) do
+    %{
+      "type" => "object",
+      "required" => ["schema_version", "operation_id", "next_actions" | Map.keys(fields)],
+      "properties" =>
+        Map.merge(fields, %{
+          "schema_version" => %{"const" => "techtree.model-climb.operation.v1alpha1"},
+          "operation_id" => %{"type" => "string"},
+          "next_actions" => %{"type" => "array", "items" => %{"type" => "object"}}
+        })
     }
   end
 
