@@ -131,7 +131,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "Participant-attested · Not independently reproduced"
+      assert text =~ "Participant-attested · Integrity-checked · Not independently reproduced"
       refute text =~ entry.participant_key_id
     end
 
@@ -405,18 +405,17 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert has_element?(
                live,
-               "#badge-files-verified",
+               "#badge-integrity-checked",
                "This site ran its #{Techtree.Network.Bundle.check_count()} checks on the " <>
                  "Result's files, including one that worked out the averages, the change " <>
                  "and the decision again from the task scores"
              )
 
-      assert has_element?(live, "#badge-reported", "Reported by its publisher")
+      assert has_element?(live, "#badge-attested", "Participant-attested")
 
-      # Nothing on this site records a rerun, so the Result is never shown as reproduced.
+      # Nothing on this site can show independent reproduction, so every Result says so.
+      assert has_element?(live, "#badge-not-reproduced", "Not independently reproduced")
       assert has_element?(live, "#badge-no-rerun", "No reruns yet")
-      refute has_element?(live, "#badge-reproduced")
-      refute visible_text(render(live)) =~ "Independently reproduced"
 
       # Patchbay keys the Result's one discussion to its bundle digest, exactly.
       assert has_element?(
@@ -612,7 +611,7 @@ defmodule TechtreeWeb.RunsLiveTest do
                "Skill name and GitHub link given by the publisher; not checked."
              )
 
-      refute has_element?(detail, "#badge-files-verified", "branchcode")
+      refute has_element?(detail, "#badge-integrity-checked", "branchcode")
     end
   end
 

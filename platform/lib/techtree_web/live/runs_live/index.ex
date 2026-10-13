@@ -295,7 +295,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p :if={@selection} id="agent-version-summary" class="results-context" aria-live="polite">
           {@selection.family.label} {@selection.version} · {@filters.model}
-          <span>Participant-attested · Not independently reproduced</span>
+          <span>Participant-attested · Integrity-checked · Not independently reproduced</span>
         </p>
 
         <p :if={@empty == :log} class="runs-index__empty empty-state">

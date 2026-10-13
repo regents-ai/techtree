@@ -30,6 +30,16 @@ defmodule Techtree.Network.Projection do
   @list_schema_version "techtree.publication-log.v1alpha1"
   @entry_schema_version "techtree.publication-entry.v1alpha1"
 
+  # The three claims a Result can make, kept apart. Every published Result is
+  # signed by its participant, and ingest refuses a bundle that fails any check,
+  # so the first two always hold. Nothing on this site can establish that
+  # anyone independent ran the comparison again, so the third never does.
+  @claims %{
+    "participant_attested" => true,
+    "integrity_checked" => true,
+    "independently_reproduced" => false
+  }
+
   @doc """
   One page of the log, as the bytes `GET /api/v1/publications` returns.
   """
@@ -119,7 +129,8 @@ defmodule Techtree.Network.Projection do
       "checks" => %{
         "run" => entry.verification_checks_run,
         "passed" => entry.verification_checks_passed
-      }
+      },
+      "claims" => @claims
     }
   end
 end

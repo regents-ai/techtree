@@ -19,9 +19,13 @@ defmodule TechtreeWeb.RunsLive.Show do
   It never counts publisher keys as people, and never calls a rerun from
   another key independent reproduction.
 
+  The evidence states three claims apart, the same three a Result's read
+  carries under `claims`: participant-attested, integrity-checked, and not
+  independently reproduced. Rerun notes sit after them as facts of their own.
+
   The Skill's name and GitHub link are the publisher's word, sent beside the
   signed bundle rather than inside it. Nothing checks them, so wherever the
-  page shows them it says so, and nothing it shows under "Files verified"
+  page shows them it says so, and nothing it shows under "Integrity-checked"
   comes from them. A link to a repository is not a claim that the publisher
   owns it or that its files are the Skill that ran; the Skill's fingerprint is.
 
@@ -213,22 +217,31 @@ defmodule TechtreeWeb.RunsLive.Show do
         <p class="eyebrow">Evidence</p>
         <h2>What stands behind these numbers</h2>
         <ul class="evidence-badges">
-          <li id="badge-files-verified" class="evidence-badge">
-            <Regent.Primitives.status tone="success" class="badge">
-              Files verified
-            </Regent.Primitives.status>
-            <p>
-              This site ran its {@entry.verification_checks_run} checks on the Result's files, including one that worked out the averages, the change and the decision again from the task scores, and every check passed.
-              <a href={~p"/proofs"}>How verification works.</a>
-            </p>
-          </li>
-          <li id="badge-reported" class="evidence-badge">
+          <li id="badge-attested" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
-              Reported by its publisher
+              Participant-attested
             </Regent.Primitives.status>
             <p>
               The numbers are signed with the publisher's key. Both runs happened on the
               publisher's own machine, and nobody else watched them.
+            </p>
+          </li>
+          <li id="badge-integrity-checked" class="evidence-badge">
+            <Regent.Primitives.status tone="success" class="badge">
+              Integrity-checked
+            </Regent.Primitives.status>
+            <p>
+              This site ran its {@entry.verification_checks_run} checks on the Result's files, including one that worked out the averages, the change and the decision again from the task scores, and every check passed. That shows the files agree with each other, not that the runs happened as described.
+              <a href={~p"/proofs"}>How verification works.</a>
+            </p>
+          </li>
+          <li id="badge-not-reproduced" class="evidence-badge">
+            <Regent.Primitives.status tone="neutral" class="badge">
+              Not independently reproduced
+            </Regent.Primitives.status>
+            <p>
+              Nobody independent of the publisher has been shown to get the same numbers. This
+              site has no way to show that, so no Result here claims it.
             </p>
           </li>
           <li :if={@rerun_of} id="badge-rerun-of" class="evidence-badge">

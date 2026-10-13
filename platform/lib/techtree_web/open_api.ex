@@ -769,7 +769,8 @@ defmodule TechtreeWeb.OpenAPI do
           "statuses",
           "decision",
           "proof_grade",
-          "checks"
+          "checks",
+          "claims"
         ],
         "properties" => %{
           "log_sequence" => %{"type" => "integer", "minimum" => 1},
@@ -850,6 +851,39 @@ defmodule TechtreeWeb.OpenAPI do
             "properties" => %{
               "run" => %{"type" => "integer", "minimum" => 1},
               "passed" => %{"type" => "integer", "minimum" => 1}
+            }
+          },
+          "claims" => %{
+            "type" => "object",
+            "description" =>
+              "Three separate claims, never one: who vouches for the numbers, whether this " <>
+                "site checked the files, and whether anyone independent ran it again.",
+            "required" => [
+              "participant_attested",
+              "integrity_checked",
+              "independently_reproduced"
+            ],
+            "properties" => %{
+              "participant_attested" => %{
+                "const" => true,
+                "description" =>
+                  "The participant signed the Result with their own key. Both runs happened " <>
+                    "on their own machine, and nobody else watched them."
+              },
+              "integrity_checked" => %{
+                "const" => true,
+                "description" =>
+                  "Every check this site runs on a Result's files passed, including working " <>
+                    "out the decision again from the task scores. This site refuses a Result " <>
+                    "that fails one. It shows the files agree with each other, not that the " <>
+                    "runs happened as described."
+              },
+              "independently_reproduced" => %{
+                "const" => false,
+                "description" =>
+                  "This site cannot establish that anyone independent ran the comparison " <>
+                    "again. A rerun (see rerun_of) is another participant-attested report."
+              }
             }
           }
         }
