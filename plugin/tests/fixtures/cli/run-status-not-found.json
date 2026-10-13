@@ -1,1 +1,1 @@
-{"error": {"code": "run_not_found", "message": "no such run: run_00000000000000000000000000000000", "details": {"run_id": "run_00000000000000000000000000000000"}}}
+{"error": {"code": "run_not_found", "message": "no such run: run_00000000000000000000000000000000", "details": {"run_id": "run_00000000000000000000000000000000"}}, "next_steps": [{"kind": "done", "say": "There is no such record. If the name or id was mistyped, run it again."}]}

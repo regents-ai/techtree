@@ -16,7 +16,7 @@ from typing import Any
 from ..cli.errors import PluginError
 from . import channel_of, safe_tool, tool_result
 from .arguments import require_local_path, require_run_id
-from .publish import publication_offer
+from .publish import publication_offer, without_publish_steps
 
 
 @safe_tool
@@ -44,9 +44,7 @@ def techtree_proof_verify(services: Any, args: dict[str, Any], **kwargs: Any) ->
     # offer publishing for a bundle path inside this machine's runs tree, but
     # the plugin has the run identifier or it does not, and when it does not
     # it relays no offer rather than guess which run the path belongs to.
-    relayed = {
-        key: value for key, value in answer.items() if key != "publication_offer"
-    }
+    relayed = dict(answer) if run_id else without_publish_steps(answer)
     offer = publication_offer(answer, target) if run_id else None
     if offer is not None:
         relayed["publication_offer"] = offer

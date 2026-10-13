@@ -4,7 +4,7 @@ Four behavioural rules live here, and each one exists because breaking it
 would be invisible in the output:
 
 *Publishing is offered only for a run whose proof verified.* The plugin reads
-the ``publication_offer`` in regents' own answer and relays it. It composes
+the next step in regents' own answer that publishes the run and relays it. It composes
 none, so a result nobody checked cannot be offered — there is nothing there to
 read.
 
@@ -40,33 +40,37 @@ from techtree_hermes.services.approvals import (
 from techtree_hermes.tools.publish import PUBLISH_ACTION_LABEL, publication_offer
 from unit.test_tools import RUN_ID, FakeBridge, _answer, _call, _services
 
-PUBLISH_OFFER: dict[str, Any] = {
+PUBLISH_STEP: dict[str, Any] = {
+    "kind": "run",
+    "say": "The proof just verified, so the run's own evidence travels with it.",
     "command": f"regents techtree publish {RUN_ID}",
-    "reason": "The proof just verified, so the run's own evidence travels with it.",
-    "retry": "reconcile_first",
+}
+
+DONE_STEP: dict[str, Any] = {
+    "kind": "done",
+    "say": "The proof holds; nothing more to run.",
 }
 
 
-def _proof(offer: dict[str, Any] | None) -> dict[str, Any]:
-    """A proof check, carrying regents' offer when there is one."""
-    answer: dict[str, Any] = {"verified": offer is not None, "kind": "bundle"}
-    if offer is not None:
-        answer["publication_offer"] = offer
-    return answer
+def _proof(step: dict[str, Any] | None) -> dict[str, Any]:
+    """A proof check, carrying regents' publish step when there is one."""
+    return {
+        "verified": step is not None,
+        "kind": "bundle",
+        "next_steps": [step or DONE_STEP],
+    }
 
 
-def _result(offer: dict[str, Any] | None) -> dict[str, Any]:
+def _result(step: dict[str, Any] | None) -> dict[str, Any]:
     """A finished result the presentation service can compose."""
-    answer: dict[str, Any] = {
+    return {
         "presentation": {
             "verification_status": "verified",
             "proof_grade": "P1",
             "task_rows": [],
         },
+        "next_steps": [step or DONE_STEP],
     }
-    if offer is not None:
-        answer["publication_offer"] = offer
-    return answer
 
 
 # The offer ---------------------------------------------------------------------
@@ -74,18 +78,18 @@ def _result(offer: dict[str, Any] | None) -> dict[str, Any]:
 
 def test_the_offer_is_read_out_of_regents_own_answer() -> None:
     """regents' words, carried across rather than written again."""
-    offer = publication_offer(_proof(PUBLISH_OFFER), RUN_ID)
+    offer = publication_offer(_proof(PUBLISH_STEP), RUN_ID)
 
     assert offer is not None
     assert offer["label"] == PUBLISH_ACTION_LABEL
-    assert offer["reason"] == PUBLISH_OFFER["reason"]
+    assert offer["reason"] == PUBLISH_STEP["say"]
     assert offer["run_id"] == RUN_ID
     assert offer["tool"] == "techtree_publish_run"
 
 
 def test_the_offer_says_a_person_has_to_answer() -> None:
     """The flag is the whole instruction to ask rather than act."""
-    offer = publication_offer(_proof(PUBLISH_OFFER), RUN_ID)
+    offer = publication_offer(_proof(PUBLISH_STEP), RUN_ID)
 
     assert offer is not None
     assert offer["requires_user_confirmation"] is True
@@ -93,7 +97,7 @@ def test_the_offer_says_a_person_has_to_answer() -> None:
 
 def test_the_offer_carries_what_a_person_is_owed_before_answering() -> None:
     """A disclosure a host agent has to go and find is a disclosure nobody reads."""
-    offer = publication_offer(_proof(PUBLISH_OFFER), RUN_ID)
+    offer = publication_offer(_proof(PUBLISH_STEP), RUN_ID)
 
     assert offer is not None
     assert offer["disclosure"] == list(PUBLICATION_DISCLOSURE)
@@ -108,7 +112,7 @@ def test_nothing_is_offered_when_regents_offered_nothing() -> None:
 
 
 def test_a_verified_result_relays_the_offer() -> None:
-    bridge = FakeBridge({"run result": _result(PUBLISH_OFFER)})
+    bridge = FakeBridge({"run result": _result(PUBLISH_STEP)})
 
     answer = _call("techtree_run_result", _services(bridge=bridge), {"run_id": RUN_ID})
 
@@ -125,7 +129,7 @@ def test_a_result_nobody_verified_relays_no_offer() -> None:
 
 
 def test_a_passing_proof_check_relays_the_offer() -> None:
-    bridge = FakeBridge({"proof verify": _proof(PUBLISH_OFFER)})
+    bridge = FakeBridge({"proof verify": _proof(PUBLISH_STEP)})
 
     answer = _call(
         "techtree_proof_verify", _services(bridge=bridge), {"run_id": RUN_ID}
@@ -151,13 +155,14 @@ def test_a_bundle_somebody_was_handed_is_never_offered_publishing() -> None:
     this is belt and braces — but the plugin has the run identifier or it does
     not, and the case where it does not is the case where it must not guess.
     """
-    bridge = FakeBridge({"proof verify": _proof(PUBLISH_OFFER)})
+    bridge = FakeBridge({"proof verify": _proof(PUBLISH_STEP)})
 
     answer = _call(
         "techtree_proof_verify", _services(bridge=bridge), {"proof_path": "/tmp/bundle"}
     )
 
     assert "publication_offer" not in answer
+    assert PUBLISH_STEP not in answer["next_steps"]
 
 
 # Publishing ---------------------------------------------------------------------

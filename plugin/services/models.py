@@ -465,14 +465,21 @@ def answer_error(answer: Mapping[str, Any]) -> Mapping[str, Any]:
     return error if isinstance(error, dict) else {}
 
 
+#: What a regents next step can ask for: nothing more, a command, a person, or
+#: a post on patchbay.help.
+NEXT_STEP_KINDS: Final = frozenset({"done", "run", "human", "patchbay"})
+
+
 def parse_cli_answer(raw: str) -> dict[str, Any]:
     """Parse exactly one regents JSON answer.
 
     ``--json`` promises one JSON object with no colour and no prompting. A
-    success is the facts themselves, at the top level. A failure is an object
-    whose one field is ``error``, carrying at least a ``code`` and a
-    ``message``. Anything else — a second record, ANSI, a non-object, an error
-    with no code — is a contract failure rather than something to salvage.
+    success is the facts themselves, at the top level, beside ``next_steps``.
+    A failure is an object whose fields are ``error``, carrying at least a
+    ``code`` and a ``message``, and ``next_steps``. Every answer has at least
+    one next step. Anything else — a second record, ANSI, a non-object, an
+    error with no code — is a contract failure rather than something to
+    salvage.
 
     Raises:
         CliAnswerError: when the output is not one valid answer.
@@ -504,9 +511,28 @@ def parse_cli_answer(raw: str) -> dict[str, Any]:
     return result
 
 
+def _check_next_steps(answer: Mapping[str, Any]) -> None:
+    steps = answer.get("next_steps")
+    if not isinstance(steps, list) or not steps:
+        raise CliAnswerError("a regents answer has no next steps")
+    for step in steps:
+        if (
+            not isinstance(step, dict)
+            or step.get("kind") not in NEXT_STEP_KINDS
+            or not isinstance(step.get("say"), str)
+            or not all(
+                isinstance(step.get(name, ""), str) for name in ("command", "url")
+            )
+        ):
+            raise CliAnswerError("a regents next step is not a {kind, say} object")
+
+
 def _check_error(answer: Mapping[str, Any]) -> None:
-    if set(answer) != {"error"}:
-        raise CliAnswerError("a regents failure carries fields beside 'error'")
+    if set(answer) != {"error", "next_steps"}:
+        raise CliAnswerError(
+            "a regents failure carries fields beside 'error' and 'next_steps'"
+        )
+    _check_next_steps(answer)
     error = answer["error"]
     if not isinstance(error, dict):
         raise CliAnswerError("a regents failure's 'error' is not an object")
@@ -518,6 +544,7 @@ def _check_error(answer: Mapping[str, Any]) -> None:
 
 
 def _check_success(answer: Mapping[str, Any]) -> None:
+    _check_next_steps(answer)
     if "report" in answer and not isinstance(answer["report"], str):
         raise CliAnswerError("a regents answer's report is not text")
     warnings = answer.get("warnings", [])

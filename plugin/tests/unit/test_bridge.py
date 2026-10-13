@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 from support import (
+    DONE_STEP,
     FakeCli,
     install_fake_cli,
     platform_environment_names,
@@ -133,7 +134,7 @@ def test_the_call_runs_without_a_shell(
 
 
 def test_one_answer_is_accepted_and_returned_unchanged(fake_cli: FakeCli) -> None:
-    assert invoke_cli(["doctor"]) == {"checks": []}
+    assert invoke_cli(["doctor"]) == {"checks": [], "next_steps": [DONE_STEP]}
 
 
 def test_two_json_records_are_rejected(
@@ -194,6 +195,7 @@ def test_a_failing_command_returns_its_own_answer(
             "message": "this build ships no Climb called 'nope@1'",
             "details": {"reference": "nope@1"},
         },
+        "next_steps": [DONE_STEP],
     }
     _fake_cli_printing(
         tmp_path,
@@ -278,7 +280,8 @@ def _environment_reporting_cli(
     return _fake_cli_printing(
         tmp_path,
         monkeypatch,
-        "print(json.dumps({'environment': dict(os.environ)}))",
+        "print(json.dumps({'environment': dict(os.environ), 'next_steps': "
+        f"[{DONE_STEP!r}]}}))",
     )
 
 

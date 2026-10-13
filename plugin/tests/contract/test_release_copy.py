@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Final
 
 import pytest
-from support import founder_result_payload
+from support import DONE_STEP, founder_result_payload
 from techtree_hermes.cli.constants import PLUGIN_ROOT
 from techtree_hermes.host.schemas import all_tool_schemas
 from techtree_hermes.services.models import CliResponse, ReleaseCore
@@ -1251,6 +1251,7 @@ class _ResultBridge:
             "presentation": dict(self._payload),
             "report": "A result.",
             "warnings": [],
+            "next_steps": [DONE_STEP],
         }
 
     def call(self, arguments: Sequence[str], *, purpose: str = "") -> CliResponse:

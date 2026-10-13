@@ -113,7 +113,7 @@ def test_a_recorded_answer_parses(path: Path) -> None:
         assert "error" not in answer
         assert isinstance(answer["report"], str)
     else:
-        assert set(answer) == {"error"}
+        assert set(answer) == {"error", "next_steps"}
         assert answer["error"]["code"] == code
 
 

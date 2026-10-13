@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from support import DONE_STEP
 from techtree_hermes.cli.bootstrap import create_install_plan
 from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.host.commands import (
@@ -50,7 +51,10 @@ RUN_ID = "run_" + "0" * 32
 def _answer(data: Any = None, ok: bool = True) -> dict[str, Any]:
     """One regents answer: the facts themselves, or one error."""
     if not ok:
-        return {"error": {"code": "nope", "message": "regents said no"}}
+        return {
+            "error": {"code": "nope", "message": "regents said no"},
+            "next_steps": [DONE_STEP],
+        }
     return dict(data or {})
 
 
@@ -63,7 +67,10 @@ class FakeBridge:
     def invoke(self, arguments: Sequence[str]) -> dict[str, Any]:
         self.calls.append(list(arguments))
         key = " ".join(arguments[:2])
-        return self.answers.get(key, _answer({"echo": list(arguments)}))
+        # regents gives every answer its next steps; a scripted answer that
+        # names none gets the one that says there is nothing more to run.
+        answer = self.answers.get(key, _answer({"echo": list(arguments)}))
+        return {"next_steps": [DONE_STEP], **answer}
 
     def call(self, arguments: Sequence[str], *, purpose: str = "") -> Any:
         raise AssertionError("commands do not need exit codes from machine mode")
@@ -147,7 +154,7 @@ def test_nothing_a_user_types_becomes_a_command() -> None:
 def test_setup_reports_the_build_and_the_next_step() -> None:
     answer = handle_slash_command("setup", _services(bridge=FakeBridge()))
 
-    assert "Plugin 0.7.2" in answer
+    assert "Plugin 0.7.3" in answer
     assert "regents:" in answer
 
 

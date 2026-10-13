@@ -74,7 +74,11 @@ VALID_ANSWER: dict[str, Any] = {
     "count": 0,
     "warnings": [{"id": "development_climb", "text": "a development Climb"}],
     "report": "No Climbs.",
+    "next_steps": [{"kind": "done", "say": "Nothing more to run."}],
 }
+
+#: The next steps every failure carries.
+STEPS: list[dict[str, str]] = VALID_ANSWER["next_steps"]
 
 VALID_PLAN: dict[str, Any] = {
     "plan_id": "install_" + "0" * 32,
@@ -245,11 +249,20 @@ def test_a_malformed_answer_is_rejected(
 @pytest.mark.parametrize(
     ("answer", "expected"),
     [
-        ({"error": {"code": "x", "message": "y"}, "count": 0}, "beside 'error'"),
-        ({"error": "climb_not_found"}, "not an object"),
-        ({"error": {"code": "", "message": "y"}}, "no code"),
-        ({"error": {"code": "x", "message": ""}}, "no message"),
-        ({"error": {"code": "x", "message": "y", "details": []}}, "details"),
+        (
+            {"error": {"code": "x", "message": "y"}, "next_steps": STEPS, "count": 0},
+            "beside 'error'",
+        ),
+        ({"error": "climb_not_found", "next_steps": STEPS}, "not an object"),
+        ({"error": {"code": "", "message": "y"}, "next_steps": STEPS}, "no code"),
+        ({"error": {"code": "x", "message": ""}, "next_steps": STEPS}, "no message"),
+        (
+            {
+                "error": {"code": "x", "message": "y", "details": []},
+                "next_steps": STEPS,
+            },
+            "details",
+        ),
     ],
 )
 def test_a_malformed_failure_is_rejected(answer: dict[str, Any], expected: str) -> None:
@@ -321,7 +334,7 @@ def test_an_error_is_relayed_unchanged() -> None:
             "exit_code": 2,
         },
     }
-    raw = json.dumps({"error": error})
+    raw = json.dumps({"error": error, "next_steps": STEPS})
 
     assert parse_cli_answer(raw)["error"] == error
 

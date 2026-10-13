@@ -203,6 +203,10 @@ def platform_environment_names() -> frozenset[str]:
     return frozenset(json.loads(completed.stdout))
 
 
+#: The next step regents gives when there is nothing more to run.
+DONE_STEP: dict[str, str] = {"kind": "done", "say": "Nothing more to run."}
+
+
 def error_answer(
     code: str, message: str, details: dict[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -210,12 +214,16 @@ def error_answer(
     error: dict[str, Any] = {"code": code, "message": message}
     if details is not None:
         error["details"] = details
-    return {"error": error}
+    return {"error": error, "next_steps": [DONE_STEP]}
 
 
 def print_answer(answer: dict[str, Any] | None = None) -> str:
-    """Return fake-CLI source that prints one answer, by default an empty one."""
-    return f"print(json.dumps({(answer or {})!r}))"
+    """Return fake-CLI source that prints one answer, by default one with no facts.
+
+    regents gives every answer its next steps; one that names none gets the
+    step that says there is nothing more to run.
+    """
+    return f"print(json.dumps({ ({'next_steps': [DONE_STEP], **(answer or {})})!r}))"
 
 
 # The founder's run shape ---------------------------------------------------------

@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import pytest
+from support import DONE_STEP
 from techtree_hermes.cli.release import load_embedded_release_core, release_core_digest
 from techtree_hermes.host.schemas import all_tool_schemas
 from techtree_hermes.host.state import SessionStore
@@ -43,7 +44,7 @@ POLICY = "sha256:" + "b" * 64
 def _answer(data: Any = None, ok: bool = True) -> dict[str, Any]:
     """One regents answer: the facts themselves, or one error."""
     if not ok:
-        return {"error": {"code": "x", "message": "y"}}
+        return {"error": {"code": "x", "message": "y"}, "next_steps": [DONE_STEP]}
     return dict(data or {})
 
 
@@ -57,7 +58,10 @@ class FakeBridge:
     def invoke(self, arguments: Sequence[str]) -> dict[str, Any]:
         self.calls.append(list(arguments))
         key = " ".join(arguments[:2])
-        return self.answers.get(key, _answer({"echo": list(arguments)}))
+        # regents gives every answer its next steps; a scripted answer that
+        # names none gets the one that says there is nothing more to run.
+        answer = self.answers.get(key, _answer({"echo": list(arguments)}))
+        return {"next_steps": [DONE_STEP], **answer}
 
     def verify_release(self, expected: Any) -> dict[str, Any]:
         return {

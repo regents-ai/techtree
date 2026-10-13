@@ -7,9 +7,10 @@ plugin's part in it is deliberately small: it relays an offer Techtree made,
 and — after Hermes has asked the person — it runs the command they agreed to.
 
 *The offer is Techtree's, not the plugin's.* ``regents techtree run result``
-and ``regents techtree proof verify`` put a ``publication_offer`` in their
-answer when, and only when, a run's proof was checked in that very reading and
-held together. :func:`publication_offer` reads that offer and hands it on. It
+and ``regents techtree proof verify`` put a ``run`` next step whose command is
+``regents techtree publish <run id>`` in their answer when, and only when, a
+run's proof was checked in that very reading and held together.
+:func:`publication_offer` reads that step and hands it on as an offer. It
 never composes one, so a run whose proof did not verify cannot be offered here:
 there is nothing to read. This is the same rule the rest of the plugin lives by
 — offers shown to a person come from Techtree's own answers, never from a
@@ -31,6 +32,7 @@ two different programs and copy that merges them is a defect.
 
 from __future__ import annotations
 
+import shlex
 from collections.abc import Mapping
 from typing import Any
 
@@ -55,22 +57,48 @@ PUBLISH_ACTION_LABEL = "Publish this run to the public run log"
 PUBLISH_TOOL = "techtree_publish_run"
 
 
+def publish_step(answer: Mapping[str, Any], run_id: str) -> Mapping[str, Any] | None:
+    """Return Techtree's next step that would publish this run, if it offered one."""
+    command = ["regents", "techtree", "publish", run_id]
+    steps: list[Mapping[str, Any]] = answer["next_steps"]
+    for step in steps:
+        if (
+            step.get("kind") == "run"
+            and shlex.split(step.get("command", "")) == command
+        ):
+            return step
+    return None
+
+
+def without_publish_steps(answer: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the answer with every next step that would publish a run taken out."""
+    return {
+        **answer,
+        "next_steps": [
+            step
+            for step in answer["next_steps"]
+            if shlex.split(step.get("command", ""))[:3]
+            != ["regents", "techtree", "publish"]
+        ],
+    }
+
+
 def publication_offer(answer: Mapping[str, Any], run_id: str) -> dict[str, Any] | None:
     """Return the offer to publish this run, if Techtree made one.
 
-    ``None`` whenever Techtree's answer carries no ``publication_offer``, which
-    is every case where the proof was not checked and passed just now. The
-    reason is Techtree's own words, carried across unchanged; what the plugin
-    adds is the tool that acts on it and the disclosure a person is owed before
-    they answer.
+    ``None`` whenever Techtree's answer carries no next step that publishes
+    this run, which is every case where the proof was not checked and passed
+    just now. The reason is Techtree's own words, carried across unchanged;
+    what the plugin adds is the tool that acts on it and the disclosure a
+    person is owed before they answer.
     """
-    offer = answer.get("publication_offer")
-    if not isinstance(offer, Mapping):
+    step = publish_step(answer, run_id)
+    if step is None:
         return None
     return {
         "id": PUBLISH_ACTION_ID,
         "label": PUBLISH_ACTION_LABEL,
-        "reason": offer.get("reason"),
+        "reason": step["say"],
         "tool": PUBLISH_TOOL,
         "run_id": run_id,
         "requires_user_confirmation": True,

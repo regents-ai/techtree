@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from support import FakeCli, error_answer, install_fake_cli, print_answer
+from support import DONE_STEP, FakeCli, error_answer, install_fake_cli, print_answer
 from techtree_hermes.cli.bootstrap import (
     TERMINAL_TOOL,
     UV_DOCUMENTATION_URL,
@@ -395,6 +395,7 @@ def _installed_cli(
         "catalog_digest": release.catalog_digest,
         "intro_climb_reference": release.intro_climb_reference,
         "source_commit": "a" * 40,
+        "next_steps": [DONE_STEP],
     }
     doctor = {
         "checks": [
@@ -408,6 +409,7 @@ def _installed_cli(
             }
         ],
         "blocking_failures": [],
+        "next_steps": [DONE_STEP],
     }
     body = (
         "if argv[:1] == ['--version']:\n"
