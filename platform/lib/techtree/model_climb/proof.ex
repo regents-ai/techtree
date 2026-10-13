@@ -222,7 +222,7 @@ defmodule Techtree.ModelClimb.Proof do
   defp carried(%{"objects" => listed}, objects) do
     if Enum.sort(Map.keys(objects)) == listed,
       do: :ok,
-      else: refuse("objects", "the objects carried are not exactly the ones the manifest lists")
+      else: refuse("carried", "the objects carried are not exactly the ones the manifest lists")
   end
 
   # 6. The report the manifest names.

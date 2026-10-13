@@ -52,10 +52,10 @@ The existing `regents techtree model` group (ChatGPT plan sign-in) is unchanged.
 | `TrainingRecipe` | trainer revision and lock digest, image digest, model revision, renderer, loss mask, LoRA config including the full target list, optimizer, seed, batch/context/step limits, checkpoint selection rule | — |
 | `ResolvedModelPlan` | every input digest above, compute target (provider, mission, GPU model and count), approved egress list, compatibility profile digest, budget reservation, expiry | all of the above |
 | `ModelArtifact` | base weights root, adapter root, adapter config, tokenizer and config refs, optional merged weights, derivation (plan + attempt), licence, privacy class | `ResolvedModelPlan`, `TrainingAttempt` |
-| `TrainingAttempt` | run and attempt ids, observed resolved config digest, steps and tokens, checkpoint refs, exit reason, measured cost, predecessor attempt and whether optimizer/RNG state was restored | `ResolvedModelPlan` |
+| `TrainingAttempt` | run and attempt ids, observed resolved config digest, steps and tokens, checkpoint refs, exit reason, measured cost, predecessor attempt and whether optimizer/RNG state was restored | `ResolvedModelPlan`, the predecessor `TrainingAttempt` when there is one |
 | `ModelUpliftReport` | native evaluator output refs, paired outcomes, uncertainty method and result, comparison validity, the six result fields (3.3), limitations | `ModelArtifact`, `BenchmarkRelease` |
 | `ServiceComparisonReport` | the exact deployments compared, load and latency protocol, paired business metrics, disclosed infrastructure differences, cost model | `DeploymentRelease` |
-| `DeploymentRelease` | model artifact, prompt, output schema, calibrator, policy version, runtime image, quantization, hardware profile, quota, fallback, predecessor release | `ModelArtifact` |
+| `DeploymentRelease` | model artifact, prompt, output schema, calibrator, policy version, runtime image, quantization, hardware profile, quota, fallback, predecessor release | `ModelArtifact`, the predecessor `DeploymentRelease` when there is one |
 
 `operational` for `TrainingAttempt` holds the intent id, the upstream job id, the event cursor and timestamps.
 
