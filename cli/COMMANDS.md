@@ -432,22 +432,20 @@ Three limits are accepted for M0 and are stated here so nobody is surprised by t
   the job will be given under this grant. Directly under it it asks the operator to type the grant's
   maximum USD as shown (for example `10`) to confirm. `--yes` and `--reviewed-on` are not accepted. On
   confirmation it writes the grant's `issued` line, with the two answers by name, to the grant
-  ledger and answers with the grant id and its file. The command holds the grant ledger
-  from start to end, the time the person spends typing included, so a `profile test` run from
-  another terminal answers `idempotency_conflict` until they finish.
+  ledger and answers with the grant id and its file. It holds no lock on the grant ledger:
+  issuing spends nothing, so a `profile test` run from another terminal never waits for it.
 - **Refusals:**
   - `plan_changed`: the plan's digest no longer matches the stored plan.
   - `validation_error`: a missing limit, a compatibility-test plan above 20 USD, a
     compatibility-test grant for more than one attempt, limits that leave the job fewer than
     three minutes, an attestation not given, or the typed confirmation did not match.
   - `approval_required`: the grant ledger cannot be read or holds a line that does not verify.
-  - `idempotency_conflict`: another command is using the grant ledger; nothing is done.
 - **History:** 2026-10-12 added. 2026-10-13 the typed confirmation is the maximum USD, and the
   grant ledger and the two attestations are added, with the first paid step. 2026-10-13 the
   review says what the typed figure covers and what it does not. 2026-10-13 the review's
   minutes are the job's under this grant, the maximum USD is per attempt, and a
   compatibility-test grant is for one attempt. 2026-10-13 refuses limits that leave the job
-  fewer than three minutes.
+  fewer than three minutes. 2026-10-13 holds no lock on the grant ledger.
 
 ### regents techtree model-climb grant revoke \<grant id\>
 
