@@ -10,8 +10,8 @@ defmodule TechtreeWeb.Router do
 
   # Pages are HTML here. The home page, About, Contact, Privacy, Terms and the
   # Changelog also answer `Accept: text/markdown`, from
-  # `TechtreeWeb.PublicDocuments`, before the router. `/skill.md` is Markdown
-  # whichever is asked for.
+  # `TechtreeWeb.PublicDocuments`, before the router. `/skill.md` and
+  # `/agents.md` are Markdown whichever is asked for.
   pipeline :html_only do
     plug :accepts, ["html"]
   end
@@ -103,7 +103,7 @@ defmodule TechtreeWeb.Router do
   scope "/", TechtreeWeb do
     get "/sitemap.xml", SitemapController, :index
     get "/robots.txt", PublicPagesController, :robots
-    get "/agents.md", PublicPagesController, :agents
+    get "/agents.md", AgentsController, :show
     get "/wallet-bench.md", WalletBenchController, :markdown
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities", PublicPagesController, :capabilities

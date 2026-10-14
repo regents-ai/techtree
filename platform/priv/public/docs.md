@@ -4,7 +4,7 @@ Install the released CLI, test a Skill against no Skill or its earlier version, 
 
 ## Install and check this machine
 
-Techtree names one release at a time. The [agent installation guide](/skill.md) names it, and the [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use them as they are rather than the newest version you know of.
+Techtree names one release at a time. The [agent guide](/agents.md) names it, and the [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use them as they are rather than the newest version you know of.
 
 1. Install the release the guide names.
 2. Check that `regents --version` prints that version.
@@ -98,7 +98,7 @@ Every page offers the agent built into a browser these tools through WebMCP (`do
 
 A browser's agent can read and explain: what a Climb tests, what a run on it would need, and what a published Result shows. It cannot install, prepare, run or compare anything. That work happens on the person's own computer, through the CLI, and nothing a browser tool returns means it has begun.
 
-To get a run started, hand the person's local agent (or the person) the steps from the [agent installation guide](/skill.md): install the release it names, check the version, run Doctor, then follow each answer's next steps.
+To get a run started, hand the person's local agent (or the person) the steps from the [agent guide](/agents.md): install the release it names, check the version, run Doctor, then follow each answer's next steps.
 
 One browser tool changes something: `techtree_publication` publishes or withdraws a Result. It needs an agent paired with the person's account that signs the request, and a Result already run and signed with the participant's own key on the person's computer. It runs nothing.
 

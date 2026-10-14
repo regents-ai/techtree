@@ -17,9 +17,10 @@ if [[ "$source_revision" != "$upstream_revision" ]]; then
   exit 1
 fi
 
-# The blog's posts and images live beside platform/ and are compiled in, so
-# they are copied into this application-only build context.
+# The blog's posts and images and the Techtree skill live beside platform/ and
+# are compiled in, so they are copied into this application-only build context.
 rsync -a --delete ../blog/ blog_content/
+rsync -a --delete ../skills/ skills_content/
 
 exec flyctl deploy \
   --app techtree-sh \

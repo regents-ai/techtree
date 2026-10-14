@@ -49,7 +49,7 @@ const requests: Record<string, Request> = {
   async techtree_start(_input, signal) {
     const [bootstrap, guide] = await Promise.all([
       read("/api/v1/bootstrap", "json", signal),
-      read("/skill.md", "text", signal),
+      read("/agents.md", "text", signal),
     ])
     if (!bootstrap.ok) return bootstrap
     if (!guide.ok) return guide

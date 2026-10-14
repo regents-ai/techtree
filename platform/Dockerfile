@@ -54,6 +54,7 @@ RUN mix deps.compile
 COPY priv priv
 COPY lib lib
 COPY blog_content /blog
+COPY skills_content /skills
 COPY assets assets
 
 # The browser dependency the hero canvas is drawn with, at the exact versions

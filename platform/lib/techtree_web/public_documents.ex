@@ -16,7 +16,7 @@ defmodule TechtreeWeb.PublicDocuments do
   """
 
   @directory Application.app_dir(:techtree, "priv/public")
-  @names ~w(home docs about contact privacy terms llms agents)
+  @names ~w(home docs about contact privacy terms llms)
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
   @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
   @external_resource @changelog_file
@@ -47,7 +47,6 @@ defmodule TechtreeWeb.PublicDocuments do
     "/terms" => "terms"
   }
   @paths Map.merge(@pages, %{
-           "/agents.md" => "agents",
            "/" => "home",
            "/docs" => "docs",
            "/changelog" => "changelog"

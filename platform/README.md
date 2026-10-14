@@ -317,8 +317,9 @@ This setting does not bootstrap a fresh namespaced database or change runtime gr
 
 `scripts/deploy_site.sh` deploys a clean, pushed checkout. The Docker build
 fetches the shared libraries from GitHub at the commits `mix.lock` pins. The
-script copies the monorepo's `blog/` into the ignored `blog_content/` first,
-because the blog is compiled in and lives outside this build context.
+script copies the monorepo's `blog/` and `skills/` into the ignored
+`blog_content/` and `skills_content/` first, because the blog and the Techtree
+skill are compiled in and live outside this build context.
 
 ## Shared profile migrations
 

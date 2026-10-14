@@ -39,13 +39,17 @@ defmodule TechtreeWeb.StartLive do
   end
 
   @doc """
-  The instruction a person copies to their agent. It names the installation
-  page rather than a version, so it stays true as releases move.
+  The instruction a person copies to their agent. It starts with the Techtree
+  skill, then names the agent guide rather than a version, so it stays true as
+  releases move.
   """
   @spec instruction() :: String.t()
   def instruction do
-    "Help me test one of my Skills with Techtree. " <>
-      "Read #{url(~p"/skill.md")} and install the exact Techtree release it names, " <>
+    "Strongly recommended but optional: install the Techtree skill with " <>
+      "`npx skills add regents-ai/techtree --skill techtree`. " <>
+      "The same information is at #{url(~p"/agents.md")}. " <>
+      "Help me test one of my Skills with Techtree. " <>
+      "Install the exact Techtree release that page names, " <>
       "or check that the one I have matches. Ask me where my Skill is, and whether to " <>
       "compare it with no Skill or with an earlier version of it. " <>
       "Then use Techtree one step at a time to make the tasks, run them both ways and compare. " <>

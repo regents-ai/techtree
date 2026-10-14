@@ -1,6 +1,6 @@
-defmodule TechtreeWeb.SkillControllerTest do
+defmodule TechtreeWeb.AgentsControllerTest do
   @moduledoc """
-  The agent-readable installation page. Same facts as the pages a person
+  The agent guide at /agents.md. Same installation facts as the pages a person
   reads, same source, and the same refusal to describe a release that is not
   being served.
   """
@@ -19,7 +19,7 @@ defmodule TechtreeWeb.SkillControllerTest do
     Importer.import!(bundle)
     release = ReleaseInfo.current()
 
-    conn = get(conn, ~p"/skill.md")
+    conn = get(conn, ~p"/agents.md")
 
     assert response(conn, 200) =~ "# Techtree 0.1.0"
     assert conn.resp_body =~ "uv tool install --python 3.12 techtree==0.1.0"
@@ -48,7 +48,7 @@ defmodule TechtreeWeb.SkillControllerTest do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
 
-    conn = get(conn, ~p"/skill.md")
+    conn = get(conn, ~p"/agents.md")
 
     assert response(conn, 404) == "No concrete Techtree release is active on this channel.\n"
     refute conn.resp_body =~ "placeholder"
@@ -57,7 +57,7 @@ defmodule TechtreeWeb.SkillControllerTest do
   test "nothing published at all is the same refusal", %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
 
-    conn = get(conn, ~p"/skill.md")
+    conn = get(conn, ~p"/agents.md")
 
     assert response(conn, 404) =~ "No concrete Techtree release is active on this channel."
   end

@@ -14,7 +14,8 @@ are planned; the working entry point today is testing one of your own Skills,
 with the Hello World Climb as the quick look.
 
 [Start](https://techtree.sh/start) · [Results](https://techtree.sh/results) ·
-[Docs](https://techtree.sh/docs) · [Agent guide](https://techtree.sh/skill.md) ·
+[Docs](https://techtree.sh/docs) · [Agent guide](https://techtree.sh/agents.md) ·
+[Techtree skill](https://techtree.sh/skill.md) ·
 [Changelog](https://techtree.sh/changelog) ·
 [Star on GitHub](https://github.com/regents-ai/techtree)
 

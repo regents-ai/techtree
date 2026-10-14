@@ -88,7 +88,7 @@ review exactly as Techtree prints it, and run an approving command only after
 the person says yes to that review. Planning and building send the Skill's
 files to the model provider the person chose, on their own sign-in. The steps
 are listed on the agent page at
-[techtree.sh/skill.md](https://techtree.sh/skill.md).
+[techtree.sh/agents.md](https://techtree.sh/agents.md).
 
 > [!NOTE]
 > Techtree uploads nothing unless you publish a run yourself. Publishing uploads

@@ -444,7 +444,7 @@ defmodule TechtreeWeb.HomeLive do
   carries the steps and the stops; /start keeps the longer instruction.
   """
   def agent_line do
-    "Read #{url(~p"/skill.md")} and help me test one of my Skills with Techtree. " <>
+    "Read #{url(~p"/agents.md")} and help me test one of my Skills with Techtree. " <>
       "Ask me before any paid model call or before publishing anything."
   end
 

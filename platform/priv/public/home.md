@@ -36,7 +36,7 @@ It is not a general benchmark of a model's broad capability, and it does not run
 ## How to start
 
 - [Start](/start): test your Skill, or take a quick look with the example Climb.
-- [Agent installation guide](/skill.md): the exact release to install and every step for your agent to follow, from making the tasks to comparing the runs. Each review waits for the person's own answer.
+- [Agent guide](/agents.md): the exact release to install and every step for your agent to follow, from making the tasks to comparing the runs. Each review waits for the person's own answer.
 - [Docs](/docs): install, test a Skill, verify, publish and integrate.
 
 ## Your work stays local
@@ -54,7 +54,8 @@ Techtree doesn't watch your runs. Your work stays local unless you choose to pub
 
 ## For agents and programs
 
-- [/skill.md](/skill.md): the installation guide for an agent.
+- [/skill.md](/skill.md): the Techtree skill, for an agent to install: what to watch and how to check back.
+- [/agents.md](/agents.md): the agent guide: the release to install and every step.
 - [/llms.txt](/llms.txt): when to use Techtree and where everything is.
 - [/openapi.json](/openapi.json): every public API address, typed.
 - [/sitemap.xml](/sitemap.xml): every public page.

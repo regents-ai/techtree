@@ -35,7 +35,8 @@ the person's own computer.
 ## Local work and optional publication
 
 - [Start](https://techtree.sh/start): two ways to begin: test a Skill (with one instruction for the person's local agent or Hermes), or take a quick look with the example Climb. Each names what it needs and where its data goes.
-- [Agent installation guide](https://techtree.sh/skill.md): the exact release to install, and every step from making the tasks to comparing the two runs. Each review waits for the person's own answer; never approve on their behalf.
+- [Techtree skill](https://techtree.sh/skill.md): strongly recommended but optional; install it with `npx skills add regents-ai/techtree --skill techtree`. What to watch on Techtree and how to check back on a schedule.
+- [Agent guide](https://techtree.sh/agents.md): the exact release to install, and every step from making the tasks to comparing the two runs. Each review waits for the person's own answer; never approve on their behalf.
 - [A real comparison](https://techtree.sh/examples/tdd): a tdd Skill tested on tasks made from it, with its task files.
 - [Bootstrap contract](https://techtree.sh/api/v1/bootstrap): use its exact released versions and arguments. Reject placeholder releases.
 - [Catalog](https://techtree.sh/api/v1/catalog).
@@ -62,7 +63,7 @@ Private Episodes and Traces stay local.
   `techtree_publication`, once it has been run and signed on their computer.
 - On the person's computer, through the CLI: installing, preparing a Skill,
   running, comparing and publishing. To hand this over, give the person or their
-  local agent https://techtree.sh/skill.md. It names the one release to install,
+  local agent https://techtree.sh/agents.md. It names the one release to install,
   how to check it and the first command; every answer after that names its next
   step.
 

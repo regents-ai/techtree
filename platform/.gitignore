@@ -56,3 +56,4 @@ npm-debug.log
 # Generated blog assets, and the blog copied into the release build context.
 /priv/static/images/blog/
 /blog_content/
+/skills_content/

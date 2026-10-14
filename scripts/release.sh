@@ -3,8 +3,8 @@
 # Run it through `make release`, which runs every gate on that same tree first.
 #
 # The build context is `git archive` of HEAD's platform/ folder, with HEAD's
-# blog/ folder as blog_content/ beside it, the same folders deploy_site.sh
-# sends. Nothing uncommitted, ignored or outside this repository enters the
+# blog/ and skills/ folders as blog_content/ and skills_content/ beside it, the
+# same folders deploy_site.sh sends. Nothing uncommitted, ignored or outside this repository enters the
 # image. The build reuses no cached layers, and the Dockerfile fetches every
 # dependency at the version the lockfiles pin; the shared libraries'
 # repositories are public, so the build takes no credentials.
@@ -61,6 +61,7 @@ fail() {
 echo "==> Building $image from commit $commit"
 git archive --format=tar "$commit:platform" | tar -x -C "$context"
 git archive --format=tar --prefix=blog_content/ "$commit:blog" | tar -x -C "$context"
+git archive --format=tar --prefix=skills_content/ "$commit:skills" | tar -x -C "$context"
 docker build --no-cache \
   --label "org.opencontainers.image.revision=$commit" \
   --build-arg "TECHTREE_SOURCE_REVISION=$commit" \

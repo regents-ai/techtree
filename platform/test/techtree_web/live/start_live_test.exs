@@ -35,7 +35,7 @@ defmodule TechtreeWeb.StartLiveTest do
         ]
         |> Enum.join("\n")
 
-      assert instruction =~ url(~p"/skill.md")
+      assert instruction =~ url(~p"/agents.md")
 
       assert instruction =~
                "Ask me where my Skill is, and whether to compare it with no Skill or with an earlier version of it."
