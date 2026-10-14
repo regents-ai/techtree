@@ -102,7 +102,8 @@ GET /start                      the two supported ways to run a Climb
 GET /climbs/:slug               one Climb in full
 GET /proofs                     what verification establishes
 GET /docs                       operating and mechanism documentation
-GET /skill.md                   the released starter Skill
+GET /skill.md                   the Techtree skill: what to watch, how to check back
+GET /agents.md                  the agent guide: the exact release and every step
 GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
 GET /repo2rlenv                 the planned Repo2RLEnv service
