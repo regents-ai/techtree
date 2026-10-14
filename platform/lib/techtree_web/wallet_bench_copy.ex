@@ -177,8 +177,8 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   defp signature(%{"matches_address" => true}), do: " The signature was made by this wallet."
 
-  defp signature(%{"matches_address" => false, "recovered" => by}),
-    do: " The signature was made by #{by}, not this wallet."
+  defp signature(%{"matches_address" => false, "recovered" => _by}),
+    do: " The signature was not made by this wallet over the message the bench checked."
 
   defp signature(%{"matches_address" => false}),
     do: " The wallet did not accept the signature as its own."

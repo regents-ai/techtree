@@ -3,8 +3,9 @@ defmodule Techtree.WalletBench.BaseCheck do
   The bench's own check of a wallet the harness reported (the survey's
   `verify-base.py`): from Base (`Techtree.WalletBench.BaseRpc`) at one block, the chain id, whether
   the address holds code, its ETH and USDC balances and its nonce. Given the
-  message and signature the harness printed (hex, with or without `0x`), it also checks who signed: the
-  EIP-191 signer is recovered first, which decides it for an account without
+  run's own message (`Techtree.WalletBench.Catalog.signing_message/1`) and the
+  signature the harness printed (hex, with or without `0x`), it also checks who
+  signed that message: the EIP-191 signer is recovered first, which decides it for an account without
   code and for a key-delegated one (EIP-7702); an account with code that the
   key did not sign for, such as a smart wallet, is asked itself at that block
   (ERC-1271 `isValidSignature`). Read-only.
@@ -19,9 +20,9 @@ defmodule Techtree.WalletBench.BaseCheck do
 
   @is_valid_signature "0x1626ba7e"
 
-  @type signed :: %{message: String.t(), encoding: String.t(), signature: String.t()}
+  @type signed :: %{message: String.t(), signature: String.t()}
 
-  @doc "Checks `address` on Base, and the signature when one was printed."
+  @doc "Checks `address` on Base, and the signature over the run's message when one was printed."
   @spec check(String.t(), signed() | nil) :: {:ok, map()} | {:error, term()}
   def check(address, signed) do
     if address =~ ~r/\A0x[0-9a-fA-F]{40}\z/ do
@@ -95,11 +96,7 @@ defmodule Techtree.WalletBench.BaseCheck do
   defp signature(check, nil), do: check
 
   defp signature(check, signed) do
-    result =
-      case message_bytes(signed) do
-        {:ok, message} -> signed_by(check, message, prefixed(signed.signature))
-        {:error, reason} -> %{"open" => "the message could not be read (#{reason})"}
-      end
+    result = signed_by(check, signed.message, prefixed(signed.signature))
 
     Map.put(
       check,
@@ -108,8 +105,8 @@ defmodule Techtree.WalletBench.BaseCheck do
     )
   end
 
-  # A wallet may print its signature as bare hex, as Zerion CLI 1.11.0 does: the same bytes, read the same way. The
-  # stored value stays as the harness printed it.
+  # A signing program may print its signature as bare hex, as the Open Wallet Standard library inside Zerion CLI
+  # 1.11.0 does: the same bytes, read the same way. The stored value stays as the harness printed it.
   defp prefixed("0x" <> _hex = signature), do: signature
   defp prefixed(signature), do: "0x" <> signature
 
@@ -154,18 +151,10 @@ defmodule Techtree.WalletBench.BaseCheck do
   end
 
   defp by_contract(_check, _message, _signature),
-    do: %{"open" => "the account holds code, and the signature is not hex"}
+    do: %{
+      "open" =>
+        "the account holds code, and what was printed as the signature is not whole hex bytes"
+    }
 
   defp word(integer), do: String.pad_leading(Integer.to_string(integer, 16), 64, "0")
-
-  defp message_bytes(%{encoding: "text", message: message}), do: {:ok, message}
-
-  defp message_bytes(%{encoding: "hex", message: "0x" <> hex}) do
-    case Base.decode16(hex, case: :mixed) do
-      {:ok, bytes} -> {:ok, bytes}
-      :error -> {:error, :invalid_message_hex}
-    end
-  end
-
-  defp message_bytes(_signed), do: {:error, :invalid_message_hex}
 end

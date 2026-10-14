@@ -5,11 +5,13 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   An install turn (T1a, T1b) goes to the judge with the prompt, the wallet's
   notes, the timing, the transcript, the install check and the storage check;
   the bench then compares the version the judge read with the version the
-  survey installed. A wallet turn (T2) first has its printed address, message
-  and signature read out (`Techtree.WalletBench.Judge.extract/1`), keeping only
+  survey installed. A wallet turn (T2) first has its printed address and
+  signature read out (`Techtree.WalletBench.Judge.extract/1`), keeping only
   answers found word for word in the transcript, then checked on Base
-  (`Techtree.WalletBench.BaseCheck`); the signature request is ruled on
-  together with the T2 turn before it, as one T2 result.
+  (`Techtree.WalletBench.BaseCheck`) against the run's own message
+  (`Techtree.WalletBench.Catalog.signing_message/1`), never one the harness
+  names; the signature request is ruled on together with the T2 turn before
+  it, as one T2 result.
 
   A money turn (T3, T4, T5) goes to the judge with the funding, the bench's
   look at the agent's wallet on Base and every USDC transfer since the funding
@@ -21,8 +23,8 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
 
   With `evidence: :stored` (the `:rejudge` action) a wallet or money turn is
   ruled on again from what was read and checked when it was first judged: the
-  printed address, message and signature and the Base checks at their blocks
-  stay as they are, so only the ruling is new.
+  printed address and signature and the Base checks at their blocks stay as
+  they are, so only the ruling is new.
 
   Every ruling is paid for, so its cost is added to the turn's
   `judge_cost_usd` in the update itself, never replacing an earlier ruling's,
@@ -110,7 +112,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   defp judge(attempt, %{test: :T2} = turn, :fresh) do
     with {:ok, files} <- files(turn, wallet_files(attempt.run_spec, true)),
          {:ok, printed, extract_cost} <- printed(files),
-         {:ok, base} <- base_check(printed.address, printed),
+         {:ok, base} <- base_check(attempt, printed.address, printed.signature),
          evidence = wallet_evidence(attempt, [{turn, files}], base),
          {:ok, judgment, cost} <- Judge.rule(:wallet, Catalog.review_guide(:T2), evidence) do
       wallet_result(
@@ -130,7 +132,7 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
     with {:ok, first_files} <- files(first, wallet_files(attempt.run_spec)),
          {:ok, files} <- files(turn, wallet_files(attempt.run_spec, true)),
          {:ok, printed, extract_cost} <- printed(files),
-         {:ok, base} <- base_check(address, printed),
+         {:ok, base} <- base_check(attempt, address, printed.signature),
          evidence = wallet_evidence(attempt, [{first, first_files}, {turn, files}], base),
          {:ok, judgment, cost} <-
            Judge.rule(:wallet, Catalog.review_guide(:T2_signature), evidence) do
@@ -260,16 +262,12 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
   defp printed(files) do
     with {:ok, answer, cost} <- Judge.extract(files["transcript.md"]) do
       keep = &keep(files, answer, &1)
-      message = keep.("message")
 
       {:ok,
        %{
          address: keep.("address"),
-         message: message,
-         encoding: if(message == "", do: "none", else: answer["encoding"]),
          signature: keep.("signature"),
-         dropped:
-           for(key <- ~w(address message signature), answer[key] != "", keep.(key) == "", do: key)
+         dropped: for(key <- ~w(address signature), answer[key] != "", keep.(key) == "", do: key)
        }, cost}
     end
   end
@@ -287,14 +285,12 @@ defmodule Techtree.WalletBench.Turn.Changes.JudgeTurn do
       String.contains?(files["stream.jsonl"], escaped)
   end
 
-  defp base_check("", _printed), do: {:ok, nil}
+  defp base_check(_attempt, "", _signature), do: {:ok, nil}
+  defp base_check(_attempt, address, ""), do: BaseCheck.check(address, nil)
 
-  defp base_check(address, %{message: message, signature: signature} = printed)
-       when message != "" and signature != "" do
-    BaseCheck.check(address, Map.take(printed, [:message, :encoding, :signature]))
+  defp base_check(attempt, address, signature) do
+    BaseCheck.check(address, %{message: Catalog.signing_message(attempt), signature: signature})
   end
-
-  defp base_check(address, _printed), do: BaseCheck.check(address, nil)
 
   defp install_evidence(attempt, turn, files) do
     """

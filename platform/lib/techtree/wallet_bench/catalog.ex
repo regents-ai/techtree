@@ -253,13 +253,12 @@ defmodule Techtree.WalletBench.Catalog do
 
     text =
       if spec && test == :T2 && attempt.wallet_id == "W01" do
-        read!("prompts/T2.txt") <>
-          "\n" <>
-          (read!("prompts/T2-bankr.txt")
-           |> String.replace("{pair}", pair(attempt.harness_id, "W01")))
+        read!("prompts/T2.txt") <> "\n" <> read!("prompts/T2-bankr.txt")
       else
         prompt(test, attempt.harness_id, attempt.wallet_id, error)
       end
+
+    text = String.replace(text, "{message}", signing_message(attempt))
 
     if spec do
       text <>
@@ -279,6 +278,16 @@ defmodule Techtree.WalletBench.Catalog do
   @doc "The release of a tested wallet a batch asks for unless it names another."
   @spec wallet_version!(String.t()) :: String.t()
   def wallet_version!(id), do: Map.fetch!(@wallet_versions, id)
+
+  @doc """
+  The message one run signs in its wallet test: the pair and the run's own id.
+  The bench checks the printed signature against this message and no other, so
+  a signature made for another run, or for anything else, proves nothing here.
+  """
+  @spec signing_message(%{harness_id: String.t(), wallet_id: String.t(), id: String.t()}) ::
+          String.t()
+  def signing_message(attempt),
+    do: "hwx T2 verify #{pair(attempt.harness_id, attempt.wallet_id)} #{attempt.id}"
 
   @doc "The pair's name as the survey wrote it, such as `H05-W07`."
   @spec pair(String.t(), String.t()) :: String.t()
@@ -302,7 +311,9 @@ defmodule Techtree.WalletBench.Catalog do
 
   @doc """
   The prompt for a test, word for word as the survey sent it. The retry prompt
-  takes the error the judge quoted; the signature request names the pair.
+  takes the error the judge quoted. The wallet test and the signature request
+  carry `{message}`, which `attempt_prompt/3` fills with the run's own message
+  (`signing_message/1`).
   """
   @spec prompt(atom(), String.t(), String.t(), String.t() | nil) :: String.t()
   def prompt(:T1a, _harness_id, wallet_id, nil), do: read!("prompts/T1a/#{wallet_id}.txt")
@@ -316,7 +327,7 @@ defmodule Techtree.WalletBench.Catalog do
     |> String.replace("{error}", error)
   end
 
-  def prompt(:T2, harness_id, "W01", nil) do
+  def prompt(:T2, _harness_id, "W01", nil) do
     supplied =
       case Application.get_env(:techtree, :wallet_bench_bankr_api_key) do
         key when is_binary(key) and key != "" ->
@@ -329,21 +340,12 @@ defmodule Techtree.WalletBench.Catalog do
           ""
       end
 
-    bankr =
-      "prompts/T2-bankr.txt"
-      |> read!()
-      |> String.replace("{pair}", pair(harness_id, "W01"))
-
-    read!("prompts/T2.txt") <> "\n" <> bankr <> supplied
+    read!("prompts/T2.txt") <> "\n" <> read!("prompts/T2-bankr.txt") <> supplied
   end
 
   def prompt(:T2, _harness_id, _wallet_id, nil), do: read!("prompts/T2.txt")
 
-  def prompt(:T2_signature, harness_id, wallet_id, nil) do
-    "prompts/T2-signature.txt"
-    |> read!()
-    |> String.replace("{pair}", pair(harness_id, wallet_id))
-  end
+  def prompt(:T2_signature, _harness_id, _wallet_id, nil), do: read!("prompts/T2-signature.txt")
 
   def prompt(test, _harness_id, _wallet_id, nil) when test in [:T3, :T4, :T5],
     do: read!("prompts/#{test}.txt")
