@@ -52,13 +52,18 @@ Where repository rules permit and uv is unavailable, the standard-library-only h
 can also run with Python 3.10 or newer directly. Default scans use
 local `origin/main` snapshots (HEAD when absent) plus explicitly distinguished current
 checkout differences, including committed changes and working edits. Explicit missing
-revisions fail instead of substituting HEAD. For release review, pass the actual target
+revisions fail instead of substituting HEAD.
+Missing Git objects also fail the run; no fetching or successful coverage is implied.
+Obtain complete local objects before retrying. For release review, pass the actual target
 checkout/ref with `--no-working-overlay`; the default scan is
 not a release inventory. Use a new or empty output directory outside scanned sources
 for each run; previous reports are preserved rather than overwritten or mixed with a
 new selection. Supply real directory paths, not symlinks. The script
-never fetches, executes repository code or follows external symlink targets. It excludes
-known private filenames (including `.env*` except `.env.example`), credential locations
+never fetches, executes repository code or follows external symlink targets.
+Working-file reads require POSIX no-follow directory descriptors (Linux/macOS);
+unsupported runtimes can still inventory an explicit Git snapshot with
+`--repo ... --ref ... --no-working-overlay`. It excludes known private filenames
+(including `.env*` except `.env.example`), credential locations
 and key extensions before reading content. Ordinary source configuration is eligible,
 but filename rules can conservatively exclude policy/example files too; those recorded
 boundaries remain manual-review work. Source/prose names containing words such as
@@ -76,6 +81,10 @@ Staged differences from HEAD are separately listed as unreviewed `index_overlay`
 boundaries; the separate index's content is not read. Eligible working files are
 still read, including when their bytes also happen to be staged. Non-Git loose documentation and Skill roots
 bypass text-search ignore files, so select only suitable source roots.
+These are versioned evidence records, not a reconstructed virtual working tree;
+inspect the staged boundaries and Git diff for case-only renames. Display pages group
+by repository basename; coverage sources and every file record retain the full root
+identity, including when names repeat.
 The expected-root list covers repository containers from the surface map, not every
 module path inside a repository. Inspect affected source paths separately.
 Inspect `coverage.json`: excluded,

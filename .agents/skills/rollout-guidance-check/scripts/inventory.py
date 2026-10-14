@@ -10,11 +10,13 @@ from __future__ import annotations
 import argparse
 import collections
 import csv
+import errno
 import hashlib
 import html
 import json
 import os
 import re
+import stat
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -51,9 +53,14 @@ PATTERNS = {
 }
 
 
+def git_environment():
+    # A hook's repository/index selection must not override the selected checkout.
+    return {key: value for key, value in os.environ.items() if not key.startswith("GIT_")} | {"GIT_NO_LAZY_FETCH": "1", "GIT_OPTIONAL_LOCKS": "0"}
+
+
 def git(repo: Path, *args: str, check: bool = True) -> bytes:
     return subprocess.run(["git", "--no-replace-objects", "-c", "core.fsmonitor=false", "-C", str(repo), *args], check=check,
-                          env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
+                          env=git_environment(),
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
 
 
@@ -147,6 +154,43 @@ def record(repo_name: str, repo: Path, path: str, version: str, data: bytes, row
                         "lines": len(text.splitlines()), "signal_lines": hits})
 
 
+def read_source(path: Path, max_size: int) -> tuple[bytes | None, str | None, str | None]:
+    """Anchor every path component to a descriptor; never follow replacement links."""
+    if not hasattr(os, "O_NOFOLLOW") or os.open not in os.supports_dir_fd:
+        raise RuntimeError("Working-file scans require no-follow directory-descriptor support; use --no-working-overlay for Git snapshots")
+    directory = os.open(path.anchor, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        for component in path.parts[1:-1]:
+            child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory)
+            os.close(directory)
+            directory = child
+        descriptor = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory)
+        with os.fdopen(descriptor, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if not stat.S_ISREG(metadata.st_mode):
+                return None, "non_regular_file_not_read", None
+            if metadata.st_size > max_size:
+                return None, "oversize_not_classified", None
+            return stream.read(max_size + 1), None, "100755" if metadata.st_mode & 0o111 else "100644"
+    except OSError as error:
+        if error.errno in {errno.ELOOP, errno.ENOTDIR, errno.ENOENT}:
+            return None, "changed_or_linked_path_not_read", None
+        raise
+    finally:
+        os.close(directory)
+
+
+def record_source(name: str, root: Path, path: Path, version: str, rows: list, max_size: int):
+    data, reason, mode = read_source(path, max_size)
+    relative = str(path.relative_to(root))
+    if reason:
+        rows.append({"repo": name, "root": str(root), "path": relative, "version": version,
+                     "status": reason, "categories": []})
+    else:
+        record(name, root, relative, version, data, rows, max_size)
+        rows[-1]["git_mode"] = mode
+
+
 def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: list, max_size: int, allow_fallback: bool = False) -> dict:
     ref = git(repo, "rev-parse", "--verify", requested_ref + "^{commit}", check=False).decode().strip()
     fallback = False
@@ -160,6 +204,11 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
                          "status": "repository_has_no_commit", "categories": []})
             if overlay:
                 loose_docs(name, repo, rows, max_size)
+                for raw in git(repo, "ls-files", "--cached", "-z").split(b"\0"):
+                    if raw:
+                        path = os.fsdecode(raw)
+                        rows.append({"repo": name, "root": str(repo), "path": path, "version": "index_overlay",
+                                     "status": exclusion(path) or "staged_difference_not_read", "categories": []})
             return {"name": name, "root": str(repo), "requested_ref": requested_ref,
                     "ref": None, "checkout_HEAD": None, "fell_back_to_HEAD": True,
                     "unavailable_reason": "repository_has_no_commit", "checkout_changed_during_scan": False}
@@ -186,7 +235,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
         group = wanted[offset:offset + 8]
         payload = b"\n".join(oid for _, oid, _ in group) + b"\n"
         batch = subprocess.run(["git", "--no-replace-objects", "-c", "core.fsmonitor=false", "-C", str(repo), "cat-file", "--batch"], input=payload,
-                               env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
+                               env=git_environment(),
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
         pos = 0
         for path, _, mode in group:
@@ -241,8 +290,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
                 current.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
                              "status": "oversize_not_classified", "categories": []})
             else:
-                record(name, repo, path, "working_overlay", p.read_bytes(), current, max_size)
-                current[0]["git_mode"] = "100755" if p.stat().st_mode & 0o111 else "100644"
+                record_source(name, repo, p, "working_overlay", current, max_size)
             previous = snapshot.get(path)
             # Without content evidence, equality is unknown: retain the current boundary.
             if not previous or "sha256" not in current[0] or any(previous.get(key) != current[0].get(key) for key in ("sha256", "status", "git_mode")):
@@ -326,7 +374,7 @@ def loose_docs(name: str, root: Path, rows: list, max_size: int, direct_only: bo
             rows.append({"repo": name, "root": str(root), "path": rel, "version": "working",
                          "status": reason or "oversize_not_classified", "categories": []})
         else:
-            record(name, root, rel, "working", p.read_bytes(), rows, max_size)
+            record_source(name, root, p, "working", rows, max_size)
 
 
 def workspace_docs(root: Path, rows: list, max_size: int):
@@ -354,7 +402,7 @@ def workspace_docs(root: Path, rows: list, max_size: int):
             rows.append({"repo": "workspace", "root": str(root), "path": rel, "version": "working",
                          "status": reason or "oversize_not_classified", "categories": []})
         else:
-            record("workspace", root, rel, "working", p.read_bytes(), rows, max_size)
+            record_source("workspace", root, p, "working", rows, max_size)
     for directory in (".agents/skills", ".claude/skills"):
         aliases = root / directory
         if linked_path(aliases, root):
