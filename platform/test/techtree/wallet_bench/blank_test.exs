@@ -21,6 +21,7 @@ defmodule Techtree.WalletBench.BlankTest do
     {"output": "pa\\"ss\\\\word-123"}
     key 0x#{String.duplicate("1f", 32)}
     bare {"k": "\\n#{String.duplicate("2e", 32)}"}
+    agent {"k": "\\nows_key_Zx9Qm2Lk8Vt4Rb7Nc1Yw6Hd3"}
     solana #{String.duplicate("4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi", 2)}
     keypair [#{Enum.join(1..64, ",")}]
     -----BEGIN EC PRIVATE KEY-----
@@ -43,6 +44,7 @@ defmodule Techtree.WalletBench.BlankTest do
           "pa\\\"ss",
           String.duplicate("1f", 32),
           String.duplicate("2e", 32),
+          "ows_key_Zx9",
           "4vJ9JU1b",
           "1,2,3",
           "MHcCAQEE",
