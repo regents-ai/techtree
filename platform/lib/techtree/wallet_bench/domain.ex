@@ -52,5 +52,16 @@ defmodule Techtree.WalletBench do
     resource Techtree.WalletBench.AttemptEvent do
       define :list_attempt_events, action: :for_attempt, args: [:attempt_id]
     end
+
+    resource Techtree.WalletBench.VersionNote do
+      define :add_version_note, action: :add, args: [:kind, :subject_id, :version, :text]
+      define :list_version_notes, action: :listed
+
+      define :list_run_version_notes,
+        action: :for_run,
+        args: [:harness_id, :harness_version, :wallet_id, :wallet_version]
+
+      define :withdraw_version_note, action: :withdraw
+    end
   end
 end

@@ -1,6 +1,7 @@
 defmodule TechtreeWeb.WalletBenchLive.Show do
   @moduledoc """
-  One wallet test attempt: the machine it ran on, each test's ruling with its
+  One wallet test attempt: the machine it ran on, the extra notes on its
+  agent's and wallet tool's versions, each test's ruling with its
   checks and reasons, the bench's own checks, the funding sends of a money
   attempt, the stored evidence and everything that happened, in order.
   Updates as the attempt moves.
@@ -39,6 +40,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
       page_title: Copy.pair(attempt),
       attempt: attempt,
       judges: judges(attempt),
+      notes: notes(attempt),
       events: WalletBench.list_attempt_events!(attempt.id)
     )
   end
@@ -87,6 +89,12 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             <dd :if={@judges != []}>{Enum.join(@judges, ", ")}</dd>
           </dl>
           <p :if={!@attempt.machine} class="quiet">No machine yet.</p>
+          <div :if={@notes != []} id="extra-notes">
+            <h3>Extra notes for these versions</h3>
+            <ul>
+              <li :for={note <- @notes}>{Copy.subject(note)} {note.version}: {note.text}</li>
+            </ul>
+          </div>
         </section>
 
         <section
@@ -243,6 +251,27 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
   end
 
   defp wallet(attempt), do: Catalog.wallet!(attempt.wallet_id)
+
+  # The notes on the two releases this attempt used, as the bench's results name them: the agent's from the
+  # machine's manifest, the wallet tool's from the newest install check, without a leading "v".
+  defp notes(attempt) do
+    WalletBench.list_run_version_notes!(
+      attempt.harness_id,
+      attempt.machine && attempt.machine.manifest["harness_version"],
+      attempt.wallet_id,
+      wallet_version(attempt)
+    )
+  end
+
+  defp wallet_version(attempt) do
+    attempt.turns
+    |> Enum.reverse()
+    |> Enum.find_value(&(&1.test in [:T1a, :T1b] && &1.checks["version"]["installed"]))
+    |> case do
+      "v" <> version -> version
+      version -> version
+    end
+  end
 
   # The models that ruled on this attempt's turns, as each ruling recorded.
   defp judges(attempt) do

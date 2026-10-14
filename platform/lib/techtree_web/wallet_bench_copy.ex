@@ -12,6 +12,11 @@ defmodule TechtreeWeb.WalletBenchCopy do
     Catalog.harness!(attempt.harness_id).name <> " × " <> Catalog.wallet!(attempt.wallet_id).name
   end
 
+  @doc "The agent or wallet tool a version note is about, by name."
+  @spec subject(%{kind: :harness | :wallet, subject_id: String.t()}) :: String.t()
+  def subject(%{kind: :harness, subject_id: id}), do: Catalog.harness!(id).name
+  def subject(%{kind: :wallet, subject_id: id}), do: Catalog.wallet!(id).name
+
   @spec status(atom()) :: String.t()
   def status(:requested), do: "Waiting for a machine"
   def status(:leased), do: "Setting up"

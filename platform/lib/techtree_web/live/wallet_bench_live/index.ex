@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.WalletBenchLive.Index do
   @moduledoc """
-  Which agent works with which wallet, then every wallet test attempt, newest
-  first: the pair, its status, the install and wallet results, and what the
+  Which agent works with which wallet, the extra notes by version, then every
+  wallet test attempt, newest first: the pair, its status, the install and wallet results, and what the
   tested model cost. Attempts with no result stay hidden until "Show all".
   Updates as attempts move.
   """
@@ -28,7 +28,12 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
 
   defp load(socket) do
     attempts = WalletBench.list_attempts!(load: [:turns, :model_spend_usd])
-    assign(socket, attempts: attempts, answer: Copy.answer(attempts))
+
+    assign(socket,
+      attempts: attempts,
+      answer: Copy.answer(attempts),
+      notes: WalletBench.list_version_notes!()
+    )
   end
 
   defp listed(%{assigns: %{all?: true, attempts: attempts}} = socket),
@@ -76,6 +81,41 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
                       {Copy.verdict(cell.ruling)}
                     </.link>
                     <span :if={!cell} class="quiet">Not yet</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section :if={@notes != []} class="wallet-bench__section" aria-labelledby="bench-notes">
+          <h2 id="bench-notes">Extra notes by version</h2>
+          <p class="quiet">
+            Odd things the bench saw about one release. They explain a result and never change one.
+          </p>
+          <div
+            class="wallet-bench__frame"
+            role="region"
+            aria-label="Extra notes, scroll horizontally for all columns"
+            tabindex="0"
+          >
+            <table class="results-ledger">
+              <thead>
+                <tr>
+                  <th scope="col">Agent or wallet</th>
+                  <th scope="col">Version</th>
+                  <th scope="col">Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={note <- @notes} id={"note-#{note.id}"}>
+                  <th scope="row">{Copy.subject(note)}</th>
+                  <td>{note.version}</td>
+                  <td>
+                    {note.text}
+                    <.link :if={note.attempt_id} navigate={~p"/wallet-bench/#{note.attempt_id}"}>
+                      See the run
+                    </.link>
                   </td>
                 </tr>
               </tbody>
