@@ -2,8 +2,9 @@
 
 Every request reaches Anthropic as claude-opus-5-5 with adaptive thinking at effort high, whatever the harness asked
 for (harnesses send their own effort for side requests). Each request as sent is logged with its call id, model and
-effort, and each call's hold and charge with its call id, to /work/proxy/calls.jsonl; an answered call also with the
-input tokens it read from and wrote to Anthropic's prompt cache.
+effort, and each call's hold and charge with its call id, to /work/proxy/calls.jsonl; an answered call also with its
+tokens as Anthropic counted them: input in all, the part of it read from and written to the prompt cache, and output.
+These let anyone price the call at the list price without LiteLLM.
 
 A translated request that marks nothing for caching is sent with Anthropic's request-wide cache setting, so the
 conversation so far is read back from the five-minute cache on the next call, as a harness speaking Anthropic's own
@@ -301,9 +302,11 @@ class BenchHooks(CustomLogger):
         # A call LiteLLM could not price counts at the most it could have cost.
         cost = kwargs.get("response_cost")
         usage = ((kwargs.get("standard_logging_object") or {}).get("metadata") or {}).get("usage_object") or {}
-        cache = {"cache_read": usage.get("cache_read_input_tokens"), "cache_write": usage.get("cache_creation_input_tokens")}
+        # LiteLLM's input count includes the cache reads and writes.
+        tokens = {"input": usage.get("prompt_tokens"), "cache_read": usage.get("cache_read_input_tokens"),
+                  "cache_write": usage.get("cache_creation_input_tokens"), "output": usage.get("completion_tokens")}
         self._settle("answered", call_id, self.holds[call_id] if cost is None else float(cost), kwargs.get("call_type"),
-                     cache)
+                     tokens)
 
     async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
         call_id = kwargs["litellm_call_id"]
@@ -314,13 +317,13 @@ class BenchHooks(CustomLogger):
         cost = 0.0 if _error_status(kwargs.get("exception")) else self.holds[call_id]
         self._settle("failed", call_id, cost, kwargs.get("call_type"))
 
-    def _settle(self, event, call_id, cost, call_type, cache=None):
+    def _settle(self, event, call_id, cost, call_type, tokens=None):
         """Charges a held call and releases its hold; a call already charged, or charged before a restart, is left
         as it is."""
         if self.held.pop(call_id, None) is None:
             return
         self.spent += cost
-        _log({"event": event, "call_id": call_id, "cost": cost, "call_type": call_type, **(cache or {})})
+        _log({"event": event, "call_id": call_id, "cost": cost, "call_type": call_type, **(tokens or {})})
 
 
 bench_hooks = BenchHooks()
