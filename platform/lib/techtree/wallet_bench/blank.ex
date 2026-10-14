@@ -8,13 +8,18 @@ defmodule Techtree.WalletBench.Blank do
   blanked as written and as it appears inside a JSON string, and the blank
   names the file it came from. Then patterns: PEM private keys, sign-in links
   that carry a code, email addresses, API keys with a vendor's prefix (Anthropic,
-  OpenAI, Bankr, Zerion, Privy, Circle), 32-byte hex values with or without `0x` (a
+  OpenAI, Bankr, Zerion, Privy, Circle), the Open Wallet Standard's agent token
+  (Zerion's signing token), 32-byte hex values with or without `0x` (a
   private key looks like a transaction hash, so the blank says it may be
   either), 64-byte base58 values (a Solana key looks like a Solana signature)
   and Solana keys written as 64 numbers, and runs of 12 or more
   recovery-phrase words, also as a quoted list. Every blank says what kind of
   thing it hid, so the judge can still rule on a secret that was shown. EVM
   addresses and signatures are longer or shorter than these shapes and stay.
+
+  A value at the start of an output line inside a JSON string follows the
+  escape `\\n` or `\\t`, so the prefixed and fixed-length rules also open after
+  one; a plain word boundary would miss it there.
   """
 
   @words_path Application.app_dir(:techtree, "priv/wallet_bench/bip39-english.txt")
@@ -27,10 +32,10 @@ defmodule Techtree.WalletBench.Blank do
     {~r/-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----/s, "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
     {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},
-    {~r/\b(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
+    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
      "API key"},
     # The Open Wallet Standard's agent token, which Zerion keeps in its config: it signs without the passphrase.
-    {~r/\bows_key_[A-Za-z0-9_]{16,}/, "wallet agent token"},
+    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))ows_key_[A-Za-z0-9_]{16,}/, "wallet agent token"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:0x)?[0-9a-fA-F]{64}(?![0-9A-Za-z])/,
      "32-byte hex value: a private key or a hash"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))[1-9A-HJ-NP-Za-km-z]{86,90}(?![0-9A-Za-z])/,
