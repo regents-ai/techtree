@@ -41,8 +41,10 @@ hook or generator to discover guidance. This package deliberately has no invento
 executable and requires no Python runtime for hosted review.
 
 If using Git directly, run every command with inherited `GIT_*` variables removed
-and an explicit, verified repository path. Disable replacement objects for every
-revision read/search, and disable external diff and text-conversion helpers. Enumerate
+and an explicit, verified repository path. Then set `GIT_NO_LAZY_FETCH=1` for every
+command, so missing partial-clone objects remain a coverage gap rather than triggering
+a download. Disable replacement objects for every revision read/search, and disable
+external diff and text-conversion helpers. Enumerate
 the complete repository tree independently of the current subdirectory; use safe path
 handling for unusual filenames. These are prerequisites, not settings implied by
 changing directories. If the host cannot ensure them, record the coverage limit.
