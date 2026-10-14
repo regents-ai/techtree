@@ -3,7 +3,7 @@ defmodule Techtree.WalletBench.BaseCheck do
   The bench's own check of a wallet the harness reported (the survey's
   `verify-base.py`): from Base (`Techtree.WalletBench.BaseRpc`) at one block, the chain id, whether
   the address holds code, its ETH and USDC balances and its nonce. Given the
-  message and signature the harness printed, it also checks who signed: the
+  message and signature the harness printed (hex, with or without `0x`), it also checks who signed: the
   EIP-191 signer is recovered first, which decides it for an account without
   code and for a key-delegated one (EIP-7702); an account with code that the
   key did not sign for, such as a smart wallet, is asked itself at that block
@@ -97,7 +97,7 @@ defmodule Techtree.WalletBench.BaseCheck do
   defp signature(check, signed) do
     result =
       case message_bytes(signed) do
-        {:ok, message} -> signed_by(check, message, signed.signature)
+        {:ok, message} -> signed_by(check, message, prefixed(signed.signature))
         {:error, reason} -> %{"open" => "the message could not be read (#{reason})"}
       end
 
@@ -107,6 +107,11 @@ defmodule Techtree.WalletBench.BaseCheck do
       Map.merge(result, %{"message" => signed.message, "value" => signed.signature})
     )
   end
+
+  # A wallet may print its signature as bare hex, as Zerion CLI 1.11.0 does: the same bytes, read the same way. The
+  # stored value stays as the harness printed it.
+  defp prefixed("0x" <> _hex = signature), do: signature
+  defp prefixed(signature), do: "0x" <> signature
 
   defp signed_by(check, message, signature) do
     by_key = by_key(check, message, signature)
