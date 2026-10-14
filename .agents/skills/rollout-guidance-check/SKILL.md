@@ -41,8 +41,10 @@ executable and requires no Python runtime for hosted review.
 
 If using Git directly, first verify the selected checkout and immutable revisions;
 inherited repository/index environment settings must not redirect the commands.
-From the repository root, `git ls-tree --full-tree -r -z --name-only TARGET` enumerates the target paths, and
-`git diff --no-ext-diff --no-textconv --name-status BASE TARGET` identifies changes.
+Disable replacement objects for every revision read and search, including later
+`show` or `grep` calls, so the named commit always means its original content.
+From the repository root, `git --no-replace-objects ls-tree --full-tree -r -z --name-only TARGET` enumerates the target paths, and
+`git --no-replace-objects diff --no-ext-diff --no-textconv --name-status BASE TARGET` identifies changes.
 Keep staged and unstaged local work separate from committed PR evidence. Missing
 objects, unavailable repositories and uninspectable paths remain explicit gaps.
 

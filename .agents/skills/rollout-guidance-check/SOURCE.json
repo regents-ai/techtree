@@ -2,7 +2,7 @@
   "source_repository": "regents-ai/ash-template",
   "source_path": "skills/rollout-guidance-check",
   "files": {
-    "SKILL.md": "e6a007f32e1d07143a6c07de0a1ac61f500297f23a12c18d01e63e84c0b293bf",
+    "SKILL.md": "4d754bb03fb4f7bf5cb94c241c267fe0ded8162b4afd41e0881c612fa0a3f328",
     "agents/openai.yaml": "ba5641967f27737cdef10b1a75e5d6868fff84d1e7ee99dc42cea9dd8a052ae8",
     "references/surface-map.md": "5a017ba630f09996c221d4b264f3a4d4e268e456000122ce30fed7d785a05a5e",
     "references/impact-checklist.md": "b6e49aab95e570479915a290807984b0038d6fb7719d3b02fe42e7597cf0721e",
