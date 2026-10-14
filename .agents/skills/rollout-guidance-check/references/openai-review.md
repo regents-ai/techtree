@@ -18,8 +18,8 @@ Ash-template reads its canonical Skill directly and needs no duplicate package.
 From the canonical Skill directory, maintain a consumer with:
 
 ```sh
-python3 scripts/sync_review.py --repo /absolute/consumer
-python3 scripts/sync_review.py --repo /absolute/consumer --check
+uv run --no-project --no-config --no-env-file --offline python scripts/sync_review.py --repo /absolute/consumer
+uv run --no-project --no-config --no-env-file --offline python scripts/sync_review.py --repo /absolute/consumer --check
 ```
 
 Repeat `--repo` for multiple consumers. This changes only the named review package and

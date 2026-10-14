@@ -2,11 +2,11 @@
   "source_repository": "regents-ai/ash-template",
   "source_path": "skills/rollout-guidance-check",
   "files": {
-    "SKILL.md": "05305edc36887414c006603a52f5093dd50b5f9557bfbd88016471817a53d9e5",
+    "SKILL.md": "5c8036bfe480a662007a62853e93a9531ebe3cbc38c0ef5c35b37639ddb1f245",
     "agents/openai.yaml": "ba5641967f27737cdef10b1a75e5d6868fff84d1e7ee99dc42cea9dd8a052ae8",
-    "scripts/inventory.py": "339352d2b05a0a7e7785b7d438639550bc8f1c86cf6c67cb61f84137410db167",
+    "scripts/inventory.py": "fb5aa1739a7cb1f33b288770d1c9797fa725e0c2244346860a1402670ac86229",
     "references/surface-map.md": "b290127176e65388c5c8432ed7d18775d2181a01d75d70964ceccbd1f7ece312",
     "references/impact-checklist.md": "b6e49aab95e570479915a290807984b0038d6fb7719d3b02fe42e7597cf0721e",
-    "references/openai-review.md": "6c4856b1f7a1cf4f3ef74a2dcb8e6d1a4257f977813b88ee95d42fd009a2ebd5"
+    "references/openai-review.md": "e9459048b0057c79e0077104eaf42ae5bb79e677ec5380862a219218e2efa317"
   }
 }

@@ -153,8 +153,16 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
     if not ref:
         if not allow_fallback:
             raise ValueError(f"Requested revision unavailable in {repo}: {requested_ref}; no substitute scanned")
-        ref = git(repo, "rev-parse", "HEAD").decode().strip()
+        ref = git(repo, "rev-parse", "--verify", "HEAD^{commit}", check=False).decode().strip()
         fallback = True
+        if not ref:
+            rows.append({"repo": name, "root": str(repo), "path": ".", "version": "unavailable",
+                         "status": "repository_has_no_commit", "categories": []})
+            if overlay:
+                loose_docs(name, repo, rows, max_size)
+            return {"name": name, "root": str(repo), "requested_ref": requested_ref,
+                    "ref": None, "checkout_HEAD": None, "fell_back_to_HEAD": True,
+                    "unavailable_reason": "repository_has_no_commit", "checkout_changed_during_scan": False}
     head = git(repo, "rev-parse", "HEAD").decode().strip()
     # --long records size; paths may contain whitespace, so split only the header.
     entries = git(repo, "ls-tree", "-r", "-z", "-l", ref).split(b"\0")
@@ -172,20 +180,21 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             rows.append({"repo": name, "root": str(repo), "path": path, "version": ref,
                          "status": reason or "oversize_not_classified", "categories": []})
         else:
-            wanted.append((path, oid))
+            wanted.append((path, oid, mode.decode()))
     # Only approved blobs enter cat-file: excluded settings and key files are never opened.
     for offset in range(0, len(wanted), 8):
         group = wanted[offset:offset + 8]
-        payload = b"\n".join(oid for _, oid in group) + b"\n"
+        payload = b"\n".join(oid for _, oid, _ in group) + b"\n"
         batch = subprocess.run(["git", "--no-replace-objects", "-c", "core.fsmonitor=false", "-C", str(repo), "cat-file", "--batch"], input=payload,
                                env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
         pos = 0
-        for path, _ in group:
+        for path, _, mode in group:
             end = batch.index(b"\n", pos)
             header = batch[pos:end].split()
             size = int(header[-1]); start = end + 1
             record(name, repo, path, ref, batch[start:start + size], rows, max_size)
+            rows[-1]["git_mode"] = mode
             pos = start + size + 1
     changes = []
     head_difference = [p.decode("utf-8", "surrogateescape") for p in
@@ -215,6 +224,8 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             entry = index.get(raw)
             if entry and entry[1] == b"160000":
                 reason = "submodule_not_traversed"
+            elif entry and entry[1] == b"120000":
+                reason = "symlink_not_followed"
             elif entry and entry[0] == b"S" and not p.exists():
                 reason = reason or "sparse_not_materialized"
             if linked_path(p, repo):
@@ -230,9 +241,10 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
                              "status": "oversize_not_classified", "categories": []})
             else:
                 record(name, repo, path, "working_overlay", p.read_bytes(), current, max_size)
+                current[0]["git_mode"] = "100755" if p.stat().st_mode & 0o111 else "100644"
             previous = snapshot.get(path)
             # Without content evidence, equality is unknown: retain the current boundary.
-            if not previous or "sha256" not in current[0] or (previous.get("sha256"), previous["status"]) != (current[0].get("sha256"), current[0]["status"]):
+            if not previous or "sha256" not in current[0] or any(previous.get(key) != current[0].get(key) for key in ("sha256", "status", "git_mode")):
                 rows.extend(current)
                 changes.append(path)
         staged = git(repo, "diff", "--cached", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", head)
@@ -260,10 +272,19 @@ def linked_path(path: Path, root: Path) -> bool:
 
 
 def ignored_paths(root: Path) -> set[str]:
-    if not git(root, "rev-parse", "--show-toplevel", check=False).strip():
+    top = git(root, "rev-parse", "--show-toplevel", check=False)
+    if not top:
         return set()
-    return {p.decode("utf-8", "surrogateescape").rstrip("/") for p in
-            git(root, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z").split(b"\0") if p}
+    top = Path(os.fsdecode(top).removesuffix("\n"))
+    ignored = set()
+    for raw in git(top, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z").split(b"\0"):
+        if raw:
+            path = top / os.fsdecode(raw).rstrip("/")
+            if path.is_relative_to(root):
+                ignored.add(str(path.relative_to(root)))
+            elif root.is_relative_to(path):
+                ignored.add(".")
+    return ignored
 
 
 def is_ignored(path: str, ignored: set[str]) -> bool:
@@ -355,6 +376,13 @@ def md_code(value):
     return "<code>" + text + "</code>"
 
 
+def csv_cell(value):
+    text = str(value)
+    if text.startswith(("\t", "\r", "\n")) or text.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", type=Path, required=True)
@@ -390,8 +418,11 @@ def main():
                 rows.append({"repo": "workspace", "root": str(root), "path": str(container.relative_to(root)),
                              "version": "working", "status": "symlink_not_followed", "categories": []})
             elif container.is_dir():
+                loose_docs("workspace", container, rows, args.max_bytes, direct_only=True)
                 for path in sorted(container.iterdir()):
-                    reason = "symlink_not_followed" if path.is_symlink() else exclusion(path.name)
+                    if path.is_symlink() or not path.is_dir():
+                        continue  # Direct files and links were recorded above.
+                    reason = exclusion(path.name)
                     if reason:
                         rows.append({"repo": "workspace", "root": str(root), "path": str(path.relative_to(root)),
                                      "version": "working", "status": reason, "categories": []})
@@ -404,7 +435,7 @@ def main():
         raise ValueError("--output must be outside scanned source directories")
     for repo in paths:
         repo = repo.resolve()
-        top = git(repo, "rev-parse", "--show-toplevel", check=False).decode().strip()
+        top = os.fsdecode(git(repo, "rev-parse", "--show-toplevel", check=False)).removesuffix("\n")
         if not top or Path(top).resolve() != repo:
             if args.repo:
                 raise ValueError(f"Explicit --repo must name a Git repository root: {repo}")
@@ -419,7 +450,7 @@ def main():
                         rows.append({"repo": repo.name, "root": str(repo), "path": child.name,
                                      "version": "working", "status": reason, "categories": []})
                         continue
-                    child_top = git(child, "rev-parse", "--show-toplevel", check=False).decode().strip()
+                    child_top = os.fsdecode(git(child, "rev-parse", "--show-toplevel", check=False)).removesuffix("\n")
                     if child_top and Path(child_top).resolve() == child:
                         sources.append(scan_repo(child.name, child, requested_ref, not args.no_working_overlay, rows, args.max_bytes, allow_fallback))
                     else:
@@ -445,14 +476,15 @@ def main():
         writer = csv.writer(stream)
         writer.writerow(["repository", "root", "path", "revision", "status", "categories", "signal_lines"])
         for row in rows:
-            writer.writerow([row["repo"], row["root"], row["path"], row["version"], row["status"],
-                             "; ".join(row["categories"]), json.dumps(row.get("signal_lines", {}))])
+            writer.writerow([csv_cell(cell) for cell in [row["repo"], row["root"], row["path"], row["version"], row["status"],
+                             "; ".join(row["categories"]), json.dumps(row.get("signal_lines", {}))]])
     counts = collections.Counter(row["status"] for row in rows)
     summary = {"generated_at": datetime.now(timezone.utc).isoformat(), "sources": sources,
                "unavailable_source_roots_from_surface_map": unavailable,
                "grouping_directories_children_scanned": nonrepos, "loose_roots_scanned": loose_roots,
                "counts": dict(counts),
                "limits": ["Line signals are heuristic; all other text stays in the inventory for review.",
+                          "CSV formula-leading cells are prefixed with an apostrophe; JSONL retains exact path values.",
                           "Remote refs are local snapshots, not fetched or live release claims.",
                           "Old worktrees, dependency copies, artifacts/backups and database-authored content are outside this source inventory.",
                           "Working overlays are not part of the recorded commit; they may be based on an older HEAD.",

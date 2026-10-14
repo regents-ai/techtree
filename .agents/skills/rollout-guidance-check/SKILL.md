@@ -36,13 +36,13 @@ template. Regents is one consumer, not the baseline.
 Refresh the file index when the repository layout or relevant files change:
 
 ```sh
-uv run --no-project --no-config --offline python scripts/inventory.py --workspace /absolute/regent --output /absolute/review-output
+uv run --no-project --no-config --no-env-file --offline python scripts/inventory.py --workspace /absolute/regent --output /absolute/review-output
 ```
 
 For a specific checkout or a standalone reviewer environment:
 
 ```sh
-uv run --no-project --no-config --offline python scripts/inventory.py --workspace /absolute/regent \
+uv run --no-project --no-config --no-env-file --offline python scripts/inventory.py --workspace /absolute/regent \
   --repo /absolute/checkout --ref COMMIT --no-working-overlay --output /absolute/review-output
 ```
 
@@ -66,7 +66,8 @@ boundaries without reading them; excluded directory trees may have one boundary 
 Current unverified boundaries remain in the overlay even when equality cannot be
 checked; the overlay path count is not an exact changed-file count.
 Staged differences from HEAD are separately listed as unreviewed `index_overlay`
-boundaries; staged content is not read. Non-Git loose documentation and Skill roots
+boundaries; the separate index's content is not read. Eligible working files are
+still read, including when their bytes also happen to be staged. Non-Git loose documentation and Skill roots
 bypass text-search ignore files, so select only suitable source roots.
 The expected-root list covers repository containers from the surface map, not every
 module path inside a repository. Inspect affected source paths separately.
