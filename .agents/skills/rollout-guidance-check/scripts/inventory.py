@@ -28,6 +28,7 @@ PRIVATE_NAMES = {".npmrc", ".pypirc", ".netrc", "_netrc", ".git-credentials",
                  "settings.json", "wallet.json", "service-account.json"}
 PRIVATE_NAME_PATTERN = re.compile(
     r"(?:^|[._-])(?:credentials?|secrets?|private[-_]?keys?|access[-_]?tokens?|keystore)(?:[._-]|$)", re.I)
+KEY_EXTENSIONS = {".pem", ".key", ".p8", ".p12", ".pfx", ".ppk", ".keystore"}
 BINARY = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico", ".woff", ".woff2",
           ".ttf", ".mp4", ".mov", ".mp3", ".wav", ".zip", ".gz", ".pdf", ".beam",
           ".sqlite", ".db", ".pem", ".key", ".p8", ".p12", ".pfx", ".keystore", ".lock", ".map"}
@@ -49,7 +50,8 @@ PATTERNS = {
 
 
 def git(repo: Path, *args: str, check: bool = True) -> bytes:
-    return subprocess.run(["git", "-C", str(repo), *args], check=check,
+    return subprocess.run(["git", "-c", "core.fsmonitor=false", "-C", str(repo), *args], check=check,
+                          env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
 
 
@@ -59,8 +61,10 @@ def exclusion(path: str) -> str | None:
         return "settings_never_read"
     if any(part.lower() in PRIVATE_PARTS for part in p.parts) or p.name == "launch.json":
         return "private_runtime_never_read"
+    if KEY_EXTENSIONS.intersection(s.lower() for s in p.suffixes):
+        return "private_key_never_read"
     private_data_name = p.suffix.lower() not in SOURCE | (PROSE - {".txt"}) and PRIVATE_NAME_PATTERN.search(p.name)
-    if p.name.lower() in PRIVATE_NAMES or private_data_name:
+    if any(p.name.lower() == name or p.name.lower().startswith(name + ".") for name in PRIVATE_NAMES) or private_data_name:
         return "credential_filename_never_read"
     if any(part in SKIP_PARTS for part in p.parts):
         return "dependency_or_build_output"
@@ -168,12 +172,14 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
         else:
             wanted.append((path, oid))
     # Only approved blobs enter cat-file: excluded settings and key files are never opened.
-    if wanted:
-        payload = b"\n".join(oid for _, oid in wanted) + b"\n"
-        batch = subprocess.run(["git", "-C", str(repo), "cat-file", "--batch"], input=payload,
+    for offset in range(0, len(wanted), 8):
+        group = wanted[offset:offset + 8]
+        payload = b"\n".join(oid for _, oid in group) + b"\n"
+        batch = subprocess.run(["git", "-c", "core.fsmonitor=false", "-C", str(repo), "cat-file", "--batch"], input=payload,
+                               env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
         pos = 0
-        for path, _ in wanted:
+        for path, _ in group:
             end = batch.index(b"\n", pos)
             header = batch[pos:end].split()
             size = int(header[-1]); start = end + 1
@@ -181,30 +187,43 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             pos = start + size + 1
     changes = []
     head_difference = [p.decode("utf-8", "surrogateescape") for p in
-                       git(repo, "diff", "--no-renames", "--name-only", "-z", ref, head).split(b"\0") if p]
+                       git(repo, "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", ref, head).split(b"\0") if p]
     if overlay:
-        # Include committed HEAD-only differences as well as staged/unstaged edits.
-        paths = set(git(repo, "diff", "--no-renames", "--name-only", "-z", ref).split(b"\0"))
+        # Compare raw files with recorded blobs; a worktree diff may execute clean filters.
+        snapshot = {row["path"]: row for row in rows
+                    if row["root"] == str(repo) and row["version"] == ref}
+        paths = {p.encode("utf-8", "surrogateescape") for p in snapshot}
+        paths |= set(git(repo, "ls-files", "--cached", "-z").split(b"\0"))
         paths |= set(git(repo, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0"))
         for raw in sorted(paths):
             if not raw:
                 continue
             path = raw.decode("utf-8", "surrogateescape"); p = repo / path
-            changes.append(path)
+            current = []
             reason = exclusion(path)
             if linked_path(p, repo):
                 reason = "symlink_not_followed"
             if reason or not p.is_file():
-                rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
+                current.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
                              "status": reason or "deleted_or_missing", "categories": []})
             elif not p.resolve().is_relative_to(repo.resolve()):
-                rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
+                current.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
                              "status": "external_symlink_parent_not_followed", "categories": []})
             elif p.stat().st_size > max_size:
-                rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
+                current.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
                              "status": "oversize_not_classified", "categories": []})
             else:
-                record(name, repo, path, "working_overlay", p.read_bytes(), rows, max_size)
+                record(name, repo, path, "working_overlay", p.read_bytes(), current, max_size)
+            previous = snapshot.get(path)
+            if not previous or (previous.get("sha256"), previous["status"]) != (current[0].get("sha256"), current[0]["status"]):
+                rows.extend(current)
+                changes.append(path)
+        ignored = git(repo, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z")
+        for raw in ignored.split(b"\0"):
+            if raw:
+                path = raw.decode("utf-8", "surrogateescape")
+                rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
+                             "status": exclusion(path) or "ignored_untracked_not_read", "categories": []})
     return {"name": name, "root": str(repo), "requested_ref": requested_ref, "ref": ref,
             "fell_back_to_HEAD": fallback, "checkout_HEAD": head, "overlay_paths": len(changes),
             "checkout_paths_differing_from_ref": head_difference,
@@ -227,7 +246,7 @@ def document_paths(root: Path) -> list[Path]:
         parent = Path(directory)
         for folder in folders[:]:
             path = parent / folder
-            if path.is_symlink():
+            if path.is_symlink() or exclusion(str(path.relative_to(root))):
                 paths.append(path)
                 folders.remove(folder)
         paths.extend(parent / name for name in files)
@@ -274,25 +293,33 @@ def workspace_docs(root: Path, rows: list, max_size: int):
             record("workspace", root, rel, "working", p.read_bytes(), rows, max_size)
     for directory in (".agents/skills", ".claude/skills"):
         aliases = root / directory
-        if not linked_path(aliases, root) and aliases.is_dir():
+        if linked_path(aliases, root):
+            rows.append({"repo": "workspace", "root": str(root), "path": directory,
+                         "version": "working", "status": "skill_alias_not_followed", "categories": ["skill_alias"]})
+        elif aliases.is_dir():
             for p in sorted(aliases.iterdir()):
+                relative = str(p.relative_to(root))
+                reason = exclusion(relative)
                 if p.is_symlink():
                     rows.append({"repo": "workspace", "root": str(root), "path": str(p.relative_to(root)),
                                  "version": "working", "status": "skill_alias_not_followed",
                                  "target": str(p.readlink()), "categories": ["skill_alias"]})
+                elif reason:
+                    rows.append({"repo": "workspace", "root": str(root), "path": relative,
+                                 "version": "working", "status": reason, "categories": []})
                 elif p.is_dir():
                     loose_docs("workspace", p, rows, max_size)
 
 
-def reject_output_links(path: Path):
+def reject_links(path: Path):
     if any(p.is_symlink() for p in (path, *path.parents)):
-        raise ValueError(f"Refusing symlink in output path: {path}")
+        raise ValueError(f"Refusing symlink in path: {path}")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True, help="New or empty directory outside scanned sources")
     parser.add_argument("--ref", help="Exact revision; unavailable explicit revisions fail without substituting HEAD")
     parser.add_argument("--repo", type=Path, action="append", help="Restrict to these checkouts; repeatable")
     parser.add_argument("--no-working-overlay", action="store_true")
@@ -300,13 +327,16 @@ def main():
     args = parser.parse_args()
     requested_ref = args.ref or "origin/main"
     allow_fallback = args.ref is None
+    reject_links(args.workspace.absolute())
     root = args.workspace.resolve()
     if not root.is_dir():
         raise ValueError(f"Workspace must be an existing directory: {root}")
-    reject_output_links(args.output.absolute())
+    reject_links(args.output.absolute())
     output = args.output.resolve()
     rows = []; sources = []; nonrepos = []; loose_roots = []; unavailable = []
     paths = args.repo or []
+    for repo in paths:
+        reject_links(repo.absolute())
     if not args.repo:
         surface_map = Path(__file__).resolve().parents[1] / "references/surface-map.md"
         expected = sorted(set(re.findall(r"\b(?:repos|services)/[a-z0-9-]+", surface_map.read_text())))
@@ -330,7 +360,7 @@ def main():
                         paths.append(path)
     scanned_roots = [p.resolve() for p in paths]
     if not args.repo:
-        scanned_roots.extend(root / p for p in ("docs", "agent-docs", ".agents/skills", ".claude/skills"))
+        scanned_roots.extend(root / p for p in ("repos", "services", "docs", "agent-docs", ".agents/skills", ".claude/skills"))
     if any(output.is_relative_to(p) for p in scanned_roots):
         raise ValueError("--output must be outside scanned source directories")
     for repo in paths:
@@ -343,7 +373,12 @@ def main():
             if not args.repo:
                 loose_docs(repo.name, repo, rows, args.max_bytes, direct_only=True)
                 for child in sorted(repo.iterdir()):
-                    if not child.is_dir() or child.is_symlink() or exclusion(child.name):
+                    if not child.is_dir() or child.is_symlink():
+                        continue
+                    reason = exclusion(child.name)
+                    if reason:
+                        rows.append({"repo": repo.name, "root": str(repo), "path": child.name,
+                                     "version": "working", "status": reason, "categories": []})
                         continue
                     child_top = git(child, "rev-parse", "--show-toplevel", check=False).decode().strip()
                     if child_top and Path(child_top).resolve() == child:
@@ -360,12 +395,14 @@ def main():
     outputs = [output / f for f in ("locations.jsonl", "locations.csv", "coverage.json", "INDEX.md")]
     outputs += [output / "repositories" / (name + ".md") for name in names]
     for path in outputs:
-        reject_output_links(path)
+        reject_links(path)
     output.mkdir(parents=True, exist_ok=True)
-    with (output / "locations.jsonl").open("w") as stream:
+    if any(output.iterdir()):
+        raise ValueError("--output must be new or empty; use a fresh directory for each inventory")
+    with (output / "locations.jsonl").open("x") as stream:
         for row in rows:
             stream.write(json.dumps(row, ensure_ascii=True) + "\n")
-    with (output / "locations.csv").open("w", newline="", encoding="utf-8", errors="backslashreplace") as stream:
+    with (output / "locations.csv").open("x", newline="", encoding="utf-8", errors="backslashreplace") as stream:
         writer = csv.writer(stream)
         writer.writerow(["repository", "root", "path", "revision", "status", "categories", "signal_lines"])
         for row in rows:
@@ -380,6 +417,7 @@ def main():
                           "Remote refs are local snapshots, not fetched or live release claims.",
                           "Old worktrees, dependency copies, artifacts/backups and database-authored content are outside this source inventory.",
                           "Working overlays are not part of the recorded commit; they may be based on an older HEAD.",
+                          "Ignored untracked paths are recorded as unreviewed boundaries without reading contents; excluded directory trees may have one boundary row.",
                           "Known private filenames and key extensions are excluded before content reads; this is not secret detection for arbitrarily named files.",
                           "External symlink targets are not read; ordinary source configuration remains in scope."]}
     (output / "coverage.json").write_text(json.dumps(summary, indent=2) + "\n")

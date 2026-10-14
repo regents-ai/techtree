@@ -51,12 +51,18 @@ local `origin/main` snapshots (HEAD when absent) plus explicitly distinguished c
 checkout differences, including committed changes and working edits. Explicit missing
 revisions fail instead of substituting HEAD. For release review, pass the actual target
 checkout/ref with `--no-working-overlay`; the default scan is
-not a release inventory. Keep the output outside scanned source directories. The script
+not a release inventory. Use a new or empty output directory outside scanned sources
+for each run; previous reports are preserved rather than overwritten or mixed with a
+new selection. Supply real directory paths, not symlinks. The script
 never fetches, executes repository code or follows external symlink targets. It excludes
 known private filenames (including `.env*` except `.env.example`), credential locations
 and key extensions before reading content; ordinary source configuration is included.
 Filename exclusions cannot detect secrets stored under arbitrary names, so select only
-source roots suitable for review. Inspect `coverage.json`: excluded,
+source roots suitable for review. Ignored untracked paths are recorded as unreviewed
+boundaries without reading them; excluded directory trees may have one boundary row.
+The expected-root list covers repository containers from the surface map, not every
+module path inside a repository. Inspect affected source paths separately.
+Inspect `coverage.json`: excluded,
 oversized, binary, unknown text and unavailable repositories cannot silently become
 “checked.” The full CSV/JSONL includes candidates and exclusions, not just regex hits.
 
