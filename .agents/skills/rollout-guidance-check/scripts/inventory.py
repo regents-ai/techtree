@@ -215,7 +215,7 @@ def linked_path(path: Path, root: Path) -> bool:
 
 
 def document_paths(root: Path) -> list[Path]:
-    command = ["rg", "--files", "--hidden", "--null", "--no-ignore"]
+    command = ["rg", "--no-config", "--files", "--hidden", "--null", "--no-ignore"]
     result = subprocess.run([*command, str(root)], stdout=subprocess.PIPE)
     if result.returncode not in (0, 1):
         raise RuntimeError(f"Could not enumerate {root}")
