@@ -55,7 +55,10 @@ Paste this into Hermes:
   evaluation substrate: campaigns, detached runs, signed comparison reports,
   and offline proof verification. Everything a comparison measures and records
   happens there, on the participant's own machine. It is installed with
-  `uv tool install regents-cli`.
+  the exact command at https://techtree.sh/agents.md; the current published
+  release is `uv tool install --python 3.12 regents-cli==1.10.2`. Python Skill
+  helpers are pending in unpublished 1.10.3. Model Climb commands are separate
+  unreleased work. The plugin's release record remains the compatibility authority.
 - **[Public platform](../platform/)** — the website
   at techtree.sh: the pinned installation guide, the campaign catalog, the
   published protocol objects, the public run log, and the docs. Everything it

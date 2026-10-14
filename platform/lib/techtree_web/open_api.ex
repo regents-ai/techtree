@@ -417,14 +417,14 @@ defmodule TechtreeWeb.OpenAPI do
         "get" =>
           signed_account_read(
             "account_balances",
-            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed."
+            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note explains when approving new grants is off; existing grants are not revoked by that flag. Available in regents-cli 1.10.2."
           )
       },
       "/tools/account/points" => %{
         "get" =>
           signed_account_read(
             "points_balance",
-            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing."
+            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing. points and earned_today are decimal text; daily_allowances gives scope and remaining. Existing micro-point fields remain available. A note explains when earning is off. Available in regents-cli 1.10.2."
           )
       },
       "/tools/account/credits/history" => %{
@@ -432,7 +432,7 @@ defmodule TechtreeWeb.OpenAPI do
           Map.put(
             signed_account_read(
               "credits_history",
-              "Current paired agent's canonical owner's Credits history; a read-only cursor page."
+              "Current paired agent's canonical owner's Credits history; a read-only cursor page. Entries group transfers into events with kind, direction and positive amount, replacing per-transfer operation, available_delta and held_delta. pagination contains has_more and next_cursor; the existing more? and next fields remain available. Available in regents-cli 1.10.2."
             ),
             "requestBody",
             %{

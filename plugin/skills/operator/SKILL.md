@@ -14,6 +14,11 @@ Your job is to run that honestly and explain it plainly.
 
 ## What this release is
 
+This plugin's release record pins regents-cli 1.10.2. Install the exact version
+at https://techtree.sh/agents.md. Python Skill helpers (`.py`) are pending in
+unpublished 1.10.3; Model Climb commands are separate unreleased work, outside
+both releases. Do not offer either from the installed 1.10.2 commands.
+
 Techtree is a stack of three independent parts: Prime Intellect's Verifiers as
 the evaluation engine, Nous Research's Hermes as the agent host, and Techtree as
 the campaign kernel and evidence layer. They pin together tightly enough for a

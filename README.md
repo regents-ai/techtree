@@ -23,9 +23,9 @@ with the Hello World Climb as the quick look.
 
 ## What you can use today
 
-The live release is **0.4.0**. It adds a second Climb, the Frontier-CS
-Open-Ended Climb: ten open-ended programming problems, each scored from 0 to 1
-by its own checker. Techtree's commands come from
+The active release record is **climb-v0.7.3**, using published **regents-cli
+1.10.2**. It includes Hello World, Frontier-CS Open-Ended and Tasksmith Climbs.
+Techtree's commands come from
 [regents-cli](https://github.com/regents-ai/regents-cli) as `regents techtree …`.
 Its main feature, from 0.3.0, is creating an environment from a Skill. Techtree
 looks at a Skill without running it, plans tasks from it with your approval,
@@ -37,6 +37,10 @@ inspect-skill` through `regents techtree forge export`, from [regents-cli](https
 [task set](docs/plan/v0.3.0-task-set.md) describe them. The active
 [bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
 for installable CLI and plugin coordinates.
+
+CLI 1.10.2 includes signed identity, pairing and account reads. Points earning
+remains off. Python Skill helpers (`.py`) are pending in unpublished CLI 1.10.3;
+Model Climb commands remain separate unreleased work, outside both releases.
 
 Before it, 0.2.1 brought the Hello World Climb and a first trial of building
 repair tasks from a repository. That trial is no longer offered.

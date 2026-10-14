@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "be6eeae5d585060fbd34f729ff8bdf0a1f7f8e28"
+  @elixir_utils_ref "9db13eb6e8475326626860721d082e90cb0f93fc"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "d3408b5757732e05aaf208d829f65f1bb12147c0"
 
@@ -104,8 +104,8 @@ defmodule Techtree.MixProject do
       {:ash_phoenix, "~> 2.0"},
       # 2.13.1 and later write upserts without the Repo's schema, into public.
       {:ash_postgres, "== 2.13.0"},
-      {:ash, "~> 3.34 and >= 3.34.6"},
-      {:ash_oban, "~> 0.9.0"},
+      {:ash, "~> 3.36"},
+      {:ash_oban, "~> 0.10.0"},
       {:oban, "~> 2.24"},
       {:req, "~> 0.7"},
       {:picosat_elixir, "~> 0.2"},

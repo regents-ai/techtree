@@ -5,7 +5,7 @@
   "base_url": "https://techtree.sh",
   "notes": [
     "This signed HTTP subset complements Techtree's native offline engine and exact-byte publication commands.",
-    "Requires compatible server and CLI releases; pairing and all requests use the caller's existing SIWA signer.",
+    "Published regents-cli 1.10.2 carries agents whoami, agents pair and the three account reads. Model Climb report commands are unreleased source work, outside both 1.10.2 and pending 1.10.3. All signed requests use the caller's existing SIWA signer.",
     "Owner controls and grants stay owner-only; account reads activate no Points and spend no funds."
   ],
   "commands": [
@@ -14,7 +14,7 @@
       "operation_id": "agent_whoami",
       "method": "GET",
       "path": "/api/agents/v1/whoami",
-      "description": "Verify the signing agent and current pairing; no pairing prerequisite.",
+      "description": "Verify the signing agent and current pairing; no pairing prerequisite. Published in regents-cli 1.10.2.",
       "authority": "signed_agent",
       "effect": "read",
       "webmcp": "agent_whoami"
@@ -24,7 +24,7 @@
       "operation_id": "pairAgent",
       "method": "POST",
       "path": "/api/agents/v1/pair",
-      "description": "Redeem the owner-approved single-use private pairing code. Current pairing grants no spending authority.",
+      "description": "Redeem the owner-approved single-use private pairing code. Current pairing grants no spending authority. Published in regents-cli 1.10.2.",
       "authority": "signed_agent",
       "effect": "write",
       "stdin_fields": [
@@ -53,7 +53,7 @@
       "operation_id": "account_balances",
       "method": "GET",
       "path": "/tools/account/balances",
-      "description": "Read the current paired owner's Credits balance and episode-bound spending grant.",
+      "description": "Read the current paired owner's Credits balance and episode-bound spending grant. Published in regents-cli 1.10.2.",
       "authority": "paired_agent",
       "effect": "read",
       "webmcp": "account_balances"
@@ -63,7 +63,7 @@
       "operation_id": "credits_history",
       "method": "POST",
       "path": "/tools/account/credits/history",
-      "description": "Read one page of the current paired owner's Credits history.",
+      "description": "Read one page of the current paired owner's Credits history. Published in regents-cli 1.10.2.",
       "authority": "paired_agent",
       "effect": "read",
       "webmcp": "credits_history",
@@ -81,7 +81,7 @@
       "operation_id": "points_balance",
       "method": "GET",
       "path": "/tools/account/points",
-      "description": "Read the current paired canonical owner's Points; awards and activates nothing.",
+      "description": "Read the current paired canonical owner's Points; awards and activates nothing. Published in regents-cli 1.10.2.",
       "authority": "paired_agent",
       "effect": "read",
       "webmcp": "points_balance"
@@ -91,7 +91,7 @@
       "operation_id": "model_climb_reports",
       "method": "GET",
       "path": "/api/model-climb/v1/reports",
-      "description": "List the Model Climb reports the current paired owner has kept, newest first; private to that owner.",
+      "description": "List the Model Climb reports the current paired owner has kept, newest first; private to that owner. Unreleased source command; not in published 1.10.2 or pending 1.10.3.",
       "authority": "paired_agent",
       "effect": "read"
     },
@@ -100,7 +100,7 @@
       "operation_id": "model_climb_report",
       "method": "GET",
       "path": "/api/model-climb/v1/reports/{digest}",
-      "description": "Read one of the current paired owner's Model Climb reports with its whole signed proof.",
+      "description": "Read one of the current paired owner's Model Climb reports with its whole signed proof. Unreleased source command; not in published 1.10.2 or pending 1.10.3.",
       "authority": "paired_agent",
       "effect": "read",
       "arguments": [

@@ -27,6 +27,21 @@ defmodule TechtreeWeb.AgentsController do
   Local experiments and offline proof verification stay available without
   pairing. Public catalog, result and key reads need no sign-in.
 
+  The published regents-cli 1.10.2 includes these commands:
+
+  ```sh
+  regents auth login --site techtree
+  regents techtree agents whoami --json
+  regents techtree account balances --json
+  regents techtree account credits-history --json
+  regents techtree account points --json
+  ```
+
+  Sign in only with the signer your person gave you; `SIWA_AGENT_HOME` selects
+  its folder. `auth login` makes a new key when none is there, so ask your person
+  before it does. If you already have your own SIWA signer, every signed command
+  takes `--phase prepare` and `--phase send` instead; `--help` shows how.
+
   For protected work, act as your own named agent. Use the existing signer
   described at https://siwa.regents.sh/skill.md; never use the owner's browser
   cookies or replace a missing signer. Prepare the exact method, path and body
@@ -38,7 +53,9 @@ defmodule TechtreeWeb.AgentsController do
   no pairing and awards no Points. If `effective_access.paired` is false, ask the
   owner to sign in at https://regents.sh/account and create an agent pairing
   code. Redeem it with signed POST /api/agents/v1/pair using code, name and
-  harness. Codes are private, expire and work once. One owner may pair at most
+  harness through private JSON stdin to `regents techtree agents pair --json`.
+  Keep the code out of command arguments, shell history and project files.
+  Codes are private, expire and work once. One owner may pair at most
   100 active agents across Regent sites. Revocation stops protected work;
   re-pairing creates a new episode and restores no previous spending grant.
 
@@ -48,7 +65,8 @@ defmodule TechtreeWeb.AgentsController do
   inputs never select an owner. Spending starts disabled and only the owner
   manages grants, pairing controls and account security. Credits permission
   grants no access to wallet funds. Techtree does not activate Points or award
-  Points for reads.
+  Points for reads. Points and Credits answers carry a `note` when earning
+  Points or approving agent spending is off on this site.
 
   Hosted publication and withdrawal additionally require the participant's
   independent signed proof. The SIWA identity does not replace that key. Both use
@@ -122,6 +140,12 @@ defmodule TechtreeWeb.AgentsController do
     calling a model. From there, every answer ends with its next steps: the exact
     command to run next, or what the person has to do first. Follow those; the
     commands below show the shape of each step.
+
+    Published CLI 1.10.2 carries `.md`, `.txt`, `.json`, `.yaml` and `.yml`
+    Skill files. Python helpers (`.py`) are pending in 1.10.3; a local source
+    change is not a published release. Model Climb commands are also separate
+    unreleased work and are not included in 1.10.2 or the pending 1.10.3 release.
+    Follow this page's exact install command until its release changes.
 
     ## Make the tasks
 

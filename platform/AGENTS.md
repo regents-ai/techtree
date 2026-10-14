@@ -122,6 +122,10 @@ _A declarative, extensible framework for building Elixir applications._
 ## ash:relationships usage
 [ash:relationships usage rules](deps/ash/usage-rules/relationships.md)
 <!-- ash:relationships-end -->
+<!-- ash:signals-start -->
+## ash:signals usage
+[ash:signals usage rules](deps/ash/usage-rules/signals.md)
+<!-- ash:signals-end -->
 <!-- ash:temporal-start -->
 ## ash:temporal usage
 [ash:temporal usage rules](deps/ash/usage-rules/temporal.md)
