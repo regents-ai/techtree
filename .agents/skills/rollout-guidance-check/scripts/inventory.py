@@ -11,12 +11,14 @@ import argparse
 import collections
 import csv
 import hashlib
+import html
 import json
 import os
 import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 SKIP_PARTS = {".git", "node_modules", "deps", "_build", ".venv", "venv", "__pycache__",
               ".next", "build", "dist", "coverage", "cache", ".cache"}
@@ -50,7 +52,7 @@ PATTERNS = {
 
 
 def git(repo: Path, *args: str, check: bool = True) -> bytes:
-    return subprocess.run(["git", "-c", "core.fsmonitor=false", "-C", str(repo), *args], check=check,
+    return subprocess.run(["git", "--no-replace-objects", "-c", "core.fsmonitor=false", "-C", str(repo), *args], check=check,
                           env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
 
@@ -175,7 +177,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
     for offset in range(0, len(wanted), 8):
         group = wanted[offset:offset + 8]
         payload = b"\n".join(oid for _, oid in group) + b"\n"
-        batch = subprocess.run(["git", "-c", "core.fsmonitor=false", "-C", str(repo), "cat-file", "--batch"], input=payload,
+        batch = subprocess.run(["git", "--no-replace-objects", "-c", "core.fsmonitor=false", "-C", str(repo), "cat-file", "--batch"], input=payload,
                                env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
         pos = 0
@@ -192,15 +194,29 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
         # Compare raw files with recorded blobs; a worktree diff may execute clean filters.
         snapshot = {row["path"]: row for row in rows
                     if row["root"] == str(repo) and row["version"] == ref}
+        index = {}
+        for entry in git(repo, "ls-files", "--stage", "-t", "-z").split(b"\0"):
+            if entry:
+                meta, raw = entry.split(b"\t", 1)
+                index[raw] = meta.split()
         paths = {p.encode("utf-8", "surrogateescape") for p in snapshot}
-        paths |= set(git(repo, "ls-files", "--cached", "-z").split(b"\0"))
+        paths |= set(index)
         paths |= set(git(repo, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0"))
+        ignored = git(repo, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z")
+        ignored_paths = {p.decode("utf-8", "surrogateescape").rstrip("/") for p in ignored.split(b"\0") if p}
         for raw in sorted(paths):
             if not raw:
                 continue
             path = raw.decode("utf-8", "surrogateescape"); p = repo / path
             current = []
             reason = exclusion(path)
+            if any(str(parent) in ignored_paths for parent in (Path(path), *Path(path).parents)):
+                reason = reason or "ignored_untracked_not_read"
+            entry = index.get(raw)
+            if entry and entry[1] == b"160000":
+                reason = "submodule_not_traversed"
+            elif entry and entry[0] == b"S" and not p.exists():
+                reason = reason or "sparse_not_materialized"
             if linked_path(p, repo):
                 reason = "symlink_not_followed"
             if reason or not p.is_file():
@@ -215,10 +231,16 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             else:
                 record(name, repo, path, "working_overlay", p.read_bytes(), current, max_size)
             previous = snapshot.get(path)
-            if not previous or (previous.get("sha256"), previous["status"]) != (current[0].get("sha256"), current[0]["status"]):
+            # Without content evidence, equality is unknown: retain the current boundary.
+            if not previous or "sha256" not in current[0] or (previous.get("sha256"), previous["status"]) != (current[0].get("sha256"), current[0]["status"]):
                 rows.extend(current)
                 changes.append(path)
-        ignored = git(repo, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z")
+        staged = git(repo, "diff", "--cached", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", head)
+        for raw in staged.split(b"\0"):
+            if raw:
+                path = raw.decode("utf-8", "surrogateescape")
+                rows.append({"repo": name, "root": str(repo), "path": path, "version": "index_overlay",
+                             "status": exclusion(path) or "staged_difference_not_read", "categories": []})
         for raw in ignored.split(b"\0"):
             if raw:
                 path = raw.decode("utf-8", "surrogateescape")
@@ -237,7 +259,18 @@ def linked_path(path: Path, root: Path) -> bool:
                if p == root or p.is_relative_to(root))
 
 
-def document_paths(root: Path) -> list[Path]:
+def ignored_paths(root: Path) -> set[str]:
+    if not git(root, "rev-parse", "--show-toplevel", check=False).strip():
+        return set()
+    return {p.decode("utf-8", "surrogateescape").rstrip("/") for p in
+            git(root, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z").split(b"\0") if p}
+
+
+def is_ignored(path: str, ignored: set[str]) -> bool:
+    return any(str(parent) in ignored for parent in (Path(path), *Path(path).parents))
+
+
+def document_paths(root: Path, ignored: set[str] | None = None) -> list[Path]:
     # os.walk records links themselves without traversing them or applying ignore rules.
     def fail(error):
         raise error
@@ -246,7 +279,8 @@ def document_paths(root: Path) -> list[Path]:
         parent = Path(directory)
         for folder in folders[:]:
             path = parent / folder
-            if path.is_symlink() or exclusion(str(path.relative_to(root))):
+            relative = str(path.relative_to(root))
+            if path.is_symlink() or exclusion(relative) or is_ignored(relative, ignored or set()):
                 paths.append(path)
                 folders.remove(folder)
         paths.extend(parent / name for name in files)
@@ -254,13 +288,16 @@ def document_paths(root: Path) -> list[Path]:
 
 
 def loose_docs(name: str, root: Path, rows: list, max_size: int, direct_only: bool = False):
+    ignored = ignored_paths(root)
     if direct_only:
         names = [str(p) for p in root.iterdir() if p.is_symlink() or p.is_file()]
     else:
-        names = document_paths(root)
+        names = document_paths(root, ignored)
     for name_path in names:
         p = Path(name_path); rel = str(p.relative_to(root))
         reason = exclusion(rel)
+        if is_ignored(rel, ignored):
+            reason = reason or "ignored_untracked_not_read"
         if linked_path(p, root) or not p.resolve().is_relative_to(root.resolve()):
             reason = "symlink_not_followed"
         if reason or not p.is_file() or p.stat().st_size > max_size:
@@ -273,15 +310,20 @@ def loose_docs(name: str, root: Path, rows: list, max_size: int, direct_only: bo
 def workspace_docs(root: Path, rows: list, max_size: int):
     # Deliberately exclude artifacts/backups, settings and session stores.
     wanted = [root / "AGENTS.md", root / "CLAUDE.md"]
+    ignored = ignored_paths(root)
     for folder in ("docs", "agent-docs"):
         p = root / folder
         if linked_path(p, root):
             rows.append({"repo": "workspace", "root": str(root), "path": folder,
                          "version": "working", "status": "symlink_not_followed", "categories": []})
+        elif is_ignored(folder, ignored):
+            wanted.append(p)
         elif p.is_dir():
-            wanted.extend(document_paths(p))
+            wanted.extend(document_paths(p, ignored_paths(p)))
     for p in sorted(set(wanted)):
         rel = str(p.relative_to(root)); reason = exclusion(rel)
+        if is_ignored(rel, ignored):
+            reason = reason or "ignored_untracked_not_read"
         if linked_path(p, root) or not p.resolve().is_relative_to(root.resolve()):
             reason = "symlink_not_followed"
         if not reason and not p.is_file():
@@ -297,23 +339,20 @@ def workspace_docs(root: Path, rows: list, max_size: int):
             rows.append({"repo": "workspace", "root": str(root), "path": directory,
                          "version": "working", "status": "skill_alias_not_followed", "categories": ["skill_alias"]})
         elif aliases.is_dir():
-            for p in sorted(aliases.iterdir()):
-                relative = str(p.relative_to(root))
-                reason = exclusion(relative)
-                if p.is_symlink():
-                    rows.append({"repo": "workspace", "root": str(root), "path": str(p.relative_to(root)),
-                                 "version": "working", "status": "skill_alias_not_followed",
-                                 "target": str(p.readlink()), "categories": ["skill_alias"]})
-                elif reason:
-                    rows.append({"repo": "workspace", "root": str(root), "path": relative,
-                                 "version": "working", "status": reason, "categories": []})
-                elif p.is_dir():
-                    loose_docs("workspace", p, rows, max_size)
+            loose_docs("workspace", aliases, rows, max_size)
 
 
 def reject_links(path: Path):
     if any(p.is_symlink() for p in (path, *path.parents)):
         raise ValueError(f"Refusing symlink in path: {path}")
+
+
+def md_code(value):
+    """Render arbitrary path bytes as data, never report markup."""
+    text = html.escape(json.dumps(str(value), ensure_ascii=True))
+    for character in "`|[]*_":
+        text = text.replace(character, f"&#{ord(character)};")
+    return "<code>" + text + "</code>"
 
 
 def main():
@@ -417,7 +456,9 @@ def main():
                           "Remote refs are local snapshots, not fetched or live release claims.",
                           "Old worktrees, dependency copies, artifacts/backups and database-authored content are outside this source inventory.",
                           "Working overlays are not part of the recorded commit; they may be based on an older HEAD.",
-                          "Ignored untracked paths are recorded as unreviewed boundaries without reading contents; excluded directory trees may have one boundary row.",
+                          "Overlay paths include current unverified boundaries, even when their content could not be compared; they are not an exact changed-file count.",
+                          "Staged differences from HEAD are listed as index_overlay boundaries; index content is not read.",
+                          "Git-ignored untracked paths are recorded without content reads. Non-Git loose roots bypass text-search ignore files; excluded directory trees may have one boundary row.",
                           "Known private filenames and key extensions are excluded before content reads; this is not secret detection for arbitrarily named files.",
                           "External symlink targets are not read; ordinary source configuration remains in scope."]}
     (output / "coverage.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -430,20 +471,20 @@ def main():
         matching = [r for r in rows if r["repo"] == name]
         inventoried = sum(r["status"] == "inventoried" for r in matching)
         page = pages / (name + ".md")
-        index.append(f"| [{name}]({page.relative_to(output)}) | {inventoried} | {len(matching) - inventoried} |")
-        detail = [f"# {name}: every enumerated guidance location", "",
+        index.append(f"| {md_code(name)} [report]({quote(str(page.relative_to(output)))}) | {inventoried} | {len(matching) - inventoried} |")
+        detail = [f"# {md_code(name)}: every enumerated guidance location", "",
                   "These are file-level candidates and coverage records, not proof that all copy was semantically checked.",
                   "Revision/working-overlay is explicit; the current file on disk may differ from the named commit.", ""]
         for row in sorted(matching, key=lambda r: (r["path"], r["version"])):
             categories = ", ".join(row["categories"]) or row["status"]
-            detail.append(f"- `{row['root']}/{row['path']}` — `{row['version']}`; {categories}")
+            detail.append(f"- {md_code(row['root'] + '/' + row['path'])} — {md_code(row['version'])}; {categories}")
         page.write_text("\n".join(detail) + "\n", encoding="utf-8", errors="backslashreplace")
     index += ["", "## Categories", "", "| Category | Files |", "|---|---:|"]
     for tag, count in sorted(collections.Counter(t for r in rows for t in r["categories"]).items()):
         index.append(f"| {tag} | {count} |")
     index += ["", "## Limits", ""] + ["- " + s for s in summary["limits"]]
     if nonrepos:
-        index += ["", "Grouping directories: nested repositories and loose child folders inventoried:"] + ["- " + p for p in nonrepos]
+        index += ["", "Grouping directories: nested repositories and loose child folders inventoried:"] + ["- " + md_code(p) for p in nonrepos]
     (output / "INDEX.md").write_text("\n".join(index) + "\n", encoding="utf-8", errors="backslashreplace")
     print(json.dumps({"output": str(output), "repositories": len(sources), "counts": dict(counts)}))
 

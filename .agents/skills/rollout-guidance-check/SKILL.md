@@ -36,17 +36,20 @@ template. Regents is one consumer, not the baseline.
 Refresh the file index when the repository layout or relevant files change:
 
 ```sh
-python3 scripts/inventory.py --workspace /absolute/regent --output /absolute/review-output
+uv run --no-project --no-config --offline python scripts/inventory.py --workspace /absolute/regent --output /absolute/review-output
 ```
 
 For a specific checkout or a standalone reviewer environment:
 
 ```sh
-python3 scripts/inventory.py --workspace /absolute/regent \
+uv run --no-project --no-config --offline python scripts/inventory.py --workspace /absolute/regent \
   --repo /absolute/checkout --ref COMMIT --no-working-overlay --output /absolute/review-output
 ```
 
-Run from this skill's directory or use its script's absolute path. Default scans use
+Run from this skill's directory or use its script's absolute path. These commands use
+an already installed Python through uv, without loading project configuration.
+Where repository rules permit and uv is unavailable, the standard-library-only helper
+can also run with Python 3.10 or newer directly. Default scans use
 local `origin/main` snapshots (HEAD when absent) plus explicitly distinguished current
 checkout differences, including committed changes and working edits. Explicit missing
 revisions fail instead of substituting HEAD. For release review, pass the actual target
@@ -58,8 +61,13 @@ never fetches, executes repository code or follows external symlink targets. It 
 known private filenames (including `.env*` except `.env.example`), credential locations
 and key extensions before reading content; ordinary source configuration is included.
 Filename exclusions cannot detect secrets stored under arbitrary names, so select only
-source roots suitable for review. Ignored untracked paths are recorded as unreviewed
+source roots suitable for review. Git-ignored untracked paths are recorded as unreviewed
 boundaries without reading them; excluded directory trees may have one boundary row.
+Current unverified boundaries remain in the overlay even when equality cannot be
+checked; the overlay path count is not an exact changed-file count.
+Staged differences from HEAD are separately listed as unreviewed `index_overlay`
+boundaries; staged content is not read. Non-Git loose documentation and Skill roots
+bypass text-search ignore files, so select only suitable source roots.
 The expected-root list covers repository containers from the surface map, not every
 module path inside a repository. Inspect affected source paths separately.
 Inspect `coverage.json`: excluded,
