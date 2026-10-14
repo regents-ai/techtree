@@ -1,9 +1,9 @@
 # Regent guidance sources and copies
 
-Paths below are relative to the Regent workspace. Use the current inventory for exact
-file names, revisions and line signals; this map describes ownership and propagation.
-The inventory covers first-party text plus a path/status record for exclusions. It is
-not proof that every string in a binary, database or external hosted service was read.
+Paths below are relative to the Regent workspace. Use the selected revision's file
+tree for exact locations; this map describes ownership and propagation. Saved file
+inventories are dated evidence. Record unread/private paths and unavailable owners
+explicitly; neither a file list nor this map proves that every string was reviewed.
 
 ## Shared sources
 

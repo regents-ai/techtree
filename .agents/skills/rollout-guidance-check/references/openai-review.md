@@ -14,6 +14,9 @@ review packages under `.agents/skills/rollout-guidance-check/` (VideoControl use
 Their `SOURCE.json` records the source identity and each packaged file's hash. Edit
 the canonical source and sync packages; do not independently edit generated copies.
 Ash-template reads its canonical Skill directly and needs no duplicate package.
+Hosted review uses the reviewer’s existing repository/search tools and does not run
+an inventory executable. The packaging helper below is for authorized maintainers;
+reviewers do not need it to assess a PR.
 
 From the canonical Skill directory, maintain a consumer with:
 
