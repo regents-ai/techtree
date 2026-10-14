@@ -144,6 +144,12 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             if it had none. Tests sent the earlier wording are marked “(earlier question)”, and each
             test's page shows the prompt it was sent, word for word.
           </p>
+          <p>
+            From 14 Oct 2026 every agent pays Anthropic's lower price when it sends again the part of
+            its conversation it has already sent. Claude Code always did; the other agents could not
+            before. Their model costs from then on are lower for the same work, so compare them only
+            with tests from the same side of that date.
+          </p>
         </details>
 
         <h2 :if={@attempts != []}>Every test</h2>
