@@ -57,7 +57,8 @@ def exclusion(path: str) -> str | None:
         return "settings_never_read"
     if any(part.lower() in PRIVATE_PARTS for part in p.parts) or p.name == "launch.json":
         return "private_runtime_never_read"
-    if p.name.lower() in PRIVATE_NAMES or PRIVATE_NAME_PATTERN.search(p.name):
+    private_data_name = p.suffix.lower() not in SOURCE | (PROSE - {".txt"}) and PRIVATE_NAME_PATTERN.search(p.name)
+    if p.name.lower() in PRIVATE_NAMES or private_data_name:
         return "credential_filename_never_read"
     if any(part in SKIP_PARTS for part in p.parts):
         return "dependency_or_build_output"
