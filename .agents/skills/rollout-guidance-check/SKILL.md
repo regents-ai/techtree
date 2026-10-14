@@ -59,10 +59,17 @@ for each run; previous reports are preserved rather than overwritten or mixed wi
 new selection. Supply real directory paths, not symlinks. The script
 never fetches, executes repository code or follows external symlink targets. It excludes
 known private filenames (including `.env*` except `.env.example`), credential locations
-and key extensions before reading content; ordinary source configuration is included.
+and key extensions before reading content. Ordinary source configuration is eligible,
+but filename rules can conservatively exclude policy/example files too; those recorded
+boundaries remain manual-review work. Source/prose names containing words such as
+“credentials” are not automatically secrets; inspect only suitable source roots.
+The exact filename denylist is in `exclusion()`; this is not a secret scanner.
 Filename exclusions cannot detect secrets stored under arbitrary names, so select only
 source roots suitable for review. Git-ignored untracked paths are recorded as unreviewed
 boundaries without reading them; excluded directory trees may have one boundary row.
+Default repository discovery honors the workspace's Git ignores. An explicit `--repo`
+selects that repository independently of parent-workspace ignores; its own overlay
+still honors its Git ignores, while the requested commit is a separate source snapshot.
 Current unverified boundaries remain in the overlay even when equality cannot be
 checked; the overlay path count is not an exact changed-file count.
 Staged differences from HEAD are separately listed as unreviewed `index_overlay`

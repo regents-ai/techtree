@@ -18,7 +18,7 @@ import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote_from_bytes
 
 SKIP_PARTS = {".git", "node_modules", "deps", "_build", ".venv", "venv", "__pycache__",
               ".next", "build", "dist", "coverage", "cache", ".cache"}
@@ -27,10 +27,10 @@ PRIVATE_PARTS = {".siwa", ".ssh", ".aws", ".gnupg", "credentials", "wallets",
 PRIVATE_NAMES = {".npmrc", ".pypirc", ".netrc", "_netrc", ".git-credentials",
                  ".dockercfg", ".authinfo", "auth.json", "auth.toml", "auth.yaml",
                  "auth.yml", "id_rsa", "id_dsa", "id_ecdsa", "id_ed25519",
-                 "settings.json", "wallet.json", "service-account.json"}
+                 "settings.json", "wallet.json", "service-account.json", "token.json"}
 PRIVATE_NAME_PATTERN = re.compile(
     r"(?:^|[._-])(?:credentials?|secrets?|private[-_]?keys?|access[-_]?tokens?|keystore)(?:[._-]|$)", re.I)
-KEY_EXTENSIONS = {".pem", ".key", ".p8", ".p12", ".pfx", ".ppk", ".keystore"}
+KEY_EXTENSIONS = {".pem", ".key", ".p8", ".p12", ".pfx", ".ppk", ".keystore", ".jks", ".jceks"}
 BINARY = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico", ".woff", ".woff2",
           ".ttf", ".mp4", ".mov", ".mp3", ".wav", ".zip", ".gz", ".pdf", ".beam",
           ".sqlite", ".db", ".pem", ".key", ".p8", ".p12", ".pfx", ".keystore", ".lock", ".map"}
@@ -163,7 +163,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             return {"name": name, "root": str(repo), "requested_ref": requested_ref,
                     "ref": None, "checkout_HEAD": None, "fell_back_to_HEAD": True,
                     "unavailable_reason": "repository_has_no_commit", "checkout_changed_during_scan": False}
-    head = git(repo, "rev-parse", "HEAD").decode().strip()
+    head = git(repo, "rev-parse", "--verify", "HEAD^{commit}", check=False).decode().strip() or None
     # --long records size; paths may contain whitespace, so split only the header.
     entries = git(repo, "ls-tree", "-r", "-z", "-l", ref).split(b"\0")
     wanted = []
@@ -198,8 +198,9 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             pos = start + size + 1
     changes = []
     head_difference = [p.decode("utf-8", "surrogateescape") for p in
-                       git(repo, "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", ref, head).split(b"\0") if p]
+                       git(repo, "diff", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", ref, head).split(b"\0") if p] if head else []
     if overlay:
+        materializes_symlinks = git(repo, "config", "--bool", "--get", "core.symlinks", check=False).strip() != b"false"
         # Compare raw files with recorded blobs; a worktree diff may execute clean filters.
         snapshot = {row["path"]: row for row in rows
                     if row["root"] == str(repo) and row["version"] == ref}
@@ -224,7 +225,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             entry = index.get(raw)
             if entry and entry[1] == b"160000":
                 reason = "submodule_not_traversed"
-            elif entry and entry[1] == b"120000":
+            elif entry and entry[1] == b"120000" and not materializes_symlinks:
                 reason = "symlink_not_followed"
             elif entry and entry[0] == b"S" and not p.exists():
                 reason = reason or "sparse_not_materialized"
@@ -247,7 +248,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             if not previous or "sha256" not in current[0] or any(previous.get(key) != current[0].get(key) for key in ("sha256", "status", "git_mode")):
                 rows.extend(current)
                 changes.append(path)
-        staged = git(repo, "diff", "--cached", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", head)
+        staged = git(repo, "diff", "--cached", "--no-ext-diff", "--no-textconv", "--no-renames", "--name-only", "-z", *([head] if head else []))
         for raw in staged.split(b"\0"):
             if raw:
                 path = raw.decode("utf-8", "surrogateescape")
@@ -262,7 +263,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             "fell_back_to_HEAD": fallback, "checkout_HEAD": head, "overlay_paths": len(changes),
             "checkout_paths_differing_from_ref": head_difference,
             "checkout_difference_disposition": "working_overlay_included" if overlay else "outside_requested_snapshot",
-            "checkout_changed_during_scan": head != git(repo, "rev-parse", "HEAD").decode().strip()}
+            "checkout_changed_during_scan": head != (git(repo, "rev-parse", "--verify", "HEAD^{commit}", check=False).decode().strip() or None)}
 
 
 def linked_path(path: Path, root: Path) -> bool:
@@ -419,10 +420,13 @@ def main():
                              "version": "working", "status": "symlink_not_followed", "categories": []})
             elif container.is_dir():
                 loose_docs("workspace", container, rows, args.max_bytes, direct_only=True)
+                ignored = ignored_paths(container)
                 for path in sorted(container.iterdir()):
                     if path.is_symlink() or not path.is_dir():
                         continue  # Direct files and links were recorded above.
                     reason = exclusion(path.name)
+                    if is_ignored(path.name, ignored):
+                        reason = reason or "ignored_untracked_not_read"
                     if reason:
                         rows.append({"repo": "workspace", "root": str(root), "path": str(path.relative_to(root)),
                                      "version": "working", "status": reason, "categories": []})
@@ -442,10 +446,13 @@ def main():
             # One extra directory level accommodates grouped repositories such as video-creation.
             if not args.repo:
                 loose_docs(repo.name, repo, rows, args.max_bytes, direct_only=True)
+                ignored = ignored_paths(repo)
                 for child in sorted(repo.iterdir()):
                     if not child.is_dir() or child.is_symlink():
                         continue
                     reason = exclusion(child.name)
+                    if is_ignored(child.name, ignored):
+                        reason = reason or "ignored_untracked_not_read"
                     if reason:
                         rows.append({"repo": repo.name, "root": str(repo), "path": child.name,
                                      "version": "working", "status": reason, "categories": []})
@@ -503,7 +510,7 @@ def main():
         matching = [r for r in rows if r["repo"] == name]
         inventoried = sum(r["status"] == "inventoried" for r in matching)
         page = pages / (name + ".md")
-        index.append(f"| {md_code(name)} [report]({quote(str(page.relative_to(output)))}) | {inventoried} | {len(matching) - inventoried} |")
+        index.append(f"| {md_code(name)} [report]({quote_from_bytes(os.fsencode(page.relative_to(output)))}) | {inventoried} | {len(matching) - inventoried} |")
         detail = [f"# {md_code(name)}: every enumerated guidance location", "",
                   "These are file-level candidates and coverage records, not proof that all copy was semantically checked.",
                   "Revision/working-overlay is explicit; the current file on disk may differ from the named commit.", ""]
