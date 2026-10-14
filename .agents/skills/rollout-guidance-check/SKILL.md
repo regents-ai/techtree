@@ -35,29 +35,31 @@ template. Regents is one consumer, not the baseline.
 
 Use the selected revision's complete file tree and exact base/target diff through the
 host's repository tools. A saved inventory is dated evidence, not a substitute for
-that tree. List paths before selecting files to read; do not run a repository program,
+that tree. Enumerate paths using tree metadata without rename/copy similarity
+detection; those algorithms can read blobs before exclusions. List paths before selecting files to read; do not run a repository program,
 hook or generator to discover guidance. This package deliberately has no inventory
 executable and requires no Python runtime for hosted review.
 
-If using Git directly, first verify the selected checkout and immutable revisions;
-inherited repository/index environment settings must not redirect the commands.
-Disable replacement objects for every revision read and search, including later
-`show` or `grep` calls, so the named commit always means its original content.
-From the repository root, `git --no-replace-objects ls-tree --full-tree -r -z --name-only TARGET` enumerates the target paths, and
-`git --no-replace-objects diff --no-ext-diff --no-textconv --name-status BASE TARGET` identifies changes.
+If using Git directly, run every command with inherited `GIT_*` variables removed
+and an explicit, verified repository path. Disable replacement objects for every
+revision read/search, and disable external diff and text-conversion helpers. Enumerate
+the complete repository tree independently of the current subdirectory; use safe path
+handling for unusual filenames. These are prerequisites, not settings implied by
+changing directories. If the host cannot ensure them, record the coverage limit.
 Keep staged and unstaged local work separate from committed PR evidence. Missing
 objects, unavailable repositories and uninspectable paths remain explicit gaps.
 
-Use the surface map to select affected public source paths from that tree, then search
-and read those paths at the exact target revision with the host’s revision-aware tools.
-With Git, use revision-aware reads and searches restricted to the selected safe paths;
-never search the whole tree before excluding sensitive paths. Use `rg` only for a
-separately labelled working-tree review, or after verifying the selected files match
-TARGET with no local edits; it cannot search another revision. Search changed identifiers
-and old/new words. Never read `.env*` files except `.env.example`. Exclude private settings,
-credential/key stores, runtime logs and session data. Do not follow filesystem links
-outside the selected source scope. Inspect unusual or ambiguous paths deliberately;
-a filename search is not a secret detector or proof of complete coverage.
+Use the surface map to select affected public source paths from both BASE and TARGET.
+Read deleted content and old names at BASE, and current/new content at TARGET, using
+the host’s revision-aware tools. Apply the same exclusions to both revisions before
+content searches or reads. Never search the whole tree before excluding sensitive
+paths. Use `rg` only for a separately labelled working-tree review, or after verifying
+the selected files match the requested revision with no local edits; it cannot search
+another revision. Search changed identifiers and old/new words. Never read `.env*`
+files except `.env.example`. Exclude private settings, credential/key stores, runtime
+logs and session data. Do not follow filesystem links outside the selected source
+scope. Inspect unusual or ambiguous paths deliberately; a filename search is not a
+secret detector or proof of complete coverage.
 
 Follow callers, shared pins, route renderers, generators, copy buttons and packaged
 consumers. Apply [the impact checklist](references/impact-checklist.md), updating the

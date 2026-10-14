@@ -61,8 +61,11 @@ OpenAI documents repository rules in AGENTS.md and separate automatic-review con
 - Instructions and the package must reach GitHub before cloud review can read them.
 - In Code Review settings, enable the repository, choose All PRs and On every push.
   This covers new pushes to pull requests, not direct commits without a PR or unsaved
-  local edits. Keep unrelated personal preferences, security-review settings and
-  paid-credit settings unchanged.
+  local edits. For personal automatic reviews, also enable Automatic review under
+  Personal preferences and verify its Review trigger, as described in the linked
+  setup guide. Check the effective repository and personal settings when a review
+  does not start; do not infer activation from one switch. Keep unrelated personal
+  preferences, security-review settings and paid-credit settings unchanged.
 - A local-only repository without a remote cannot receive GitHub PR reviews.
 - Verify with an authorized representative PR and retain its exact head and review
   result. A saved switch, valid package or local evaluation is setup evidence, not
