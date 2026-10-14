@@ -29,6 +29,8 @@ defmodule Techtree.WalletBench.Blank do
     {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},
     {~r/\b(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
      "API key"},
+    # The Open Wallet Standard's agent token, which Zerion keeps in its config: it signs without the passphrase.
+    {~r/\bows_key_[A-Za-z0-9_]{16,}/, "wallet agent token"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:0x)?[0-9a-fA-F]{64}(?![0-9A-Za-z])/,
      "32-byte hex value: a private key or a hash"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))[1-9A-HJ-NP-Za-km-z]{86,90}(?![0-9A-Za-z])/,
