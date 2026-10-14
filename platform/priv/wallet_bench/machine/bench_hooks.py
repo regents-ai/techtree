@@ -2,7 +2,12 @@
 
 Every request reaches Anthropic as claude-opus-5-5 with adaptive thinking at effort high, whatever the harness asked
 for (harnesses send their own effort for side requests). Each request as sent is logged with its call id, model and
-effort, and each call's hold and charge with its call id, to /work/proxy/calls.jsonl.
+effort, and each call's hold and charge with its call id, to /work/proxy/calls.jsonl; an answered call also with the
+input tokens it read from and wrote to Anthropic's prompt cache.
+
+A translated request that marks nothing for caching is sent with Anthropic's request-wide cache setting, so the
+conversation so far is read back from the five-minute cache on the next call, as a harness speaking Anthropic's own
+format asks for itself. A request that marks its own cache points keeps them, since Anthropic allows only a few.
 
 The attempt's calls never cost more than BUDGET_USD. Each request holds the most it can be priced at until it is
 charged: its input tokens, all priced as five-minute cache writes (the dearest input), and MAX_OUTPUT output tokens,
@@ -124,6 +129,15 @@ def _five_minute_cache(value) -> None:
             _five_minute_cache(item)
 
 
+def _cache_marked(value) -> bool:
+    """Whether any part of a request marks a cache point."""
+    if isinstance(value, dict):
+        return "cache_control" in value or any(_cache_marked(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_cache_marked(item) for item in value)
+    return False
+
+
 def _capped(value) -> int:
     """The output cap a request asked for, never above MAX_OUTPUT."""
     return min(value, MAX_OUTPUT) if isinstance(value, int) and value > 0 else MAX_OUTPUT
@@ -230,6 +244,8 @@ class BenchHooks(CustomLogger):
             data["tools"] = tools
         # The request-wide cache setting, then each block's.
         _five_minute_cache({field: data.get(field) for field in CONTENT + ("cache_control",)})
+        if call_type != "anthropic_messages" and not _cache_marked({field: data.get(field) for field in CONTENT}):
+            data["cache_control"] = {"type": "ephemeral"}
         if call_type == "anthropic_messages":
             thinking = data.get("thinking") if isinstance(data.get("thinking"), dict) else {}
             output_config = data.get("output_config") if isinstance(data.get("output_config"), dict) else {}
@@ -284,7 +300,10 @@ class BenchHooks(CustomLogger):
         call_id = kwargs["litellm_call_id"]
         # A call LiteLLM could not price counts at the most it could have cost.
         cost = kwargs.get("response_cost")
-        self._settle("answered", call_id, self.holds[call_id] if cost is None else float(cost), kwargs.get("call_type"))
+        usage = ((kwargs.get("standard_logging_object") or {}).get("metadata") or {}).get("usage_object") or {}
+        cache = {"cache_read": usage.get("cache_read_input_tokens"), "cache_write": usage.get("cache_creation_input_tokens")}
+        self._settle("answered", call_id, self.holds[call_id] if cost is None else float(cost), kwargs.get("call_type"),
+                     cache)
 
     async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
         call_id = kwargs["litellm_call_id"]
@@ -295,13 +314,13 @@ class BenchHooks(CustomLogger):
         cost = 0.0 if _error_status(kwargs.get("exception")) else self.holds[call_id]
         self._settle("failed", call_id, cost, kwargs.get("call_type"))
 
-    def _settle(self, event, call_id, cost, call_type):
+    def _settle(self, event, call_id, cost, call_type, cache=None):
         """Charges a held call and releases its hold; a call already charged, or charged before a restart, is left
         as it is."""
         if self.held.pop(call_id, None) is None:
             return
         self.spent += cost
-        _log({"event": event, "call_id": call_id, "cost": cost, "call_type": call_type})
+        _log({"event": event, "call_id": call_id, "cost": cost, "call_type": call_type, **(cache or {})})
 
 
 bench_hooks = BenchHooks()
