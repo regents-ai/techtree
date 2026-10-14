@@ -41,14 +41,18 @@ executable and requires no Python runtime for hosted review.
 
 If using Git directly, first verify the selected checkout and immutable revisions;
 inherited repository/index environment settings must not redirect the commands.
-`git ls-tree -r --name-only TARGET` enumerates the target paths, and
+From the repository root, `git ls-tree --full-tree -r -z --name-only TARGET` enumerates the target paths, and
 `git diff --no-ext-diff --no-textconv --name-status BASE TARGET` identifies changes.
 Keep staged and unstaged local work separate from committed PR evidence. Missing
 objects, unavailable repositories and uninspectable paths remain explicit gaps.
 
-Use the surface map to select affected source directories, then search their public
-source files with `rg`, changed identifiers and old/new words. Never read `.env`,
-`.env.local` or `.envrc`; `.env.example` is allowed. Exclude private settings,
+Use the surface map to select affected public source paths from that tree, then search
+and read those paths at the exact target revision with the host’s revision-aware tools.
+With Git, use revision-aware reads and searches restricted to the selected safe paths;
+never search the whole tree before excluding sensitive paths. Use `rg` only for a
+separately labelled working-tree review, or after verifying the selected files match
+TARGET with no local edits; it cannot search another revision. Search changed identifiers
+and old/new words. Never read `.env*` files except `.env.example`. Exclude private settings,
 credential/key stores, runtime logs and session data. Do not follow filesystem links
 outside the selected source scope. Inspect unusual or ambiguous paths deliberately;
 a filename search is not a secret detector or proof of complete coverage.
