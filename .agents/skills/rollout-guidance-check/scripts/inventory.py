@@ -1,0 +1,338 @@
+#!/usr/bin/env python3
+"""Inventory guidance surfaces without executing repository code or printing copy.
+
+Reads fixed Git revisions and optional working changes. File coverage is exhaustive
+within the recorded roots; line-level signals are candidates, not semantic proof.
+Only the explicitly selected output directory is written.
+"""
+from __future__ import annotations
+
+import argparse
+import collections
+import csv
+import hashlib
+import json
+import re
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+SKIP_PARTS = {".git", "node_modules", "deps", "_build", ".venv", "venv", "__pycache__",
+              ".next", "build", "dist", "coverage", "cache", ".cache"}
+PRIVATE_PARTS = {".siwa", ".ssh", ".aws", ".gnupg", "credentials", "wallets"}
+BINARY = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico", ".woff", ".woff2",
+          ".ttf", ".mp4", ".mov", ".mp3", ".wav", ".zip", ".gz", ".pdf", ".beam",
+          ".sqlite", ".db", ".pem", ".key", ".p12", ".keystore", ".lock", ".map"}
+SOURCE = {".ex", ".exs", ".heex", ".eex", ".leex", ".html", ".tsx", ".jsx",
+          ".ts", ".js", ".mjs", ".cjs", ".py", ".swift", ".rs", ".go", ".sol",
+          ".sh", ".bash", ".zsh", ".css", ".scss", ".svelte", ".vue"}
+PROSE = {".md", ".mdx", ".rst", ".adoc", ".txt", ".strings", ".stringsdict",
+         ".xcstrings", ".po", ".pot"}
+PATTERNS = {
+    "tooltip_accessibility_help": re.compile(r"tooltip|aria[-_]label|aria-describedby|\btitle\s*[=:]|\bplaceholder\s*[=:]|accessibilityLabel|\.help\(", re.I),
+    "tool_schema_description": re.compile(r"input[_S]chema|output[_S]chema|modelContext|registerTool|\bdescription\s*[:=]|operationId|readOnlyHint|pairing_required", re.I),
+    "cli_help_example": re.compile(r"\bregents(?:-cli)?\b|--help|add_argument\(|@click\.|typer\.(?:Option|Argument)|\bhelp\s*=|argparse|epilog", re.I),
+    "error_recovery_copy": re.compile(r"\b(?:hint|next_steps|put_flash|add_error|error_message|refusal)\b|gettext\(|validation.*message", re.I),
+    "handoff_prompt": re.compile(r"pairing.message|copy.{0,20}(?:agent|command|prompt)|send.{0,15}your.agent|system_prompt|system_message|instructions\s*[:=]", re.I),
+    "inline_developer_docs": re.compile(r"@moduledoc|@doc\b|^\s*///|^\s*/\*\*|^\s*(?:\"\"\"|''')|@notice|@dev\b"),
+    "route_generator_binding": re.compile(r"/agents\.md|/skill\.md|/llms\.txt|/capabilities|sync_api_contract|regent_ui\.assets|usage_rules\.sync|external_resource|File\.read!", re.I),
+    "release_auth_gate": re.compile(r"approved_rules|starts_at|unified_activity_starts_at|agent_grants_enabled|release_status|minimum.*version|cli_release|prelaunch", re.I),
+}
+
+
+def git(repo: Path, *args: str, check: bool = True) -> bytes:
+    return subprocess.run(["git", "-C", str(repo), *args], check=check,
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+
+
+def exclusion(path: str) -> str | None:
+    p = Path(path)
+    if any(part.startswith(".env") and part != ".env.example" for part in p.parts):
+        return "settings_never_read"
+    if any(part.lower() in PRIVATE_PARTS for part in p.parts) or p.name == "launch.json":
+        return "private_runtime_never_read"
+    if any(part in SKIP_PARTS for part in p.parts):
+        return "dependency_or_build_output"
+    if p.suffix.lower() in BINARY or p.name in {"package-lock.json", "pnpm-lock.yaml", "yarn.lock", "mix.lock", "uv.lock", "Cargo.lock"}:
+        return "binary_lock_or_source_map"
+    if p.suffix.lower() in {".log", ".jsonl"}:
+        return "runtime_log_or_transcript"
+    # First-party generated vendor assets are included; third-party vendoring is not.
+    if "vendor" in p.parts and not any(part.startswith("regent_") for part in p.parts):
+        return "third_party_vendor"
+    if any(x in path for x in ("contracts/lib/", "lib/forge-std/", "lib/openzeppelin-", "lib/solady/")):
+        return "third_party_vendor"
+    return None
+
+
+def classify(path: str, text: str) -> tuple[list[str], dict[str, list[int]], str]:
+    p = Path(path)
+    low = path.lower()
+    tags = set()
+    if p.suffix.lower() in PROSE or p.name.lower().startswith(("readme", "changelog")):
+        tags.add("authored_document")
+    if p.name in {"AGENTS.md", "CLAUDE.md"} or "usage-rules" in low:
+        tags.add("developer_agent_instructions")
+    if "/skills/" in "/" + low or p.name == "SKILL.md":
+        tags.add("skill_or_skill_resource")
+    if any(x in low for x in ("priv/public/", "priv/legal/", "priv/static/skill", "public/docs")):
+        tags.add("public_product_document")
+    if "openapi" in low or "api-contract" in low or p.name in {"tools.json", "commands.json", "tool_manifest.json", "capabilities.json"}:
+        tags.add("machine_contract")
+    if "/cli/" in "/" + low or "regents_cli/" in low or p.name == "COMMANDS.md":
+        tags.add("cli_source_or_description")
+    if any(x in low for x in ("_web/", "/components/", "/live/", "assets/js/", "assets/css/", "/views/")) or p.suffix in {".swift", ".heex", ".eex", ".tsx", ".jsx", ".strings", ".xcstrings"}:
+        tags.add("human_ui_source")
+    if any(x in low for x in ("webmcp", "public_tools", "capabilit", "mcp_server", "tool_definitions", "tool_manifest")):
+        tags.add("agent_tool_surface")
+    if "prompt" in low or "pairing_message" in low or "agent_start" in low:
+        tags.add("handoff_prompt")
+    if "/test" in "/" + low or "/spec/" in "/" + low or p.name.endswith((".test.ts", ".spec.ts")):
+        tags.add("test_or_fixture")
+    if any(x in low for x in ("/handoff", "/archive", "/evidence", "/audit", "changelog", "/release-notes")):
+        tags.add("historical_or_review_record")
+    generated = any(x in low for x in ("assets/vendor/regent_", "src/regents_cli/platforms/", "priv/static/openapi"))
+    if generated:
+        tags.add("generated_or_copied_surface")
+    hits: dict[str, list[int]] = {}
+    for num, line in enumerate(text.splitlines(), 1):
+        for tag, pattern in PATTERNS.items():
+            if pattern.search(line):
+                hits.setdefault(tag, []).append(num)
+                tags.add(tag)
+    if p.suffix in SOURCE:
+        tags.add("code_candidate")
+    if not tags:
+        tags.add("unclassified_text_review_required")
+    role = "generated_or_copy" if generated else "source_or_reference"
+    if "test_or_fixture" in tags:
+        role = "test_evidence"
+    return sorted(tags), hits, role
+
+
+def record(repo_name: str, repo: Path, path: str, version: str, data: bytes, rows: list, max_size: int):
+    base = {"repo": repo_name, "root": str(repo), "path": path, "version": version,
+            "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+    if len(data) > max_size:
+        rows.append(base | {"status": "oversize_not_classified", "categories": ["manual_review_required"]})
+        return
+    if b"\0" in data:
+        rows.append(base | {"status": "binary_not_classified", "categories": []})
+        return
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        rows.append(base | {"status": "non_utf8_not_classified", "categories": ["manual_review_required"]})
+        return
+    tags, hits, role = classify(path, text)
+    rows.append(base | {"status": "inventoried", "categories": tags, "role": role,
+                        "lines": len(text.splitlines()), "signal_lines": hits})
+
+
+def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: list, max_size: int, allow_fallback: bool = False) -> dict:
+    ref = git(repo, "rev-parse", "--verify", requested_ref + "^{commit}", check=False).decode().strip()
+    fallback = False
+    if not ref:
+        if not allow_fallback:
+            raise ValueError(f"Requested revision unavailable in {repo}: {requested_ref}; no substitute scanned")
+        ref = git(repo, "rev-parse", "HEAD").decode().strip()
+        fallback = True
+    head = git(repo, "rev-parse", "HEAD").decode().strip()
+    # --long records size; paths may contain whitespace, so split only the header.
+    entries = git(repo, "ls-tree", "-r", "-z", "-l", ref).split(b"\0")
+    wanted = []
+    for entry in entries:
+        if not entry:
+            continue
+        meta, raw_path = entry.split(b"\t", 1)
+        mode, kind, oid, size = meta.split()
+        path = raw_path.decode("utf-8", "surrogateescape")
+        reason = exclusion(path)
+        if mode in {b"120000", b"160000"}:
+            reason = "symlink_not_followed" if mode == b"120000" else "submodule_not_traversed"
+        if reason or int(size) > max_size:
+            rows.append({"repo": name, "root": str(repo), "path": path, "version": ref,
+                         "status": reason or "oversize_not_classified", "categories": []})
+        else:
+            wanted.append((path, oid))
+    # Only approved blobs enter cat-file: excluded settings and key files are never opened.
+    if wanted:
+        payload = b"\n".join(oid for _, oid in wanted) + b"\n"
+        batch = subprocess.run(["git", "-C", str(repo), "cat-file", "--batch"], input=payload,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
+        pos = 0
+        for path, _ in wanted:
+            end = batch.index(b"\n", pos)
+            header = batch[pos:end].split()
+            size = int(header[-1]); start = end + 1
+            record(name, repo, path, ref, batch[start:start + size], rows, max_size)
+            pos = start + size + 1
+    changes = []
+    head_difference = [p.decode("utf-8", "surrogateescape") for p in
+                       git(repo, "diff", "--name-only", "-z", ref, head).split(b"\0") if p]
+    if overlay:
+        # Include committed HEAD-only differences as well as staged/unstaged edits.
+        paths = set(git(repo, "diff", "--name-only", "-z", ref).split(b"\0"))
+        paths |= set(git(repo, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0"))
+        for raw in sorted(paths):
+            if not raw:
+                continue
+            path = raw.decode("utf-8", "surrogateescape"); p = repo / path
+            changes.append(path)
+            reason = exclusion(path)
+            if p.is_symlink():
+                reason = "symlink_not_followed"
+            if reason or not p.is_file():
+                rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
+                             "status": reason or "deleted_or_missing", "categories": []})
+            elif not p.resolve().is_relative_to(repo.resolve()):
+                rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
+                             "status": "external_symlink_parent_not_followed", "categories": []})
+            elif p.stat().st_size > max_size:
+                rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
+                             "status": "oversize_not_classified", "categories": []})
+            else:
+                record(name, repo, path, "working_overlay", p.read_bytes(), rows, max_size)
+    return {"name": name, "root": str(repo), "requested_ref": requested_ref, "ref": ref,
+            "fell_back_to_HEAD": fallback, "checkout_HEAD": head, "overlay_paths": len(changes),
+            "checkout_paths_differing_from_ref": head_difference,
+            "checkout_difference_disposition": "working_overlay_included" if overlay else "outside_requested_snapshot",
+            "checkout_changed_during_scan": head != git(repo, "rev-parse", "HEAD").decode().strip()}
+
+
+def loose_docs(name: str, root: Path, rows: list, max_size: int, direct_only: bool = False):
+    if direct_only:
+        names = [str(p) for p in root.iterdir() if p.is_symlink() or p.is_file()]
+    else:
+        result = subprocess.run(["rg", "--files", "--hidden", str(root)], stdout=subprocess.PIPE)
+        if result.returncode not in (0, 1):
+            raise RuntimeError(f"Could not enumerate {root}")
+        names = result.stdout.decode().splitlines()
+    for name_path in names:
+        p = Path(name_path); rel = str(p.relative_to(root))
+        reason = exclusion(rel)
+        if p.is_symlink() or not p.resolve().is_relative_to(root.resolve()):
+            reason = "symlink_not_followed"
+        if reason or not p.is_file() or p.stat().st_size > max_size:
+            rows.append({"repo": name, "root": str(root), "path": rel, "version": "working",
+                         "status": reason or "oversize_not_classified", "categories": []})
+        else:
+            record(name, root, rel, "working", p.read_bytes(), rows, max_size)
+
+
+def workspace_docs(root: Path, rows: list, max_size: int):
+    # Deliberately exclude artifacts/backups, settings and session stores.
+    wanted = [root / "AGENTS.md", root / "CLAUDE.md"]
+    for folder in ("docs", "agent-docs"):
+        p = root / folder
+        if p.exists():
+            names = subprocess.run(["rg", "--files", "--hidden", str(p)], check=True,
+                                   stdout=subprocess.PIPE).stdout.decode().splitlines()
+            wanted.extend(Path(n) for n in names)
+    for p in sorted(set(wanted)):
+        if not p.is_file() or p.is_symlink():
+            continue
+        rel = str(p.relative_to(root)); reason = exclusion(rel)
+        if reason or p.stat().st_size > max_size:
+            rows.append({"repo": "workspace", "root": str(root), "path": rel, "version": "working",
+                         "status": reason or "oversize_not_classified", "categories": []})
+        else:
+            record("workspace", root, rel, "working", p.read_bytes(), rows, max_size)
+    for directory in (".agents/skills", ".claude/skills"):
+        aliases = root / directory
+        if aliases.exists():
+            for p in sorted(aliases.iterdir()):
+                if p.is_symlink():
+                    rows.append({"repo": "workspace", "root": str(root), "path": str(p.relative_to(root)),
+                                 "version": "working", "status": "skill_alias_not_followed",
+                                 "target": str(p.readlink()), "categories": ["skill_alias"]})
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--workspace", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--ref", help="Exact revision; unavailable explicit revisions fail without substituting HEAD")
+    parser.add_argument("--repo", type=Path, action="append", help="Restrict to these checkouts; repeatable")
+    parser.add_argument("--no-working-overlay", action="store_true")
+    parser.add_argument("--max-bytes", type=int, default=4_000_000)
+    args = parser.parse_args()
+    requested_ref = args.ref or "origin/main"
+    allow_fallback = args.ref is None
+    root = args.workspace.resolve(); output = args.output.resolve()
+    rows = []; sources = []; nonrepos = []; loose_roots = []
+    paths = args.repo or sorted([p for d in (root / "repos", root / "services") if d.exists()
+                                for p in d.iterdir() if p.is_dir() and not p.is_symlink()])
+    for repo in paths:
+        repo = repo.resolve()
+        top = git(repo, "rev-parse", "--show-toplevel", check=False).decode().strip()
+        if not top or Path(top).resolve() != repo:
+            # One extra directory level accommodates grouped repositories such as video-creation.
+            if not args.repo:
+                loose_docs(repo.name, repo, rows, args.max_bytes, direct_only=True)
+                for child in sorted(repo.iterdir()):
+                    if not child.is_dir() or child.is_symlink() or exclusion(child.name):
+                        continue
+                    child_top = git(child, "rev-parse", "--show-toplevel", check=False).decode().strip()
+                    if child_top and Path(child_top).resolve() == child:
+                        sources.append(scan_repo(child.name, child, requested_ref, not args.no_working_overlay, rows, args.max_bytes, allow_fallback))
+                    else:
+                        loose_docs(child.name, child, rows, args.max_bytes)
+                        loose_roots.append(str(child))
+                nonrepos.append(str(repo))
+            else:
+                loose_docs(repo.name, repo, rows, args.max_bytes)
+                loose_roots.append(str(repo))
+            continue
+        sources.append(scan_repo(repo.name, repo, requested_ref, not args.no_working_overlay, rows, args.max_bytes, allow_fallback))
+    if not args.repo:
+        workspace_docs(root, rows, args.max_bytes)
+    output.mkdir(parents=True, exist_ok=True)
+    with (output / "locations.jsonl").open("w") as stream:
+        for row in rows:
+            stream.write(json.dumps(row, ensure_ascii=True) + "\n")
+    with (output / "locations.csv").open("w", newline="") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["repository", "root", "path", "revision", "status", "categories", "signal_lines"])
+        for row in rows:
+            writer.writerow([row["repo"], row["root"], row["path"], row["version"], row["status"],
+                             "; ".join(row["categories"]), json.dumps(row.get("signal_lines", {}))])
+    counts = collections.Counter(row["status"] for row in rows)
+    summary = {"generated_at": datetime.now(timezone.utc).isoformat(), "sources": sources,
+               "grouping_directories_children_scanned": nonrepos, "loose_roots_scanned": loose_roots,
+               "counts": dict(counts),
+               "limits": ["Line signals are heuristic; all other text stays in the inventory for review.",
+                          "Remote refs are local snapshots, not fetched or live release claims.",
+                          "Old worktrees, dependency copies, artifacts/backups and database-authored content are outside this source inventory.",
+                          "Working overlays are not part of the recorded commit; they may be based on an older HEAD.",
+                          "No settings files, keys, external symlink targets or runtime credentials are read."]}
+    (output / "coverage.json").write_text(json.dumps(summary, indent=2) + "\n")
+    index = ["# Guidance surface inventory", "", "Every enumerated path is in locations.csv and locations.jsonl.",
+             "Coverage and fixed revisions are in coverage.json. Counts include committed sources and working overlays separately.",
+             "", "| Repository | Inventoried text files | Other paths recorded |", "|---|---:|---:|"]
+    pages = output / "repositories"
+    pages.mkdir(exist_ok=True)
+    for name in sorted({r["repo"] for r in rows}):
+        matching = [r for r in rows if r["repo"] == name]
+        inventoried = sum(r["status"] == "inventoried" for r in matching)
+        page = pages / (name + ".md")
+        index.append(f"| [{name}]({page}) | {inventoried} | {len(matching) - inventoried} |")
+        detail = [f"# {name}: every enumerated guidance location", "",
+                  "These are file-level candidates and coverage records, not proof that all copy was semantically checked.",
+                  "Revision/working-overlay is explicit; the current file on disk may differ from the named commit.", ""]
+        for row in sorted(matching, key=lambda r: (r["path"], r["version"])):
+            categories = ", ".join(row["categories"]) or row["status"]
+            detail.append(f"- `{row['root']}/{row['path']}` — `{row['version']}`; {categories}")
+        page.write_text("\n".join(detail) + "\n")
+    index += ["", "## Categories", "", "| Category | Files |", "|---|---:|"]
+    for tag, count in sorted(collections.Counter(t for r in rows for t in r["categories"]).items()):
+        index.append(f"| {tag} | {count} |")
+    index += ["", "## Limits", ""] + ["- " + s for s in summary["limits"]]
+    if nonrepos:
+        index += ["", "Grouping directories: nested repositories and loose child folders inventoried:"] + ["- " + p for p in nonrepos]
+    (output / "INDEX.md").write_text("\n".join(index) + "\n")
+    print(json.dumps({"output": str(output), "repositories": len(sources), "counts": dict(counts)}))
+
+
+if __name__ == "__main__":
+    main()

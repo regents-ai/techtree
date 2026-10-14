@@ -1,0 +1,12 @@
+{
+  "source_repository": "regents-ai/ash-template",
+  "source_path": "skills/rollout-guidance-check",
+  "files": {
+    "SKILL.md": "86879faa00a0f4c7859cddee8667cfd8fe986e457a278d7211cbf2c210c5104d",
+    "agents/openai.yaml": "ba5641967f27737cdef10b1a75e5d6868fff84d1e7ee99dc42cea9dd8a052ae8",
+    "scripts/inventory.py": "96aed306201553109949ddf13245e8d6ab7f233032b24845d321fb3d62ea52c1",
+    "references/surface-map.md": "b290127176e65388c5c8432ed7d18775d2181a01d75d70964ceccbd1f7ece312",
+    "references/impact-checklist.md": "b6e49aab95e570479915a290807984b0038d6fb7719d3b02fe42e7597cf0721e",
+    "references/openai-review.md": "6c4856b1f7a1cf4f3ef74a2dcb8e6d1a4257f977813b88ee95d42fd009a2ebd5"
+  }
+}
