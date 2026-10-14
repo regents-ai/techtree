@@ -20,9 +20,15 @@ from pathlib import Path
 SKIP_PARTS = {".git", "node_modules", "deps", "_build", ".venv", "venv", "__pycache__",
               ".next", "build", "dist", "coverage", "cache", ".cache"}
 PRIVATE_PARTS = {".siwa", ".ssh", ".aws", ".gnupg", "credentials", "wallets"}
+PRIVATE_NAMES = {".npmrc", ".pypirc", ".netrc", "_netrc", ".git-credentials",
+                 ".dockercfg", ".authinfo", "auth.json", "auth.toml", "auth.yaml",
+                 "auth.yml", "id_rsa", "id_dsa", "id_ecdsa", "id_ed25519",
+                 "settings.json", "wallet.json", "service-account.json"}
+PRIVATE_NAME_PATTERN = re.compile(
+    r"(?:^|[._-])(?:credentials?|secrets?|private[-_]?keys?|access[-_]?tokens?|keystore)(?:[._-]|$)", re.I)
 BINARY = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico", ".woff", ".woff2",
           ".ttf", ".mp4", ".mov", ".mp3", ".wav", ".zip", ".gz", ".pdf", ".beam",
-          ".sqlite", ".db", ".pem", ".key", ".p12", ".keystore", ".lock", ".map"}
+          ".sqlite", ".db", ".pem", ".key", ".p8", ".p12", ".pfx", ".keystore", ".lock", ".map"}
 SOURCE = {".ex", ".exs", ".heex", ".eex", ".leex", ".html", ".tsx", ".jsx",
           ".ts", ".js", ".mjs", ".cjs", ".py", ".swift", ".rs", ".go", ".sol",
           ".sh", ".bash", ".zsh", ".css", ".scss", ".svelte", ".vue"}
@@ -51,6 +57,8 @@ def exclusion(path: str) -> str | None:
         return "settings_never_read"
     if any(part.lower() in PRIVATE_PARTS for part in p.parts) or p.name == "launch.json":
         return "private_runtime_never_read"
+    if p.name.lower() in PRIVATE_NAMES or PRIVATE_NAME_PATTERN.search(p.name):
+        return "credential_filename_never_read"
     if any(part in SKIP_PARTS for part in p.parts):
         return "dependency_or_build_output"
     if p.suffix.lower() in BINARY or p.name in {"package-lock.json", "pnpm-lock.yaml", "yarn.lock", "mix.lock", "uv.lock", "Cargo.lock"}:
@@ -169,10 +177,10 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             pos = start + size + 1
     changes = []
     head_difference = [p.decode("utf-8", "surrogateescape") for p in
-                       git(repo, "diff", "--name-only", "-z", ref, head).split(b"\0") if p]
+                       git(repo, "diff", "--no-renames", "--name-only", "-z", ref, head).split(b"\0") if p]
     if overlay:
         # Include committed HEAD-only differences as well as staged/unstaged edits.
-        paths = set(git(repo, "diff", "--name-only", "-z", ref).split(b"\0"))
+        paths = set(git(repo, "diff", "--no-renames", "--name-only", "-z", ref).split(b"\0"))
         paths |= set(git(repo, "ls-files", "--others", "--exclude-standard", "-z").split(b"\0"))
         for raw in sorted(paths):
             if not raw:
@@ -180,7 +188,7 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             path = raw.decode("utf-8", "surrogateescape"); p = repo / path
             changes.append(path)
             reason = exclusion(path)
-            if p.is_symlink():
+            if linked_path(p, repo):
                 reason = "symlink_not_followed"
             if reason or not p.is_file():
                 rows.append({"repo": name, "root": str(repo), "path": path, "version": "working_overlay",
@@ -200,18 +208,29 @@ def scan_repo(name: str, repo: Path, requested_ref: str, overlay: bool, rows: li
             "checkout_changed_during_scan": head != git(repo, "rev-parse", "HEAD").decode().strip()}
 
 
+def linked_path(path: Path, root: Path) -> bool:
+    """Reject links at every level before stat/read can follow a parent link."""
+    return any(p.is_symlink() for p in (path, *path.parents)
+               if p == root or p.is_relative_to(root))
+
+
+def document_paths(root: Path) -> list[Path]:
+    command = ["rg", "--files", "--hidden", "--null", "--no-ignore"]
+    result = subprocess.run([*command, str(root)], stdout=subprocess.PIPE)
+    if result.returncode not in (0, 1):
+        raise RuntimeError(f"Could not enumerate {root}")
+    return [Path(p.decode("utf-8", "surrogateescape")) for p in result.stdout.split(b"\0") if p]
+
+
 def loose_docs(name: str, root: Path, rows: list, max_size: int, direct_only: bool = False):
     if direct_only:
         names = [str(p) for p in root.iterdir() if p.is_symlink() or p.is_file()]
     else:
-        result = subprocess.run(["rg", "--files", "--hidden", str(root)], stdout=subprocess.PIPE)
-        if result.returncode not in (0, 1):
-            raise RuntimeError(f"Could not enumerate {root}")
-        names = result.stdout.decode().splitlines()
+        names = document_paths(root)
     for name_path in names:
         p = Path(name_path); rel = str(p.relative_to(root))
         reason = exclusion(rel)
-        if p.is_symlink() or not p.resolve().is_relative_to(root.resolve()):
+        if linked_path(p, root) or not p.resolve().is_relative_to(root.resolve()):
             reason = "symlink_not_followed"
         if reason or not p.is_file() or p.stat().st_size > max_size:
             rows.append({"repo": name, "root": str(root), "path": rel, "version": "working",
@@ -225,14 +244,17 @@ def workspace_docs(root: Path, rows: list, max_size: int):
     wanted = [root / "AGENTS.md", root / "CLAUDE.md"]
     for folder in ("docs", "agent-docs"):
         p = root / folder
-        if p.exists():
-            names = subprocess.run(["rg", "--files", "--hidden", str(p)], check=True,
-                                   stdout=subprocess.PIPE).stdout.decode().splitlines()
-            wanted.extend(Path(n) for n in names)
+        if linked_path(p, root):
+            rows.append({"repo": "workspace", "root": str(root), "path": folder,
+                         "version": "working", "status": "symlink_not_followed", "categories": []})
+        elif p.is_dir():
+            wanted.extend(document_paths(p))
     for p in sorted(set(wanted)):
-        if not p.is_file() or p.is_symlink():
-            continue
         rel = str(p.relative_to(root)); reason = exclusion(rel)
+        if linked_path(p, root) or not p.resolve().is_relative_to(root.resolve()):
+            reason = "symlink_not_followed"
+        if not reason and not p.is_file():
+            continue
         if reason or p.stat().st_size > max_size:
             rows.append({"repo": "workspace", "root": str(root), "path": rel, "version": "working",
                          "status": reason or "oversize_not_classified", "categories": []})
@@ -240,7 +262,7 @@ def workspace_docs(root: Path, rows: list, max_size: int):
             record("workspace", root, rel, "working", p.read_bytes(), rows, max_size)
     for directory in (".agents/skills", ".claude/skills"):
         aliases = root / directory
-        if aliases.exists():
+        if not linked_path(aliases, root) and aliases.is_dir():
             for p in sorted(aliases.iterdir()):
                 if p.is_symlink():
                     rows.append({"repo": "workspace", "root": str(root), "path": str(p.relative_to(root)),
@@ -263,10 +285,17 @@ def main():
     rows = []; sources = []; nonrepos = []; loose_roots = []
     paths = args.repo or sorted([p for d in (root / "repos", root / "services") if d.exists()
                                 for p in d.iterdir() if p.is_dir() and not p.is_symlink()])
+    scanned_roots = [p.resolve() for p in paths]
+    if not args.repo:
+        scanned_roots.extend(root / p for p in ("docs", "agent-docs", ".agents/skills", ".claude/skills"))
+    if any(output.is_relative_to(p) for p in scanned_roots):
+        raise ValueError("--output must be outside scanned source directories")
     for repo in paths:
         repo = repo.resolve()
         top = git(repo, "rev-parse", "--show-toplevel", check=False).decode().strip()
         if not top or Path(top).resolve() != repo:
+            if args.repo:
+                raise ValueError(f"Explicit --repo must name a Git repository root: {repo}")
             # One extra directory level accommodates grouped repositories such as video-creation.
             if not args.repo:
                 loose_docs(repo.name, repo, rows, args.max_bytes, direct_only=True)
@@ -280,9 +309,6 @@ def main():
                         loose_docs(child.name, child, rows, args.max_bytes)
                         loose_roots.append(str(child))
                 nonrepos.append(str(repo))
-            else:
-                loose_docs(repo.name, repo, rows, args.max_bytes)
-                loose_roots.append(str(repo))
             continue
         sources.append(scan_repo(repo.name, repo, requested_ref, not args.no_working_overlay, rows, args.max_bytes, allow_fallback))
     if not args.repo:
@@ -291,7 +317,7 @@ def main():
     with (output / "locations.jsonl").open("w") as stream:
         for row in rows:
             stream.write(json.dumps(row, ensure_ascii=True) + "\n")
-    with (output / "locations.csv").open("w", newline="") as stream:
+    with (output / "locations.csv").open("w", newline="", encoding="utf-8", errors="backslashreplace") as stream:
         writer = csv.writer(stream)
         writer.writerow(["repository", "root", "path", "revision", "status", "categories", "signal_lines"])
         for row in rows:
@@ -305,7 +331,8 @@ def main():
                           "Remote refs are local snapshots, not fetched or live release claims.",
                           "Old worktrees, dependency copies, artifacts/backups and database-authored content are outside this source inventory.",
                           "Working overlays are not part of the recorded commit; they may be based on an older HEAD.",
-                          "No settings files, keys, external symlink targets or runtime credentials are read."]}
+                          "Known private filenames and key extensions are excluded before content reads; this is not secret detection for arbitrarily named files.",
+                          "External symlink targets are not read; ordinary source configuration remains in scope."]}
     (output / "coverage.json").write_text(json.dumps(summary, indent=2) + "\n")
     index = ["# Guidance surface inventory", "", "Every enumerated path is in locations.csv and locations.jsonl.",
              "Coverage and fixed revisions are in coverage.json. Counts include committed sources and working overlays separately.",
@@ -323,14 +350,14 @@ def main():
         for row in sorted(matching, key=lambda r: (r["path"], r["version"])):
             categories = ", ".join(row["categories"]) or row["status"]
             detail.append(f"- `{row['root']}/{row['path']}` — `{row['version']}`; {categories}")
-        page.write_text("\n".join(detail) + "\n")
+        page.write_text("\n".join(detail) + "\n", encoding="utf-8", errors="backslashreplace")
     index += ["", "## Categories", "", "| Category | Files |", "|---|---:|"]
     for tag, count in sorted(collections.Counter(t for r in rows for t in r["categories"]).items()):
         index.append(f"| {tag} | {count} |")
     index += ["", "## Limits", ""] + ["- " + s for s in summary["limits"]]
     if nonrepos:
         index += ["", "Grouping directories: nested repositories and loose child folders inventoried:"] + ["- " + p for p in nonrepos]
-    (output / "INDEX.md").write_text("\n".join(index) + "\n")
+    (output / "INDEX.md").write_text("\n".join(index) + "\n", encoding="utf-8", errors="backslashreplace")
     print(json.dumps({"output": str(output), "repositories": len(sources), "counts": dict(counts)}))
 
 
