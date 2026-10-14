@@ -194,9 +194,9 @@ defmodule Techtree.Network.Bundle do
     "/Volumes/"
   ]
 
-  # A Skill is text a person wrote, and it becomes public with its Result. The
-  # limits and kinds of file are the CLI's, so a Skill the CLI prepared is one
-  # this site accepts.
+  # A Skill is text a person wrote, and it becomes public with its Result. A
+  # Python helper is text too; this site never runs one. The limits and kinds
+  # of file are the CLI's, so a Skill the CLI prepared is one this site accepts.
   @skill_maximum_files 32
   @skill_maximum_file_bytes 131_072
   @skill_maximum_total_bytes 262_144
@@ -205,7 +205,8 @@ defmodule Techtree.Network.Bundle do
     ".txt" => "text/plain",
     ".json" => "application/json",
     ".yaml" => "application/yaml",
-    ".yml" => "application/yaml"
+    ".yml" => "application/yaml",
+    ".py" => "text/x-python"
   }
   @skill_artifact_keys ~w(files name parent_skill_digest root_digest schema_version source_kind)
   @skill_file_keys ~w(digest media_type path size)
@@ -1063,7 +1064,7 @@ defmodule Techtree.Network.Bundle do
         {:error,
          Error.new(
            :skill_path_invalid,
-           "a Skill holds only .md, .txt, .json, .yaml and .yml files",
+           "a Skill holds only .md, .txt, .json, .yaml, .yml and .py files",
            %{"path" => path}
          )}
 

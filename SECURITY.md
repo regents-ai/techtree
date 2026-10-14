@@ -36,8 +36,12 @@ the model provider you signed in to, after you approve the run.
 **What Techtree treats as content, not instructions.**
 
 - Techtree never runs a Skill's files. It lists and fingerprints them, and
-  carries only Markdown, plain text, JSON and YAML files. Anything else, or
-  anything it cannot read as plain text, is left out or refuses the Skill.
+  carries only Markdown, plain text, JSON, YAML and Python files. Anything
+  else, or anything it cannot read as plain text, is left out or refuses the
+  Skill. A Python helper is carried as text: inspecting a Skill never runs it,
+  and an agent that runs one in a test does so inside the offline container.
+  A Skill you fetch with `regents techtree skill fetch` may carry Python
+  someone else wrote; read it before you or your agent run it.
   What a Skill says it may use (for example `allowed-tools`) grants nothing.
 - A Skill's text reaches a model only in a step you approve: planning tasks,
   building tasks, or a run in which the agent carries the Skill (a

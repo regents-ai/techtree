@@ -62,7 +62,7 @@ This machine:
 ```text
 answer = GET /api/v1/skills/<root_digest>
 for each file: sha256(bytes) == listed digest, size == listed size, path is POSIX relative
-  with no "..", no leading "/", no backslash, and a listed suffix (.md .txt .json .yaml .yml)
+  with no "..", no leading "/", no backslash, and a listed suffix (.md .txt .json .yaml .yml .py)
 root_digest recomputed from skill.files (RFC 8785 canonical JSON of the sorted list) == asked
 any check fails  -> refuse, write nothing
 otherwise        -> write each file under DIR and print the folder and the Results it came from
@@ -147,7 +147,7 @@ same list before anything leaves the machine:
 skill.json root_digest == the candidate experiment's Skill digest        skill_fingerprint_mismatch
 every file's bytes give its listed digest and size                       skill_fingerprint_mismatch
 paths: POSIX relative, unique, sorted, no "..", no leading "/", no "\",
-       suffix .md .txt .json .yaml or .yml, SKILL.md present             skill_path_invalid
+       suffix .md .txt .json .yaml .yml or .py, SKILL.md present         skill_path_invalid
 at most 32 files, each at most 128 KiB, 256 KiB in all                   skill_too_large
 no file contains a private key or an API key:
   "-----BEGIN … PRIVATE KEY-----", sk-…, sk-ant-…, ghp_…, github_pat_…,
