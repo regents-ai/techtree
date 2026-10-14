@@ -12,6 +12,7 @@ import collections
 import csv
 import hashlib
 import json
+import os
 import re
 import subprocess
 from datetime import datetime, timezone
@@ -19,7 +20,8 @@ from pathlib import Path
 
 SKIP_PARTS = {".git", "node_modules", "deps", "_build", ".venv", "venv", "__pycache__",
               ".next", "build", "dist", "coverage", "cache", ".cache"}
-PRIVATE_PARTS = {".siwa", ".ssh", ".aws", ".gnupg", "credentials", "wallets"}
+PRIVATE_PARTS = {".siwa", ".ssh", ".aws", ".gnupg", "credentials", "wallets",
+                 "secrets", ".secrets", ".credentials", ".docker", ".kube", ".azure"}
 PRIVATE_NAMES = {".npmrc", ".pypirc", ".netrc", "_netrc", ".git-credentials",
                  ".dockercfg", ".authinfo", "auth.json", "auth.toml", "auth.yaml",
                  "auth.yml", "id_rsa", "id_dsa", "id_ecdsa", "id_ed25519",
@@ -53,7 +55,7 @@ def git(repo: Path, *args: str, check: bool = True) -> bytes:
 
 def exclusion(path: str) -> str | None:
     p = Path(path)
-    if any(part.startswith(".env") and part != ".env.example" for part in p.parts):
+    if any(part.lower().startswith(".env") and part.lower() != ".env.example" for part in p.parts):
         return "settings_never_read"
     if any(part.lower() in PRIVATE_PARTS for part in p.parts) or p.name == "launch.json":
         return "private_runtime_never_read"
@@ -100,7 +102,8 @@ def classify(path: str, text: str) -> tuple[list[str], dict[str, list[int]], str
         tags.add("test_or_fixture")
     if any(x in low for x in ("/handoff", "/archive", "/evidence", "/audit", "changelog", "/release-notes")):
         tags.add("historical_or_review_record")
-    generated = any(x in low for x in ("assets/vendor/regent_", "src/regents_cli/platforms/", "priv/static/openapi"))
+    generated = any(x in low for x in ("assets/vendor/regent_", "src/regents_cli/platforms/",
+                                      "priv/static/openapi", "priv/static/api-contract"))
     if generated:
         tags.add("generated_or_copied_surface")
     hits: dict[str, list[int]] = {}
@@ -216,11 +219,19 @@ def linked_path(path: Path, root: Path) -> bool:
 
 
 def document_paths(root: Path) -> list[Path]:
-    command = ["rg", "--no-config", "--files", "--hidden", "--null", "--no-ignore"]
-    result = subprocess.run([*command, str(root)], stdout=subprocess.PIPE)
-    if result.returncode not in (0, 1):
-        raise RuntimeError(f"Could not enumerate {root}")
-    return [Path(p.decode("utf-8", "surrogateescape")) for p in result.stdout.split(b"\0") if p]
+    # os.walk records links themselves without traversing them or applying ignore rules.
+    def fail(error):
+        raise error
+    paths = []
+    for directory, folders, files in os.walk(root, followlinks=False, onerror=fail):
+        parent = Path(directory)
+        for folder in folders[:]:
+            path = parent / folder
+            if path.is_symlink():
+                paths.append(path)
+                folders.remove(folder)
+        paths.extend(parent / name for name in files)
+    return sorted(paths)
 
 
 def loose_docs(name: str, root: Path, rows: list, max_size: int, direct_only: bool = False):
@@ -269,6 +280,13 @@ def workspace_docs(root: Path, rows: list, max_size: int):
                     rows.append({"repo": "workspace", "root": str(root), "path": str(p.relative_to(root)),
                                  "version": "working", "status": "skill_alias_not_followed",
                                  "target": str(p.readlink()), "categories": ["skill_alias"]})
+                elif p.is_dir():
+                    loose_docs("workspace", p, rows, max_size)
+
+
+def reject_output_links(path: Path):
+    if any(p.is_symlink() for p in (path, *path.parents)):
+        raise ValueError(f"Refusing symlink in output path: {path}")
 
 
 def main():
@@ -282,10 +300,34 @@ def main():
     args = parser.parse_args()
     requested_ref = args.ref or "origin/main"
     allow_fallback = args.ref is None
-    root = args.workspace.resolve(); output = args.output.resolve()
-    rows = []; sources = []; nonrepos = []; loose_roots = []
-    paths = args.repo or sorted([p for d in (root / "repos", root / "services") if d.exists()
-                                for p in d.iterdir() if p.is_dir() and not p.is_symlink()])
+    root = args.workspace.resolve()
+    if not root.is_dir():
+        raise ValueError(f"Workspace must be an existing directory: {root}")
+    reject_output_links(args.output.absolute())
+    output = args.output.resolve()
+    rows = []; sources = []; nonrepos = []; loose_roots = []; unavailable = []
+    paths = args.repo or []
+    if not args.repo:
+        surface_map = Path(__file__).resolve().parents[1] / "references/surface-map.md"
+        expected = sorted(set(re.findall(r"\b(?:repos|services)/[a-z0-9-]+", surface_map.read_text())))
+        for relative in expected:
+            path = root / relative
+            if linked_path(path, root) or not path.is_dir():
+                unavailable.append(relative)
+                rows.append({"repo": "workspace", "root": str(root), "path": relative,
+                             "version": "working", "status": "known_source_root_unavailable", "categories": []})
+        for container in (root / "repos", root / "services"):
+            if container.is_symlink():
+                rows.append({"repo": "workspace", "root": str(root), "path": str(container.relative_to(root)),
+                             "version": "working", "status": "symlink_not_followed", "categories": []})
+            elif container.is_dir():
+                for path in sorted(container.iterdir()):
+                    reason = "symlink_not_followed" if path.is_symlink() else exclusion(path.name)
+                    if reason:
+                        rows.append({"repo": "workspace", "root": str(root), "path": str(path.relative_to(root)),
+                                     "version": "working", "status": reason, "categories": []})
+                    elif path.is_dir():
+                        paths.append(path)
     scanned_roots = [p.resolve() for p in paths]
     if not args.repo:
         scanned_roots.extend(root / p for p in ("docs", "agent-docs", ".agents/skills", ".claude/skills"))
@@ -314,6 +356,11 @@ def main():
         sources.append(scan_repo(repo.name, repo, requested_ref, not args.no_working_overlay, rows, args.max_bytes, allow_fallback))
     if not args.repo:
         workspace_docs(root, rows, args.max_bytes)
+    names = sorted({r["repo"] for r in rows})
+    outputs = [output / f for f in ("locations.jsonl", "locations.csv", "coverage.json", "INDEX.md")]
+    outputs += [output / "repositories" / (name + ".md") for name in names]
+    for path in outputs:
+        reject_output_links(path)
     output.mkdir(parents=True, exist_ok=True)
     with (output / "locations.jsonl").open("w") as stream:
         for row in rows:
@@ -326,6 +373,7 @@ def main():
                              "; ".join(row["categories"]), json.dumps(row.get("signal_lines", {}))])
     counts = collections.Counter(row["status"] for row in rows)
     summary = {"generated_at": datetime.now(timezone.utc).isoformat(), "sources": sources,
+               "unavailable_source_roots_from_surface_map": unavailable,
                "grouping_directories_children_scanned": nonrepos, "loose_roots_scanned": loose_roots,
                "counts": dict(counts),
                "limits": ["Line signals are heuristic; all other text stays in the inventory for review.",
@@ -340,11 +388,11 @@ def main():
              "", "| Repository | Inventoried text files | Other paths recorded |", "|---|---:|---:|"]
     pages = output / "repositories"
     pages.mkdir(exist_ok=True)
-    for name in sorted({r["repo"] for r in rows}):
+    for name in names:
         matching = [r for r in rows if r["repo"] == name]
         inventoried = sum(r["status"] == "inventoried" for r in matching)
         page = pages / (name + ".md")
-        index.append(f"| [{name}]({page}) | {inventoried} | {len(matching) - inventoried} |")
+        index.append(f"| [{name}]({page.relative_to(output)}) | {inventoried} | {len(matching) - inventoried} |")
         detail = [f"# {name}: every enumerated guidance location", "",
                   "These are file-level candidates and coverage records, not proof that all copy was semantically checked.",
                   "Revision/working-overlay is explicit; the current file on disk may differ from the named commit.", ""]

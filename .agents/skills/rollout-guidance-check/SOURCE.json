@@ -4,7 +4,7 @@
   "files": {
     "SKILL.md": "9abf1eb742d13d39fc67936db8b72dcf74905ce3f6779de680f3c09f2f12aab0",
     "agents/openai.yaml": "ba5641967f27737cdef10b1a75e5d6868fff84d1e7ee99dc42cea9dd8a052ae8",
-    "scripts/inventory.py": "096ed1d1d8faab5f9d931c54b443b87d8d2b5d552bb31e72805044f26450b93d",
+    "scripts/inventory.py": "e9d1bf802096739d426d43eeb38ed82ceae5d951172d874d1827da5e9394fa82",
     "references/surface-map.md": "b290127176e65388c5c8432ed7d18775d2181a01d75d70964ceccbd1f7ece312",
     "references/impact-checklist.md": "b6e49aab95e570479915a290807984b0038d6fb7719d3b02fe42e7597cf0721e",
     "references/openai-review.md": "6c4856b1f7a1cf4f3ef74a2dcb8e6d1a4257f977813b88ee95d42fd009a2ebd5"
