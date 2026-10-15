@@ -46,7 +46,9 @@ route exists or label an unadvertised candidate's 404 a defect.
 
 ## Other first-party codebases
 
-The complete workspace scan includes these; narrow review only after checking impact:
+These are additional owners to consider when the change affects them. Inspect each
+independently when available; otherwise record the missing repository or workspace
+as an explicit coverage gap. This list does not assert that a scan occurred:
 
 - `repos/ios`: Swift strings/accessibility/help and server tool schemas, prompts and errors.
 - `repos/fly-sentinel`, `repos/sentinel-watch`: dashboard/admin copy, monitoring/recovery
@@ -61,23 +63,26 @@ The complete workspace scan includes these; narrow review only after checking im
 - `services/videocontrol`: UI/tool/CLI descriptions, product Skills, prompts, generated
   artifacts and workflow docs. Publication/scheduling capabilities are not authority to
   invoke them during a guidance review.
-- `repos/video-creation/`: nested repository and loose guide sources, inventoried
-  separately. They do not become product rollout dependencies merely by existing.
+- `repos/video-creation/`: nested repository and loose guide sources; establish their
+  separate identities and available revisions before inspecting them. They do not become product rollout dependencies merely by existing.
 - Workspace `docs/`, `agent-docs/`, `AGENTS.md`, `CLAUDE.md`: active runbooks, cross-site
   contracts, decision records and dated handoffs. Review current references; preserve
-  historical evidence. Session stores and private runtime settings are not scanned.
+  historical evidence. Exclude session stores and private runtime settings.
 
 ## Boundaries requiring explicit coverage notes
 
-- Root inventories record local Git refs and primary working changes. Other worktrees
-  can contain newer work: use the release owner's exact checkout/ref for its review.
-- Generated vendor copies are first-party outputs; third-party dependencies/submodules
-  are listed as excluded paths. Check upstream usage docs only where the diff needs them.
+- Record the exact inspected refs and any separately reviewed working edits. Other
+  worktrees can contain newer work: use the release owner's exact checkout/ref, or
+  record it as unavailable. A saved inventory records only its dated inspected state.
+- Trace generated first-party vendor copies. Record third-party dependency/submodule
+  pins and whether their content was inspected; never infer coverage from a path
+  listing. Check upstream usage docs only where the diff needs them.
 - Database-authored tool directory descriptions, posts, uploaded Skills and external
   Pages are outside a filesystem inventory. Identify the owning table/publisher and
   public read path; do not export private content or claim it was reviewed.
-- Screenshots, video, icons and other binary assets can contain words. Their file paths
-  are recorded but their text is not extracted. Inspect affected assets visually.
+- Screenshots, video, icons and other binary assets can contain words. Identify
+  affected paths, then inspect them visually when tools permit. Otherwise record the
+  missing visual evidence; a text search does not cover those words.
 - Ignored build artifacts, old exports/backups and transcripts are not canonical copy.
   Live output must still be checked after the authorized release when claiming rollout
   completion.
