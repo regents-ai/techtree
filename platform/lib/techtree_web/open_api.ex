@@ -455,7 +455,7 @@ defmodule TechtreeWeb.OpenAPI do
           |> put_in(
             ["responses", "422"],
             error(
-              "The cursor is invalid. Read the first page without after, then use its next_cursor."
+              "Invalid after cursor (invalid_cursor). Use the previous pagination.next_cursor unchanged, or omit after for the newest entries; do not send null."
             )
           )
       },
