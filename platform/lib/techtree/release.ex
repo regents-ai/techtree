@@ -125,11 +125,9 @@ defmodule Techtree.Release do
   Import and activate the immutable catalog snapshot for a full source revision.
   """
   @spec import_catalog(String.t()) :: :ok
-  def import_catalog(revision) do
-    load_app()
+  def import_catalog(revision), do: with_repo(fn -> import_catalog!(revision) end)
 
-    {:ok, _apps} = Application.ensure_all_started(@app)
-
+  defp import_catalog!(revision) do
     path =
       case Techtree.Catalog.snapshot_path(revision) do
         {:ok, path} -> path
@@ -151,11 +149,10 @@ defmodule Techtree.Release do
   holds locally.
   """
   @spec publish_bootstrap(String.t(), String.t() | nil) :: :ok
-  def publish_bootstrap(digest, channel \\ nil) do
-    load_app()
+  def publish_bootstrap(digest, channel \\ nil),
+    do: with_repo(fn -> publish_bootstrap!(digest, channel) end)
 
-    {:ok, _apps} = Application.ensure_all_started(@app)
-
+  defp publish_bootstrap!(digest, channel) do
     case Publication.publish(digest, channel: channel) do
       {:ok, switch} ->
         IO.puts("""
@@ -177,11 +174,10 @@ defmodule Techtree.Release do
   publishes now.
   """
   @spec list_bootstrap_releases(String.t() | nil) :: :ok
-  def list_bootstrap_releases(channel \\ nil) do
-    load_app()
+  def list_bootstrap_releases(channel \\ nil),
+    do: with_repo(fn -> list_bootstrap_releases!(channel) end)
 
-    {:ok, _apps} = Application.ensure_all_started(@app)
-
+  defp list_bootstrap_releases!(channel) do
     [channel: channel]
     |> Publication.list()
     |> Enum.each(fn release ->
@@ -258,6 +254,14 @@ defmodule Techtree.Release do
   defp schema_exists?(repo, schema) do
     %{rows: [[exists?]]} = Ecto.Adapters.SQL.query!(repo, @schema_exists, [schema])
     exists?
+  end
+
+  # A one-off command starts the database connection and nothing else, so it
+  # never serves pages or runs queued jobs beside the deployed site.
+  defp with_repo(fun) do
+    load_app()
+    {:ok, result, _apps} = Ecto.Migrator.with_repo(Techtree.Repo, fn _repo -> fun.() end)
+    result
   end
 
   defp load_app do
