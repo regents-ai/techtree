@@ -50,7 +50,11 @@ These are additional owners to consider when the change affects them. Inspect ea
 independently when available; otherwise record the missing repository or workspace
 as an explicit coverage gap. This list does not assert that a scan occurred:
 
-- `repos/ios`: Swift strings/accessibility/help and server tool schemas, prompts and errors.
+- `repos/ios`: Expo/React Native screens in `app/` and shared UI in `components/`,
+  with labels, accessibility/help text, validation and errors in TS/TSX and supporting
+  `hooks/`, `constants/`, `theme/` and `utils/`; native Swift/module surfaces under
+  `modules/` and `targets/`; `server/` tool schemas, prompts and errors; root OpenAPI
+  contracts, README and setup/release guides.
 - `repos/fly-sentinel`, `repos/sentinel-watch`: dashboard/admin copy, monitoring/recovery
   descriptions, notifications, operator runbooks and command/help text.
 - `repos/media-web`: public/admin views, errors, API and deployment documentation.
