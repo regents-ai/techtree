@@ -33,19 +33,24 @@ template. Regents is one consumer, not the baseline.
 
 ## Find all affected surfaces
 
-Use the selected revision's complete file tree and exact base/target diff through the
-host's repository tools. A saved inventory is dated evidence, not a substitute for
+Use the selected revision's complete file tree and exact base/target change metadata
+through the host's repository tools. Initially request path/status metadata only,
+without patch content; request patches only for safe paths selected after exclusions. A saved inventory is dated evidence, not a substitute for
 that tree. Enumerate paths using tree metadata without rename/copy similarity
 detection; those algorithms can read blobs before exclusions. List paths before selecting files to read; do not run a repository program,
 hook or generator to discover guidance. This package deliberately has no inventory
 executable and requires no Python runtime for hosted review.
 
 If using Git directly, run every command with inherited `GIT_*` variables removed
-and an explicit, verified repository path. Then set `GIT_NO_LAZY_FETCH=1` for every
-command, so missing partial-clone objects remain a coverage gap rather than triggering
-a download. Disable replacement objects for every revision read/search, and disable
+and an explicit, verified repository path. Then set `GIT_NO_LAZY_FETCH=1` and
+`GIT_OPTIONAL_LOCKS=0`, and use `--no-pager` for every command: missing partial-clone
+objects remain a coverage gap, inspection does not refresh the shared index, and
+repository-configured pagers cannot execute. Disable replacement objects for every revision read/search, and disable
 external diff and text-conversion helpers. Set `core.fsmonitor=false` for Git commands;
-local comparisons must not invoke repository clean/smudge filters. Run from the verified
+local comparisons must not invoke repository clean/smudge filters. Do not use ordinary
+worktree `status`/`diff` to discover local edits when filters may run. Compare safe
+index blobs and raw files directly using the host tools, or record local edits as
+unavailable. Run from the verified
 repository root and use `--no-relative` for diffs. Enumerate
 the complete repository tree independently of the current subdirectory; use safe path
 handling for unusual filenames. These are prerequisites, not settings implied by
