@@ -30,8 +30,8 @@ defmodule TechtreeWeb.Plugs.PairedAgent do
           conn,
           403,
           :agent_not_paired,
-          "This agent has no current account pairing.",
-          "Ask the owner to pair this agent at regents.sh/account, then sign a fresh request."
+          "This agent is not paired with an account.",
+          "Ask your person to sign in at /account and choose you under Agents. Redeem the code they paste you with regents techtree agents pair (POST /api/agents/v1/pair), then send the request again."
         )
 
       {:error, _error} ->
@@ -57,8 +57,8 @@ defmodule TechtreeWeb.Plugs.PairedAgent do
           conn,
           403,
           :person_not_here,
-          "The paired owner has no canonical Regent account.",
-          "Ask the owner to sign in at regents.sh/account; no account was guessed or created."
+          "The person this agent is paired with has no account on this site yet.",
+          "Ask your person to sign in on this website once, then send the request again."
         )
 
       {:error, _error} ->
