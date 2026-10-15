@@ -26,8 +26,7 @@ the packet ships together, on his word.
   `auth.json` or profile contents; never print secrets or connection strings.
   Copy only `state.db` out of a throwaway Hermes profile. Never `--safe-mode`.
 - Never drop or recreate any database without an explicit grant; never
-  `rm -rf` (ask the founder to delete); never bare `git stash`; never run
-  bd/beads.
+  `rm -rf` (ask the founder to delete); never bare `git stash`.
 - Customer-facing copy never carries implementation words. The copy guard is
   `cli/tests/contract/test_release_copy.py` (it also forbids "cost estimate").
 - Report in plain English; every open founder decision is numbered with

@@ -1,7 +1,6 @@
 # Techtree delivery audit and implementation sequence
 
 Date: September 6, 2026. Baseline: `68d5fd3390c8e1c4dd2dee7916f2efc67369bd29`.
-Graph: Techtree’s own `.beads`, not Control’s graph.
 Documentation ticket: `techtree-a2v`.
 
 Status note, 2026-09-07: this audit is a dated snapshot. Its ticket IDs and
@@ -39,7 +38,7 @@ not the number of schemas, ticket closures, or mock assertions produced.
 
 - Both supplied README drafts, root/component documentation, root instructions,
   platform instructions, Makefiles, v0.2 contracts and Market roadmap.
-- All 76 pre-existing live Beads tickets, their dependency edges, active ticket
+- All 76 pre-existing tickets, their dependency edges, active ticket
   details, local worktree heads/status, and main versus in-flight commit ranges.
 - Recent platform, CLI, shared-profile, schema, and release-credential commits.
 - CLI schema constant, Campaign models and bundle writer, proof-verification
@@ -140,7 +139,7 @@ Relay → public evidence, with Codex following Fabric. Hosted work stays in its
 own v0.2.x epic. Three repairs are needed before dispatch:
 
 1. The prose ledger still says only WP0.5 remains open ahead of WP0.8. Both are
-   closed in live Beads. Use live status, and remove this dated sentence during
+   closed. Use live status, and remove this dated sentence during
    the lock/status reconciliation ticket.
 2. `techtree-31k.14` is blocked for lock adoption, but has **no blocking dependents**
    in the graph. The lock itself remains proposed and answer slots remain empty.
