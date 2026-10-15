@@ -5,6 +5,8 @@ defmodule TechtreeWeb.PublicPagesHTML do
 
   attr :page, :map, required: true
 
+  # PublicDocuments.page/1 renders committed Markdown at compile time; no request HTML enters it.
+  # sobelow_skip ["XSS.Raw"]
   def show(assigns) do
     ~H"""
     <Layouts.page>

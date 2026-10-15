@@ -15,6 +15,8 @@ defmodule TechtreeWeb.ChangelogLive do
   end
 
   @impl true
+  # @html is rendered from the committed changelog at compile time, never request data.
+  # sobelow_skip ["XSS.Raw"]
   def render(assigns) do
     ~H"""
     <Layouts.page>

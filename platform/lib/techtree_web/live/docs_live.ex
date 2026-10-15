@@ -35,6 +35,8 @@ defmodule TechtreeWeb.DocsLive do
   end
 
   @impl true
+  # Both raw sections come from PublicDocuments' compile-time committed Markdown.
+  # sobelow_skip ["XSS.Raw"]
   def render(assigns) do
     ~H"""
     <Layouts.page wide>

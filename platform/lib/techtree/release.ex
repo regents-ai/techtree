@@ -51,8 +51,38 @@ defmodule Techtree.Release do
 
   @doc "Read-only shared-schema prerequisites. This site never applies shared migrations."
   def require_signed_access_schema!(repo) do
+    :ok = require_shared_migrations!(repo)
     :ok = RegentAgents.Migrator.require_pairing_history!(repo)
     RegentCredits.Migrator.require_pairing_grants!(repo)
+  end
+
+  # The Agents, Credits and Points code this release carries reads tables and columns
+  # from every migration its pinned library ships, so each must already be in
+  # that schema's own ledger. Every missing version is named at once.
+  defp require_shared_migrations!(repo) do
+    case unapplied_shared_migrations(repo) do
+      [] ->
+        :ok
+
+      unapplied ->
+        raise "These separately approved shared migrations must be applied before deployment: " <>
+                Enum.join(unapplied, ", ")
+    end
+  end
+
+  defp unapplied_shared_migrations(repo) do
+    for {app, schema} <- [
+          regent_agents: "regent_agents",
+          regent_credits: "regent_credits",
+          regent_points: "regent_points"
+        ],
+        {:down, version, _name} <-
+          Ecto.Migrator.migrations(repo, [Application.app_dir(app, "priv/repo/migrations")],
+            prefix: schema,
+            skip_table_creation: true,
+            migration_lock: false
+          ),
+        do: "#{schema} #{version}"
   end
 
   @doc """

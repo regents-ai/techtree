@@ -7,6 +7,10 @@
 # General application configuration
 import Config
 
+# AshPostgres 2.13.0 writes a PostgreSQL 17 upsert as MERGE, which leaves out the
+# Repo's default schema. Upserts stay on INSERT ... ON CONFLICT, which keeps it.
+config :ash_postgres, upsert_with_merge?: false
+
 config :ex_money,
   custom_currencies: [{:XRC, name: "Credits", digits: 6}],
   auto_start_exchange_rate_service: false

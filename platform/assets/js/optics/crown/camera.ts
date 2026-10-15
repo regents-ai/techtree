@@ -7,7 +7,7 @@
  * the same deliberate screen-space breathing room through pointer motion and resize.
  */
 
-import {perspectiveCamera, type SceneCamera} from "vgpu/scene"
+import {group, perspective, viewMatrices} from "vgpu/scene"
 
 import {
   CROWN_AABB_CORNERS,
@@ -24,7 +24,6 @@ export const CROWN_FRAME_MARGIN = 0.08
 const CAMERA_FIT_SAFETY = 1.005
 
 export interface CameraView {
-  readonly camera: SceneCamera
   /** Projection shifted in clip space without changing the physical view ray. */
   readonly viewProjection: Float32Array
   readonly position: Vec3
@@ -68,21 +67,20 @@ export function cameraView(aspect: number, orbitX = 0, orbitY = 0): CameraView {
   ]
   const forward = normalize([-position[0], -position[1], -position[2]])
   const right = normalize(cross(forward, [0, 1, 0]))
-  const camera = perspectiveCamera({
-    fov: CAMERA_FOV_DEGREES,
+  const eye = group({position}).lookAt([0, 0, 0], [0, 1, 0])
+  // The whole scene sits between the wall at z = 0 and the glass in front of it,
+  // so the depth range only has to bracket a couple of units.
+  const projection = perspective(
+    {fov: CAMERA_FOV_DEGREES, near: 0.05, far: 4 * distance},
     aspect,
-    // The whole scene sits between the wall at z = 0 and the glass in front of it,
-    // so the depth range only has to bracket a couple of units.
-    near: 0.05,
-    far: 4 * distance,
-    position,
-    target: [0, 0, 0],
-  })
+    new Float32Array(16),
+  )
+  const matrices = {view: new Float32Array(16), viewProjection: new Float32Array(16)}
+  viewMatrices({position: eye.worldPosition, quaternion: eye.quaternion}, projection, matrices)
   return {
-    camera,
     viewProjection: shiftedViewProjection(
-      camera.viewProjection,
-      crownFrameOffsetNdc(aspect, camera.viewProjection),
+      matrices.viewProjection,
+      crownFrameOffsetNdc(aspect, matrices.viewProjection),
     ),
     position,
     forward,

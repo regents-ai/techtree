@@ -255,11 +255,15 @@ protocol names them; everywhere else, a fingerprint is a fingerprint.
 ## Shared dependencies
 
 The shared Regent libraries (`regent_ui` from design-system, `regent_blog`,
-`regent_privy` and `regent_agent_access` from elixir-utils, `regent_identity` from regents) are git
+`regent_privy`, `regent_agent_access` and `regent_identity` from elixir-utils) are git
 dependencies pinned to one commit per repository at the top of `mix.exs`, and
 `mix deps.get` fetches them. To move a pin, change its ref and run
 `mix deps.update <name>`. `make check-required-fixes` from the monorepo root
 checks the pins against ash-template's list of required fixes.
+Shared Mix locks and direct npm versions must match ash-template's tested baseline.
+Run its `scripts/check-dependency-parity.py` with the template and Techtree candidate
+checkout paths; retain Techtree's product-only packages and use normal dependency
+resolution. The template's `docs/dependency-baseline.md` records compatibility holds.
 Do not clone recursive Solidity submodules for a web-only change.
 
 ## Development
@@ -313,6 +317,12 @@ references. Ordinary unprefixed `mix ecto.*` commands must not target the shared
 database. Future migrations and Ash snapshot changes need the imported schema as
 their baseline; do not regenerate or reset the existing publication sequence.
 This setting does not bootstrap a fresh namespaced database or change runtime grants.
+
+The release also checks every Agents, Credits and Points migration carried by its
+shared-library pin against that library's own ledger. Missing versions refuse the
+deployment and are listed together. This check applies nothing: shared migrations,
+including agent pictures (`regent_agents` version `20261014150000`), require separate
+founder approval before release.
 
 ## Release builds
 

@@ -20,6 +20,8 @@ defmodule TechtreeWeb.SitemapController do
 
   @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /blog /about /contact /privacy /terms)
 
+  # document/1 escapes every URL; the remaining values are ISO dates and fixed XML.
+  # sobelow_skip ["XSS.SendResp"]
   def index(conn, _params) do
     conn
     |> put_resp_content_type("application/xml")

@@ -4,9 +4,9 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "9db13eb6e8475326626860721d082e90cb0f93fc"
+  @elixir_utils_ref "b5824049d55012f2e8b1e4d7e3e2fcc549d93360"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "d3408b5757732e05aaf208d829f65f1bb12147c0"
+  @design_system_ref "fb0542f656f68b30e56f370c8806639ac9067c07"
 
   def project do
     [
@@ -98,7 +98,7 @@ defmodule Techtree.MixProject do
        sparse: "credo_ash",
        only: [:dev, :test],
        runtime: false},
-      {:sobelow, "~> 0.14", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.16", only: [:dev, :test], runtime: false},
       # Test too: precommit runs in the test environment and checks the AGENTS.md block.
       {:usage_rules, "~> 1.2.8", only: [:dev, :test], runtime: false},
       {:ash_phoenix, "~> 2.0"},
@@ -123,7 +123,7 @@ defmodule Techtree.MixProject do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
-      {:decimal, "== 3.1.2"},
+      {:decimal, "== 3.2.0"},
       {:dns_cluster, "~> 0.3.0"},
       # CVE-2026-105659: upstream fix is not in a Hex release yet.
       {:bandit,

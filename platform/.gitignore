@@ -52,6 +52,7 @@ npm-debug.log
 
 # Generated from the pinned Regent UI package.
 /priv/static/fonts/regent-ui/
+/priv/static/images/regent-ui/
 
 # Generated blog assets, and the blog copied into the release build context.
 /priv/static/images/blog/
