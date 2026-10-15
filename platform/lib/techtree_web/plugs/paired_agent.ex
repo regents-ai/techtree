@@ -46,7 +46,9 @@ defmodule TechtreeWeb.Plugs.PairedAgent do
   end
 
   defp account(conn, pairing) do
-    case Techtree.Accounts.by_owner(pairing.privy_user_id, actor: %{role: :system}) do
+    case Techtree.Accounts.get_by_privy_did(pairing.privy_user_id,
+           actor: %Techtree.Actors.System{}
+         ) do
       {:ok, %{id: id}} ->
         assign(conn, :publication_actor, Map.put(pairing, :human_account_id, id))
 

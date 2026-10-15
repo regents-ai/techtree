@@ -21,18 +21,6 @@ defmodule Techtree.Accounts.HumanAccount do
       primary? true
     end
 
-    read :by_owner do
-      get? true
-      argument :owner, :string, allow_nil?: false
-      filter expr(privy_user_id == ^arg(:owner))
-    end
-
-    read :by_id do
-      get? true
-      argument :id, :integer, allow_nil?: false
-      filter expr(id == ^arg(:id))
-    end
-
     read :points_account do
       get? true
       argument :id, :integer, allow_nil?: false
@@ -72,8 +60,6 @@ defmodule Techtree.Accounts.HumanAccount do
   policies do
     policy action([
              :read,
-             :by_owner,
-             :by_id,
              :by_privy_did,
              :register_verified,
              :refresh_verified,
