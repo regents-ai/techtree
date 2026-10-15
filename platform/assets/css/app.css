@@ -89,7 +89,7 @@ code { font-size: .9em; }
   /* The prism sits .5rem inside its press target, so an 8px column gap leaves 16px beside it. */
   align-items: center; gap: var(--space-3) var(--space-1);
 }
-.masthead__name { display: inline-flex; align-items: center; min-height: 2.75rem; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
+.masthead__name { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 2.75rem; white-space: nowrap; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
 .masthead__mark { width: 1.5rem; flex: 0 0 auto; }
 .masthead__nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: .875rem; min-width: 0; }
 .masthead__selector { display: flex; flex-wrap: wrap; min-width: 0; }
