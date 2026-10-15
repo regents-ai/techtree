@@ -35,7 +35,7 @@ defmodule TechtreeWeb.Layouts do
   attr(:current_path, :string, default: "/")
 
   defp masthead(assigns) do
-    assigns = assign(assigns, :repository_url, @repository_url)
+    assigns = assign(assigns, repository_url: @repository_url, products: products())
 
     ~H"""
     <header class="masthead">
@@ -62,26 +62,27 @@ defmodule TechtreeWeb.Layouts do
         </a>
         <nav class="masthead__nav" aria-label="Primary">
           <span class="masthead__selector">
-            <a href={~p"/start"} aria-current={current_section(@current_path, "/start")}>
-              Start
-            </a>
-            <a href={~p"/results"} aria-current={current_section(@current_path, "/results")}>
-              Results
-            </a>
-            <a
-              href={~p"/wallet-bench"}
-              aria-current={current_section(@current_path, "/wallet-bench")}
-            >
-              Wallet Bench
-            </a>
-            <a href={~p"/verify"} aria-current={current_section(@current_path, "/verify")}>
-              Verify
-            </a>
-            <a href={~p"/account"} aria-current={current_section(@current_path, "/account")}>Account</a>
+            <span class="masthead__menu">
+              <button
+                type="button"
+                class="masthead__menu-button"
+                aria-haspopup="true"
+                aria-current={products_section(@current_path)}
+              >
+                Products <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg>
+              </button>
+              <span class="masthead__menu-list">
+                <a
+                  :for={{label, path} <- @products}
+                  href={path}
+                  aria-current={current_section(@current_path, path)}
+                >
+                  {label}
+                </a>
+              </span>
+            </span>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
-            <a href={~p"/changelog"} aria-current={current_section(@current_path, "/changelog")}>
-              Changelog
-            </a>
+            <a href={~p"/account"} aria-current={current_section(@current_path, "/account")}>Account</a>
           </span>
           <a
             class="masthead__github"
@@ -109,6 +110,20 @@ defmodule TechtreeWeb.Layouts do
       </div>
     </header>
     """
+  end
+
+  # The header's Products menu, in the order a newcomer meets them.
+  defp products do
+    [
+      {"Start", ~p"/start"},
+      {"Results", ~p"/results"},
+      {"Wallet Bench", ~p"/wallet-bench"},
+      {"Verify", ~p"/verify"}
+    ]
+  end
+
+  defp products_section(path) do
+    if Enum.any?(products(), fn {_label, root} -> current_section(path, root) end), do: "page"
   end
 
   defp current_section(path, root) when is_binary(path) do
@@ -246,6 +261,7 @@ defmodule TechtreeWeb.Layouts do
         <a href={~p"/contact"}>Contact</a>
         <a href={~p"/privacy"}>Privacy</a>
         <a href={~p"/terms"}>Terms</a>
+        <a href={~p"/changelog"}>Changelog</a>
         <Regent.Primitives.disclosure id="related-products" summary="Regents Labs">
           <nav aria-label="Related products" class="product-links__related">
             <a href="https://regents.sh">Regents</a>

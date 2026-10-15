@@ -132,3 +132,6 @@
     background: color-mix(in oklch, var(--color-fg) 6%, transparent);
   }
 }
+
+/* Signed out, the page's own panel offers Sign in, so the header row doesn't repeat it. */
+.account-shell__controls [data-account-target="sign-in"] { display: none; }

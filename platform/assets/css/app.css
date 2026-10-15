@@ -81,7 +81,7 @@ code { font-size: .9em; }
 .skip-link:focus { transform: none; }
 
 /* One continuous frame. All non-rail rows share the same main track. */
-.techtree-frame { min-height: 100vh; }
+.techtree-frame { min-height: 100vh; display: flex; flex-direction: column; }
 .masthead { position: relative; z-index: 20; border-bottom: 1px solid var(--rg-page-rule); }
 .masthead__inner {
   min-height: 6rem; padding: var(--space-2) var(--rg-panel-padding);
@@ -99,6 +99,25 @@ code { font-size: .9em; }
   border: 1px solid var(--hairline-strong); margin: 0 -1px -1px 0; text-decoration: none;
 }
 .masthead__selector a[aria-current="page"] { border-bottom: 3px solid currentColor; font-weight: 600; background: var(--color-surface); }
+.masthead__menu { position: relative; display: inline-flex; }
+.masthead__menu-button {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  min-height: 2.75rem; padding: var(--space-1) var(--space-2); margin: 0 -1px -1px 0;
+  border: 1px solid var(--hairline-strong); background: none; color: inherit; font: inherit; cursor: pointer;
+}
+.masthead__menu-button svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.masthead__menu-button[aria-current="page"] { border-bottom: 3px solid currentColor; font-weight: 600; background: var(--color-surface); }
+.masthead__menu-list {
+  position: absolute; top: 100%; left: 0; z-index: 30; min-width: 12rem;
+  display: none; flex-direction: column;
+  border: 1px solid var(--hairline-strong); background: var(--color-surface-elevated);
+}
+.masthead__menu:hover > .masthead__menu-list,
+.masthead__menu:focus-within > .masthead__menu-list { display: flex; }
+.masthead__selector .masthead__menu-list a { justify-content: flex-start; border: 0; margin: 0; }
+.masthead__selector .masthead__menu-list a + a { border-top: 1px solid var(--hairline); }
+.masthead__selector .masthead__menu-list a[aria-current="page"] { border-bottom: 0; box-shadow: inset 3px 0 0 currentColor; }
+.masthead__menu-list a:hover { background: var(--color-surface); }
 .masthead__github {
   display: inline-flex; align-items: center; gap: var(--space-1);
   min-height: 2.75rem; padding: var(--space-1) var(--space-2);
@@ -118,6 +137,9 @@ code { font-size: .9em; }
 .page { min-width: 0; width: 100%; padding: var(--space-6) var(--rg-panel-padding); }
 .page--flush { padding-top: 0; padding-bottom: 0; }
 .page > *, .docs-content, .hero > *, .hero__stage > *, .climb-contract > *, .facts > * { min-width: 0; }
+/* A short page still puts the footer at the bottom of the window. */
+.techtree-frame > [data-phx-main] { flex: 1 0 auto; display: flex; flex-direction: column; }
+.techtree-frame .rg-sheet-row:has(> .rg-sheet-row__main > main) { flex: 1 0 auto; }
 .product-links {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3);
   padding: var(--space-3) var(--rg-panel-padding); font-size: .875rem;
