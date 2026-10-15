@@ -17,6 +17,8 @@ export const AccountShell: Hook = {
           panel.dispatchEvent(new CustomEvent("ash:refresh-funds")))
       }
       if (target.closest("[data-credits-close]")) dialog.close()
+      // A press on the dialog's own backdrop lands on the dialog itself.
+      if (target === dialog) dialog.close()
     }
     this.el.addEventListener("click", onClick)
     this.cleanup = () => this.el.removeEventListener("click", onClick)
