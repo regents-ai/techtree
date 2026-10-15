@@ -18,7 +18,8 @@ defmodule TechtreeWeb do
   """
 
   def static_paths,
-    do: ~w(assets fonts images favicon.svg favicon-32.png favicon-192.png apple-touch-icon.png)
+    do:
+      ~w(assets fonts images favicon.svg favicon-32.png favicon-192.png apple-touch-icon.png mark.png)
 
   def router do
     quote do
