@@ -62,7 +62,7 @@ defmodule TechtreeWeb.AgentAccountController do
             422,
             :invalid_cursor,
             "That history cursor is invalid.",
-            "Read the first page without after, then use the next_cursor it returns."
+            "Send after as the previous page's pagination.next_cursor, unchanged, or omit it for the newest entries."
           )
         else
           unavailable(conn)
@@ -146,7 +146,7 @@ defmodule TechtreeWeb.AgentAccountController do
 
   defp credit_actor(conn) do
     actor = conn.assigns.publication_actor
-    RegentCredits.Actor.agent(actor.privy_user_id, actor.wallet, "techtree", actor.id)
+    RegentCredits.Actor.agent(actor.privy_user_id, actor.wallet, Techtree.site(), actor.id)
   end
 
   defp unavailable(conn),
