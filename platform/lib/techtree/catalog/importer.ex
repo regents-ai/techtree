@@ -28,9 +28,9 @@ defmodule Techtree.Catalog.Importer do
   alias Techtree.Catalog.Route
   alias Techtree.Catalog.Verifier
 
-  # Importing a release is operator work with no actor, and every catalog
-  # resource refuses writes from any other caller.
-  @internal [authorize?: false]
+  # Importing a release is operator work, done as the system actor; every
+  # catalog resource refuses writes from any other caller.
+  @system [actor: %Techtree.Actors.System{}]
 
   # What a page tells a person before they run a Climb: the model its calls go
   # to, the routes a person may run it on, how many tasks and tries it runs, and
@@ -93,7 +93,7 @@ defmodule Techtree.Catalog.Importer do
           source_revision: Bundle.source_revision(bundle),
           bootstrap_digest: Bundle.bootstrap_digest(bundle)
         },
-        @internal
+        @system
       )
 
     staged =
@@ -141,7 +141,7 @@ defmodule Techtree.Catalog.Importer do
           source_revision: release.source_revision
         })
         |> Map.merge(describe(bundle, entry, bytes)),
-        @internal
+        @system
       )
     end)
   end
@@ -159,7 +159,7 @@ defmodule Techtree.Catalog.Importer do
 
     CatalogEntry
     |> Ash.Query.filter(active == true and protocol_digest not in ^staged)
-    |> Catalog.retire_entries_missing_from_import!(%{}, @internal)
+    |> Catalog.retire_entries_missing_from_import!(%{}, @system)
 
     :ok
   end
@@ -183,7 +183,7 @@ defmodule Techtree.Catalog.Importer do
         published_at: bootstrap["published_at"],
         placeholder_release: bootstrap["placeholder_release"]
       },
-      @internal
+      @system
     )
   end
 
@@ -206,8 +206,8 @@ defmodule Techtree.Catalog.Importer do
     activate_bootstrap!(release)
 
     release
-    |> Catalog.activate_catalog_release!(@internal)
-    |> Catalog.complete_catalog_import!(@internal)
+    |> Catalog.activate_catalog_release!(@system)
+    |> Catalog.complete_catalog_import!(@system)
   end
 
   @doc """
@@ -221,7 +221,7 @@ defmodule Techtree.Catalog.Importer do
     summary = sanitize(reason)
     Logger.error("catalog import failed: #{summary}")
 
-    Catalog.fail_catalog_import!(release, summary, %{}, @internal)
+    Catalog.fail_catalog_import!(release, summary, %{}, @system)
   end
 
   # -- Internals ------------------------------------------------------------
@@ -242,8 +242,8 @@ defmodule Techtree.Catalog.Importer do
   defp deactivate_previous(resource, channel, deactivate) do
     resource
     |> Ash.Query.filter(channel == ^channel and active == true)
-    |> Ash.read!(@internal)
-    |> Enum.each(&deactivate.(&1, @internal))
+    |> Ash.read!(@system)
+    |> Enum.each(&deactivate.(&1, @system))
   end
 
   defp activate_bootstrap!(%CatalogRelease{} = release) do
@@ -251,7 +251,7 @@ defmodule Techtree.Catalog.Importer do
     |> Ash.Query.filter(
       channel == ^release.channel and payload_digest == ^release.bootstrap_digest
     )
-    |> Ash.read_one!(@internal)
+    |> Ash.read_one!(@system)
     |> case do
       nil ->
         raise Error.bootstrap_missing("the import staged no bootstrap release to publish", %{
@@ -259,7 +259,7 @@ defmodule Techtree.Catalog.Importer do
               })
 
       bootstrap ->
-        Catalog.activate_bootstrap_release!(bootstrap, @internal)
+        Catalog.activate_bootstrap_release!(bootstrap, @system)
     end
   end
 

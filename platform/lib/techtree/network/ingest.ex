@@ -5,9 +5,8 @@ defmodule Techtree.Network.Ingest do
   Every resource in `Techtree.Network` forbids create, update and destroy
   through any interface, so a page, a console, a live transport or a future
   endpoint cannot write one however it is asked. This module is the single
-  exception, and it bypasses authorization in the same explicit way
-  `Techtree.Catalog.Importer` does — deliberately, and in one place a reader can
-  find and audit.
+  exception, and it bypasses authorization explicitly — deliberately, and in one
+  place a reader can find and audit.
 
   Nothing here decides whether a submission is good. That is
   `Techtree.Network.Bundle`'s job, and it happens first, in full, before a row

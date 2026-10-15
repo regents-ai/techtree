@@ -10,7 +10,8 @@ defmodule Techtree.Catalog do
   website from becoming a second, subtly different scientific representation.
 
   Every write action here is import machinery. Public interfaces read; only the
-  importer writes, and it does so with authorization explicitly bypassed.
+  importer and the publication switch write, as `Techtree.Actors.System`, the one
+  actor the write policies admit.
   """
 
   use Ash.Domain, otp_app: :techtree

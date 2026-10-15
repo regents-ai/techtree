@@ -4,8 +4,8 @@ defmodule Techtree.Catalog.PolicyTest do
 
   Even if something reached the catalog resources from outside the importer —
   a future page, a console, a transport — the resources themselves refuse every
-  write. Only the importer writes, and only by bypassing authorization
-  deliberately and in one place.
+  write. Only the importer and the publication switch write, as
+  `Techtree.Actors.System`, the one actor the write policies admit.
   """
 
   use Techtree.DataCase, async: true

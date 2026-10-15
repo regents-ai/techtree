@@ -29,8 +29,8 @@ defmodule Techtree.Catalog.Publication do
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Error
 
-  # Switching the published release is operator work with no actor.
-  @internal [authorize?: false]
+  # Switching the published release is operator work, done as the system actor.
+  @system [actor: %Techtree.Actors.System{}]
 
   @typedoc """
   What one switch did: the channel, the digest now published, and the digest
@@ -69,13 +69,13 @@ defmodule Techtree.Catalog.Publication do
     BootstrapRelease
     |> Ash.Query.filter(channel == ^channel)
     |> Ash.Query.sort(published_at: :desc, inserted_at: :desc)
-    |> Ash.read!(@internal)
+    |> Ash.read!(@system)
   end
 
   defp switch(release, channel) do
     Ash.transact([BootstrapRelease], fn ->
       previous = retire_published(channel, release.id)
-      Catalog.activate_bootstrap_release!(release, @internal)
+      Catalog.activate_bootstrap_release!(release, @system)
 
       %{channel: channel, published: release.payload_digest, previous: previous}
     end)
@@ -86,10 +86,10 @@ defmodule Techtree.Catalog.Publication do
   defp retire_published(channel, incoming_id) do
     BootstrapRelease
     |> Ash.Query.filter(channel == ^channel and active == true)
-    |> Ash.read!(@internal)
+    |> Ash.read!(@system)
     |> Enum.reject(&(&1.id == incoming_id))
     |> Enum.map(fn release ->
-      Catalog.deactivate_bootstrap_release!(release, @internal)
+      Catalog.deactivate_bootstrap_release!(release, @system)
       release.payload_digest
     end)
     |> List.first()
@@ -99,7 +99,7 @@ defmodule Techtree.Catalog.Publication do
     if Digest.valid?(digest) do
       BootstrapRelease
       |> Ash.Query.filter(channel == ^channel and payload_digest == ^digest)
-      |> Ash.read_one!(@internal)
+      |> Ash.read_one!(@system)
       |> case do
         nil -> {:error, not_staged(digest, channel)}
         release -> {:ok, release}
