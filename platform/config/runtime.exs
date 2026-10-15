@@ -157,6 +157,8 @@ config :techtree,
        private_key: System.get_env("TECHTREE_NETWORK_SIGNING_KEY")
 
 if config_env() == :prod do
+  config :techtree, :session_options, secure: true, http_only: true
+
   network_signing_key =
     System.get_env("TECHTREE_NETWORK_SIGNING_KEY") ||
       raise """

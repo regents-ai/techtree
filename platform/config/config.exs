@@ -219,6 +219,15 @@ config :error_tracker,
   ignorer: Techtree.ErrorIgnorer,
   filter: Techtree.ErrorFilter
 
+# The signed session cookie. Production marks it secure in runtime.exs.
+config :techtree, :session_options,
+  store: :cookie,
+  key: "_techtree_key",
+  signing_salt: "ESr0k/Zc",
+  same_site: "Lax",
+  secure: false,
+  http_only: true
+
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 

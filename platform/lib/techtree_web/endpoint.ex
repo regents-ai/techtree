@@ -24,15 +24,8 @@ defmodule TechtreeWeb.Endpoint do
 
   import Phoenix.Controller, only: [put_secure_browser_headers: 2]
 
-  # The session will be stored in the cookie and signed,
-  # this means its contents can be read but not tampered with.
-  # Set :encryption_salt if you would also like to encrypt it.
-  @session_options [
-    store: :cookie,
-    key: "_techtree_key",
-    signing_salt: "ESr0k/Zc",
-    same_site: "Lax"
-  ]
+  # Decode HTTP and LiveView cookies with the same runtime security settings.
+  @session_options {Application, :fetch_env!, [:techtree, :session_options]}
 
   # A stylesheet, an icon, or an image may be navigated to directly, and then
   # the browser is reading it as a document. These say what a document from
@@ -114,7 +107,7 @@ defmodule TechtreeWeb.Endpoint do
     json_decoder: Phoenix.json_library()
 
   plug Plug.Head
-  plug Plug.Session, @session_options
+  plug :runtime_session
 
   plug TechtreeWeb.MethodSurface
   plug TechtreeWeb.Router
@@ -144,6 +137,12 @@ defmodule TechtreeWeb.Endpoint do
       _other ->
         conn
     end
+  end
+
+  # Production sets the cookie's `secure` flag in runtime.exs, after this module compiles.
+  defp runtime_session(conn, _opts) do
+    options = Application.fetch_env!(:techtree, :session_options)
+    Plug.Session.call(conn, Plug.Session.init(options))
   end
 
   defp secure_browser_headers(conn, _opts) do
