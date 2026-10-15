@@ -155,8 +155,10 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # not: the one answer a reader must never be offered is to stop the source
   # from being read at all. The word is looked for as prose — a name with a dot
   # in front of it is one module calling another, not a sentence a reader ever
-  # sees.
-  @report_described ~r/(?<![.\w])scan(s|ned|ning|ner)?\b/i
+  # sees. Scanning a code with Farcaster ("scan the code", "a scan here"), on
+  # the shared account's Connections page, approves a connection; it is not the
+  # report.
+  @report_described ~r/(?<![.\w])scan(s|ned|ning|ner)?\b(?!\s+(the\s+code|here))/i
   @never_disable "Never turn the scanning off."
 
   # Hermes 0.20.5 refuses a community-source plugin at caution. It does not
