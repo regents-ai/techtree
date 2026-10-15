@@ -214,7 +214,7 @@ Consequences:
 - v0.2.0 ships WP0, WP1, WP2, WP3, WP5, and WP6, with local execution as its
   only execution backend. A Result whose location facet is anything but `local`
   cannot be produced by it.
-- WP4 keeps its number and its Bead `techtree-31k.5`, and keeps the “Paid
+- WP4 keeps its number and its Ticket `techtree-31k.5`, and keeps the “Paid
   remote execution” design in `docs/plan/v0.2.md`, which stays binding for it.
   It is re-parented under the v0.2.x hosted-execution epic `techtree-k7t` and
   depends on WP1 and WP5.

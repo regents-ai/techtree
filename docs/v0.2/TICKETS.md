@@ -22,12 +22,12 @@ only after WP5 and WP6.
 
 WP4 — Prime Hosted Evaluations — is v0.2.x by founder decision of 2026-09-01,
 recorded in [`DECISION_LEDGER.md`](DECISION_LEDGER.md). It depends on WP1 and
-WP5 and is not part of the v0.2.0 gate. Its Bead `techtree-31k.5` and its
+WP5 and is not part of the v0.2.0 gate. Its Ticket `techtree-31k.5` and its
 number do not change; it is re-parented under the v0.2.x hosted-execution epic
 `techtree-k7t`. So `techtree-31k` closes for v0.2.0 when its v0.2.0 children
 close, and Techtree Market (`techtree-33x`) keeps waiting on `techtree-31k`.
 
-| Work | Bead | Release |
+| Work | Ticket | Release |
 | --- | --- | --- |
 | v0.2.0 epic | `techtree-31k` | v0.2.0 |
 | v0.2.x hosted-execution epic | `techtree-k7t` | v0.2.x |
@@ -44,7 +44,7 @@ The inherited maintenance tickets are `techtree-31k.8` through
 
 WP0 is itself an epic with eight children:
 
-| Work | Bead | Primary ownership |
+| Work | Ticket | Primary ownership |
 | --- | --- | --- |
 | Recovery, retrospective, and release identity | `techtree-31k.1.1` | root docs and `platform/` |
 | Verifiers and deterministic environment contract | `techtree-31k.1.2` | `cli/` |
@@ -357,7 +357,7 @@ These old tickets are retained as context but belong to v0.3 or discovery:
 
 ## v0.2.x — Prime Hosted Evaluations (`techtree-31k.5`)
 
-WP4 keeps its Bead, its number, and the design in
+WP4 keeps its Ticket, its number, and the design in
 [`v0.2.md`](../plan/v0.2.md) §“Paid remote execution”. What changed is the
 release it ships in, and its parent: it now sits under the v0.2.x
 hosted-execution epic `techtree-k7t`.
@@ -404,7 +404,7 @@ This epic is blocked by `techtree-31k`. Market implementation belongs in
 `platform/`; local execution and proof verification remain independent. The
 `ash-regents` skill is required for every `platform/` implementation ticket.
 
-| Work | Bead | Gate |
+| Work | Ticket | Gate |
 | --- | --- | --- |
 | Independent reproduction linkage | `techtree-33x.1` | verified source and reproduction proofs |
 | Signed `BountySpec`, `Submission`, and `AcceptanceDecision` | `techtree-33x.2` | canonical signed records and challenge authority |
@@ -427,7 +427,7 @@ expected pre-action state before payment.
 The first Skill Climb is v0.3 work. It is not part of v0.2.0 or the initial
 Market proof pilot.
 
-| Work | Bead |
+| Work | Ticket |
 | --- | --- |
 | Source rights and `SourceBundle` provenance | `techtree-8dj.1` |
 | `EnvironmentBlueprint` compilation | `techtree-8dj.2` |
@@ -443,7 +443,7 @@ Market proof pilot.
 
 These tickets stay deferred until Foundry and Skill Climb evidence exists.
 
-| Study | Bead |
+| Study | Ticket |
 | --- | --- |
 | Prime Agent | `techtree-5t7.1` |
 | prime-rl | `techtree-5t7.2` |
