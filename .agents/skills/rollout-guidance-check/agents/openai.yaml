@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rollout Guidance Check"
+  short_description: "Check docs, UI copy, Skills, tools and CLI drift"
+  default_prompt: "Use $rollout-guidance-check to review this code change for required human-facing and agent-facing guidance updates before rollout."
