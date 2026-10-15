@@ -154,8 +154,20 @@ defmodule Techtree.MixProject do
 
   defp aliases do
     [
-      setup: ["deps.get", "ash.setup", "assets.setup", "assets.build"],
-      test: ["ash.setup --quiet", "test"],
+      setup: [
+        "deps.get",
+        "ash_postgres.create",
+        "techtree.setup_local_auth",
+        "ash.setup",
+        "assets.setup",
+        "assets.build"
+      ],
+      test: [
+        "ash_postgres.create --quiet",
+        "techtree.setup_local_auth",
+        "ash.setup --quiet",
+        "test"
+      ],
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
       precommit: [

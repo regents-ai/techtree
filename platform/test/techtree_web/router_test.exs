@@ -9,7 +9,7 @@ defmodule TechtreeWeb.RouterTest do
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "writes are limited to publication, agent pairing, account history, private profile actions and private Model Climb reports" do
+  test "writes are limited to publication, agent pairing, account history, sign-in, private profile actions and private Model Climb reports" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
@@ -17,10 +17,13 @@ defmodule TechtreeWeb.RouterTest do
 
     assert Enum.sort(writes) == [
              "* /api/agents/v1",
+             "delete /auth/privy/session",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
+             "post /auth/privy/failure",
+             "post /auth/privy/session",
              "post /tools/account/credits/history"
            ]
   end
@@ -33,10 +36,16 @@ defmodule TechtreeWeb.RouterTest do
 
     assert paths == [
              "* /api/agents/v1",
+             "delete /auth/privy/session",
              "get /",
              "get /.well-known/api-catalog",
              "get /.well-known/security.txt",
              "get /about",
+             "get /account",
+             "get /account/connections",
+             "get /account/credits",
+             "get /account/points",
+             "get /account/wallets",
              "get /agents.md",
              "get /animations",
              "get /api/model-climb/v1/reports",
@@ -51,6 +60,8 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/publications/:bundle_digest",
              "get /api/v1/publications/:bundle_digest/bundle",
              "get /api/v1/skills/:root_digest",
+             "get /auth/csrf",
+             "get /auth/session",
              "get /blog",
              "get /blog/:slug",
              "get /capabilities",
@@ -82,6 +93,8 @@ defmodule TechtreeWeb.RouterTest do
              "post /api/model-climb/v1/reports",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
+             "post /auth/privy/failure",
+             "post /auth/privy/session",
              "post /tools/account/credits/history"
            ]
   end

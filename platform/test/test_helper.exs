@@ -1,10 +1,9 @@
 ExUnit.start()
 
-# The shared tables publication reads but Regents owns: the canonical account
-# table, and the agent pairing schema from regent_agents' own migrations, which
-# Regents alone runs in production. Running either again changes nothing.
-Techtree.LocalDatabaseFixture.create_shared_tables!()
-
+# The agent pairing schema from regent_agents' own migrations, which Regents
+# alone runs in production. Running it again changes nothing. The canonical
+# account table it and the account migration reference is created first, by
+# `mix techtree.setup_local_auth` in the `test` alias.
 RegentAgents.Migrator.up(Techtree.Repo)
 
 Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, :manual)
