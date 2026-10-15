@@ -149,10 +149,12 @@ config :techtree, Techtree.Catalog,
 # whole of one; two mebibytes is generous by a factor of six and still small
 # enough that an oversized body is refused before it is read. The rate is per
 # caller, and low, because publishing a run is something a person does after a
-# run finishes rather than something a machine does in a loop.
+# run finishes rather than something a machine does in a loop. The agent rate
+# holds each paired agent to the same pace, whatever addresses it sends from.
 config :techtree, Techtree.Network,
   maximum_body_bytes: 2_097_152,
-  rate_limit: [limit: 10, window_seconds: 60]
+  rate_limit: [limit: 10, window_seconds: 60],
+  agent_rate_limit: [limit: 10, window_seconds: 60]
 
 # Every other request to the health check and the API, per caller: generous for
 # a person or an agent reading, and a bound on one script in a loop.

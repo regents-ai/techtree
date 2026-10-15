@@ -235,6 +235,10 @@ defmodule TechtreeWeb.PublicationControllerTest do
         Phoenix.ConnTest.build_conn() |> Map.put(:remote_ip, flooder) |> publish(body)
       end
 
+      # Another caller is another address and another agent: the flood also
+      # spent the flooding agent's own budget.
+      NetworkFixture.sign_as(NetworkFixture.paired_agent())
+
       assert conn
              |> from_own_address()
              |> publish(NetworkFixture.submission())

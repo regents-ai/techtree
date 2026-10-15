@@ -18,9 +18,11 @@ defmodule TechtreeWeb.PublicationRate do
 
   It stands in the endpoint, in front of the parser, so a caller already over
   the limit is refused before their body is read, let alone decoded. Each
-  request is counted here and nowhere else. `TechtreeWeb.PublicationAddress`
-  decides which requests those are, and `TechtreeWeb.ClientAddress` says who
-  the caller is.
+  request is counted against its address here and nowhere else.
+  `TechtreeWeb.PublicationAddress` decides which requests those are, and
+  `TechtreeWeb.ClientAddress` says who the caller is. A publication is counted
+  once more, against its paired agent's own budget, `publication-agent`, by
+  `TechtreeWeb.PublicationController` once the agent is known.
 
   The refusal also closes the connection. A body that was sent is otherwise
   still read off a kept-alive connection after the answer, and the point of
@@ -47,19 +49,27 @@ defmodule TechtreeWeb.PublicationRate do
 
   defp count(conn) do
     {key, _source} = ClientAddress.key(conn)
-    limits = Network.rate_limit()
+    admit(conn, "publication", {:publication, key}, Network.rate_limit())
+  end
 
+  @doc """
+  Count one request by `key` against `limits`, under the budget named `policy`:
+  the connection with that budget's headers, or the refusal, halted.
+  `TechtreeWeb.PublicationController` counts each paired agent this way too.
+  """
+  @spec admit(Plug.Conn.t(), String.t(), term(), keyword()) :: Plug.Conn.t()
+  def admit(conn, policy, key, limits) do
     case RateLimit.admit(
-           {:publication, key},
+           key,
            Keyword.fetch!(limits, :limit),
            Keyword.fetch!(limits, :window_seconds)
          ) do
       {:ok, budget} ->
-        RegentAgentAccess.RateLimit.put_headers(conn, "publication", budget)
+        RegentAgentAccess.RateLimit.put_headers(conn, policy, budget)
 
       {:error, :rate_limited, budget} ->
         conn
-        |> RegentAgentAccess.RateLimit.put_headers("publication", budget)
+        |> RegentAgentAccess.RateLimit.put_headers(policy, budget)
         |> ExactResponse.put_api_headers()
         |> Plug.Conn.put_resp_header("retry-after", Integer.to_string(budget.reset))
         |> Plug.Conn.put_resp_header("connection", "close")

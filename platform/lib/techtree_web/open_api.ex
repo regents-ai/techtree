@@ -271,7 +271,7 @@ defmodule TechtreeWeb.OpenAPI do
             "413" => json("The body is larger than the limit.", ref("Error")),
             "422" => error("A check on the bundle or the withdrawal failed; the code names it."),
             "429" =>
-              "Too many publications from this caller; retry after the stated seconds."
+              "Too many publications from this caller or this agent; retry after the stated seconds."
               |> error()
               |> Map.put("headers", %{"Retry-After" => header_ref("RetryAfter")}),
             "503" =>
@@ -640,8 +640,9 @@ defmodule TechtreeWeb.OpenAPI do
             "The budget this request counted against, as \"policy\";q=requests;w=window seconds. " <>
               "Each client address has #{@request_rate_limit[:limit]} requests per " <>
               "#{@request_rate_limit[:window_seconds]} seconds, `default`, shared by the health " <>
-              "check and the API. Publishing and withdrawing count against their own budget, " <>
-              "`publication`, instead.",
+              "check and the API. Publishing and withdrawing count against their own budgets " <>
+              "instead: `publication` for each client address and `publication-agent` for " <>
+              "each paired agent.",
           "schema" => %{"type" => "string"},
           "example" =>
             ~s("default";q=#{@request_rate_limit[:limit]};w=#{@request_rate_limit[:window_seconds]})

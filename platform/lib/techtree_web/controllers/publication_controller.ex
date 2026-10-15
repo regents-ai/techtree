@@ -93,6 +93,7 @@ defmodule TechtreeWeb.PublicationController do
   use TechtreeWeb, :controller
 
   alias Techtree.Catalog.Digest
+  alias Techtree.Network
   alias Techtree.Network.Document
   alias Techtree.Network.Error
   alias Techtree.Network.Ingest
@@ -100,6 +101,9 @@ defmodule TechtreeWeb.PublicationController do
   alias Techtree.Network.Projection
   alias Techtree.Network.Query
   alias TechtreeWeb.ExactResponse
+  alias TechtreeWeb.PublicationRate
+
+  plug :limit_agent when action == :create
 
   @doc """
   Publish one finished run, or withdraw one already published.
@@ -239,6 +243,17 @@ defmodule TechtreeWeb.PublicationController do
         "bytes they submitted; the entry, the event that withdrew it and its " <>
         "receipt are still at /api/v1/publications/" <> entry.bundle_digest,
       "Read the entry and its receipt at #{url(~p"/api/v1/publications/#{entry.bundle_digest}")}."
+    )
+  end
+
+  # `TechtreeWeb.PublicationRate` holds each address before the body is read;
+  # this holds each paired agent, by its wallet, whatever addresses it sends from.
+  defp limit_agent(conn, _options) do
+    PublicationRate.admit(
+      conn,
+      "publication-agent",
+      {:publication_agent, conn.assigns.publication_actor.wallet},
+      Network.agent_rate_limit()
     )
   end
 

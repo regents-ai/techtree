@@ -106,6 +106,17 @@ defmodule Techtree.Network do
   end
 
   @doc """
+  How many publications and withdrawals one paired agent may send, and over what
+  window in seconds, counted by its wallet across every address it sends from.
+  """
+  @spec agent_rate_limit() :: keyword()
+  def agent_rate_limit do
+    :techtree
+    |> Application.fetch_env!(__MODULE__)
+    |> Keyword.fetch!(:agent_rate_limit)
+  end
+
+  @doc """
   How many entries one page of the log holds when the caller does not say.
   """
   @spec default_page_size() :: pos_integer()
