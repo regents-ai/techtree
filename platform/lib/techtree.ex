@@ -1,10 +1,10 @@
 defmodule Techtree do
   @moduledoc """
-  The read-only public surface of Techtree Climb.
+  Techtree's public catalog, benchmark results and shared Regent account.
 
-  `Techtree.Catalog` holds the imported public catalog and the release state
-  behind it; `TechtreeWeb` publishes it. Nothing in this application executes an
-  evaluation, accepts an artifact, or signs anything — the scientific loop lives
-  in `techtree-python` and keeps working when this application does not.
+  Publication retains its independent proof requirements. Signing in to an
+  account does not authorize publication, paid benchmark runs or money tests.
   """
+  @doc "The shared Regent site identifier."
+  def site, do: Application.fetch_env!(:techtree, :site)
 end

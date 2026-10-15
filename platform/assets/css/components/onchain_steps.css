@@ -1,0 +1,65 @@
+@layer regents-product {
+/* Wallet buttons (skills/onchain-buttons). A press in progress is marked, never
+   blocked: the button keeps taking presses. */
+
+[data-onchain-step][data-awaiting-wallet] {
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.onchain-example {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.onchain-example-form {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 20rem;
+}
+
+.onchain-example-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.onchain-example-review,
+.onchain-example-from,
+.onchain-example-note,
+.onchain-example-signed {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.onchain-example-note {
+  color: var(--color-fg-muted);
+}
+
+.onchain-example-press-notes {
+  min-block-size: 3lh;
+}
+
+.onchain-example-sent {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onchain-example-sent li {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.onchain-example-sent li[data-state="reverted"],
+.onchain-example-sent li[data-state="not_this_step"],
+.onchain-example-sent li[data-state="unknown"] {
+  border-color: var(--color-accent);
+}
+}

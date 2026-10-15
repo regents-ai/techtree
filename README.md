@@ -38,9 +38,9 @@ inspect-skill` through `regents techtree forge export`, from [regents-cli](https
 [bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
 for installable CLI and plugin coordinates.
 
-CLI 1.10.2 includes signed identity, pairing and account reads. Points earning
-remains off. Python Skill helpers (`.py`) are pending in unpublished CLI 1.10.3;
-Model Climb commands remain separate unreleased work, outside both releases.
+CLI 1.10.4 includes signed identity, pairing, account reads and private Model
+Climb report reads. Points earning and money tests remain off. The shared account
+update in this checkout still needs browser acceptance and release approval.
 
 Before it, 0.2.1 brought the Hello World Climb and a first trial of building
 repair tasks from a repository. That trial is no longer offered.

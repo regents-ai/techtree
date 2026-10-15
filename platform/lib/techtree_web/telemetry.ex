@@ -107,4 +107,19 @@ defmodule TechtreeWeb.Telemetry do
       # {TechtreeWeb, :count_users, []}
     ]
   end
+
+  @wallet_failures ~w(step_unknown wallet_unavailable network_mismatch wallet_declined insufficient_funds send_unconfirmed)
+
+  @doc """
+  Counts one press the browser reported as not sent or not confirmed, for the
+  wallet-button component `flow`. A reason the hook never sends is not counted.
+  """
+  def wallet_failed(flow, reason) when reason in @wallet_failures do
+    :telemetry.execute([:techtree, :wallet, :failure], %{count: 1}, %{
+      flow: flow,
+      reason: reason
+    })
+  end
+
+  def wallet_failed(_flow, _reason), do: :ok
 end

@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.Router do
   @moduledoc """
-  Public catalog and signed publication routes, plus the owner-only shared
-  profile. Privy profile authority never grants publication-key authority.
+  Public catalog and signed publication routes, plus the shared account and
+  owner-only profile. Privy account authority never grants publication-key authority.
   """
 
   use TechtreeWeb, :router
@@ -27,6 +27,40 @@ defmodule TechtreeWeb.Router do
     plug :put_theme
     plug :put_root_layout, html: {TechtreeWeb.Layouts, :root}
     plug :protect_from_forgery
+  end
+
+  # Canonical authentication only on account and sign-in routes.
+  # sobelow_skip ["Config.CSP"]
+  pipeline :account_browser do
+    plug :enforce_session_authority
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => TechtreeWeb.ContentSecurityPolicy.sign_in(),
+      "cache-control" => "private, no-store"
+    }
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through [:browser, :account_browser]
+    get "/auth/csrf", PrivySessionController, :csrf
+    post "/auth/privy/failure", PrivySessionController, :failure
+    post "/auth/privy/session", PrivySessionController, :create
+    get "/auth/session", PrivySessionController, :show
+    delete "/auth/privy/session", PrivySessionController, :delete
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through [:html_only, :browser, :account_browser]
+
+    live_session :account,
+      session: {TechtreeWeb.Live.Session, :render_context, []},
+      on_mount: [{TechtreeWeb.Live.Session, :load_human}] do
+      live "/account", AccountShellLive, :account
+      live "/account/points", AccountShellLive, :points
+      live "/account/credits", AccountShellLive, :credits
+      live "/account/wallets", AccountShellLive, :wallets
+      live "/account/connections", AccountShellLive, :connections
+    end
   end
 
   pipeline :api do
@@ -171,4 +205,7 @@ defmodule TechtreeWeb.Router do
   # Until the visitor chooses, there is no theme and the device decides.
   defp saved_theme(value) when value in ["light", "dark"], do: value
   defp saved_theme(_value), do: nil
+
+  defp enforce_session_authority(conn, _opts),
+    do: TechtreeWeb.PrivySessionController.enforce_authority(conn)
 end

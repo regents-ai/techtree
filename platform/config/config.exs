@@ -19,17 +19,23 @@ config :regent_credits,
   repo: Techtree.Repo,
   pubsub: Techtree.PubSub,
   ash_domains: [RegentCredits],
-  admins: []
+  admins: [],
+  chain_client: Techtree.ChainClient,
+  chains: %{
+    base: %{chain_id: 8453, name: "Base", rpc_url: "https://mainnet.base.org"},
+    ethereum: %{chain_id: 1, name: "Ethereum", rpc_url: "https://ethereum-rpc.publicnode.com"}
+  }
 
 config :regent_points,
   repo: Techtree.Repo,
   pubsub: Techtree.PubSub,
   ash_domains: [RegentPoints],
   accounts: Techtree.Accounts,
+  chain_client: Techtree.ChainClient,
   program_id: "regents-points-v1",
   starts_at: nil,
   approved_rules: [],
-  adapters: %{}
+  adapters: %{"credits.purchase_settled" => Techtree.Points.CreditsPurchase}
 
 config :regent_identity, repo: Techtree.Repo, ash_domains: [RegentIdentity]
 
@@ -90,9 +96,11 @@ config :spark,
   ]
 
 config :techtree,
+  site: "techtree",
   ecto_repos: [Techtree.Repo],
   ash_domains: [
     Techtree.Accounts,
+    Techtree.Points,
     Techtree.Catalog,
     Techtree.Network,
     Techtree.WalletBench,
@@ -108,7 +116,7 @@ config :techtree,
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
-  queues: [default: 1, sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
+  queues: [ens: 2, default: 1, sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
   cron: [crontab: [{"17 4 * * *", Techtree.ErrorPruner}]],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]
@@ -188,6 +196,28 @@ config :techtree, TechtreeWeb.Endpoint,
 # Rate limits key on the direct peer. Production turns on Fly's client header.
 config :techtree, :behind_fly_proxy, false
 
+config :techtree, :name_first, :chosen
+
+config :techtree, :limits,
+  wallet_read: [limit: 30, window_seconds: 60],
+  credits_report: [limit: 120, window_seconds: 60]
+
+config :techtree, :chain_nodes, %{
+  8453 => "https://mainnet.base.org",
+  1 => "https://ethereum-rpc.publicnode.com"
+}
+
+config :techtree, :session_bootstrap_rate_limit, limit: 30, window_seconds: 300
+
+config :techtree, :session_options,
+  store: :cookie,
+  key: "_techtree_key",
+  signing_salt: "ESr0k/Zc",
+  same_site: "Lax",
+  secure: false,
+  http_only: true,
+  max_age: 30 * 24 * 60 * 60
+
 # Metrics listen on loopback, on a port the system picks, so this site runs
 # beside the other sites' local servers without taking the one port they share.
 config :techtree, :metrics_listener, ip: {127, 0, 0, 1}, port: 0
@@ -198,7 +228,7 @@ config :esbuild,
   version: "0.28.2",
   techtree: [
     args:
-      ~w(js/site.ts js/crown_island.ts css/site.css --bundle --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
+      ~w(js/site.ts js/crown_island.ts js/privy_bridge.tsx css/site.css --bundle --splitting --format=esm --target=es2022 --outdir=../priv/static/assets --external:/fonts/* --external:/images/* --alias:@=.),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => [Mix.Project.deps_path(), Mix.Project.build_path()]}
   ]
@@ -218,15 +248,6 @@ config :error_tracker,
   otp_app: :techtree,
   ignorer: Techtree.ErrorIgnorer,
   filter: Techtree.ErrorFilter
-
-# The signed session cookie. Production marks it secure in runtime.exs.
-config :techtree, :session_options,
-  store: :cookie,
-  key: "_techtree_key",
-  signing_salt: "ESr0k/Zc",
-  same_site: "Lax",
-  secure: false,
-  http_only: true
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

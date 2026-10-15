@@ -4,8 +4,8 @@ defmodule TechtreeWeb.ContentSecurityPolicy do
 
   `reading/0` is the strict baseline: scripts, styles, images and fonts come
   from this site, requests and the live connection go back to it, and no page
-  frames another site or is framed itself. No page signs anyone in, so there is
-  no sign-in profile.
+  frames another site or is framed itself. Account pages use `sign_in/0` to admit Privy
+  and the template account components.
 
   Stricter than the template's baseline, because nothing here needs more: no
   style attributes in markup (the headline reveal clips each word with a class),
@@ -31,8 +31,47 @@ defmodule TechtreeWeb.ContentSecurityPolicy do
     {"frame-ancestors", ["'none'"]}
   ]
 
+  @sign_in %{
+    "script-src" => ["https://challenges.cloudflare.com"],
+    "style-src" => ["'unsafe-inline'"],
+    "img-src" => ["blob:", "https://explorer-api.walletconnect.com"],
+    "frame-src" => [
+      "https://auth.privy.io",
+      "https://verify.walletconnect.com",
+      "https://verify.walletconnect.org",
+      "https://challenges.cloudflare.com"
+    ],
+    "connect-src" => [
+      "https://auth.privy.io",
+      "https://*.rpc.privy.systems",
+      "wss://relay.walletconnect.com",
+      "wss://relay.walletconnect.org",
+      "https://verify.walletconnect.org",
+      "https://explorer-api.walletconnect.com",
+      "https://rpc.walletconnect.org",
+      "https://pulse.walletconnect.org",
+      "wss://www.walletlink.org"
+    ]
+  }
+
   @doc "The strict baseline every page is served under."
   def reading, do: render(@baseline)
+
+  @doc "The template policy for account pages that can start sign-in."
+  def sign_in do
+    @baseline
+    |> List.keyreplace("form-action", 0, {"form-action", ["'self'"]})
+    |> List.keyreplace(
+      "img-src",
+      0,
+      {"img-src", ["'self'", "data:", "https://metadata.ens.domains"]}
+    )
+    |> Kernel.++([{"style-src-attr", ["'unsafe-inline'"]}])
+    |> Enum.map(fn {directive, sources} ->
+      {directive, Enum.uniq(sources ++ Map.get(@sign_in, directive, []))}
+    end)
+    |> render()
+  end
 
   defp render(directives) do
     directives

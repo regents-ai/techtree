@@ -12,7 +12,12 @@ defmodule TechtreeWeb.MethodSurface do
 
   # A `GET` route answers `HEAD` too; nothing else on this site is implied by
   # anything else.
-  @implied [{"GET", ["GET", "HEAD"]}, {"PATCH", ["PATCH"]}, {"POST", ["POST"]}]
+  @implied [
+    {"GET", ["GET", "HEAD"]},
+    {"PATCH", ["PATCH"]},
+    {"POST", ["POST"]},
+    {"DELETE", ["DELETE"]}
+  ]
 
   @impl Plug
   def init(opts), do: opts

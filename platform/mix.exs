@@ -4,9 +4,9 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "b5824049d55012f2e8b1e4d7e3e2fcc549d93360"
+  @elixir_utils_ref "72c4448996d2d81774d07df54f2d11908578c532"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "fb0542f656f68b30e56f370c8806639ac9067c07"
+  @design_system_ref "ebfd3fa40126aa3c405e33266bf9bd68ff74ec8d"
 
   def project do
     [
@@ -19,7 +19,7 @@ defmodule Techtree.MixProject do
       deps: deps(),
       usage_rules: usage_rules(),
       releases: releases(),
-      compilers: [:phoenix_live_view] ++ Mix.compilers(),
+      compilers: [:ash_signals, :phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
       consolidate_protocols: Mix.env() != :dev
     ]
@@ -63,6 +63,8 @@ defmodule Techtree.MixProject do
   defp deps do
     [
       {:regent_ui, git: @design_system, ref: @design_system_ref, sparse: "regent_ui"},
+      {:regent_format, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "format"},
+      {:ens_elixir, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ens"},
       {:regent_blog, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "blog"},
       # regent_identity names regent_privy by a sibling path; this pin replaces it.
       {:regent_privy,
@@ -163,8 +165,9 @@ defmodule Techtree.MixProject do
         "format --check-formatted",
         "credo --strict",
         "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
-        # Ash resources and their domains compile against each other; this is the floor.
-        "xref graph --label compile-connected --fail-above 19",
+        # The reviewed account adoption adds five Ash resource/domain edges and
+        # two session/header edges to the previous 19. Keep this floor bounded.
+        "xref graph --label compile-connected --fail-above 26",
         "ash.codegen --check",
         "usage_rules.sync --check",
         "cmd --cd assets npm run typecheck",

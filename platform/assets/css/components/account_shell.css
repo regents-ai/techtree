@@ -1,0 +1,134 @@
+.account-control,
+.theme-control {
+  position: relative;
+}
+
+/* Canonical account-control border token from the template's tokens/root.css. */
+.account-shell {
+  --ash-line-strong: light-dark(
+    color-mix(in oklab, var(--palette-charcoal) 40%, var(--color-border)),
+    color-mix(in oklab, var(--color-fg) 40%, var(--color-border))
+  );
+}
+
+.account-control,
+.account-chip {
+  display: flex;
+  align-items: center;
+}
+
+.account-chip {
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+/* Account and balance controls share the icon buttons' height, not the whole header. */
+#shell-header > .account-control {
+  align-self: center;
+}
+
+#app-shell #shell-header .account-chip {
+  height: auto;
+  min-height: 2.75rem;
+}
+
+/* The shared prism control draws its own box and hover; the bar only centres it. */
+.theme-control {
+  display: flex;
+  align-items: center;
+}
+
+.account-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  border: 1px solid var(--ash-line-strong);
+}
+
+/* The squares drawn from the wallet are there at once. The ENS picture lies
+   over them and, once it has arrived, takes their place, so a see-through
+   picture never shows squares behind it. */
+.account-picture {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+
+.account-picture img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-picture img + img {
+  position: absolute;
+  inset: 0;
+}
+
+.account-picture[data-shown] img:first-child {
+  visibility: hidden;
+}
+.shell-credits-dialog__close {
+  position: sticky;
+  inset-block-start: calc(-1 * var(--shell-credits-pad-top));
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-height: 0;
+  margin-block: calc(-1 * var(--shell-credits-pad-top))
+    calc(var(--shell-credits-pad-top) - 2.75rem);
+  margin-inline: auto calc(-1 * var(--shell-credits-pad-side));
+  padding: 0;
+  border: 0;
+  border-radius: 0 calc(1.25rem - 1px) 0 0.75rem;
+}
+
+.shell-credits-dialog__close svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.account-shell { min-width: 0; }
+.account-shell__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-block-end: 2rem; }
+.account-shell__tabs { display: flex; flex-wrap: wrap; gap: .25rem; }
+.account-shell__controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.account-shell__tabs a { padding: .65rem .8rem; color: var(--color-fg-muted); text-decoration: none; border-bottom: 2px solid transparent; }
+.account-shell__tabs a[aria-current="page"] { color: var(--color-fg); border-bottom-color: currentColor; }
+.account-shell__tabs a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.account-shell .account-control { min-width: 0; flex-wrap: wrap; }
+.account-shell .account-name { overflow-wrap: anywhere; }
+.account-shell .account-chip { min-width: 0; }
+@media (max-width: 40rem) { .account-shell__head { align-items: flex-start; } }
+
+.account-shell .shell-credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  align-self: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin-inline-end: var(--space-1);
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-fg);
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .account-shell .shell-credits:hover {
+    background: color-mix(in oklch, var(--color-fg) 6%, transparent);
+  }
+}

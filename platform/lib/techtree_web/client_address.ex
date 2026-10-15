@@ -23,6 +23,22 @@ defmodule TechtreeWeb.ClientAddress do
     if @behind_fly_proxy, do: fly_client(conn), else: {normalized(conn.remote_ip), :peer}
   end
 
+  @doc """
+  The key a request's address spends its post and search allowances under: the
+  limiter key, keyed-hashed, so it can travel in a signed page token without
+  naming the address. A page keeps the key of the request that rendered it.
+  """
+  @spec client_key(Plug.Conn.t()) :: String.t()
+  def client_key(conn) do
+    {address, _source} = key(conn)
+    secret = TechtreeWeb.Endpoint.config(:secret_key_base)
+
+    :hmac
+    |> :crypto.mac(:sha256, secret, :erlang.term_to_binary(address))
+    |> binary_part(0, 16)
+    |> Base.url_encode64(padding: false)
+  end
+
   defp fly_client(conn) do
     with [value] <- Plug.Conn.get_req_header(conn, "fly-client-ip"),
          {:ok, address} <- value |> :binary.bin_to_list() |> :inet.parse_strict_address() do

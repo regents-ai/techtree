@@ -58,6 +58,19 @@ config :techtree, :privy,
   app_id: System.get_env("PRIVY_APP_ID"),
   verification_key: System.get_env("PRIVY_VERIFICATION_KEY")
 
+# The template's optional ENS lookup, disabled unless this site's endpoint is set.
+if config_env() != :test do
+  if ethereum_read_rpc_url = System.get_env("ETHEREUM_READ_RPC_URL") do
+    case URI.new(ethereum_read_rpc_url) do
+      {:ok, %URI{scheme: "https", host: host}} when host not in [nil, ""] ->
+        config :techtree, :ethereum_read_rpc_url, ethereum_read_rpc_url
+
+      _invalid ->
+        raise "ETHEREUM_READ_RPC_URL must be an https address"
+    end
+  end
+end
+
 # Agents' signed requests are checked by this sign-in service instead, such as one
 # running on this machine.
 if broker_url = System.get_env("TECHTREE_SIWA_BROKER_URL") do

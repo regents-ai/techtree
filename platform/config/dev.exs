@@ -26,6 +26,7 @@ config :techtree, TechtreeWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PORT") || "4000")],
   check_origin: false,
   code_reloader: true,
+  reloadable_compilers: [:ash_signals, :phoenix_live_view, :elixir, :app],
   # `make readiness` sets this to off, so error pages answer as they do in a release.
   debug_errors: System.get_env("TECHTREE_DEBUG_ERRORS", "on") == "on",
   secret_key_base: "h8QJUu2AsKe3DzYp3lPfyFrgJcqCR3hazhabhHfQ+favnElm3TgdnqPWVSS4h59M",

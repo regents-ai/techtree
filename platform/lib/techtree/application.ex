@@ -10,6 +10,7 @@ defmodule Techtree.Application do
     children =
       [
         TechtreeWeb.Telemetry,
+        Techtree.Accounts.RequestRateLimiter,
         Techtree.Repo,
         {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Techtree.PubSub},
@@ -19,6 +20,7 @@ defmodule Techtree.Application do
            Application.fetch_env!(:techtree, Oban)
          )},
         RegentAgents.Listener,
+        RegentCredits.Listener,
         Techtree.RateLimit,
         # Start a worker by calling: Techtree.Worker.start_link(arg)
         # {Techtree.Worker, arg},

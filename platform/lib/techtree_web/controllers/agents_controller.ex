@@ -27,9 +27,11 @@ defmodule TechtreeWeb.AgentsController do
   Local experiments and offline proof verification stay available without
   pairing. Public catalog, result and key reads need no sign-in.
 
-  The published regents-cli 1.10.2 includes these commands:
+  Install the published regents-cli 1.10.4 for the signed account commands.
+  Its ordinary installation includes SOCKS proxy support:
 
   ```sh
+  uv tool install regents-cli==1.10.4
   regents auth login --site techtree
   regents techtree agents whoami --json
   regents techtree account balances --json
@@ -51,7 +53,7 @@ defmodule TechtreeWeb.AgentsController do
 
   Start with `agent_whoami` (GET /api/agents/v1/whoami). It needs fresh proof but
   no pairing and awards no Points. If `effective_access.paired` is false, ask the
-  owner to sign in at https://regents.sh/account and create an agent pairing
+  owner to sign in at https://techtree.sh/account and create an agent pairing
   code. Redeem it with signed POST /api/agents/v1/pair using code, name and
   harness through private JSON stdin to `regents techtree agents pair --json`.
   Keep the code out of command arguments, shell history and project files.
@@ -79,8 +81,9 @@ defmodule TechtreeWeb.AgentsController do
   reads and `techtree_publication`) have not yet been tested end to end in a real
   browser; `techtree_publication` passes the original JSON bytes through
   unchanged. Do not claim success from discovery, preparation or an unsigned
-  refusal. The profile page remains withdrawn; use Regents' account page for
-  owner controls. Human-backed registry attributes are optional and do not grant
+  refusal. The owner uses /account for pairing, /account/credits for Credits
+  history, /account/points for Points, /account/wallets for verified wallets,
+  and /account/connections for linked identities. Human-backed registry attributes are optional and do not grant
   authority.
 
   On refusal, retain the safe code, time, origin, route, source/released

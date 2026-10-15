@@ -8,6 +8,17 @@
     <meta name="is-agentic-site-type" content="agent tool platform" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <meta :if={assigns[:session_refused]} name="session-refused" content="true" />
+    <meta
+      :if={String.starts_with?(@conn.request_path, "/account")}
+      name="privy-app-id"
+      content={Application.get_env(:techtree, :privy, [])[:app_id]}
+    />
+    <meta
+      :if={String.starts_with?(@conn.request_path, "/account")}
+      name="privy-bridge-src"
+      content={TechtreeWeb.Endpoint.static_path("/assets/js/privy_bridge.js")}
+    />
     <meta name="techtree-revision" content={Techtree.BuildInfo.source_revision()} />
     <meta name="color-scheme" content={assigns[:theme] || "dark light"} />
     <meta
@@ -59,7 +70,7 @@
     <script
       defer
       phx-track-static
-      type="text/javascript"
+      type="module"
       src={~p"/assets/js/site.js"}
     >
     </script>

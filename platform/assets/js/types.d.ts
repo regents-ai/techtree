@@ -9,6 +9,7 @@ declare module "phoenix_live_view" {
   export class LiveSocket {
     constructor(path: string, socket: unknown, options: Record<string, unknown>)
     connect(): void
+    getSocket(): unknown
   }
 }
 

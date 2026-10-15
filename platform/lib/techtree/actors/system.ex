@@ -1,7 +1,7 @@
 defmodule Techtree.Actors.System do
   @moduledoc """
-  The actor release machinery writes as: importing the catalog and moving the
-  published bootstrap release. Policies admit it by its role.
+  The actor the site's own machinery acts as: importing the catalog, moving the
+  published bootstrap release and looking up accounts. Policies admit it by its role.
   """
 
   defstruct role: :system

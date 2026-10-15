@@ -448,6 +448,16 @@ defmodule TechtreeWeb.OpenAPI do
               }
             }
           )
+          |> put_in(
+            ["responses", "200"],
+            json("The current owner's grouped Credits history.", ref("CreditsHistory"))
+          )
+          |> put_in(
+            ["responses", "422"],
+            error(
+              "The cursor is invalid. Read the first page without after, then use its next_cursor."
+            )
+          )
       },
       "/api/model-climb/v1/reports" => %{
         "post" => %{
@@ -1202,6 +1212,121 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       },
+      "PairedAccount" => %{
+        "description" =>
+          "The paired account names and verified wallet fields from the existing signed check-in. This does not grant wallet authority. No World verification timestamp is exposed.",
+        "type" => "object",
+        "additionalProperties" => false,
+        "required" => ["display_name", "ens_name", "wallet_address", "wallet_addresses"],
+        "properties" => %{
+          "display_name" => %{"type" => ["string", "null"], "maxLength" => 80},
+          "ens_name" => %{"type" => ["string", "null"]},
+          "wallet_address" => %{
+            "type" => ["string", "null"],
+            "description" => "The account wallet address, or null when none is linked."
+          },
+          "wallet_addresses" => %{
+            "type" => "array",
+            "items" => %{"type" => "string"},
+            "description" => "Verified linked wallet addresses; empty when none are available."
+          }
+        }
+      },
+      "CreditsHistory" => %{
+        "type" => "object",
+        "required" => ["entries", "pagination"],
+        "properties" => %{
+          "entries" => %{
+            "type" => "array",
+            "items" => %{
+              "type" => "object",
+              "required" => [
+                "id",
+                "kind",
+                "at",
+                "amount",
+                "direction",
+                "site",
+                "purpose",
+                "reason",
+                "agent_address",
+                "pairing_id",
+                "key",
+                "tool",
+                "request",
+                "note",
+                "chain",
+                "tx_hash",
+                "refund_status",
+                "refund_sent_at"
+              ],
+              "properties" => %{
+                "id" => %{"type" => "string"},
+                "kind" => %{
+                  "type" => "string",
+                  "enum" => [
+                    "bought",
+                    "gift",
+                    "refund",
+                    "set_aside",
+                    "returned",
+                    "spent",
+                    "received"
+                  ]
+                },
+                "at" => %{"type" => "string", "format" => "date-time"},
+                "amount" => %{
+                  "type" => "string",
+                  "description" => "Positive decimal Credits amount, summed for this event."
+                },
+                "direction" => %{"type" => "string", "enum" => ["in", "out", "none"]},
+                "site" => %{"type" => ["string", "null"]},
+                "purpose" => %{"type" => ["string", "null"]},
+                "reason" => %{"type" => ["string", "null"]},
+                "agent_address" => %{"type" => ["string", "null"]},
+                "pairing_id" => %{"type" => ["string", "null"]},
+                "key" => %{"type" => ["string", "null"]},
+                "tool" => %{"type" => ["string", "null"]},
+                "request" => %{
+                  "type" => ["string", "null"],
+                  "description" =>
+                    "Present only when allowed for this reader; an agent receives request text only for its own hold."
+                },
+                "note" => %{"type" => ["string", "null"]},
+                "chain" => %{"type" => ["string", "null"]},
+                "tx_hash" => %{"type" => ["string", "null"]},
+                "refund_status" => %{
+                  "type" => ["string", "null"],
+                  "enum" => ["locked", "sent", nil]
+                },
+                "refund_sent_at" => %{"type" => ["string", "null"], "format" => "date-time"}
+              },
+              "description" =>
+                "Grouped history event. Inapplicable facts are null; received payments do not identify the payer."
+            }
+          },
+          "pagination" => %{
+            "type" => "object",
+            "required" => ["has_more", "next_cursor"],
+            "properties" => %{
+              "has_more" => %{"type" => "boolean"},
+              "next_cursor" => %{
+                "type" => ["string", "null"],
+                "description" =>
+                  "Pass unchanged as after for the next page. Null when no further page exists."
+              }
+            }
+          },
+          "more?" => %{
+            "type" => "boolean",
+            "description" => "Compatibility alias for pagination.has_more."
+          },
+          "next" => %{
+            "type" => ["string", "null"],
+            "description" => "Compatibility alias for pagination.next_cursor."
+          }
+        }
+      },
       "AgentCheckIn" => %{
         "allOf" => [
           ref("PairedAgent"),
@@ -1209,7 +1334,7 @@ defmodule TechtreeWeb.OpenAPI do
             "type" => "object",
             "required" => ["account"],
             "properties" => %{
-              "account" => %{"type" => "object", "additionalProperties" => false}
+              "account" => ref("PairedAccount")
             }
           }
         ]

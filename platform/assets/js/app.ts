@@ -1,3 +1,10 @@
+import {browserCsrfToken, holdSocketDuringCookieRotation, installAccountAuthLazyLoader,
+  installCrossTabCsrf, retireRefusedSession, type PinnedSocket} from "./auth_lazy"
+import {InfoDialog} from "./hooks/info_dialog"
+import {AccountPicture} from "./hooks/account_picture"
+import {AccountShell} from "./hooks/account_shell"
+import {VerifiedConnections} from "./hooks/verified_connections"
+import {OnchainSteps} from "./hooks/onchain_steps"
 import "../vendor/regent_ui/blog.mjs"
 
 // The pages are read-only documents. This bundle keeps the live connection,
@@ -14,7 +21,7 @@ import {installCopyButtons} from "./copy_buttons"
 import {Optics, type OpticsHook} from "./optics_controller"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
-import {MotionList} from "./hooks/motion/moments"
+import {MotionList, MotionCount, MotionRefusal} from "./hooks/motion/moments"
 import {hooks as labHooks} from "./motion_lab"
 import {installPublicTools} from "./public_tools"
 
@@ -167,7 +174,7 @@ lightDevice.addEventListener("change", syncTheme)
 syncTheme()
 
 
-const csrfToken = document.querySelector("meta[name='csrf-token']")!.getAttribute("content")
+if (!browserCsrfToken()) throw new Error("Missing CSRF token")
 
 const Hooks: Record<string, object> = {
   Optics: {
@@ -313,12 +320,20 @@ Hooks.CopyCommandPageView = {
   },
 }
 
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, VerifiedConnections, OnchainSteps, MotionCount, MotionRefusal})
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
+  params: () => ({_csrf_token: browserCsrfToken()}),
   hooks: Hooks,
 })
 
+if (document.querySelector('meta[name="privy-app-id"]')) {
+  holdSocketDuringCookieRotation(liveSocket.getSocket() as PinnedSocket)
+  void retireRefusedSession()
+  installAccountAuthLazyLoader()
+  installCrossTabCsrf()
+}
 liveSocket.connect()
 
 // Exposed for debugging in the browser console:

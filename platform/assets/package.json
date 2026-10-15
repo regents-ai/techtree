@@ -11,10 +11,34 @@
   "dependencies": {
     "@vgpu/wgsl": "0.6.0",
     "animejs": "4.5.0",
-    "vgpu": "0.6.0"
+    "vgpu": "0.6.0",
+    "@privy-io/react-auth": "3.49.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "viem": "2.57.7",
+    "@solana-program/system": "0.15.0",
+    "@solana-program/token": "0.17.0",
+    "@solana/kit": "8.5.0"
   },
   "devDependencies": {
     "@webgpu/types": "0.1.74",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
+  },
+  "overrides": {
+    "ws@^8.0.0": "8.22.0",
+    "axios": "1.20.0",
+    "decode-uri-component": "0.5.0",
+    "uuid": "11.1.1",
+    "vgpu@0.6.0": {
+      "zod": "4.6.7"
+    },
+    "@modelcontextprotocol/server@2.0.0": {
+      "zod": "4.6.7"
+    },
+    "@modelcontextprotocol/core@2.0.0": {
+      "zod": "4.6.7"
+    }
   }
 }

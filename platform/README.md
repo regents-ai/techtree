@@ -281,6 +281,19 @@ mix precommit   # warnings-as-errors, unused locks, Hex audit, format, Credo, So
 `mix phx.server` needs `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY`; without them the
 local server refuses to start, because nobody could sign in. Other tasks run without them.
 
+The shared account lives at `/account`, with Credits, Points, wallets and connections
+in the same frame. Sign-in uses the site's own Privy settings and a revocable server
+session. Pairing uses that verified account; publication still needs its independent
+proof. Points earning and money tests remain disabled. This local account adoption
+has not yet passed real Privy/browser acceptance or been released.
+
+`ETHEREUM_READ_RPC_URL` optionally enables the template's ENS lookup at sign-in.
+It must be HTTPS and is ignored in tests. No lookup runs when it is absent.
+
+The account migration adds three site-owned tables: session authorities, linked
+identities and ENS projections. It references the existing shared human-account
+table; it does not replace the shared identity, Credits, Agents or Points schemas.
+
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database
 connection when the local server does not use the Phoenix defaults. If your
 server has no `postgres` role, set `PGUSER` to your own role, for example

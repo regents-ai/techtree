@@ -1,0 +1,51 @@
+@layer regents-product {
+/* Every page inside the shell opens with one title row: the name in the display
+   face, a tip beside it for the explanation, and the page's actions at the end.
+   No kicker, no paragraph and no frame: the content starts right under it. */
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) 0.75rem;
+  min-width: 0;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-family: var(--font-family-title);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.page-head h1:focus {
+  outline: none;
+}
+
+.page-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-inline-start: auto;
+}
+
+/* A signed-out visitor sees one line and the way in. */
+.page-signed-out {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--rg-panel-padding);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.page-signed-out p {
+  margin: 0;
+}
+
+}

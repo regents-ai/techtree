@@ -46,6 +46,36 @@ defmodule TechtreeWeb.Capabilities do
     %{id: :nemo, name: "NVIDIA NeMo Fabric and NeMo Relay support", status: :planned}
   ]
 
+  @doc "The actions a paired agent may take on its person's behalf."
+  def may do
+    [
+      "Read your Credits balance, Credits history and Points",
+      "Publish benchmark results with an independent publication proof",
+      "Submit and read your Model Climb proofs"
+    ]
+  end
+
+  @doc "The template pairing panel's names for this site's signed requests."
+  def requests do
+    [
+      %{method: "GET", path: "/tools/account/balances", words: "Read Credits balance"},
+      %{method: "POST", path: "/tools/account/credits/history", words: "Read Credits history"},
+      %{method: "GET", path: "/tools/account/points", words: "Read Points"},
+      %{method: "POST", path: "/api/v1/publications", words: "Submitted a signed publication"},
+      %{
+        method: "POST",
+        path: "/api/model-climb/v1/reports",
+        words: "Submitted a Model Climb proof"
+      },
+      %{method: "GET", path: "/api/model-climb/v1/reports", words: "Read Model Climb proofs"},
+      %{
+        method: "GET",
+        path: "/api/model-climb/v1/reports/{digest}",
+        words: "Read a Model Climb proof"
+      }
+    ]
+  end
+
   @doc "Every capability, in the order pages list them."
   @spec all() :: [capability()]
   def all, do: @capabilities

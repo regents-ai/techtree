@@ -77,6 +77,7 @@ defmodule TechtreeWeb.Layouts do
             <a href={~p"/verify"} aria-current={current_section(@current_path, "/verify")}>
               Verify
             </a>
+            <a href={~p"/account"} aria-current={current_section(@current_path, "/account")}>Account</a>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
             <a href={~p"/changelog"} aria-current={current_section(@current_path, "/changelog")}>
               Changelog

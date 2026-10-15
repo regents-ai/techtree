@@ -1,0 +1,311 @@
+@layer regents-product {
+/* Utility pages use open sections, readable headings and quiet separators. */
+
+.account-page {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+  max-width: 64rem;
+}
+
+.account-page h1 { font-size: clamp(1.5rem, 3vw, 1.75rem); line-height: 1.25; }
+
+.account-panel {
+  min-width: 0;
+  border: 0;
+  border-block-start: 1px solid var(--color-border);
+  background: transparent;
+}
+
+.account-page h1,
+.account-page h2 {
+  margin: 0;
+  font-family: var(--font-family-ui);
+  font-weight: 600;
+}
+
+.account-page p {
+  margin: 0;
+}
+
+.account-kicker,
+.account-details dt {
+  color: var(--color-fg-muted);
+  font-family: var(--font-family-ui);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.account-identity .account-kicker {
+  color: var(--color-fg-muted);
+}
+
+/* Panels */
+
+.account-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  gap: 1.5rem 2.5rem;
+  align-items: start;
+}
+
+.account-identity {
+  grid-column: 1 / -1;
+}
+
+.account-panel,
+.account-identity {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem 0;
+}
+
+.account-panel h2 {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+/* Identity card */
+
+.account-identity {
+  min-height: 0;
+  align-content: end;
+}
+
+.account-identity__who {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.account-identity__avatar {
+  flex: none;
+  width: 4rem;
+  height: 4rem;
+  border: 1px solid var(--color-border);
+}
+
+.account-identity__name {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.account-identity__name h2 {
+  font-size: 1.5rem;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.account-identity__name code {
+  color: var(--color-fg-muted);
+}
+
+/* Details */
+
+.account-details dl {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+}
+
+.account-details dl > div {
+  display: grid;
+  gap: 0.35rem;
+  padding-block-start: 0.75rem;
+  border-block-start: 1px solid var(--color-border);
+}
+
+.account-details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-wallet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.account-wallet code {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.account-wallet-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Verified connections */
+
+.verified-connections > div:first-child {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.verified-connections__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verified-connections__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+}
+
+.verified-connections__list li > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* Only the text cell is muted; the row's button keeps the shared button's ink. */
+.verified-connections__list li > div span {
+  color: var(--color-fg-muted);
+}
+
+.verified-connections__notice {
+  padding-inline-start: 0.75rem;
+  border-inline-start: 3px solid var(--ash-accent);
+}
+
+.verified-connections__notice--error {
+  border-inline-start-color: var(--ash-accent-warm);
+}
+
+@media (max-width: 30rem) {
+  .verified-connections__list li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+/* Agents: the shared list, then pairing; the whole row of the grid. */
+
+.account-agents {
+  grid-column: 1 / -1;
+}
+
+}
+
+/* What earns points: the catalog as plain tables, then limits and bonus tiers. */
+.points-earn h3 {
+  margin: 0;
+  font-family: var(--font-family-ui);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--color-fg-muted);
+}
+
+.points-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.points-table th,
+.points-table td {
+  padding: 0.6rem 0;
+  border-block-start: 1px solid var(--color-border);
+  text-align: start;
+  vertical-align: baseline;
+}
+
+.points-table thead th {
+  border-block-start: 0;
+  color: var(--color-fg-muted);
+  font-family: var(--font-family-ui);
+  font-size: .875rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* The action takes the width; points and limits sit right-aligned. */
+.points-table tbody th {
+  width: 100%;
+  font-weight: 600;
+}
+
+.points-table td,
+.points-table thead th + th {
+  padding-inline-start: 1rem;
+  text-align: end;
+}
+
+/* In a wide panel, points and limits stay on one line and the action's words
+   wrap instead; a phone-width panel wraps them all to fit. */
+.points-earn {
+  container-type: inline-size;
+}
+
+@container (min-width: 30rem) {
+  .points-table td {
+    white-space: nowrap;
+  }
+}
+
+/* A narrow screen wraps the tables' words rather than widening the panel. */
+.points-earn > * {
+  min-width: 0;
+}
+
+/* Before earning opens, the ways to earn are listed with no amounts. */
+.points-ways {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points-ways li {
+  padding: 0.6rem 0;
+  border-block-start: 1px solid var(--color-border);
+}
+
+.points-earn__soon {
+  margin-inline-start: 0.5rem;
+  color: var(--color-fg-muted);
+  font-size: 0.85em;
+}
+
+.points-earn__notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1.5rem;
+}
+
+.points-earn__notes > div {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+/* What Credits buy: one row per place, the site above a link to it. */
+.credits-uses ul {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.credits-uses li {
+  display: grid;
+  gap: 0.2rem;
+}

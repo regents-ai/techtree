@@ -55,10 +55,28 @@ defmodule TechtreeWeb.AgentAccountController do
 
         conn |> put_resp_header("cache-control", "no-store") |> json(answer)
 
-      {:error, _error} ->
-        unavailable(conn)
+      {:error, error} ->
+        if cursor_error?(error) do
+          TechtreeWeb.ExactResponse.send_error(
+            conn,
+            422,
+            :invalid_cursor,
+            "That history cursor is invalid.",
+            "Read the first page without after, then use the next_cursor it returns."
+          )
+        else
+          unavailable(conn)
+        end
     end
   end
+
+  defp cursor_error?(%Ash.Error.Action.InvalidArgument{field: :after}), do: true
+  defp cursor_error?(%Ash.Error.Page.InvalidKeyset{}), do: true
+
+  defp cursor_error?(%Ash.Error.Invalid{errors: [_ | _] = errors}),
+    do: Enum.all?(errors, &cursor_error?/1)
+
+  defp cursor_error?(_error), do: false
 
   def points(conn, _params) do
     paired = conn.assigns.publication_actor
