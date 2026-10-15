@@ -378,7 +378,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 }
 @media (max-width: 24rem) {
   .masthead__selector { width: 100%; }
-  .masthead__selector a { flex: 1 1 30%; padding-inline: var(--space-1); }
+  .masthead__selector a { flex: 1 1 30%; padding-inline: calc(var(--space-1) / 2); }
   .docs-nav nav { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {

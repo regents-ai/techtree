@@ -32,7 +32,7 @@
 .wallet-bench__facts dd { margin: 0; overflow-wrap: anywhere; }
 .wallet-bench .wallet-bench__criteria { min-width: 0; }
 .wallet-bench__criteria th[scope="row"] { width: 32%; font-weight: 600; vertical-align: top; }
-.wallet-bench__criteria td { vertical-align: top; }
+.wallet-bench__criteria td { vertical-align: top; overflow-wrap: anywhere; }
 .wallet-bench__value { white-space: nowrap; font-weight: 600; }
 .wallet-bench__reasoning p { margin-top: var(--space-2); max-width: 65ch; white-space: pre-line; }
 .wallet-bench summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; }
