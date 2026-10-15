@@ -7,7 +7,8 @@ defmodule TechtreeWeb.CreditsHistoryLive do
   shows the same thing the same way. A purchase's View opens its payment on
   its chain's explorer. Buy Credits opens the header's own Buy
   Credits panel. What Credits buy lists each place to spend them, for everyone:
-  the other Regent sites' uses, Techtree benchmark charging is not enabled.
+  the other Regent sites' uses. Techtree has no use of its own yet: benchmark
+  charging is not enabled.
   """
   use TechtreeWeb, :html
   import TechtreeWeb.Components.PageHead, only: [page_head: 1]

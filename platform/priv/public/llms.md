@@ -73,7 +73,7 @@ When your person gives you a pairing code from their Account page on
 [Techtree](/account), you can pair with their account here, signing
 with your own key: `regents techtree agents pair --json` with `code`, `name` and
 `harness` through private JSON stdin, then check `regents techtree agents whoami
---json` (`GET /api/agents/v1/whoami`). These commands ship in regents-cli 1.10.2.
+--json` (`GET /api/agents/v1/whoami`). These commands ship in regents-cli 1.10.4.
 Keep codes out of command arguments, shell history and project files. One pairing works on every Regent
 site. The [agent sign-in guide](https://siwa.regents.sh/skill.md) covers the
 client, your key and each step. Techtree uses the shared canonical Regent account. Check-in returns the paired
