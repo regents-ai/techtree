@@ -41,22 +41,15 @@ detection; those algorithms can read blobs before exclusions. List paths before 
 hook or generator to discover guidance. This package deliberately has no inventory
 executable and requires no Python runtime for hosted review.
 
-If using Git directly, run every command with inherited `GIT_*` variables removed
-and an explicit, verified repository path. Then set `GIT_NO_LAZY_FETCH=1` and
-`GIT_OPTIONAL_LOCKS=0`, and use `--no-pager` for every command: missing partial-clone
-objects remain a coverage gap, inspection does not refresh the shared index, and
-repository-configured pagers cannot execute. Disable replacement objects for every revision read/search, and disable
-external diff and text-conversion helpers. Set `core.fsmonitor=false` for Git commands;
-local comparisons must not invoke repository clean/smudge filters. Do not use ordinary
-worktree `status`/`diff` to discover local edits when filters may run. Compare safe
-index blobs and raw files directly using the host tools, or record local edits as
-unavailable. Run from the verified
-repository root and use `--no-relative` for diffs. Enumerate
-the complete repository tree independently of the current subdirectory; use safe path
-handling for unusual filenames. These are prerequisites, not settings implied by
-changing directories. If the host cannot ensure them, record the coverage limit.
-Keep staged and unstaged local work separate from committed PR evidence. Missing
-objects, unavailable repositories and uninspectable paths remain explicit gaps.
+Use trusted, revision-aware repository inspection supplied by the review host.
+It must enumerate all paths and entry types, including changed dependency pins and
+submodule entries, without executing repository programs, loading excluded content,
+fetching missing objects, or changing an active checkout/index. This Skill supplies
+no local Git execution recipe; tool safety belongs to the host. If those guarantees
+are unavailable, record the affected coverage as blocked instead of improvising a
+scanner or running repository-configured commands. Keep staged/unstaged local work
+separate from committed evidence; inspect it only through equally safe host tools.
+Missing objects and unavailable repositories remain explicit coverage gaps.
 
 Use the surface map to select affected public source paths from both BASE and TARGET.
 Read deleted content and old names at BASE, and current/new content at TARGET, using
@@ -66,8 +59,8 @@ paths. Use `rg` only for a separately labelled working-tree review, or after ver
 the selected files match the requested revision with no local edits; it cannot search
 another revision. Search changed identifiers and old/new words. Never read `.env*`
 files except `.env.example`. Exclude private settings, credential/key stores, runtime
-logs and session data. Do not follow filesystem links outside the selected source
-scope. Inspect unusual or ambiguous paths deliberately; a filename search is not a
+logs and session data. Reject filesystem links before working-tree reads, including linked parent
+directories; record them as uninspected boundaries. Inspect unusual or ambiguous paths deliberately; a filename search is not a
 secret detector or proof of complete coverage.
 
 Follow callers, shared pins, route renderers, generators, copy buttons and packaged
