@@ -5,7 +5,7 @@ defmodule TechtreeWeb.Plugs.PairedAgentTest do
   alias Techtree.NetworkFixture
   alias Techtree.Repo
 
-  test "an agent whose person has no account here is told account_missing", %{conn: conn} do
+  test "an agent whose person has not signed in here yet is told person_not_here", %{conn: conn} do
     owner = "did:privy:" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
     wallet = "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
 
@@ -23,7 +23,6 @@ defmodule TechtreeWeb.Plugs.PairedAgentTest do
 
     response = conn |> NetworkFixture.signed() |> get(~p"/api/model-climb/v1/reports")
 
-    assert response.status == 404
-    assert json_response(response, 404)["error"]["code"] == "account_missing"
+    assert json_response(response, 403)["error"]["code"] == "person_not_here"
   end
 end

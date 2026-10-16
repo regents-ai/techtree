@@ -265,8 +265,8 @@ defmodule TechtreeWeb.OpenAPI do
                 ref("Error")
               ),
             "401" => error("The exact request signature was refused."),
-            "403" => error("Current agent pairing is required."),
-            "404" => error("The withdrawal names no published Result. " <> account_missing()),
+            "403" => error("Current agent pairing is required. " <> person_not_here()),
+            "404" => error("The withdrawal names no published Result."),
             "409" => error("A different document was already published for this run."),
             "413" => json("The body is larger than the limit.", ref("Error")),
             "422" => error("A check on the bundle or the withdrawal failed; the code names it."),
@@ -398,11 +398,8 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" => %{
             "200" => json("The agent's pairing.", agent_data(ref("AgentCheckIn"))),
             "401" => error("`verification_failed`: the signature could not be verified."),
-            "404" =>
-              error(
-                "`not_paired`: this agent is not paired with an account. `account_missing`: " <>
-                  "this site has no account for the paired person yet; they sign in here once."
-              ),
+            "403" => error(person_not_here()),
+            "404" => error("`not_paired`: this agent is not paired with an account."),
             "503" =>
               error(
                 "`verification_unavailable`: the sign-in service could not be reached or gave no answer."
@@ -416,7 +413,7 @@ defmodule TechtreeWeb.OpenAPI do
           |> signed_account_read(
             "Verify the named agent and its current pairing; no pairing prerequisite and no Points award."
           )
-          |> update_in(["responses"], &Map.drop(&1, ["403", "404"]))
+          |> update_in(["responses"], &Map.drop(&1, ["403"]))
       },
       "/tools/account/balances" => %{
         "get" =>
@@ -500,8 +497,7 @@ defmodule TechtreeWeb.OpenAPI do
                   "not hold; `details.check` names it."
               ),
             "401" => error("Fresh exact-request SIWA proof is required."),
-            "403" => error(pairing_refusal()),
-            "404" => error(account_missing()),
+            "403" => error(pairing_refusal() <> " " <> person_not_here()),
             "409" =>
               error(
                 "`idempotency_conflict`: this Idempotency-Key was already used for a different proof."
@@ -527,8 +523,7 @@ defmodule TechtreeWeb.OpenAPI do
                 })
               ),
             "401" => error("Fresh exact-request SIWA proof is required."),
-            "403" => error(pairing_refusal()),
-            "404" => error(account_missing())
+            "403" => error(pairing_refusal() <> " " <> person_not_here())
           }
         }
       },
@@ -556,12 +551,8 @@ defmodule TechtreeWeb.OpenAPI do
                 })
               ),
             "401" => error("Fresh exact-request SIWA proof is required."),
-            "403" => error(pairing_refusal()),
-            "404" =>
-              error(
-                "`not_found`: no report with that digest belongs to this person. " <>
-                  account_missing()
-              )
+            "403" => error(pairing_refusal() <> " " <> person_not_here()),
+            "404" => error("`not_found`: no report with that digest belongs to this person.")
           }
         }
       },
@@ -626,8 +617,7 @@ defmodule TechtreeWeb.OpenAPI do
       "responses" => %{
         "200" => json("Authorized shared account or agent data.", %{"type" => "object"}),
         "401" => error("Fresh exact-request SIWA proof is required."),
-        "403" => error(pairing_refusal()),
-        "404" => error(account_missing()),
+        "403" => error(pairing_refusal() <> " " <> person_not_here()),
         "503" => error("Identity, pairing or shared account data is unavailable.")
       }
     }
@@ -1365,9 +1355,9 @@ defmodule TechtreeWeb.OpenAPI do
 
   defp pairing_refusal, do: "`agent_not_paired`: this agent has no current pairing."
 
-  defp account_missing,
+  defp person_not_here,
     do:
-      "`account_missing`: this site has no account for the paired person yet; they sign in here once."
+      "`person_not_here`: the person this agent is paired with hasn't signed in on this site yet; they sign in here once."
 
   defp model_climb_answer(fields) do
     %{

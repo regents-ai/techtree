@@ -1,8 +1,9 @@
 defmodule Techtree.Agents do
   @moduledoc """
   How an agent's check-in (`GET /api/agents/v1/me`) names the account it is
-  paired with, including its verified wallet fields, or `nil` when this site has
-  no account for that person, which the check-in refuses as `account_missing`.
+  paired with, including its verified wallet fields, or `nil` until the person
+  has signed in on this site once, which the check-in answers with
+  `person_not_here`.
   This callback runs after the shared signed check-in; it is not a passive
   identity probe.
   """
