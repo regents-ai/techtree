@@ -47,6 +47,10 @@ defmodule Techtree.WalletBench.Turn do
         queue(:sprites)
         max_attempts(5)
         on_error(:mark_failed)
+        on_error_fails_job?(true)
+        # A job that gives up logs one safe line (Techtree.JobFailure), not raw text.
+        log_errors?(false)
+        log_final_error?(false)
         lock_for_update?(false)
         scheduler_cron(false)
         worker_module_name(Techtree.WalletBench.Turn.Workers.Start)
@@ -58,6 +62,10 @@ defmodule Techtree.WalletBench.Turn do
         queue(:sprites)
         max_attempts(5)
         on_error(:mark_failed)
+        on_error_fails_job?(true)
+        # A job that gives up logs one safe line (Techtree.JobFailure), not raw text.
+        log_errors?(false)
+        log_final_error?(false)
         lock_for_update?(false)
         scheduler_cron(false)
         worker_module_name(Techtree.WalletBench.Turn.Workers.Collect)
@@ -69,6 +77,10 @@ defmodule Techtree.WalletBench.Turn do
         queue(:wallet_bench_judge)
         max_attempts(5)
         on_error(:mark_failed)
+        on_error_fails_job?(true)
+        # A job that gives up logs one safe line (Techtree.JobFailure), not raw text.
+        log_errors?(false)
+        log_final_error?(false)
         lock_for_update?(false)
         scheduler_cron(false)
         worker_module_name(Techtree.WalletBench.Turn.Workers.Judge)

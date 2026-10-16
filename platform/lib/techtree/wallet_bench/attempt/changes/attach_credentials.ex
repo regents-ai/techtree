@@ -27,8 +27,11 @@ defmodule Techtree.WalletBench.Attempt.Changes.AttachCredentials do
              ) do
         put_detail(changeset, %{credentials: "attached"})
       else
-        {:ok, other} ->
-          Ash.Changeset.add_error(changeset, "credentials.sh attach printed #{inspect(other)}")
+        {:ok, _other} ->
+          Ash.Changeset.add_error(
+            changeset,
+            "credentials.sh attach printed an answer it does not give"
+          )
 
         {:error, error} ->
           Ash.Changeset.add_error(changeset, error)

@@ -24,7 +24,7 @@ defmodule Techtree.WalletBench.BaseRpc do
         {:ok, result}
 
       {:ok, %Req.Response{status: status, body: body}} ->
-        {:error, "Base RPC #{method} answered #{status}: #{inspect(body)}"}
+        {:error, "Base RPC #{method} answered " <> answer(status, body)}
 
       {:error, exception} ->
         {:error, exception}
@@ -46,7 +46,7 @@ defmodule Techtree.WalletBench.BaseRpc do
         {:refused, reason}
 
       {:ok, %Req.Response{status: status, body: body}} ->
-        {:error, "Base RPC eth_estimateGas answered #{status}: #{inspect(body)}"}
+        {:error, "Base RPC eth_estimateGas answered " <> answer(status, body)}
 
       {:error, exception} ->
         {:error, exception}
@@ -129,4 +129,11 @@ defmodule Techtree.WalletBench.BaseRpc do
   defp balance_call(address), do: @balance_of <> word(address)
 
   defp word("0x" <> hex), do: String.pad_leading(String.downcase(hex), 64, "0")
+
+  # The answer's status and JSON-RPC error code, never its text: a node's
+  # message can echo what was sent.
+  defp answer(status, %{"error" => %{"code" => code}}) when is_integer(code),
+    do: "#{status} with error #{code}"
+
+  defp answer(status, _body), do: Integer.to_string(status)
 end

@@ -4,12 +4,14 @@ defmodule Techtree.WalletBench.Remote do
   Sprites as the machine's owner account.
 
   A command that ends with a non-zero exit code is an error carrying the end of
-  its error output; never its standard output, which may hold evidence that is
-  not yet blanked. Long work (a baseline build, a harness turn) runs as a
+  its error output, blanked where the error is made (`Techtree.WalletBench.Blank`);
+  never its standard output, which may hold evidence that is not yet blanked. Long work (a baseline build, a harness turn) runs as a
   background job through `job.sh`, so no request has to stay open for it:
   starting a job twice only starts it once, and its status says whether it is
   running, finished with an exit code, or lost because the machine restarted.
   """
+
+  alias Techtree.WalletBench.Blank
 
   @bin "/work/bin"
   @stderr_tail 2000
@@ -99,11 +101,13 @@ defmodule Techtree.WalletBench.Remote do
     end
   end
 
-  defp tail(text) when byte_size(text) <= @stderr_tail, do: String.replace_invalid(text)
+  defp tail(text) when byte_size(text) <= @stderr_tail,
+    do: text |> String.replace_invalid() |> Blank.blank([])
 
   defp tail(text),
     do:
       text
       |> binary_part(byte_size(text) - @stderr_tail, @stderr_tail)
       |> String.replace_invalid()
+      |> Blank.blank([])
 end
