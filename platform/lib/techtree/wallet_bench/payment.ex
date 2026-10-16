@@ -76,6 +76,7 @@ defmodule Techtree.WalletBench.Payment do
 
       require_atomic? false
       change filter(expr(state == :unknown))
+      change {Techtree.WalletBench.Changes.Operator, attribute: :settled_by}
       change Techtree.WalletBench.Payment.Changes.Settle
     end
   end
@@ -124,6 +125,11 @@ defmodule Techtree.WalletBench.Payment do
 
     attribute :hash, :string, allow_nil?: false, public?: true
     attribute :block, :integer, public?: true, description: "The block its receipt is in."
+
+    attribute :settled_by, :string do
+      description "The operator who asked the bench to settle it."
+      constraints max_length: 64
+    end
 
     timestamps()
   end

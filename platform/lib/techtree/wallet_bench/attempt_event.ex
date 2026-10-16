@@ -42,7 +42,7 @@ defmodule Techtree.WalletBench.AttemptEvent do
 
     create :record do
       description "Append one event. Attempt and turn steps only."
-      accept [:attempt_id, :step, :detail]
+      accept [:attempt_id, :step, :detail, :operator]
     end
   end
 
@@ -72,6 +72,11 @@ defmodule Techtree.WalletBench.AttemptEvent do
     end
 
     attribute :detail, :map, allow_nil?: false, default: %{}, public?: true
+
+    attribute :operator, :string do
+      description "Who ran it, when an operator did; jobs record none."
+      constraints max_length: 64
+    end
 
     create_timestamp :inserted_at
   end

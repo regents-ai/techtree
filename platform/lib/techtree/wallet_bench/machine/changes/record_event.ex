@@ -21,7 +21,8 @@ defmodule Techtree.WalletBench.Machine.Changes.RecordEvent do
       |> Ash.Changeset.for_create(:record, %{
         machine_id: machine.id,
         step: machine.state,
-        detail: Map.get(changeset.context, :event_detail, %{})
+        detail: Map.get(changeset.context, :event_detail, %{}),
+        operator: Map.get(changeset.context, :operator)
       })
       # Events have no public writer; this step, inside the machine's own
       # authorized action, is the only one.

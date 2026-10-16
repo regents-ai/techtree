@@ -162,6 +162,7 @@ defmodule Techtree.WalletBench.Attempt do
       end
 
       change set_attribute(:state, :requested)
+      change Techtree.WalletBench.Changes.Operator
       change RecordEvent
       change run_oban_trigger(:lease)
     end
@@ -313,6 +314,15 @@ defmodule Techtree.WalletBench.Attempt do
       argument :note, :string, allow_nil?: false
       change filter(expr(plan == :money and is_nil(safety_cleared)))
       change set_attribute(:safety_cleared, arg(:note))
+      change Techtree.WalletBench.Changes.Operator
+
+      change fn changeset, _context ->
+        RecordEvent.put_detail(changeset, %{
+          safety_cleared: Ash.Changeset.get_argument(changeset, :note)
+        })
+      end
+
+      change RecordEvent
     end
 
     update :stop do
@@ -398,6 +408,7 @@ defmodule Techtree.WalletBench.Attempt do
       argument :reason, :string, allow_nil?: false
       change filter(expr(state == :done))
       change set_attribute(:state, :failed)
+      change Techtree.WalletBench.Changes.Operator
 
       change fn changeset, _context ->
         reason = Ash.Changeset.get_argument(changeset, :reason)

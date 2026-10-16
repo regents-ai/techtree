@@ -40,7 +40,7 @@ defmodule Techtree.WalletBench.MachineEvent do
 
     create :record do
       description "Append one event. Machine steps only."
-      accept [:machine_id, :step, :detail]
+      accept [:machine_id, :step, :detail, :operator]
     end
   end
 
@@ -78,6 +78,11 @@ defmodule Techtree.WalletBench.MachineEvent do
     end
 
     attribute :detail, :map, allow_nil?: false, default: %{}, public?: true
+
+    attribute :operator, :string do
+      description "Who ran it, when an operator did; jobs record none."
+      constraints max_length: 64
+    end
 
     create_timestamp :inserted_at
   end

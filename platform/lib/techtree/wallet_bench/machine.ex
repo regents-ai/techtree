@@ -169,6 +169,7 @@ defmodule Techtree.WalletBench.Machine do
         Ash.Changeset.force_change_attribute(changeset, :recipe_digest, Catalog.recipe_digest())
       end
 
+      change Techtree.WalletBench.Changes.Operator
       change RecordEvent
       change run_oban_trigger(:create_sprite)
     end
@@ -288,6 +289,7 @@ defmodule Techtree.WalletBench.Machine do
       argument :reason, :string, allow_nil?: false
       change filter(expr(state not in [:retiring, :retired]))
       change set_attribute(:state, :retiring)
+      change {Techtree.WalletBench.Changes.Operator, required: false}
       change {RecordEvent, argument: :reason}
       change run_oban_trigger(:delete_sprite)
     end

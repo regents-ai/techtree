@@ -60,6 +60,7 @@ defmodule Techtree.WalletBench.VersionNote do
     create :add do
       description "Add one note to a release. Operator only."
       accept [:kind, :subject_id, :version, :text, :attempt_id]
+      change {Techtree.WalletBench.Changes.Operator, attribute: :added_by}
 
       validate fn changeset, _context ->
         kind = Ash.Changeset.get_attribute(changeset, :kind)
@@ -109,6 +110,11 @@ defmodule Techtree.WalletBench.VersionNote do
       allow_nil? false
       public? true
       constraints max_length: 600
+    end
+
+    attribute :added_by, :string do
+      description "The operator who added it."
+      constraints max_length: 64
     end
 
     create_timestamp :inserted_at

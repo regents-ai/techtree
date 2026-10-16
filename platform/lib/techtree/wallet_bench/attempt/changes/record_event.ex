@@ -18,7 +18,8 @@ defmodule Techtree.WalletBench.Attempt.Changes.RecordEvent do
       |> Ash.Changeset.for_create(:record, %{
         attempt_id: attempt_id,
         step: step,
-        detail: Map.get(changeset.context, :event_detail, %{})
+        detail: Map.get(changeset.context, :event_detail, %{}),
+        operator: Map.get(changeset.context, :operator)
       })
       # Events have no public writer; this step, inside the attempt's or turn's
       # own authorized action, is the only one.

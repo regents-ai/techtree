@@ -11,6 +11,7 @@ defmodule Techtree.WalletBench.MachineTest do
   alias Techtree.WalletBench.Machine
 
   @name "wb-test-h05"
+  @operator %Techtree.Actors.Operator{name: "test-operator"}
 
   setup do
     previous = Application.get_env(:regent_sprites, :req_options)
@@ -30,7 +31,7 @@ defmodule Techtree.WalletBench.MachineTest do
   end
 
   test "a requested machine is created, built, checkpointed, restored and ready, one event per step" do
-    machine = WalletBench.request_machine!(@name, "H05", authorize?: false)
+    machine = WalletBench.request_machine!(@name, "H05", authorize?: false, actor: @operator)
     assert_enqueued(worker: Machine.Workers.CreateSprite)
 
     # The chain runs up to readiness, which waits for the boot id to settle.
@@ -58,7 +59,7 @@ defmodule Techtree.WalletBench.MachineTest do
   end
 
   test "a machine that restarted after its restore is failed at once, with the reason" do
-    machine = WalletBench.request_machine!(@name, "H05", authorize?: false)
+    machine = WalletBench.request_machine!(@name, "H05", authorize?: false, actor: @operator)
     build(machine)
 
     Process.put(:boot_ids, ["boot-2"])
@@ -72,7 +73,7 @@ defmodule Techtree.WalletBench.MachineTest do
   end
 
   test "a step that finishes after the machine was retired leaves it retired" do
-    machine = WalletBench.request_machine!(@name, "H05", authorize?: false)
+    machine = WalletBench.request_machine!(@name, "H05", authorize?: false, actor: @operator)
     Oban.drain_queue(queue: :sprites)
     created = WalletBench.get_machine!(machine.id, authorize?: false)
     assert created.state == :created
@@ -82,7 +83,7 @@ defmodule Techtree.WalletBench.MachineTest do
       conn -> sprites(conn)
     end)
 
-    WalletBench.retire_machine!(created, "test", authorize?: false)
+    WalletBench.retire_machine!(created, "test", authorize?: false, actor: @operator)
 
     assert {:error, _stale} =
              created
@@ -239,5 +240,15 @@ defmodule Techtree.WalletBench.MachineTest do
 
         [current, made]
     end
+  end
+
+  test "an operator action records who ran it, and one that names nobody is refused" do
+    machine = WalletBench.request_machine!(@name, "H05", authorize?: false, actor: @operator)
+
+    assert [%{operator: "test-operator"}] =
+             WalletBench.list_machine_events!(machine.id, authorize?: false)
+
+    assert {:error, _unnamed} =
+             WalletBench.request_machine("wb-test-unnamed", "H05", authorize?: false)
   end
 end

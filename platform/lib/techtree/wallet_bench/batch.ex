@@ -155,13 +155,17 @@ defmodule Techtree.WalletBench.Batch do
 
   defp attempts(batch), do: Attempt |> Ash.Query.filter(batch_id == ^batch) |> Ash.read!()
 
+  # The manifest names its operator; each admission records the name.
+  defp operator(manifest), do: %Techtree.Actors.Operator{name: manifest["operator"]}
+
   defp admit(manifest) do
     Enum.each(manifest["harnesses"], fn {id, pin} ->
       name = "wb-" <> String.downcase(id) <> "-" <> manifest["batch"]
 
       # Operator-only batch admission; public policies deliberately deny these writes.
       WalletBench.request_machine!(name, id, %{batch_id: manifest["batch"], configuration: pin},
-        authorize?: false
+        authorize?: false,
+        actor: operator(manifest)
       )
     end)
 
@@ -178,7 +182,8 @@ defmodule Techtree.WalletBench.Batch do
           replicate: replicate,
           run_spec: spec(manifest, harness, wallet)
         },
-        authorize?: false
+        authorize?: false,
+        actor: operator(manifest)
       )
     end
   end

@@ -134,6 +134,7 @@ defmodule Techtree.WalletBench.Turn do
       description "A new ruling on a judged turn from its stored evidence; the attempt does not move."
       require_atomic? false
       change filter(expr(state == :judged))
+      change Techtree.WalletBench.Changes.Operator
       change {JudgeTurn, evidence: :stored}
       change RecordEvent
     end
