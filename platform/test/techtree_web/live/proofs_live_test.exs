@@ -9,7 +9,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
   import Phoenix.LiveViewTest
 
   test "balances what a check tells you with what it can't", %{conn: conn} do
-    {:ok, live, html} = live(conn, ~p"/proofs")
+    {:ok, live, html} = live(conn, ~p"/verify")
     text = visible_text(html)
 
     assert text =~ "Check a Result yourself"
@@ -24,7 +24,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
   end
 
   test "names who runs and scores the tasks and shows every check", %{conn: conn} do
-    {:ok, live, _html} = live(conn, ~p"/proofs")
+    {:ok, live, _html} = live(conn, ~p"/verify")
     count = Techtree.Network.Bundle.check_count()
 
     assert has_element?(live, "#how-made h2", "How a Result is made")
@@ -49,7 +49,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
   end
 
   test "offers the offline check without obsolete release promises", %{conn: conn} do
-    {:ok, live, html} = live(conn, ~p"/proofs")
+    {:ok, live, html} = live(conn, ~p"/verify")
     text = visible_text(html)
 
     assert copied_text(html, "copy-proof-verify") ==

@@ -70,7 +70,6 @@ defmodule TechtreeWeb.Router do
     get "/blog/:slug", BlogController, :show
     live "/docs", DocsLive
     live "/changelog", ChangelogLive
-    live "/proofs", ProofsLive
     live "/verify", ProofsLive
     live "/repo2rlenv", Repo2RLEnvLive
     live "/results", RunsLive.Index

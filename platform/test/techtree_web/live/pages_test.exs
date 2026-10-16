@@ -16,7 +16,7 @@ defmodule TechtreeWeb.PagesTest do
   @pages [
     "/",
     "/docs",
-    "/proofs",
+    "/verify",
     "/start",
     "/climbs/hello-world-climb",
     "/results",
@@ -25,7 +25,7 @@ defmodule TechtreeWeb.PagesTest do
   @pages_without_catalog [
     "/",
     "/docs",
-    "/proofs",
+    "/verify",
     "/start",
     "/results"
   ]
@@ -34,7 +34,7 @@ defmodule TechtreeWeb.PagesTest do
   # protocol document.
   @pages_in_plain_words [
     "/",
-    "/proofs",
+    "/verify",
     "/start",
     "/climbs/hello-world-climb",
     "/results",

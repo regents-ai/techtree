@@ -73,7 +73,7 @@ defmodule TechtreeWeb.DocsLiveTest do
     assert text =~ "GET /api/v1/bootstrap"
     assert text =~ "GET /api/v1/publications/:digest"
     assert has_element?(live, ~s|a[href="#method"]|, "Method.")
-    assert has_element?(live, ~s|a[href="/proofs"]|)
+    assert has_element?(live, ~s|a[href="/verify"]|)
     assert has_element?(live, ~s|a[href="/results"]|, "Results")
   end
 

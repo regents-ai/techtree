@@ -110,8 +110,6 @@ defmodule TechtreeWeb.Layouts do
     """
   end
 
-  defp current_section("/proofs", "/verify"), do: "page"
-
   defp current_section(path, root) when is_binary(path) do
     if path == root or String.starts_with?(path, root <> "/"), do: "page"
   end
@@ -194,13 +192,13 @@ defmodule TechtreeWeb.Layouts do
   defp description_for_path("/results"),
     do: "Browse participant-attested Results from controlled Skill comparisons."
 
-  defp description_for_path(path) when path in ["/proofs", "/verify"],
+  defp description_for_path("/verify"),
     do:
       "How a Result is made, what checking one tells you and what it can’t, and how to check one yourself."
 
   defp description_for_path("/repo2rlenv"),
     do:
-      "Repo2RLEnv: Techtree’s planned first service for turning repositories into reproducible reinforcement-learning environments."
+      "Repo2RLEnv will turn a repository’s history into practice tasks for agents. Ask to hear when it opens."
 
   defp description_for_path("/docs"),
     do: "Install, operate, verify, publish, and integrate Techtree."

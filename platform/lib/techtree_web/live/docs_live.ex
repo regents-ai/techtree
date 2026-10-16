@@ -389,7 +389,7 @@ defmodule TechtreeWeb.DocsLive do
               argv={["regents", "techtree", "proof", "verify", "path/to/result-bundle"]}
               label="Verify locally"
             />
-            <p><.link navigate={~p"/proofs"}>Read exactly what verification establishes.</.link></p>
+            <p><.link navigate={~p"/verify"}>Read exactly what verification establishes.</.link></p>
           </section>
 
           <section id="publish" class="doc-section">

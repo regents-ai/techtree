@@ -286,7 +286,7 @@ defmodule TechtreeWeb.HomeLiveTest do
           ~p"/",
           ~p"/docs",
           ~p"/results",
-          ~p"/proofs",
+          ~p"/verify",
           ~p"/start",
           ~p"/climbs/hello-world-climb"
         ] do

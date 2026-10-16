@@ -63,7 +63,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /llms.txt",
              "get /openapi.json",
              "get /privacy",
-             "get /proofs",
              "get /repo2rlenv",
              "get /results",
              "get /results/:bundle_digest",
@@ -122,7 +121,7 @@ defmodule TechtreeWeb.RouterTest do
     for path <- [
           "/",
           "/docs",
-          "/proofs",
+          "/verify",
           "/results",
           "/results/sha256:#{String.duplicate("a", 64)}",
           "/skill.md",

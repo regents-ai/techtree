@@ -35,7 +35,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pages [
     "/",
     "/docs",
-    "/proofs",
+    "/verify",
     "/start",
     "/climbs/hello-world-climb",
     "/results",
@@ -46,7 +46,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pages_without_catalog [
     "/",
     "/docs",
-    "/proofs",
+    "/verify",
     "/start",
     "/results",
     "/examples/tdd"
@@ -300,7 +300,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
     test "the page a reader is sent to for a proof says what is and is not there",
          %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/proofs")
+      {:ok, _live, html} = live(conn, ~p"/verify")
       text = visible_text(html)
 
       # This route owns the verifier boundary; published evidence lives at /results.
