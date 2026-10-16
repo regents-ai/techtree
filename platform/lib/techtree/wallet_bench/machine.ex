@@ -387,7 +387,8 @@ defmodule Techtree.WalletBench.Machine do
   to 2,000 characters.
   """
   @spec describe_error(term()) :: String.t()
-  def describe_error(error), do: error |> error_text() |> Blank.blank([]) |> String.slice(0, 2000)
+  def describe_error(error),
+    do: error |> error_text() |> Blank.blank(Blank.site_known()) |> String.slice(0, 2000)
 
   defp error_text(error) when is_binary(error), do: error
   defp error_text(%{__exception__: true} = error), do: Exception.message(error)

@@ -101,13 +101,13 @@ defmodule Techtree.WalletBench.Machine.Changes.BuildBaseline do
   end
 
   defp failed(changeset, machine, how) do
-    case Remote.job_log_tail(machine.name, @job) do
+    case Remote.job_log_tail(machine.name, @job, Blank.site_known()) do
       {:ok, log} ->
         reason = "The baseline build #{how}."
 
         changeset
         |> Ash.Changeset.force_change_attributes(%{state: :failed, failure: reason})
-        |> put_detail(%{failure: reason, log_tail: Blank.blank(log, [])})
+        |> put_detail(%{failure: reason, log_tail: log})
 
       {:error, error} ->
         Ash.Changeset.add_error(changeset, error)

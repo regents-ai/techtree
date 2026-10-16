@@ -15,6 +15,7 @@ defmodule Techtree.WalletBench.Remote do
 
   @bin "/work/bin"
   @stderr_tail 2000
+  @window_margin 2000
 
   @doc "Runs a command and returns what it printed, if it ended with exit code 0."
   @spec run(String.t(), [String.t(), ...], keyword()) :: {:ok, String.t()} | {:error, term()}
@@ -92,22 +93,21 @@ defmodule Techtree.WalletBench.Remote do
     end
   end
 
-  @doc "The end of a background job's log."
-  @spec job_log_tail(String.t(), String.t()) :: {:ok, String.t()} | {:error, term()}
-  def job_log_tail(name, job) do
-    with {:ok, log} <-
-           run(name, ["tail", "-c", Integer.to_string(@stderr_tail), "/work/jobs/#{job}/log"]) do
-      {:ok, String.replace_invalid(log)}
+  @doc """
+  The end of a background job's log, blanked against `known` before it is cut:
+  the window read runs `@window_margin` bytes past the cut, more than the
+  longest secret, so one straddling the cut is whole in the window, and a
+  fragment at the window's start is never kept (`Blank.last_of_window/4`).
+  """
+  @spec job_log_tail(String.t(), String.t(), [Blank.known()]) ::
+          {:ok, String.t()} | {:error, term()}
+  def job_log_tail(name, job, known) do
+    window = Integer.to_string(@stderr_tail + @window_margin)
+
+    with {:ok, log} <- run(name, ["tail", "-c", window, "/work/jobs/#{job}/log"]) do
+      {:ok, Blank.last_of_window(log, known, @stderr_tail, @window_margin)}
     end
   end
 
-  defp tail(text) when byte_size(text) <= @stderr_tail,
-    do: text |> String.replace_invalid() |> Blank.blank([])
-
-  defp tail(text),
-    do:
-      text
-      |> binary_part(byte_size(text) - @stderr_tail, @stderr_tail)
-      |> String.replace_invalid()
-      |> Blank.blank([])
+  defp tail(text), do: Blank.last(text, Blank.site_known(), @stderr_tail)
 end

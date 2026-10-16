@@ -26,7 +26,7 @@ defmodule Techtree.WalletBench.Funding do
 
   import Techtree.WalletBench.BaseRpc, only: [call: 2, integer: 1]
 
-  alias Techtree.WalletBench.{BaseCheck, BaseRpc, Funder, Payment, Turn}
+  alias Techtree.WalletBench.{BaseCheck, BaseRpc, Blank, Funder, Payment, Turn}
 
   @chain_id 8453
 
@@ -177,7 +177,7 @@ defmodule Techtree.WalletBench.Funding do
   defp on_base(@chain_id), do: :ok
   defp on_base(chain_id), do: {:error, "The bench's Base RPC answers for chain #{chain_id}."}
 
-  defp untouched(%{"problem" => problem}), do: {:refuse, problem}
+  defp untouched(%{"problem" => problem}), do: {:refuse, Blank.blank(problem, Blank.site_known())}
 
   defp untouched(%{"eth_wei" => 0, "usdc_units" => 0, "nonce" => nonce, "code_bytes" => code})
        when nonce == 0 or code > 0,
@@ -251,11 +251,16 @@ defmodule Techtree.WalletBench.Funding do
       "The #{send.token} send needs #{gas} gas, over the bench's ceiling of #{ceiling} per send."}}
   end
 
+  # The revert reason is text the agent's contract chooses.
   defp refused(:usdc, reason),
-    do: "Base answers that the USDC send to the agent's address would fail: #{reason}"
+    do:
+      "Base answers that the USDC send to the agent's address would fail: " <>
+        Blank.blank(reason, Blank.site_known())
 
   defp refused(:eth, reason),
-    do: "Base answers that the agent's address would not take the ETH for gas: #{reason}"
+    do:
+      "Base answers that the agent's address would not take the ETH for gas: " <>
+        Blank.blank(reason, Blank.site_known())
 
   defp funder_can_pay(funder, sends, fees) do
     gas = sends |> Enum.map(& &1.fields.gas) |> Enum.sum() |> Kernel.*(fees.max)

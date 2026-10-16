@@ -49,7 +49,7 @@ defmodule Techtree.WalletBench.Blank do
   The known secrets of a turn: model and operator keys, and each value in
   `secrets.py`'s answer labelled with the kind of file it came from.
   """
-  @spec known(String.t(), [%{String.t() => term()}], [String.t() | nil]) :: [known()]
+  @spec known(String.t() | nil, [%{String.t() => term()}], [String.t() | nil]) :: [known()]
   def known(model_key, files, operator_keys \\ []) do
     from_files =
       for %{"path" => path, "values" => values} <- files, value <- values do
@@ -64,6 +64,63 @@ defmodule Techtree.WalletBench.Blank do
     keys ++ from_files
   end
 
+  @doc """
+  The site's own secrets that could reach a machine's output or an error: the
+  model key sent to each attempt, the Bankr key, the Sprites token, the
+  evidence store's secret and the funder's key. Failure text and command errors
+  are blanked against these as well as by shape, so a key without a vendor
+  prefix, or written without its 0x, cannot stay in them.
+  """
+  @spec site_known() :: [known()]
+  def site_known do
+    known(
+      Application.get_env(:techtree, Techtree.WalletBench, [])[:model_key],
+      [],
+      [
+        Application.get_env(:techtree, :wallet_bench_bankr_api_key),
+        Application.get_env(:regent_sprites, :token),
+        Application.get_env(:techtree, Techtree.WalletBench.Evidence, [])[:secret_access_key]
+        | funder_key_forms(System.get_env("WALLETBENCH_FUNDER_KEY"))
+      ]
+    )
+  end
+
+  @doc """
+  The last `bytes` of `text`, cut only after it is blanked, so a secret that
+  straddles the cut leaves none of itself behind. A window fetched for this
+  should start more than the longest secret before the cut
+  (`Techtree.WalletBench.Remote.job_log_tail/3`).
+  """
+  @spec last(String.t(), [known()], pos_integer()) :: String.t()
+  def last(text, known, bytes) do
+    blanked = text |> String.replace_invalid() |> blank(known)
+
+    if byte_size(blanked) <= bytes,
+      do: blanked,
+      else: blanked |> binary_part(byte_size(blanked) - bytes, bytes) |> String.replace_invalid()
+  end
+
+  @doc """
+  The last `bytes` of a window read `margin` bytes past the cut, blanked first.
+  A window that came back full may start inside a secret; blanking can shrink
+  what follows, so no more is kept than lies past the margin once blanked.
+  """
+  @spec last_of_window(String.t(), [known()], pos_integer(), pos_integer()) :: String.t()
+  def last_of_window(window, known, bytes, margin) when byte_size(window) < bytes + margin,
+    do: last(window, known, bytes)
+
+  def last_of_window(window, known, bytes, margin) do
+    blanked = window |> String.replace_invalid() |> blank(known)
+
+    case min(bytes, byte_size(blanked) - margin) do
+      keep when keep > 0 ->
+        blanked |> binary_part(byte_size(blanked) - keep, keep) |> String.replace_invalid()
+
+      _none ->
+        ""
+    end
+  end
+
   @doc "Blanks every known secret, then every pattern, in `text`."
   @spec blank(String.t(), [known()]) :: String.t()
   def blank(text, known) do
@@ -74,6 +131,14 @@ defmodule Techtree.WalletBench.Blank do
     |> blank_patterns()
     |> blank_phrases()
   end
+
+  # The funder's key as configured and, without its 0x, as bare hex; only a key
+  # of the shape the funder accepts, so a stray short value blanks nothing else.
+  defp funder_key_forms("0x" <> hex = key) when byte_size(hex) == 64 do
+    if hex =~ ~r/\A[0-9a-fA-F]{64}\z/, do: [key, hex], else: []
+  end
+
+  defp funder_key_forms(_key), do: []
 
   defp forms(value) do
     escaped = value |> Jason.encode!() |> String.slice(1..-2//1)

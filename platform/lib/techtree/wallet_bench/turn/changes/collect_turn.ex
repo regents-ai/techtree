@@ -20,7 +20,6 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   import Techtree.WalletBench.Attempt.Changes.RecordEvent, only: [put_detail: 2]
 
   alias Techtree.WalletBench.{Attempt, Blank, Catalog, Evidence, Remote}
-  alias Techtree.WalletBench.Attempt.Changes.AttachCredentials
 
   @wait_seconds 30
   @max_folder_bytes 20_000_000
@@ -69,13 +68,13 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
         :missing -> "was never started"
       end
 
-    with {:ok, log} <- Remote.job_log_tail(attempt.machine.name, Catalog.turn_job(test)),
-         {:ok, known, _secret_files} <- known_secrets(attempt.machine.name) do
+    with {:ok, known, _secret_files} <- known_secrets(attempt.machine.name),
+         {:ok, log} <- Remote.job_log_tail(attempt.machine.name, Catalog.turn_job(test), known) do
       reason = "The turn's runner #{how}."
 
       changeset
       |> Ash.Changeset.force_change_attributes(%{state: :failed, failure: reason})
-      |> put_detail(%{failure: reason, log_tail: Blank.blank(log, known)})
+      |> put_detail(%{failure: reason, log_tail: log})
     else
       {:error, error} -> Ash.Changeset.add_error(changeset, error)
     end
@@ -110,8 +109,7 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   defp known_secrets(name) do
     with {:ok, %{"files" => secret_files}} <-
            Remote.json(name, ["sudo", "/.sprite/bin/python3", "/work/bin/machine/secrets.py"]) do
-      bankr_key = Application.get_env(:techtree, :wallet_bench_bankr_api_key)
-      known = Blank.known(AttachCredentials.model_key(), secret_files, [bankr_key])
+      known = Blank.site_known() ++ Blank.known(nil, secret_files)
       {:ok, known, secret_files}
     end
   end
