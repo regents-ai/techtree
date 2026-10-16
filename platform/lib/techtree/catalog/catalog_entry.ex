@@ -107,7 +107,7 @@ defmodule Techtree.Catalog.CatalogEntry do
     end
 
     policy action_type([:create, :update, :destroy, :action]) do
-      authorize_if actor_attribute_equals(:role, :system)
+      authorize_if actor_attribute_equals(:__struct__, Techtree.Actors.System)
     end
   end
 
