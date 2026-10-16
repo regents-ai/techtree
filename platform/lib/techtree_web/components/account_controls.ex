@@ -7,18 +7,11 @@ defmodule TechtreeWeb.Components.AccountControls do
   def account_target(_account_control), do: "sign-in"
 
   attr :account_control, Techtree.AccessContext.AccountControl, required: true
-  attr :enabled, :boolean, default: true
-
-  attr :panel, :boolean,
-    default: true,
-    doc: """
-    Signed in, the name opens the side panel, which holds Account and Sign out.
-    A page without the side panel (the workshop pages) shows Sign out beside the name.
-    """
 
   @doc """
-  The account control. auth_lazy.ts drives its `data-account-target` markers;
-  the component itself never authenticates anyone.
+  The account control at the right of the header on every page: Sign in, or,
+  signed in, the name, which opens the side panel. auth_lazy.ts drives its
+  `data-account-target` markers; the component itself never authenticates anyone.
   """
   def account_control(assigns) do
     ~H"""
@@ -27,12 +20,11 @@ defmodule TechtreeWeb.Components.AccountControls do
         :if={@account_control.kind == :sign_in}
         type="button"
         data-account-target="sign-in"
-        disabled={!@enabled}
       >
         {@account_control.label}
       </Regent.Primitives.button>
       <button
-        :if={@panel and @account_control.kind in [:signed_in, :preview]}
+        :if={@account_control.kind == :signed_in}
         id="account-chip"
         class="account-chip"
         type="button"
@@ -43,19 +35,6 @@ defmodule TechtreeWeb.Components.AccountControls do
       >
         <.account_name id="account-chip-picture" account_control={@account_control} />
       </button>
-      <%= if !@panel and @account_control.kind in [:signed_in, :preview] do %>
-        <span class="account-chip">
-          <.account_name id="account-name-picture" account_control={@account_control} />
-        </span>
-        <Regent.Primitives.button
-          variant="quiet"
-          type="button"
-          disabled={!@enabled}
-          data-account-target="sign-out"
-        >
-          Sign out
-        </Regent.Primitives.button>
-      <% end %>
       <p
         id="account-auth-status"
         class="account-auth-status"
@@ -74,7 +53,7 @@ defmodule TechtreeWeb.Components.AccountControls do
   attr :account_control, Techtree.AccessContext.AccountControl, required: true
 
   # The account's picture and name. The `profile` marker tells the browser the
-  # page was drawn for a signed-in account; the workshop's sample account has none.
+  # page was drawn for a signed-in account.
   defp account_name(assigns) do
     ~H"""
     <.account_picture
@@ -86,7 +65,7 @@ defmodule TechtreeWeb.Components.AccountControls do
     />
     <span
       class="account-name"
-      data-account-target={@account_control.kind == :signed_in && "profile"}
+      data-account-target="profile"
     >
       {@account_control.label}
     </span>

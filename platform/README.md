@@ -281,11 +281,15 @@ mix precommit   # warnings-as-errors, unused locks, Hex audit, format, Credo, So
 `mix phx.server` needs `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY`; without them the
 local server refuses to start, because nobody could sign in. Other tasks run without them.
 
-The shared account lives at `/account`, with Credits, Points, wallets and connections
-in the same frame. Sign-in uses the site's own Privy settings and a revocable server
-session. Pairing uses that verified account; publication still needs its independent
-proof. Points earning and money tests remain disabled. This local account adoption
-has not yet passed real Privy/browser acceptance or been released.
+Every page can sign in. The header shows Sign in, or the person's name, which opens
+the side panel (`TechtreeWeb.SidePanelLive`): Sign out, Manage Account, the agents
+paired with the account with where each was last active, and Pair New Agent. Each
+agent's reading from the sign-in service is kept five minutes on the machine
+(`Techtree.Agents.ActivityReading`). The shared account lives at `/account`, with
+Credits, Points, wallets and connections in the same frame. Sign-in uses the site's
+own Privy settings and a revocable server session, so every page is served under the
+sign-in content policy. Pairing uses that verified account; publication still needs
+its independent proof. Points earning and money tests remain disabled.
 
 `ETHEREUM_READ_RPC_URL` optionally enables the template's ENS lookup at sign-in.
 It must be HTTPS and is ignored in tests. No lookup runs when it is absent.
@@ -315,6 +319,7 @@ monorepo root.
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 | `TECHTREE_SHOWCASE` | `public` or `off`: whether the motion lab at `/animations` exists; required in production, `public` elsewhere unless set |
+| `SIWA_ACTIVITY_READ_TOKEN` | the reader key for the sign-in service's agent activity, which gives the side panel each agent's last active site and the Account page each agent's sites by day (`Techtree.Agents.ActivityReading` keeps each reading five minutes); optional, and unset means neither shows activity |
 
 No model-provider credential is read by this application.
 

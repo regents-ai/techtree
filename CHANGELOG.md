@@ -4,6 +4,13 @@
 
 ### Changed
 
+- Every page has Sign in at the top right. Signed in, your name opens a side
+  panel with Sign out, Manage Account, your paired agents with where each was
+  last active, and Pair New Agent with ten agents to choose from. On a wide
+  screen it stays open as you move between pages; on a phone it opens over the
+  page.
+- The Account page's Pair New Agent opens the side panel, and an agent that
+  isn't paired yet is told to ask its person to open Pair New Agent there.
 - The home page says what Techtree is for: "The fastest way for a business to
   uplift their agent Harness / Environment / Skill", built on Prime Intellect &
   NVIDIA Nemotron. Each wallet test starts from the same identical cloud server

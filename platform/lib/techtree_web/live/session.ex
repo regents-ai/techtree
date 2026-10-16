@@ -110,9 +110,7 @@ defmodule TechtreeWeb.Live.Session do
     socket
     |> assign_principal(account)
     |> assign(session_lease: lease)
-    |> attach_hook(:session_authority_params, :handle_params, fn _params, _uri, socket ->
-      recheck(socket, lease, &redirect(&1, to: @public_root))
-    end)
+    |> recheck_on_navigation(lease)
     |> attach_hook(:session_authority_event, :handle_event, fn _event, _params, socket ->
       recheck(socket, lease, & &1)
     end)
@@ -131,6 +129,17 @@ defmodule TechtreeWeb.Live.Session do
     end)
     |> attach_hook(:session_authority_async, :handle_async, fn _name, _result, socket ->
       recheck_once_lapsed(socket, lease)
+    end)
+  end
+
+  # Only a page the router mounted navigates. The side panel beside it
+  # (`TechtreeWeb.SidePanelLive`) has no navigation of its own, and LiveView
+  # refuses the hook there; its events and messages are rechecked as a page's are.
+  defp recheck_on_navigation(%{router: nil} = socket, _lease), do: socket
+
+  defp recheck_on_navigation(socket, lease) do
+    attach_hook(socket, :session_authority_params, :handle_params, fn _params, _uri, socket ->
+      recheck(socket, lease, &redirect(&1, to: @public_root))
     end)
   end
 

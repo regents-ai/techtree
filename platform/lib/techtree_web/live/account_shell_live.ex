@@ -6,7 +6,7 @@ defmodule TechtreeWeb.AccountShellLive do
   alias Techtree.Accounts.LinkedIdentity.Providers
   alias Techtree.Actors.Human
   alias TechtreeWeb.{AccountLive, CreditsHistoryLive, Read}
-  import TechtreeWeb.Components.AccountControls, only: [account_control: 1, credits_control: 1]
+  import TechtreeWeb.Components.AccountControls, only: [credits_control: 1]
 
   @tabs [
     %{route_id: :account, label: "Account", path: "/account"},
@@ -124,11 +124,10 @@ defmodule TechtreeWeb.AccountShellLive do
   end
 
   # An agent paired, checked in or was unpaired, here or on another Regent site.
+  # The Account tab lists the agents; the side panel follows on its own.
   def handle_info(:agents_changed, socket) do
-    if socket.assigns.route_spec.route_id == :account do
-      send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
-      send_update(TechtreeWeb.PairingBox, id: "account-agents-pair", agents_changed: true)
-    end
+    if socket.assigns.route_spec.route_id == :account,
+      do: send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
 
     {:noreply, socket}
   end
@@ -155,7 +154,6 @@ defmodule TechtreeWeb.AccountShellLive do
           </nav>
           <div class="account-shell__controls">
             <.credits_control :if={current_account(@access_context)} credits={@credits_read} />
-            <.account_control account_control={@account_control} panel={false} />
           </div>
         </div>
         <AccountLive.profile

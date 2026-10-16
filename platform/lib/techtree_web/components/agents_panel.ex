@@ -1,9 +1,11 @@
 defmodule TechtreeWeb.AgentsPanel do
   @moduledoc """
-  The agents a person has paired with their account (`RegentAgents`), in the
-  shared agents list (`Regent.Account.agents`), the box to pair another
-  (`TechtreeWeb.PairingBox`), and a larger view of one agent with what it has
-  done across the Regent sites (`RegentAgents.Activity`) and Unpair.
+  The agents a person has paired with their account (`RegentAgents`), on the
+  Account page, in the shared agents list (`Regent.Account.agents`), with Pair
+  New Agent opening the side panel's pairing box (`TechtreeWeb.PairingBox`),
+  and a larger view of one agent with where it has been active across the Regent
+  sites, a line for each site and day (`Techtree.Agents.ActivityReading`), and
+  Unpair.
 
   Pairing immediately lets an agent do what `TechtreeWeb.Capabilities.may/0`
   lists, which the list's tip and the agent's view show the person, and the
@@ -12,18 +14,17 @@ defmodule TechtreeWeb.AgentsPanel do
   listed here too.
 
   The parent passes `account` (the signed-in account), its `session_lease` as
-  `lease` and `id`, and sends `agents_changed: true`, to this panel and to its
-  pairing box (`"\#{id}-pair"`), when an agent pairs, checks in or is unpaired
-  anywhere.
+  `lease` and `id`, and sends `agents_changed: true` when an agent pairs, checks
+  in or is unpaired anywhere.
   """
   use TechtreeWeb, :live_component
 
   alias Regent.Primitives, as: P
-  alias RegentAgents.{Activity, Harness, HumanBacking, PairedAgent, Person}
+  alias RegentAgents.{Harness, HumanBacking, PairedAgent, Person}
+  alias Techtree.Agents.ActivityReading
   alias Techtree.Credits
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.Live.Session
-  alias TechtreeWeb.PairingBox
 
   @impl true
   def mount(socket),
@@ -61,9 +62,6 @@ defmodule TechtreeWeb.AgentsPanel do
   def handle_event("close_agent", _params, socket),
     do: {:noreply, assign(socket, detail: nil, notice: nil)}
 
-  def handle_event("load_more_activity", %{"id" => id}, socket),
-    do: {:noreply, load_more_activity(socket, id)}
-
   def handle_event("unpair_agent", %{"id" => id}, socket) do
     actor = socket.assigns.person
 
@@ -83,25 +81,13 @@ defmodule TechtreeWeb.AgentsPanel do
     {:noreply, socket |> read_agents() |> assign(notice: notice)}
   end
 
-  # The newest page of what the open agent has done and its registry listing,
-  # landing only while that agent is still open and its older activity has not
-  # been asked for.
+  # Where the open agent has been active and its registry listing, landing only
+  # while that agent is still open.
   @impl true
   def handle_async({:agent_activity, id}, result, socket) do
     case socket.assigns.detail do
-      %{agent: %{id: ^id}, paged: false} = detail ->
-        {:noreply, assign(socket, detail: first_page(detail, result))}
-
-      _moved_on ->
-        {:noreply, socket}
-    end
-  end
-
-  # The next page of the open agent's activity, added below what is shown.
-  def handle_async({:more_agent_activity, id}, result, socket) do
-    case socket.assigns.detail do
-      %{agent: %{id: ^id}, more: :loading} = detail ->
-        {:noreply, assign(socket, detail: next_page(detail, result))}
+      %{agent: %{id: ^id}} = detail ->
+        {:noreply, assign(socket, detail: activity_read(detail, result))}
 
       _moved_on ->
         {:noreply, socket}
@@ -122,15 +108,10 @@ defmodule TechtreeWeb.AgentsPanel do
   defp spent({:ok, {:ok, amount}}), do: RegentCredits.Amount.format(amount)
   defp spent(_failed), do: :unavailable
 
-  defp first_page(detail, {:ok, {:ok, page}}),
-    do: %{detail | activity: page.entries, next: page.next, listing: page.listing}
+  defp activity_read(detail, {:ok, {:ok, reading}}),
+    do: %{detail | activity: reading.days, listing: reading.listing}
 
-  defp first_page(detail, _failed), do: %{detail | activity: :unavailable}
-
-  defp next_page(detail, {:ok, {:ok, page}}),
-    do: %{detail | activity: detail.activity ++ page.entries, next: page.next, more: :idle}
-
-  defp next_page(detail, _failed), do: %{detail | more: :unavailable}
+  defp activity_read(detail, _failed), do: %{detail | activity: :unavailable}
 
   @impl true
   def render(assigns) do
@@ -166,7 +147,7 @@ defmodule TechtreeWeb.AgentsPanel do
           </P.button>
         </:actions>
         <:footer>
-          <.live_component module={PairingBox} id={"#{@id}-pair"} lease={@lease} account={@account} />
+          <P.button type="button" variant="secondary" data-aside-open>Pair New Agent</P.button>
 
           <Regent.Account.agent_detail
             :if={@detail}
@@ -178,11 +159,9 @@ defmodule TechtreeWeb.AgentsPanel do
             may={Capabilities.may()}
             spent={@detail.spent}
             activity={activity(@detail.activity)}
-            more={if is_list(@detail.activity) and is_binary(@detail.next), do: @detail.more}
             notice={@notice}
             target={@myself}
             open_event="open_agent"
-            more_event="load_more_activity"
             phx-hook="InfoDialog"
             data-open
             data-close-event="close_agent"
@@ -206,10 +185,10 @@ defmodule TechtreeWeb.AgentsPanel do
     """
   end
 
-  # Each agent as the shared list shows it, newest first as the account reads them.
-  defp rows(:unavailable, _now), do: :unavailable
+  @doc "Each agent as the shared list shows it, newest first as the account reads them."
+  def rows(:unavailable, _now), do: :unavailable
 
-  defp rows(agents, now) do
+  def rows(agents, now) do
     Enum.map(agents, fn agent ->
       %{
         id: agent.id,
@@ -258,13 +237,13 @@ defmodule TechtreeWeb.AgentsPanel do
     }
   end
 
-  defp activity(entries) when is_list(entries) do
-    Enum.map(entries, fn entry ->
+  defp activity(days) when is_list(days) do
+    Enum.map(days, fn line ->
       %{
-        action: entry.action,
-        site: entry.site,
-        occurred_at_iso: DateTime.to_iso8601(entry.occurred_at),
-        occurred_at: moment(entry.occurred_at)
+        site: line.site,
+        day_iso: Date.to_iso8601(line.day),
+        day: Calendar.strftime(line.day, "%-d %B %Y"),
+        hours: hours(line.first_seen_at, line.last_seen_at)
       }
     end)
   end
@@ -288,35 +267,21 @@ defmodule TechtreeWeb.AgentsPanel do
     end
   end
 
-  # What the agent has done and its registry listing are read from the sign-in
-  # service in the background, and what it has spent from the person's Credits.
-  # What is already on screen for this agent stays until the new reading lands.
-  # Once the person has asked for older activity, the list stays as they are
-  # reading it.
+  # Where the agent has been active and its registry listing come from its
+  # shared reading in the background, and what it has spent from the person's
+  # Credits. What is already on screen for this agent stays until the new
+  # reading lands.
   defp show_agent(socket, id) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, %PairedAgent{} = agent} <-
            RegentAgents.get_my_agent(id, actor: socket.assigns.person) do
       case socket.assigns.detail do
-        %{agent: %{id: ^id}, paged: true} = shown ->
-          assign(socket, detail: %{shown | agent: agent})
-
         %{agent: %{id: ^id}} = shown ->
           socket |> assign(detail: %{shown | agent: agent}) |> read_detail(agent)
 
         _other ->
           socket
-          |> assign(
-            detail: %{
-              agent: agent,
-              activity: :loading,
-              next: nil,
-              more: :idle,
-              paged: false,
-              listing: nil,
-              spent: :loading
-            }
-          )
+          |> assign(detail: %{agent: agent, activity: :loading, listing: nil, spent: :loading})
           |> read_detail(agent)
       end
     else
@@ -328,26 +293,16 @@ defmodule TechtreeWeb.AgentsPanel do
     credits = socket.assigns.credits
 
     socket
-    |> start_async({:agent_activity, agent.id}, fn ->
-      Activity.recent(agent, Capabilities.requests())
-    end)
+    |> start_async({:agent_activity, agent.id}, fn -> ActivityReading.read(agent) end)
     |> start_async({:agent_spent, agent.id}, fn -> Credits.spent_by(credits, agent.wallet) end)
   end
 
-  defp load_more_activity(
-         %{assigns: %{detail: %{agent: %{id: id} = agent, next: next, more: more} = detail}} =
-           socket,
-         id
-       )
-       when is_binary(next) and more != :loading do
-    socket
-    |> assign(detail: %{detail | more: :loading, paged: true})
-    |> start_async({:more_agent_activity, id}, fn ->
-      Activity.recent(agent, Capabilities.requests(), next)
-    end)
+  # When the day's first and last request came, or the one time when they share
+  # a minute.
+  defp hours(first, last) do
+    {from, to} = {Calendar.strftime(first, "%H:%M"), Calendar.strftime(last, "%H:%M")}
+    if from == to, do: "#{to} UTC", else: "#{from} to #{to} UTC"
   end
-
-  defp load_more_activity(socket, _id), do: socket
 
   defp moment(datetime), do: Calendar.strftime(datetime, "%-d %B %Y, %H:%M UTC")
 end

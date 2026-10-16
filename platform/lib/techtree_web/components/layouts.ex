@@ -32,6 +32,7 @@ defmodule TechtreeWeb.Layouts do
   end
 
   attr(:current_path, :string, default: "/")
+  slot(:inner_block, required: true, doc: "the account control and its side panel")
 
   defp masthead(assigns) do
     assigns = assign(assigns, repository_url: @repository_url, products: products())
@@ -81,7 +82,6 @@ defmodule TechtreeWeb.Layouts do
               </span>
             </span>
             <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
-            <a href={~p"/account"} aria-current={current_section(@current_path, "/account")}>Account</a>
           </span>
           <a
             class="masthead__github"
@@ -106,6 +106,7 @@ defmodule TechtreeWeb.Layouts do
           </a>
         </nav>
         <Regent.ThemeToggle.button id="site-theme-toggle" data-theme-toggle />
+        {render_slot(@inner_block)}
       </div>
     </header>
     """

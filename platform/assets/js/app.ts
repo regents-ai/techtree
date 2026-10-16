@@ -3,9 +3,12 @@ import {browserCsrfToken, holdSocketDuringCookieRotation, installAccountAuthLazy
 import {InfoDialog} from "./hooks/info_dialog"
 import {AccountPicture} from "./hooks/account_picture"
 import {AccountShell} from "./hooks/account_shell"
+import {SidePanel} from "./hooks/side_panel"
+import {PanelAgents} from "./hooks/panel_agents"
 import {VerifiedConnections} from "./hooks/verified_connections"
 import {OnchainSteps} from "./hooks/onchain_steps"
 import "../vendor/regent_ui/blog.mjs"
+import "../vendor/regent_ui/pill_select.mjs"
 
 // The pages are read-only documents. This bundle keeps the live connection,
 // copies published commands, remembers the reader's color preference, reads
@@ -320,7 +323,7 @@ Hooks.CopyCommandPageView = {
   },
 }
 
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, VerifiedConnections, OnchainSteps, MotionCount, MotionRefusal})
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, SidePanel, PanelAgents, VerifiedConnections, OnchainSteps, MotionCount, MotionRefusal})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

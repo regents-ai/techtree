@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-brand="techtree" data-theme={assigns[:theme]}>
+<html lang="en" data-brand="techtree" data-theme={assigns[:theme]} data-aside={@aside}>
   <head>
     <meta name="agent-request-origin" content={TechtreeWeb.Endpoint.url()} />
     <meta charset="utf-8" />
@@ -9,13 +9,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <meta :if={assigns[:session_refused]} name="session-refused" content="true" />
+    <meta name="privy-app-id" content={Application.get_env(:techtree, :privy, [])[:app_id]} />
     <meta
-      :if={String.starts_with?(@conn.request_path, "/account")}
-      name="privy-app-id"
-      content={Application.get_env(:techtree, :privy, [])[:app_id]}
-    />
-    <meta
-      :if={String.starts_with?(@conn.request_path, "/account")}
       name="privy-bridge-src"
       content={TechtreeWeb.Endpoint.static_path("/assets/js/privy_bridge.js")}
     />
@@ -80,7 +75,12 @@
       Skip to main content
     </a>
     <Regent.Structure.frame class="techtree-frame">
-      <.masthead current_path={request_path(assigns)} />
+      <.masthead current_path={request_path(assigns)}>
+        {live_render(@conn, TechtreeWeb.SidePanelLive,
+          container: {:div, class: "masthead__account"},
+          session: TechtreeWeb.Live.Session.render_context(@conn)
+        )}
+      </.masthead>
       {@inner_content}
     </Regent.Structure.frame>
   </body>

@@ -4,7 +4,8 @@
 }
 
 /* Canonical account-control border token from the template's tokens/root.css. */
-.account-shell {
+.account-shell,
+.side-panel {
   --ash-line-strong: light-dark(
     color-mix(in oklab, var(--palette-charcoal) 40%, var(--color-border)),
     color-mix(in oklab, var(--color-fg) 40%, var(--color-border))
@@ -20,17 +21,29 @@
 .account-chip {
   gap: 0.55rem;
   min-width: 0;
+  max-width: 14rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+.account-chip .account-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-chip:hover { background: var(--color-surface); }
+.account-chip[aria-expanded="true"] { border-color: var(--color-border); background: var(--color-surface); }
+.account-chip:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* On a phone the picture stands for the name, which screen readers still hear. */
+@media (max-width: 47.99rem) {
+  .account-chip .account-avatar + .account-name {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
 }
 
-/* Account and balance controls share the icon buttons' height, not the whole header. */
-#shell-header > .account-control {
-  align-self: center;
-}
-
-#app-shell #shell-header .account-chip {
-  height: auto;
-  min-height: 2.75rem;
-}
+.account-chip { min-height: 2.75rem; }
 
 /* The shared prism control draws its own box and hover; the bar only centres it. */
 .theme-control {
@@ -102,9 +115,6 @@
 .account-shell__tabs a { padding: .65rem .8rem; color: var(--color-fg-muted); text-decoration: none; border-bottom: 2px solid transparent; }
 .account-shell__tabs a[aria-current="page"] { color: var(--color-fg); border-bottom-color: currentColor; }
 .account-shell__tabs a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-.account-shell .account-control { min-width: 0; flex-wrap: wrap; }
-.account-shell .account-name { overflow-wrap: anywhere; }
-.account-shell .account-chip { min-width: 0; }
 @media (max-width: 40rem) {
   .account-shell__head { align-items: flex-start; }
   /* The five views stay on one row on a phone. A row too wide for the screen
@@ -148,6 +158,3 @@
     background: color-mix(in oklch, var(--color-fg) 6%, transparent);
   }
 }
-
-/* Signed out, the page's own panel offers Sign in, so the header row doesn't repeat it. */
-.account-shell__controls [data-account-target="sign-in"] { display: none; }

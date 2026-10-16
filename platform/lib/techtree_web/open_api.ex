@@ -364,8 +364,8 @@ defmodule TechtreeWeb.OpenAPI do
           "operationId" => "pairAgent",
           "summary" => "Pair an agent with its person's Regent account",
           "description" =>
-            "The agent sends the pairing code its person made on regents.sh, a name and " <>
-              "what it runs on, signed with its own key. One pairing works on every Regent " <>
+            "The agent sends the pairing code its person made with Pair New Agent in the " <>
+              "side panel, a name and what it runs on, signed with its own key. One pairing works on every Regent " <>
               "site. A code works once and expires ten minutes after it was made.",
           "security" => [%{"AgentSignature" => []}],
           "requestBody" => %{

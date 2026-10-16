@@ -4,6 +4,7 @@
 @import "components/account_auth_status.css";
 @import "pages/account.css";
 @import "components/account_shell.css";
+@import "components/side_panel.css";
 @import "../vendor/regent_ui/design_system_tokens.css";
 @import "../vendor/regent_ui/primitives.css";
 @import "./agent_versions.css";
@@ -85,7 +86,7 @@ code { font-size: .9em; }
 .masthead { position: relative; z-index: 20; border-bottom: 1px solid var(--rg-page-rule); }
 .masthead__inner {
   min-height: 6rem; padding: var(--space-2) var(--rg-panel-padding);
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto;
   /* The prism sits .5rem inside its press target, so an 8px column gap leaves 16px beside it. */
   align-items: center; gap: var(--space-3) var(--space-1);
 }
@@ -405,9 +406,10 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 .error-page nav a { min-height: 2.75rem; display: inline-flex; align-items: center; }
 
 @media (max-width: 63.99rem) {
-  .masthead__inner { grid-template-columns: minmax(0, 1fr) auto; }
+  .masthead__inner { grid-template-columns: minmax(0, 1fr) auto auto; }
   .masthead__nav { grid-row: 2; grid-column: 1 / -1; }
   .theme-toggle { grid-row: 1; grid-column: 2; }
+  .masthead__account { grid-column: 3; }
   .setup-page__plans { grid-template-columns: minmax(0, 1fr); }
   .hero__products { width: min(85%, 48rem); }
   .docs-layout { grid-template-columns: minmax(0, 1fr); }

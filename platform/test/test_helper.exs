@@ -1,11 +1,5 @@
 ExUnit.start()
 
-# The agent pairing schema from regent_agents' own migrations, which Regents
-# alone runs in production. Running it again changes nothing. The canonical
-# account table it and the account migration reference is created first, by
-# `mix techtree.setup_local_auth` in the `test` alias.
-RegentAgents.Migrator.up(Techtree.Repo)
-
 Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, :manual)
 
 # The key this run of the suite countersigns receipts with. It is generated

@@ -1,17 +1,6 @@
 defmodule TechtreeWeb.SharedProfileControllerTest do
   use TechtreeWeb.ConnCase, async: false
 
-  setup_all do
-    database = Techtree.Repo.config()[:database]
-
-    unless database == "techtree_test" <> System.get_env("MIX_TEST_PARTITION", ""),
-      do: raise("Profile tests require the prepared disposable database")
-
-    RegentIdentity.Migrator.up(Techtree.Repo)
-    assert RegentIdentity.Migrator.up(Techtree.Repo) == []
-    :ok
-  end
-
   setup do
     key = JOSE.JWK.generate_key({:ec, "P-256"})
     {_, public} = key |> JOSE.JWK.to_public() |> JOSE.JWK.to_pem()
@@ -58,7 +47,6 @@ defmodule TechtreeWeb.SharedProfileControllerTest do
       conn = build_conn() |> get(path)
       assert html_response(conn, 200)
       assert [policy] = get_resp_header(conn, "content-security-policy")
-      refute policy =~ "auth.privy.io"
       refute policy =~ "unsafe-eval"
     end
   end

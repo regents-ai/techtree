@@ -31,7 +31,7 @@ defmodule TechtreeWeb.Plugs.PairedAgent do
           403,
           :agent_not_paired,
           "This agent is not paired with an account.",
-          "Ask your person to sign in at /account and choose you under Agents. Redeem the code they paste you with regents techtree agents pair (POST /api/agents/v1/pair), then send the request again."
+          "Ask your person to sign in on this site and pair you with Pair New Agent in the side panel, then send the request again."
         )
 
       {:error, _error} ->

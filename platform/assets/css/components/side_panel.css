@@ -1,0 +1,90 @@
+/* The side panel the account name opens, on every page (TechtreeWeb.SidePanelLive).
+   Whether it is open is the visitor's, on <html data-aside>. On a wide screen it
+   stands at the right edge and the page gives way; on a phone, too narrow for
+   both, it drops down under the header and covers the page. */
+
+:root { --side-panel-width: 20rem; }
+
+.masthead__account { grid-row: 1; grid-column: 4; justify-self: end; min-width: 0; }
+
+/* A size container, so the agents list can take a quarter of its height. */
+#shell-aside {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: 30;
+  container-type: size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  inline-size: var(--side-panel-width);
+  overflow: hidden auto;
+  border-inline-start: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-family-ui);
+  line-height: 1.55;
+  transition: transform var(--duration-slow) var(--ease-out), visibility var(--duration-slow);
+}
+#shell-aside:focus { outline: none; }
+
+/* Shown at once on opening, so focus can move into it; hidden only once it has slid shut. */
+:root[data-aside="open"] #shell-aside { transition: transform var(--duration-slow) var(--ease-out); }
+
+:root:not([data-aside="open"]) #shell-aside { visibility: hidden; transform: translateX(100%); }
+
+@media (min-width: 48rem) {
+  :root[data-aside="open"]:has(#shell-aside) body { padding-inline-end: var(--side-panel-width); }
+}
+
+/* Sign out, Manage Account and the Techtree account share short rows. */
+.shell-aside__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  border-block-end: 1px solid var(--color-border);
+}
+.shell-aside__head .rg-button {
+  min-height: 2rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+#shell-aside section {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+  border-block-end: 1px solid var(--color-border);
+}
+#shell-aside h2 { margin: 0; font-family: var(--font-family-ui); font-size: 0.95rem; font-weight: 600; }
+#shell-aside p { margin: 0; }
+
+@media (max-width: 47.99rem) {
+  /* Under the header, which keeps the name that closes it, and opened only on this
+     page, never on arrival. */
+  #shell-aside {
+    position: absolute;
+    inset: 100% auto auto calc((100% - 100vw) / 2);
+    inline-size: 100vw;
+    block-size: calc(100dvh - 100%);
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--color-border);
+    transform: none;
+    clip-path: inset(0);
+    transition: clip-path var(--duration-slow) var(--ease-out), visibility var(--duration-slow);
+  }
+  /* Closed, it stays in place, wiped away to the right, so the page never widens. */
+  :root:not([data-aside="open"]) #shell-aside,
+  :root:not([data-aside-here]) #shell-aside { visibility: hidden; transform: none; clip-path: inset(0 0 0 100%); }
+  :root[data-aside="open"][data-aside-here] #shell-aside { transition: clip-path var(--duration-slow) var(--ease-out); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #shell-aside,
+  :root[data-aside="open"] #shell-aside,
+  :root[data-aside="open"][data-aside-here] #shell-aside { transition: none; }
+}

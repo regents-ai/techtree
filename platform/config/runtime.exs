@@ -104,6 +104,10 @@ if broker_url = System.get_env("TECHTREE_SIWA_BROKER_URL") do
   config :regent_agents, :siwa, url: broker_url, audience: "techtree"
 end
 
+# This site's own key for reading what paired agents have done from the sign-in
+# service (RegentAgents.Activity).
+config :regent_agents, :activity_read_token, System.get_env("SIWA_ACTIVITY_READ_TOKEN")
+
 # Without its Privy settings a local server answers every page while nobody can
 # sign in, so it refuses to start. Other mix tasks, such as migrations and code
 # generation, run without them.

@@ -7,6 +7,7 @@ defmodule TechtreeWeb.Router do
   use TechtreeWeb, :router
 
   @theme_cookie "techtree_theme"
+  @aside_cookie "techtree_aside"
 
   # Pages are HTML here. The home page, About, Contact, Privacy, Terms and the
   # Changelog also answer `Accept: text/markdown`, from
@@ -25,23 +26,29 @@ defmodule TechtreeWeb.Router do
     plug :fetch_cookies
     plug :fetch_live_flash
     plug :put_theme
+    plug :put_aside
     plug :put_root_layout, html: {TechtreeWeb.Layouts, :root}
     plug :protect_from_forgery
   end
 
-  # Canonical authentication only on account and sign-in routes.
+  # Canonical authentication on every page, whose side panel signs in and out.
   # sobelow_skip ["Config.CSP"]
   pipeline :account_browser do
     plug :enforce_session_authority
 
     plug :put_secure_browser_headers, %{
-      "content-security-policy" => TechtreeWeb.ContentSecurityPolicy.sign_in(),
-      "cache-control" => "private, no-store"
+      "content-security-policy" => TechtreeWeb.ContentSecurityPolicy.sign_in()
     }
   end
 
+  # The account pages and sign-in answers are never kept by the browser. Other
+  # pages keep Phoenix's revalidated private caching, so back and forward work.
+  pipeline :account_only do
+    plug :no_store
+  end
+
   scope "/", TechtreeWeb do
-    pipe_through [:browser, :account_browser]
+    pipe_through [:browser, :account_browser, :account_only]
     get "/auth/csrf", PrivySessionController, :csrf
     post "/auth/privy/failure", PrivySessionController, :failure
     post "/auth/privy/session", PrivySessionController, :create
@@ -50,7 +57,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:html_only, :browser, :account_browser]
+    pipe_through [:html_only, :browser, :account_browser, :account_only]
 
     live_session :account,
       session: {TechtreeWeb.Live.Session, :render_context, []},
@@ -93,7 +100,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:html_only, :browser]
+    pipe_through [:html_only, :browser, :account_browser]
 
     live "/", HomeLive
     get "/about", PublicPagesController, :show
@@ -119,7 +126,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:motion_lab, :html_only, :browser]
+    pipe_through [:motion_lab, :html_only, :browser, :account_browser]
 
     live_session :motion_lab, on_mount: [{TechtreeWeb.Showcase, :motion_lab}] do
       live "/animations", AnimationsLive, :index
@@ -202,9 +209,18 @@ defmodule TechtreeWeb.Router do
     assign(conn, :theme, saved_theme(conn.req_cookies[@theme_cookie]))
   end
 
+  # Whether the side panel was left open (`assets/js/side_panel.ts`), so the
+  # first render already draws it that way. Only the two values reach the page.
+  defp put_aside(conn, _opts), do: assign(conn, :aside, aside(conn.req_cookies[@aside_cookie]))
+
+  defp aside("open"), do: "open"
+  defp aside(_value), do: "closed"
+
   # Until the visitor chooses, there is no theme and the device decides.
   defp saved_theme(value) when value in ["light", "dark"], do: value
   defp saved_theme(_value), do: nil
+
+  defp no_store(conn, _opts), do: put_resp_header(conn, "cache-control", "private, no-store")
 
   defp enforce_session_authority(conn, _opts),
     do: TechtreeWeb.PrivySessionController.enforce_authority(conn)

@@ -2,10 +2,11 @@ defmodule TechtreeWeb.ContentSecurityPolicy do
   @moduledoc """
   The content security policy the site's pages are served under.
 
-  `reading/0` is the strict baseline: scripts, styles, images and fonts come
-  from this site, requests and the live connection go back to it, and no page
-  frames another site or is framed itself. Account pages use `sign_in/0` to admit Privy
-  and the template account components.
+  `reading/0` is the strict baseline every response starts with: scripts,
+  styles, images and fonts come from this site, requests and the live connection
+  go back to it, and nothing frames another site or is framed itself. Pages use
+  `sign_in/0`, which admits Privy and the template account components, because
+  every page's side panel can sign in.
 
   Stricter than the template's baseline, because nothing here needs more: no
   style attributes in markup (the headline reveal clips each word with a class),
@@ -57,7 +58,7 @@ defmodule TechtreeWeb.ContentSecurityPolicy do
   @doc "The strict baseline every page is served under."
   def reading, do: render(@baseline)
 
-  @doc "The template policy for account pages that can start sign-in."
+  @doc "The template policy for pages, each of which can start sign-in."
   def sign_in do
     @baseline
     |> List.keyreplace("form-action", 0, {"form-action", ["'self'"]})

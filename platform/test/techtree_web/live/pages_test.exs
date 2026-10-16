@@ -134,7 +134,8 @@ defmodule TechtreeWeb.PagesTest do
       end
     end
 
-    test "no page offers a form, an upload, or an account", %{conn: conn} do
+    test "no page offers a form or an upload, and the header's Sign in is its one account control",
+         %{conn: conn} do
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
         markup = String.downcase(html)
@@ -151,6 +152,7 @@ defmodule TechtreeWeb.PagesTest do
 
           assert attributes =~ "rg-copy" or attributes =~ "copycommand" or
                    attributes =~ "data-theme-toggle" or
+                   attributes =~ ~s|data-account-target="sign-in"| or
                    attributes =~ "masthead__menu-button" or
                    attributes =~ "regent-footer__guide" or
                    attributes =~ ~s|phx-click="filter_tasks"|,
@@ -161,7 +163,9 @@ defmodule TechtreeWeb.PagesTest do
           end
         end
 
-        # Nothing on the page invites a reader to identify themselves.
+        assert length(Regex.scan(~r/data-account-target="sign-in"/, markup)) == 1
+
+        # No link invites a reader to identify themselves.
         links = Regex.scan(~r/<a [^>]*>(.*?)<\/a>/s, markup, capture: :all_but_first)
 
         for [label] <- links do
@@ -232,18 +236,24 @@ defmodule TechtreeWeb.PagesTest do
       assert html =~ ~s|<meta name="color-scheme" content="dark">|
     end
 
-    test "pages are sent with a restrictive content policy and no framing", %{conn: conn} do
+    test "pages are sent with the sign-in content policy and no framing", %{conn: conn} do
       conn = get(conn, "/")
 
       assert get_resp_header(conn, "content-security-policy") == [
-               "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; " <>
-                 "font-src 'self'; connect-src 'self' https://api.github.com; base-uri 'none'; " <>
-                 "form-action 'none'; " <>
-                 "frame-ancestors 'none'"
+               TechtreeWeb.ContentSecurityPolicy.sign_in()
              ]
 
       assert get_resp_header(conn, "x-content-type-options") == ["nosniff"]
       assert get_resp_header(conn, "referrer-policy") == ["no-referrer"]
+    end
+
+    test "pages stay in the browser's back and forward history; the account is never kept",
+         %{conn: conn} do
+      assert conn |> get("/docs") |> get_resp_header("cache-control") ==
+               ["max-age=0, private, must-revalidate"]
+
+      assert build_conn() |> get("/account") |> get_resp_header("cache-control") ==
+               ["private, no-store"]
     end
   end
 
