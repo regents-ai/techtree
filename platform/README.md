@@ -289,6 +289,9 @@ has not yet passed real Privy/browser acceptance or been released.
 
 `ETHEREUM_READ_RPC_URL` optionally enables the template's ENS lookup at sign-in.
 It must be HTTPS and is ignored in tests. No lookup runs when it is absent.
+`TECHTREE_BASE_NODE_URL` and `TECHTREE_ETHEREUM_NODE_URL` optionally name the site's
+own Base and Ethereum nodes for Credits purchase checks; the public nodes are used
+without them.
 
 The account migration adds three site-owned tables: session authorities, linked
 identities and ENS projections. It references the existing shared human-account

@@ -71,6 +71,33 @@ if config_env() != :test do
   end
 end
 
+# The server reads a chain through its own node when one is set, such as a
+# private node whose address carries a key; wallets still add the public address.
+# Credits purchases are checked through the Base and Ethereum ones. Tests read no
+# chain, whatever the shell sets.
+if config_env() != :test do
+  node_overrides =
+    for {chain_id, setting} <- [
+          {8453, "TECHTREE_BASE_NODE_URL"},
+          {1, "TECHTREE_ETHEREUM_NODE_URL"}
+        ],
+        node_url = System.get_env(setting),
+        into: %{} do
+      case URI.new(node_url) do
+        {:ok, %URI{scheme: scheme, host: host}}
+        when scheme in ["http", "https"] and host not in [nil, ""] ->
+          {chain_id, node_url}
+
+        _invalid ->
+          raise "#{setting} must be an http or https address"
+      end
+    end
+
+  config :techtree,
+         :chain_nodes,
+         Map.merge(Application.fetch_env!(:techtree, :chain_nodes), node_overrides)
+end
+
 # Agents' signed requests are checked by this sign-in service instead, such as one
 # running on this machine.
 if broker_url = System.get_env("TECHTREE_SIWA_BROKER_URL") do
