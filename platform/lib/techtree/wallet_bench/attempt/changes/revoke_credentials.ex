@@ -22,8 +22,11 @@ defmodule Techtree.WalletBench.Attempt.Changes.RevokeCredentials do
              ) do
         put_detail(changeset, %{credentials: "revoked"})
       else
-        {:ok, other} ->
-          Ash.Changeset.add_error(changeset, "credentials.sh revoke printed #{inspect(other)}")
+        {:ok, _other} ->
+          Ash.Changeset.add_error(
+            changeset,
+            "credentials.sh revoke printed an answer it does not give"
+          )
 
         {:error, error} ->
           Ash.Changeset.add_error(changeset, error)
