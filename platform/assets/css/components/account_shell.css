@@ -107,10 +107,21 @@
 .account-shell .account-chip { min-width: 0; }
 @media (max-width: 40rem) {
   .account-shell__head { align-items: flex-start; }
-  /* The five views stay on one row on a phone. */
-  .account-shell__tabs { flex-wrap: nowrap; gap: 0; max-width: 100%; overflow-x: auto; }
-  .account-shell__tabs a { padding-inline: .3rem; font-size: .85rem; white-space: nowrap; }
+  /* The five views stay on one row on a phone. A row too wide for the screen
+     scrolls sideways, and its right edge fades while there is more to see. */
+  .account-shell__tabs {
+    flex-wrap: nowrap; gap: 0; max-width: 100%; overflow-x: auto;
+    mask-image: linear-gradient(to right, #000 calc(100% - var(--account-tabs-fade)), transparent);
+    animation: account-tabs-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
+  .account-shell__tabs a {
+    display: inline-flex; align-items: center; min-height: 2.75rem;
+    padding-inline: .3rem; font-size: .85rem; white-space: nowrap;
+  }
 }
+@property --account-tabs-fade { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes account-tabs-fade { from { --account-tabs-fade: 1.5rem; } to { --account-tabs-fade: 0px; } }
 
 .account-shell .shell-credits {
   display: inline-flex;

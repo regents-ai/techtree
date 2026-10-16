@@ -55,6 +55,7 @@ defmodule TechtreeWeb.HomeLive do
             phx-update="ignore"
             data-optics-kind="crown"
             data-optics-source={~p"/assets/js/crown_island.js"}
+            data-optics-module
             data-optics-pointer="parent"
             aria-hidden="true"
           >

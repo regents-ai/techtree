@@ -495,7 +495,7 @@ defmodule TechtreeWeb.DocsLive do
               What changed in each release is in the <.link navigate={~p"/changelog"}>changelog</.link>.
               To turn a repository into practice for agents, see
               <.link navigate={~p"/repo2rlenv"}>Repo2RLEnv</.link>
-              <.capability_status capability={:hosted_building} />
+              <.capability_status capability={:hosted_building} />.
             </p>
           </section>
 
