@@ -15,9 +15,6 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ReleaseInfo
 
-  # Install coordinates come from the published release, never marketing copy.
-  @preview_label "Controlled agent evaluations"
-
   @impl true
   def mount(_params, _session, socket) do
     release = ReleaseInfo.current()
@@ -37,8 +34,7 @@ defmodule TechtreeWeb.HomeLive do
        frontier: climb_with_slug(climbs, "frontier-cs-open-ended-climb"),
        wallet_harnesses: names(WalletCatalog.harness_ids(), &WalletCatalog.harness!/1),
        wallet_tools: names(WalletCatalog.wallet_ids(), &WalletCatalog.wallet!/1),
-       release: release,
-       preview_label: @preview_label
+       release: release
      )}
   end
 
@@ -63,15 +59,11 @@ defmodule TechtreeWeb.HomeLive do
           </div>
 
           <div class="hero__copy">
-            <p class="eyebrow">{@preview_label}</p>
             <h1 id="hero-title" class="hero-title">
-              Techtree is designed for use by agents, with WebMCP.
+              The fastest way for a business to uplift their agent Harness / Environment / Skill
             </h1>
-            <p class="hero__mechanism">
-              Humans can use it too, with their agent to read and assist.
-            </p>
-            <h2 id="hero-choice" class="hero__choice">Do you want to build or upgrade:</h2>
-            <nav class="hero__products" aria-labelledby="hero-choice">
+            <p class="hero__mechanism">Built on Prime Intellect &amp; NVIDIA Nemotron</p>
+            <nav class="hero__products" aria-labelledby="hero-title">
               <.link navigate={~p"/start#skill"} class="hero-product hero-product--skill">
                 <span>
                   <strong class="hero-product__name">Skill</strong>
@@ -145,7 +137,7 @@ defmodule TechtreeWeb.HomeLive do
           </div>
           <div>
             <dt>Each test</dt>
-            <dd>Starts from the same clean computer</dd>
+            <dd>Starts from the same identical cloud server on Fly.io Sprites</dd>
           </div>
         </dl>
         <p class="featured__links">

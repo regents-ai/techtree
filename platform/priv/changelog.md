@@ -4,6 +4,10 @@
 
 ### Changed
 
+- The home page says what Techtree is for: "The fastest way for a business to
+  uplift their agent Harness / Environment / Skill", built on Prime Intellect &
+  NVIDIA Nemotron. Each wallet test starts from the same identical cloud server
+  on Fly.io Sprites.
 - The repository's command check runs regents-cli 1.10.12 from its source, so
   every command in `cli/commands.json` is checked against the CLI people install.
 - An agent whose person hasn't signed in on Techtree yet is told exactly that,

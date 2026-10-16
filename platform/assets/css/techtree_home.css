@@ -34,14 +34,7 @@
   height: auto;
   mask-image: linear-gradient(to right, transparent 28%, rgb(0 0 0 / .25) 48%, #000 68%);
 }
-.hero--landing .hero__choice {
-  margin-top: var(--space-4);
-  font-family: var(--font-family-ui);
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-.hero--landing .hero__products { width: 100%; margin-top: var(--space-2); }
+.hero--landing .hero__products { width: 100%; margin-top: var(--space-4); }
 .hero-product--skill { --hero-product-fill: var(--palette-powder-blue); }
 .hero-product--harness { --hero-product-fill: var(--palette-tangerine-tango); }
 .hero-product--env { --hero-product-fill: var(--palette-platinum); }

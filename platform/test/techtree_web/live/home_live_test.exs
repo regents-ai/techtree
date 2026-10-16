@@ -25,16 +25,11 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(
                live,
                "#hero-title",
-               "Techtree is designed for use by agents, with WebMCP."
+               "The fastest way for a business to uplift their agent Harness / Environment / Skill"
              )
 
-      assert has_element?(
-               live,
-               ".hero__mechanism",
-               "Humans can use it too, with their agent to read and assist."
-             )
-
-      assert has_element?(live, "#hero-choice", "Do you want to build or upgrade:")
+      assert has_element?(live, ".hero__mechanism", "Built on Prime Intellect & NVIDIA Nemotron")
+      assert has_element?(live, ~s|.hero__products[aria-labelledby="hero-title"]|)
 
       for {href, name} <- [
             {"/start#skill", "Skill"},
@@ -50,8 +45,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(live, "section.hero")
       refute has_element?(live, "section.hero[data-hero-stage]")
-
-      assert text =~ "Controlled agent evaluations"
+      refute text =~ "Controlled agent evaluations"
     end
 
     test "the copy remains visible beside a bounded crown canvas", %{conn: conn} do
@@ -215,7 +209,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     {:ok, _live, html} = live(conn, ~p"/")
     text = visible_text(html)
 
-    assert text =~ "Techtree is designed for use by agents, with WebMCP."
+    assert text =~ "The fastest way for a business to uplift their agent"
     refute text =~ "Evidence graph"
     assert text =~ HomeLive.agent_line()
     refute html =~ "copy-home-cli"
