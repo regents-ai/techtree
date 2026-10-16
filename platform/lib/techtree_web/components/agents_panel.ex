@@ -1,10 +1,9 @@
 defmodule TechtreeWeb.AgentsPanel do
   @moduledoc """
   The agents a person has paired with their account (`RegentAgents`), in the
-  shared agents list (`Regent.Account.agents`), a way to pair another by
-  choosing it and pasting it a message, and a larger view of one agent with
-  what it has done across the Regent sites (`RegentAgents.Activity`) and
-  Unpair.
+  shared agents list (`Regent.Account.agents`), the box to pair another
+  (`TechtreeWeb.PairingBox`), and a larger view of one agent with what it has
+  done across the Regent sites (`RegentAgents.Activity`) and Unpair.
 
   Pairing immediately lets an agent do what `TechtreeWeb.Capabilities.may/0`
   lists, which the list's tip and the agent's view show the person, and the
@@ -13,29 +12,18 @@ defmodule TechtreeWeb.AgentsPanel do
   listed here too.
 
   The parent passes `account` (the signed-in account), its `session_lease` as
-  `lease` and `id`, and sends `agents_changed: true` when an agent pairs, checks
-  in or is unpaired anywhere.
+  `lease` and `id`, and sends `agents_changed: true`, to this panel and to its
+  pairing box (`"\#{id}-pair"`), when an agent pairs, checks in or is unpaired
+  anywhere.
   """
   use TechtreeWeb, :live_component
-
-  alias Regent.Primitives, as: P
-
-  alias RegentAgents.{
-    Activity,
-    Harness,
-    HumanBacking,
-    PairedAgent,
-    PairingCode,
-    PairingMessage,
-    Person
-  }
 
   alias Techtree.Credits
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.Live.Session
-
-  # Stands in for a code before one is made, so the message keeps its size.
-  @no_code String.duplicate("X", 24)
+  alias TechtreeWeb.PairingBox
+  alias Regent.Primitives, as: P
+  alias RegentAgents.{Activity, Harness, HumanBacking, PairedAgent, Person}
 
   @impl true
   def mount(socket),
@@ -43,7 +31,7 @@ defmodule TechtreeWeb.AgentsPanel do
       {:ok,
        socket
        |> Session.check_component_lease(&take_account/2)
-       |> assign(pairing: nil, detail: nil, notice: nil)}
+       |> assign(detail: nil, notice: nil)}
 
   @impl true
   def update(%{agents_changed: true}, socket), do: {:ok, read_agents(socket)}
@@ -61,20 +49,12 @@ defmodule TechtreeWeb.AgentsPanel do
   defp take_account(socket, account),
     do:
       assign(socket,
+        account: account,
         person: %Person{privy_user_id: account.privy_user_id},
         credits: Credits.person(account)
       )
 
-  # Choosing an agent, or asking again for the chosen one, makes a code with that
-  # agent's message; codes made before keep working until they expire.
   @impl true
-  def handle_event("issue_pairing_code", %{"harness" => harness}, socket) do
-    case Harness.match(harness) do
-      {:ok, harness} -> {:noreply, issue(socket, harness)}
-      :error -> {:noreply, socket}
-    end
-  end
-
   def handle_event("open_agent", %{"id" => id}, socket),
     do: {:noreply, socket |> assign(notice: nil) |> show_agent(id)}
 
@@ -186,14 +166,7 @@ defmodule TechtreeWeb.AgentsPanel do
           </P.button>
         </:actions>
         <:footer>
-          <Regent.Account.pairing
-            id={"#{@id}-pair"}
-            harnesses={harnesses()}
-            phx-change="issue_pairing_code"
-            phx-submit="issue_pairing_code"
-            phx-target={@myself}
-            {pairing(@pairing)}
-          />
+          <.live_component module={PairingBox} id={"#{@id}-pair"} lease={@lease} account={@account} />
 
           <Regent.Account.agent_detail
             :if={@detail}
@@ -263,40 +236,6 @@ defmodule TechtreeWeb.AgentsPanel do
   defp notice_text({_role, text}), do: text
   defp notice_text(nil), do: nil
 
-  defp harnesses,
-    do:
-      for(
-        harness <- Harness.values(),
-        do: %{value: to_string(harness), label: Harness.label(harness)}
-      )
-
-  # The pairing box's state. Every agent's message is drawn, the chosen one shown,
-  # so the box keeps one size; before a code is made a stand-in holds its place.
-  defp pairing(%{harness: harness, code: %PairingCode.Issued{} = code}) do
-    %{
-      chosen: to_string(harness),
-      messages: messages(code.code),
-      message: agent_message(code.code, harness),
-      expires_iso: DateTime.to_iso8601(code.expires_at),
-      expires: Calendar.strftime(code.expires_at, "%H:%M UTC")
-    }
-  end
-
-  defp pairing(%{harness: harness, code: {:paired, agent}}),
-    do: %{
-      chosen: to_string(harness),
-      messages: messages(@no_code),
-      outcome: {:paired, agent.name}
-    }
-
-  defp pairing(%{harness: harness, code: :unavailable}),
-    do: %{chosen: to_string(harness), messages: messages(@no_code), outcome: :unavailable}
-
-  defp pairing(nil), do: %{messages: messages(@no_code)}
-
-  defp messages(code),
-    do: Harness.values() |> Enum.map(&agent_message(code, &1)) |> Enum.uniq()
-
   # The person's other agents paired with this account, grouped by the World ID
   # person saved behind each.
   defp same_person(agents, %{id: id, human_id: human_id})
@@ -341,39 +280,12 @@ defmodule TechtreeWeb.AgentsPanel do
         {:error, _error} -> :unavailable
       end
 
-    socket =
-      assign(socket,
-        agents: agents,
-        now: DateTime.utc_now(),
-        pairing: after_pairing(socket.assigns.pairing, agents)
-      )
+    socket = assign(socket, agents: agents, now: DateTime.utc_now())
 
     case socket.assigns.detail do
       %{agent: %{id: id}} -> show_agent(socket, id)
       nil -> socket
     end
-  end
-
-  # A code on screen gives way to the agent that used it, so a spent code is
-  # never left there to send again.
-  defp after_pairing(%{code: %PairingCode.Issued{issued_at: issued_at}} = shown, agents)
-       when is_list(agents) do
-    case Enum.find(agents, &(DateTime.compare(&1.paired_at, issued_at) != :lt)) do
-      nil -> shown
-      agent -> %{shown | code: {:paired, agent}}
-    end
-  end
-
-  defp after_pairing(shown, _agents), do: shown
-
-  defp issue(socket, harness) do
-    code =
-      case RegentAgents.issue_pairing_code(actor: socket.assigns.person) do
-        {:ok, issued} -> issued
-        {:error, _error} -> :unavailable
-      end
-
-    assign(socket, pairing: %{harness: harness, code: code}, notice: nil)
   end
 
   # What the agent has done and its registry listing are read from the sign-in
@@ -436,10 +348,6 @@ defmodule TechtreeWeb.AgentsPanel do
   end
 
   defp load_more_activity(socket, _id), do: socket
-
-  # What the person pastes to their agent.
-  defp agent_message(code, harness),
-    do: PairingMessage.text(code, "Ash Template", TechtreeWeb.Endpoint.url(), harness)
 
   defp moment(datetime), do: Calendar.strftime(datetime, "%-d %B %Y, %H:%M UTC")
 end
