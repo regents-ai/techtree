@@ -4,9 +4,8 @@ defmodule TechtreeWeb.CreditsPanel do
   and what each press did, all in one place. Built on the reference wallet
   component (`TechtreeWeb.OnchainExample`): the server builds the steps
   (`RegentCredits.Chains.steps/3`), every press goes straight to the wallet, and
-  a confirmed Buy is reported once. Regents' Oban reconciles recorded purchases
-  and discovers Base deposits even after this page closes. The panel only reads
-  stored purchase state when the balance changes or the person refreshes.
+  each sent Buy is reported as a purchase once the chain holds it, then checked
+  every two seconds until it counts. The site's Oban keeps checking once a minute after the page stops.
 
   Credits are bought with USDC on Base only: the wallet is asked onto Base when
   a press needs it. The USDC of the wallet that pays is shown.
@@ -23,12 +22,17 @@ defmodule TechtreeWeb.CreditsPanel do
   """
   use TechtreeWeb, :live_component
 
+  alias Techtree.{AccessContext, ChainClient, Credits, Limits}
+  alias TechtreeWeb.Live.Session
+  alias TechtreeWeb.OnchainSteps
   alias Regent.Primitives, as: P
   alias RegentChain.{Call, Presses, Review}
   alias RegentCredits.{Amount, Chains}
-  alias Techtree.{AccessContext, ChainClient, Credits, Limits}
-  alias TechtreeWeb.Live.Session
-  alias TechtreeWeb.{OnchainSteps, Read}
+  alias RegentCredits.Errors.Refused
+
+  @recheck_ms 2_000
+  @purchase_reads 150
+  @report_tries 150
 
   @impl true
   def mount(socket) do
@@ -46,23 +50,16 @@ defmodule TechtreeWeb.CreditsPanel do
        usdc: nil,
        allowance: nil,
        latest: %{},
-       purchases: %{},
-       purchase_read: %Read{},
-       reported: MapSet.new()
+       purchases: %{}
      )}
   end
 
   @impl true
   def update(%{account: account} = assigns, socket) do
-    changed? = assigns.credits != socket.assigns[:credits]
-
-    socket =
-      socket
-      |> assign(id: assigns.id, lease: assigns.lease, credits: assigns.credits)
-      |> take_account(account)
-
     {:ok,
-     if(changed? and assigns.credits.state == :ready, do: read_purchases(socket), else: socket)}
+     socket
+     |> assign(id: assigns.id, lease: assigns.lease, credits: assigns.credits)
+     |> take_account(account)}
   end
 
   @impl true
@@ -77,8 +74,7 @@ defmodule TechtreeWeb.CreditsPanel do
 
   # The page asks when the panel opens, when it comes back into view and after
   # each press, so the funds behind a disabled Buy are read again then.
-  def handle_event("refresh_funds", _params, socket),
-    do: {:noreply, socket |> read_funds() |> read_purchases()}
+  def handle_event("refresh_funds", _params, socket), do: {:noreply, read_funds(socket)}
 
   # A press made before the review caught up with the form: the form is taken
   # as the page's own, and the reply carries the review for it.
@@ -100,7 +96,16 @@ defmodule TechtreeWeb.CreditsPanel do
       when is_binary(hash) do
     socket = OnchainSteps.sent(socket, params)
 
-    {:noreply, socket}
+    case Enum.find(socket.assigns.presses.sent, &(&1.hash == String.downcase(hash))) do
+      %{name: "buy", review: %{} = review} = entry ->
+        {:noreply,
+         socket
+         |> put_purchase(entry.hash, %{purchase: :reporting, reads: 0})
+         |> report(entry.hash, review, 0)}
+
+      _other ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("step_failed", %{"reason" => reason}, socket) when is_binary(reason) do
@@ -115,19 +120,22 @@ defmodule TechtreeWeb.CreditsPanel do
   def handle_event("check_again", %{"hash" => hash}, socket),
     do: {:noreply, OnchainSteps.check_again(socket, hash)}
 
-  def handle_event("check_purchase_again", _params, socket),
-    do: {:noreply, read_purchases(socket)}
+  def handle_event("check_purchase_again", %{"hash" => hash}, socket) do
+    case socket.assigns.purchases do
+      %{^hash => %{purchase: %{id: _id}} = shown} ->
+        {:noreply, check_purchase(socket, hash, %{shown | reads: 0})}
+
+      _unknown ->
+        {:noreply, socket}
+    end
+  end
 
   @impl true
-  # Wallet receipt observation is unchanged. Purchase reconciliation is never
-  # called by its timer: only one report follows a confirmed Buy.
+  # The funds are read again once a step lands, not at every read while it waits.
   def handle_async({:onchain_step, hash}, result, socket) do
     socket = socket |> OnchainSteps.checked(hash, result) |> approved(hash)
 
     case Enum.find(socket.assigns.presses.sent, &(&1.hash == hash)) do
-      %{name: "buy", outcome: :confirmed, review: review} ->
-        {:noreply, socket |> report_once(hash, review) |> read_funds()}
-
       %{outcome: outcome} when outcome in [:confirmed, :reverted] ->
         {:noreply, read_funds(socket)}
 
@@ -136,24 +144,41 @@ defmodule TechtreeWeb.CreditsPanel do
     end
   end
 
-  def handle_async({:report, owner, hash}, result, socket) do
-    if owner == socket.assigns.account.privy_user_id do
-      purchase =
-        case result do
-          {:ok, {:ok, purchase}} -> purchase
-          _unavailable -> nil
-        end
+  def handle_async({:report, hash}, {:ok, {_review, _tries, {:ok, purchase}}}, socket),
+    do: {:noreply, check_purchase(socket, hash, %{purchase: purchase, reads: 0})}
 
-      {:noreply, socket |> put_purchase(hash, %{purchase: purchase}) |> read_purchases()}
-    else
-      {:noreply, socket}
+  def handle_async({:report, hash}, {:ok, {review, tries, answer}}, socket) do
+    if again?(answer) and tries + 1 < @report_tries,
+      do: {:noreply, report(socket, hash, review, tries + 1, @recheck_ms)},
+      else: {:noreply, put_purchase(socket, hash, %{purchase: nil, reads: 0})}
+  end
+
+  def handle_async({:report, hash}, _unanswered, socket),
+    do: {:noreply, put_purchase(socket, hash, %{purchase: nil, reads: 0})}
+
+  def handle_async({:purchase, hash}, {:ok, {:ok, purchase}}, socket) do
+    shown = %{purchase: purchase, reads: socket.assigns.purchases[hash].reads + 1}
+
+    cond do
+      purchase.status == :credited ->
+        {:noreply, put_purchase(socket, hash, shown)}
+
+      purchase.status == :checking and shown.reads < @purchase_reads ->
+        {:noreply, check_purchase(socket, hash, shown)}
+
+      true ->
+        {:noreply, put_purchase(socket, hash, shown)}
     end
   end
 
-  def handle_async({Read, :purchase_read, _generation} = name, result, socket) do
-    socket = Read.settle(socket, name, result)
+  # An unanswered read counts like any other; the next one tries again.
+  def handle_async({:purchase, hash}, _unanswered, socket) do
+    %{purchase: purchase, reads: reads} = socket.assigns.purchases[hash]
+    shown = %{purchase: purchase, reads: reads + 1}
 
-    {:noreply, show_purchases(socket, socket.assigns.purchase_read)}
+    if shown.reads < @purchase_reads,
+      do: {:noreply, check_purchase(socket, hash, shown)},
+      else: {:noreply, put_purchase(socket, hash, shown)}
   end
 
   # Each read answers with the wallet it was for, and lands only while that
@@ -172,21 +197,6 @@ defmodule TechtreeWeb.CreditsPanel do
          assign(socket, [{figure, micro}, latest: Map.put(socket.assigns.latest, figure, micro)])}
     end
   end
-
-  defp show_purchases(socket, %{state: state, value: purchases}) when state in [:ready, :empty] do
-    Enum.reduce(socket.assigns.presses.sent, socket, &show_purchase(&2, &1, purchases))
-  end
-
-  defp show_purchases(socket, _unavailable), do: socket
-
-  defp show_purchase(socket, %{name: "buy", review: %{signer: wallet}, hash: hash}, purchases) do
-    case Enum.find(purchases, &(&1.tx_hash == hash and &1.wallet == wallet)) do
-      nil -> socket
-      purchase -> put_purchase(socket, hash, %{purchase: purchase})
-    end
-  end
-
-  defp show_purchase(socket, _other, _purchases), do: socket
 
   # A confirmed approval sets what staking may take to exactly its amount, so
   # the panel knows it from the receipt it just read, before the next read. It
@@ -249,23 +259,18 @@ defmodule TechtreeWeb.CreditsPanel do
   defp remember_number(socket, review),
     do: assign(socket, numbers: Map.put(socket.assigns.numbers, review.id, socket.assigns.number))
 
-  # Report once after the existing wallet observer confirms the receipt. A
-  # refused/unavailable report is not retried here: Base's durable deposit
-  # reader discovers it independently. This never resubmits a wallet action.
-  defp report_once(socket, hash, review) do
-    if MapSet.member?(socket.assigns.reported, hash) do
-      socket
-    else
-      account = socket.assigns.account
-      number = Map.fetch!(socket.assigns.numbers, review.id)
+  # A sent Buy is reported once the chain holds it: until then the report is
+  # refused as not seen yet, and the page reports again every two seconds, for
+  # up to five minutes. Each report counts against the person's report
+  # allowance; past it, the page waits its turn the same way.
+  defp report(socket, hash, review, tries, wait_ms \\ 0) do
+    account = socket.assigns.account
+    number = Map.fetch!(socket.assigns.numbers, review.id)
 
-      socket
-      |> assign(reported: MapSet.put(socket.assigns.reported, hash))
-      |> put_purchase(hash, %{purchase: :reporting})
-      |> start_async({:report, account.privy_user_id, hash}, fn ->
-        send_report(account, review, number, hash)
-      end)
-    end
+    start_async(socket, {:report, hash}, fn ->
+      Process.sleep(wait_ms)
+      {review, tries, send_report(account, review, number, hash)}
+    end)
   end
 
   defp send_report(account, review, number, hash) do
@@ -282,19 +287,26 @@ defmodule TechtreeWeb.CreditsPanel do
     end
   end
 
-  # Only rows owned by the signed-in person, for this page's Base purchases.
-  # Read owns generations and stale/error states; no chain call or ledger write.
-  defp read_purchases(socket) do
-    hashes = for %{name: "buy", hash: hash} <- socket.assigns.presses.sent, do: hash
-    account = socket.assigns.account
+  # Reported again: past the allowance, before the chain holds the Buy, or when
+  # the chain could not be read. Any other refusal is final.
+  defp again?(:limited), do: true
 
-    if hashes == [] do
-      socket
-    else
-      Read.start(socket, :purchase_read, account.privy_user_id, fn ->
-        Credits.stored_purchases(account, hashes)
-      end)
-    end
+  defp again?({:error, %Ash.Error.Invalid{errors: errors}}),
+    do: Enum.any?(errors, &match?(%Refused{reason: :not_seen_yet}, &1))
+
+  defp again?({:error, %Ash.Error.Unknown{}}), do: true
+  defp again?(_refused), do: false
+
+  defp check_purchase(socket, hash, shown) do
+    actor = Credits.person(socket.assigns.account)
+    id = shown.purchase.id
+
+    socket
+    |> put_purchase(hash, shown)
+    |> start_async({:purchase, hash}, fn ->
+      Process.sleep(@recheck_ms)
+      RegentCredits.check_purchase(id, actor: actor)
+    end)
   end
 
   defp put_purchase(socket, hash, shown),
@@ -345,16 +357,6 @@ defmodule TechtreeWeb.CreditsPanel do
   # review follow it.
   defp take_account(socket, account) do
     context = AccessContext.for_account(account)
-
-    socket =
-      if socket.assigns[:account] && socket.assigns.account.privy_user_id != account.privy_user_id do
-        socket
-        |> Read.clear(:purchase_read)
-        |> OnchainSteps.init()
-        |> assign(purchases: %{}, reported: MapSet.new(), numbers: %{})
-      else
-        socket
-      end
 
     socket
     |> assign(
@@ -492,7 +494,7 @@ defmodule TechtreeWeb.CreditsPanel do
             <strong>
               Buy {@dollars && "#{@dollars} "}Credits
               <P.tip id={"#{@id}-buy-tip"} label="About buying">
-                Sends the USDC to REGENT staking. Credits usually arrive after confirmation. Automatic discovery can take about 10 minutes or longer if the network is unavailable.
+                Sends the USDC to REGENT staking. Your Credits arrive in about 2 seconds.
               </P.tip>
             </strong>
             <span :if={@buy.words}>{@buy.words}</span>
@@ -511,9 +513,6 @@ defmodule TechtreeWeb.CreditsPanel do
 
       <%!-- Room for three lines is kept, so a note never moves the links below. --%>
       <div class="credits-panel__press-notes">
-        <p :if={@purchase_read.state in [:error, :stale]} class="credits-panel__note" role="status">
-          Purchase status is unavailable. Refresh to read it again; background processing continues.
-        </p>
         <p :if={@press_note} class="credits-panel__note" role="status">{@press_note}</p>
         <p class="credits-panel__note" role="status" data-onchain-lost hidden>
           Connection lost, so nothing was sent. Press again once it's back.
@@ -530,8 +529,8 @@ defmodule TechtreeWeb.CreditsPanel do
     """
   end
 
-  attr(:step, :map, required: true)
-  attr(:myself, :any, required: true)
+  attr :step, :map, required: true
+  attr :myself, :any, required: true
 
   defp check_again(%{step: %{entry: entry, stalled?: true}} = assigns) do
     assigns = assign(assigns, event: check_event(entry), hash: entry.hash)
@@ -551,7 +550,7 @@ defmodule TechtreeWeb.CreditsPanel do
 
   defp check_again(assigns), do: ~H""
 
-  defp check_event(%{name: "buy", outcome: :confirmed}), do: "check_purchase_again"
+  defp check_event(%{name: "buy", review: %{}}), do: "check_purchase_again"
   defp check_event(_entry), do: "check_again"
 
   # The latest press of the named step for the form as it stands now: its state
@@ -641,7 +640,7 @@ defmodule TechtreeWeb.CreditsPanel do
 
   defp state(entry, nil), do: OnchainSteps.describe(entry, chain_name_of(entry)).state
   defp state(_entry, %{purchase: :reporting}), do: :checking
-  defp state(_entry, %{purchase: nil}), do: :checking
+  defp state(_entry, %{purchase: nil}), do: :unrecorded
   defp state(_entry, %{purchase: purchase}), do: purchase.status
 
   # A step on its way or done shows as a mark; only trouble needs words.
@@ -656,10 +655,9 @@ defmodule TechtreeWeb.CreditsPanel do
   defp words(entry, %{purchase: :reporting}), do: "Waiting for #{chain_name_of(entry)}"
 
   defp words(_entry, %{purchase: nil}),
-    do:
-      "Confirmed on Base. Automatic credit discovery can take about 10 minutes or longer; you can close this page."
+    do: "Your wallet sent this, but this page couldn't record it."
 
-  defp words(_entry, %{purchase: purchase}) do
+  defp words(_entry, %{purchase: purchase} = shown) do
     case purchase do
       %{status: :credited, amount: amount} ->
         "#{Amount.format(amount)} added"
@@ -677,17 +675,27 @@ defmodule TechtreeWeb.CreditsPanel do
         "Not the purchase this page prepared. No Credits added."
 
       %{status: :checking} ->
-        "Payment recorded. Background processing continues even if you close this page."
+        checking_words(shown)
     end
   end
+
+  # A sent payment the page couldn't match to a purchase points to Credits help.
+  defp help?(%{purchase: nil}), do: true
 
   defp help?(%{purchase: %{status: :failed, reason: reason}}),
     do: reason not in ["reverted", "already credited", "not found"]
 
   defp help?(_shown), do: false
 
-  defp purchase_stalled?(%{purchase: nil}), do: true
-  defp purchase_stalled?(%{purchase: %{status: :checking}}), do: true
+  defp checking_words(shown) do
+    if purchase_stalled?(shown),
+      do: "Still checking. It counts even if you close this page.",
+      else: "Waiting for Base"
+  end
+
+  defp purchase_stalled?(%{purchase: %{status: :checking}, reads: reads}),
+    do: reads >= @purchase_reads
+
   defp purchase_stalled?(_shown), do: false
 
   defp chain_name_of(%{review: %{chain: %{name: name}}}), do: name

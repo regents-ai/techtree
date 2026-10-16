@@ -6,7 +6,7 @@ defmodule TechtreeWeb.OnchainSteps do
   The component builds a `RegentChain.Review` for the eligible signer and hands
   it to `put_review/2`, which pushes it to the page before anyone presses. The
   page reports each press against the review it sent from, and every sent step
-  is then read at the latest block of the review's chain, every two seconds,
+  is then read at the latest block of the review's chain, every quarter second,
   until it lands or the page stops asking. Nothing is kept beyond the page.
 
   The only wallet that may act is Privy's active wallet when it is one of the
@@ -16,10 +16,10 @@ defmodule TechtreeWeb.OnchainSteps do
   import Phoenix.Component, only: [assign: 2]
   import Phoenix.LiveView, only: [push_event: 3, start_async: 3]
 
-  alias RegentChain.{Outcome, Presses}
   alias Techtree.ChainClient
+  alias RegentChain.{Outcome, Presses}
 
-  @recheck_ms 2_000
+  @recheck_ms 250
   @address ~r/\A0x[0-9a-fA-F]{40}\z/
   @no_wallet "Your account has no wallet yet. Sign in again to get one."
 

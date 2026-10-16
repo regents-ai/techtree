@@ -7,7 +7,7 @@ defmodule Techtree.Credits do
 
   require Ash.Query
 
-  alias RegentCredits.{Actor, Hold, Purchase}
+  alias RegentCredits.{Actor, Hold}
 
   @doc "The signed-in account, with the wallets its sign-in verified."
   def person(account),
@@ -31,15 +31,6 @@ defmodule Techtree.Credits do
       {:ok, nil} -> {:ok, Decimal.new(0)}
       result -> result
     end
-  end
-
-  @doc "Saved Base purchase state for the person's displayed transactions; never reads the chain."
-  def stored_purchases(account, hashes) do
-    Purchase
-    |> Ash.Query.filter(
-      privy_user_id == ^account.privy_user_id and chain == :base and tx_hash in ^hashes
-    )
-    |> Ash.read(actor: person(account))
   end
 
   @doc "The site's own server code."
