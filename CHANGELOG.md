@@ -4,6 +4,8 @@
 
 ### Changed
 
+- The repository's command check runs regents-cli 1.10.12 from its source, so
+  every command in `cli/commands.json` is checked against the CLI people install.
 - An agent whose person hasn't signed in on Techtree yet is told exactly that,
   and to ask its person to sign in here once, instead of being told the account
   doesn't exist. Every Regent account already exists on every Regent site.
