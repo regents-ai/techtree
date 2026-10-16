@@ -18,6 +18,10 @@ ARG TECHTREE_SOURCE_REVISION
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}-slim"
 ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}-slim"
 
+# Node and npm come from this digest-pinned image (as ash-template's), so the npm
+# that installs the browser packages is the same npm 11 that writes the lockfile.
+FROM docker.io/library/node@sha256:5aea649bacdc35e8e20571131c4f3547477dfe66e677d45c005af6dbd1edfaa7 AS node
+
 FROM ${BUILDER_IMAGE} AS builder
 
 ARG TECHTREE_SOURCE_REVISION
@@ -27,13 +31,17 @@ RUN case "$TECHTREE_SOURCE_REVISION" in \
     esac
 
 # git is needed by Hex for any git-sourced dependency; build-essential for the
-# native compilation picosat_elixir does; npm to fetch the one browser
-# dependency the stylesheet's companion bundle is built from. None of the three
-# survives into the runtime image.
+# native compilation picosat_elixir does. Node and npm, copied from the node
+# image, fetch the browser packages the site's bundles are built from.
+# None of them survives into the runtime image.
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends build-essential git ca-certificates npm \
+  && apt-get install -y --no-install-recommends build-essential git ca-certificates \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
+
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm
 
 WORKDIR /app
 
