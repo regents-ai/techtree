@@ -18,12 +18,12 @@ defmodule TechtreeWeb.AgentsPanel do
   """
   use TechtreeWeb, :live_component
 
+  alias Regent.Primitives, as: P
+  alias RegentAgents.{Activity, Harness, HumanBacking, PairedAgent, Person}
   alias Techtree.Credits
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.Live.Session
   alias TechtreeWeb.PairingBox
-  alias Regent.Primitives, as: P
-  alias RegentAgents.{Activity, Harness, HumanBacking, PairedAgent, Person}
 
   @impl true
   def mount(socket),

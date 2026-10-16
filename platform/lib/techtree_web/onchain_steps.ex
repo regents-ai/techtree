@@ -16,8 +16,8 @@ defmodule TechtreeWeb.OnchainSteps do
   import Phoenix.Component, only: [assign: 2]
   import Phoenix.LiveView, only: [push_event: 3, start_async: 3]
 
-  alias Techtree.ChainClient
   alias RegentChain.{Outcome, Presses}
+  alias Techtree.ChainClient
 
   @recheck_ms 250
   @address ~r/\A0x[0-9a-fA-F]{40}\z/

@@ -11,8 +11,8 @@ defmodule TechtreeWeb.PairingBox do
   """
   use TechtreeWeb, :live_component
 
-  alias TechtreeWeb.Live.Session
   alias RegentAgents.{Harness, PairingCode, PairingMessage, Person}
+  alias TechtreeWeb.Live.Session
 
   # Stands in for a code before one is made, so the message keeps its size.
   @no_code String.duplicate("X", 24)

@@ -22,13 +22,13 @@ defmodule TechtreeWeb.CreditsPanel do
   """
   use TechtreeWeb, :live_component
 
-  alias Techtree.{AccessContext, ChainClient, Credits, Limits}
-  alias TechtreeWeb.Live.Session
-  alias TechtreeWeb.OnchainSteps
   alias Regent.Primitives, as: P
   alias RegentChain.{Call, Presses, Review}
   alias RegentCredits.{Amount, Chains}
   alias RegentCredits.Errors.Refused
+  alias Techtree.{AccessContext, ChainClient, Credits, Limits}
+  alias TechtreeWeb.Live.Session
+  alias TechtreeWeb.OnchainSteps
 
   @recheck_ms 2_000
   @purchase_reads 150
