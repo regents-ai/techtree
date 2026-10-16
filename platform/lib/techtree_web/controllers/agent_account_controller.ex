@@ -50,8 +50,10 @@ defmodule TechtreeWeb.AgentAccountController do
   defp read_history(conn, args) do
     case RegentCredits.history(args, actor: credit_actor(conn)) do
       {:ok, history} ->
-        answer =
-          Map.put(history, :pagination, %{has_more: history.more?, next_cursor: history.next})
+        answer = %{
+          entries: history.entries,
+          pagination: %{has_more: history.more?, next_cursor: history.next}
+        }
 
         conn |> put_resp_header("cache-control", "no-store") |> json(answer)
 

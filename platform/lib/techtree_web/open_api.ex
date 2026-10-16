@@ -1316,14 +1316,6 @@ defmodule TechtreeWeb.OpenAPI do
                   "Pass unchanged as after for the next page. Null when no further page exists."
               }
             }
-          },
-          "more?" => %{
-            "type" => "boolean",
-            "description" => "Compatibility alias for pagination.has_more."
-          },
-          "next" => %{
-            "type" => ["string", "null"],
-            "description" => "Compatibility alias for pagination.next_cursor."
           }
         }
       },
