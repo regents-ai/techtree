@@ -55,10 +55,10 @@ defmodule TechtreeWeb.Plugs.PairedAgent do
       {:ok, nil} ->
         refuse(
           conn,
-          403,
-          :person_not_here,
-          "The person this agent is paired with has no account on this site yet.",
-          "Ask your person to sign in on this website once, then send the request again."
+          404,
+          :account_missing,
+          "The account this agent is paired with is not on this site.",
+          "Ask your person to sign in on this site, then send the request again."
         )
 
       {:error, _error} ->

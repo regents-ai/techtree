@@ -266,7 +266,7 @@ defmodule TechtreeWeb.OpenAPI do
               ),
             "401" => error("The exact request signature was refused."),
             "403" => error("Current agent pairing is required."),
-            "404" => error("The withdrawal names no published Result."),
+            "404" => error("The withdrawal names no published Result. " <> account_missing()),
             "409" => error("A different document was already published for this run."),
             "413" => json("The body is larger than the limit.", ref("Error")),
             "422" => error("A check on the bundle or the withdrawal failed; the code names it."),
@@ -412,23 +412,24 @@ defmodule TechtreeWeb.OpenAPI do
       },
       "/api/agents/v1/whoami" => %{
         "get" =>
-          signed_account_read(
-            "agent_whoami",
+          "agent_whoami"
+          |> signed_account_read(
             "Verify the named agent and its current pairing; no pairing prerequisite and no Points award."
           )
+          |> update_in(["responses"], &Map.drop(&1, ["403", "404"]))
       },
       "/tools/account/balances" => %{
         "get" =>
           signed_account_read(
             "account_balances",
-            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note explains when approving new grants is off; existing grants are not revoked by that flag. Available in regents-cli 1.10.2."
+            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note explains when approving new grants is off; existing grants are not revoked by that flag."
           )
       },
       "/tools/account/points" => %{
         "get" =>
           signed_account_read(
             "points_balance",
-            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing. points and earned_today are decimal text; daily_allowances gives scope and remaining. Existing micro-point fields remain available. A note explains when earning is off. Available in regents-cli 1.10.2."
+            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing. points and earned_today are decimal text; daily_allowances gives scope and remaining. A note explains when earning is off."
           )
       },
       "/tools/account/credits/history" => %{
@@ -436,7 +437,7 @@ defmodule TechtreeWeb.OpenAPI do
           Map.put(
             signed_account_read(
               "credits_history",
-              "Current paired agent's canonical owner's Credits history; a read-only cursor page. Entries group transfers into events with kind, direction and positive amount, replacing per-transfer operation, available_delta and held_delta. pagination contains has_more and next_cursor; the existing more? and next fields remain available. Available in regents-cli 1.10.2."
+              "Current paired agent's canonical owner's Credits history; a read-only cursor page. Entries group transfers into events with kind, direction and positive amount. pagination contains has_more and next_cursor."
             ),
             "requestBody",
             %{
@@ -500,6 +501,7 @@ defmodule TechtreeWeb.OpenAPI do
               ),
             "401" => error("Fresh exact-request SIWA proof is required."),
             "403" => error(pairing_refusal()),
+            "404" => error(account_missing()),
             "409" =>
               error(
                 "`idempotency_conflict`: this Idempotency-Key was already used for a different proof."
@@ -525,7 +527,8 @@ defmodule TechtreeWeb.OpenAPI do
                 })
               ),
             "401" => error("Fresh exact-request SIWA proof is required."),
-            "403" => error(pairing_refusal())
+            "403" => error(pairing_refusal()),
+            "404" => error(account_missing())
           }
         }
       },
@@ -554,7 +557,11 @@ defmodule TechtreeWeb.OpenAPI do
               ),
             "401" => error("Fresh exact-request SIWA proof is required."),
             "403" => error(pairing_refusal()),
-            "404" => error("`not_found`: no report with that digest belongs to this person.")
+            "404" =>
+              error(
+                "`not_found`: no report with that digest belongs to this person. " <>
+                  account_missing()
+              )
           }
         }
       },
@@ -619,7 +626,8 @@ defmodule TechtreeWeb.OpenAPI do
       "responses" => %{
         "200" => json("Authorized shared account or agent data.", %{"type" => "object"}),
         "401" => error("Fresh exact-request SIWA proof is required."),
-        "403" => error("This protected read needs a current pairing and canonical owner."),
+        "403" => error(pairing_refusal()),
+        "404" => error(account_missing()),
         "503" => error("Identity, pairing or shared account data is unavailable.")
       }
     }
@@ -1355,10 +1363,11 @@ defmodule TechtreeWeb.OpenAPI do
     }
   end
 
-  defp pairing_refusal,
+  defp pairing_refusal, do: "`agent_not_paired`: this agent has no current pairing."
+
+  defp account_missing,
     do:
-      "`agent_not_paired`: this agent has no current pairing. `person_not_here`: the " <>
-        "paired owner has no Regent account."
+      "`account_missing`: this site has no account for the paired person yet; they sign in here once."
 
   defp model_climb_answer(fields) do
     %{
