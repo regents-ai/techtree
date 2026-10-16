@@ -77,6 +77,7 @@ defmodule Techtree.Repo.Migrations.AdoptTemplateAccounts do
       add :lineage_digest, :binary, null: false
       add :generation, :bigint, null: false, default: 0
       add :revoked_at, :utc_datetime_usec
+      add :signed_in_at, :utc_datetime_usec
 
       add :inserted_at, :utc_datetime_usec,
         null: false,
@@ -105,9 +106,17 @@ defmodule Techtree.Repo.Migrations.AdoptTemplateAccounts do
                generation >= 0
              """
            )
+
+    create constraint(:session_authorities, :session_authorities_signed_in_when_bound,
+             check: """
+               (human_account_id IS NULL) = (signed_in_at IS NULL)
+             """
+           )
   end
 
   def down do
+    drop_if_exists constraint(:session_authorities, :session_authorities_signed_in_when_bound)
+
     drop_if_exists constraint(:session_authorities, :session_authorities_generation_nonnegative)
 
     drop constraint(:session_authorities, "session_authorities_human_account_id_fkey")

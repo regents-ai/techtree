@@ -49,6 +49,18 @@
       "type": "utc_datetime_usec"
     },
     {
+      "allow_nil?": true,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "signed_in_at",
+      "type": "utc_datetime_usec"
+    },
+    {
       "allow_nil?": false,
       "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
       "generated?": false,
@@ -115,13 +127,21 @@
       "base_filter": null,
       "check": "generation >= 0",
       "name": "session_authorities_generation_nonnegative"
+    },
+    {
+      "attribute": [
+        "signed_in_at"
+      ],
+      "base_filter": null,
+      "check": "(human_account_id IS NULL) = (signed_in_at IS NULL)",
+      "name": "session_authorities_signed_in_when_bound"
     }
   ],
   "create_table_options": null,
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "146F88065243F743DE42DE9103CEA782CB8B016A349197FE89551EF5D18B38CF",
+  "hash": "BE1354622B5E42D76DD9EE6F2C00EC032F9CB9CCB332A989176FC91C2AFAD16E",
   "identities": [
     {
       "all_tenants?": false,

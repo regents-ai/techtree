@@ -7,8 +7,9 @@ defmodule Techtree.Accounts.SessionAuthority do
   row, keyed by the lineage's SHA-256 digest so a database reader cannot rebuild
   a cookie. `/auth/csrf` commits an unbound generation-zero row; first bind and
   every same-account refresh advance the generation once, so the previous cookie
-  is stale everywhere. Revocation is terminal, and a bound row older than the
-  cookie's `max_age` reads as reset. Every transition inserts the row when
+  is stale everywhere. Revocation is terminal, and a sign-in lapses the cookie's
+  `max_age` (30 days) after it was made: refreshes keep it current until then,
+  never beyond. Every transition inserts the row when
   absent, locks it `FOR UPDATE` and applies at most one change in one
   transaction, so the absent-row and present-row races serialize identically.
   """
@@ -40,6 +41,10 @@ defmodule Techtree.Accounts.SessionAuthority do
       check_constraint :generation, "session_authorities_generation_nonnegative",
         check: "generation >= 0",
         message: "generation must be nonnegative"
+
+      check_constraint :signed_in_at, "session_authorities_signed_in_when_bound",
+        check: "(human_account_id IS NULL) = (signed_in_at IS NULL)",
+        message: "a bound sign-in records when it was made"
     end
 
     references do
@@ -66,6 +71,7 @@ defmodule Techtree.Accounts.SessionAuthority do
       argument :account_id, :integer, allow_nil?: false
       validate absent([:revoked_at, :human_account_id])
       change set_attribute(:human_account_id, arg(:account_id))
+      change set_attribute(:signed_in_at, &DateTime.utc_now/0)
       change atomic_update(:generation, expr(generation + 1))
     end
 
@@ -95,6 +101,8 @@ defmodule Techtree.Accounts.SessionAuthority do
     attribute :lineage_digest, :binary, allow_nil?: false, sensitive?: true
     attribute :generation, :integer, allow_nil?: false, default: 0, constraints: [min: 0]
     attribute :revoked_at, :utc_datetime_usec
+    # When a verified sign-in bound this lineage to its account.
+    attribute :signed_in_at, :utc_datetime_usec
     timestamps()
   end
 
@@ -252,15 +260,14 @@ defmodule Techtree.Accounts.SessionAuthority do
     end
   end
 
-  # Bind and refresh are the only updates a live row takes, and each is a
-  # sign-in, so a bound row's `updated_at` is when the person last signed in.
-  # An unbound row confers nothing, so it has no lifetime to outlive.
-  defp lapsed?(%{human_account_id: nil}), do: false
+  # A sign-in lasts from the bind that made it; a refresh never extends it. An
+  # unbound row confers nothing, so it has no lifetime to outlive.
+  defp lapsed?(%{signed_in_at: nil}), do: false
   defp lapsed?(row), do: not DateTime.before?(DateTime.utc_now(), lapses_at(row))
 
-  defp lapses_at(%{human_account_id: nil}), do: nil
+  defp lapses_at(%{signed_in_at: nil}), do: nil
 
-  defp lapses_at(%{updated_at: signed_in_at}),
+  defp lapses_at(%{signed_in_at: signed_in_at}),
     do: DateTime.add(signed_in_at, @sign_in_lifetime_seconds)
 
   # Exhaustion is terminal rather than wrapping: the lineage is revoked and the
