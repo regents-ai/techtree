@@ -203,6 +203,16 @@ code { font-size: .9em; }
   transition: opacity 150ms var(--ease-out);
 }
 .hero__optics[data-optics-ready="true"] { opacity: 1; }
+/* Where the crown cannot be drawn (no WebGPU, or drawing failed) it is a still
+   picture of the same scene. */
+.hero__optics[data-optics-failed="true"] {
+  opacity: 1;
+  background: url("/images/crown-still-dark.jpg") 85% 50% / cover no-repeat;
+}
+html[data-theme="light"] .hero__optics[data-optics-failed="true"] { background-image: url("/images/crown-still-light.jpg"); }
+@media (prefers-color-scheme: light) {
+  html:not([data-theme]) .hero__optics[data-optics-failed="true"] { background-image: url("/images/crown-still-light.jpg"); }
+}
 .hero__crown { display: block; width: 100%; height: 100%; }
 .hero__copy { width: min(48%, 36rem); padding-block: var(--space-2); background: var(--color-bg); }
 .hero-title { font-size: clamp(3rem, 6vw, 5.5rem); letter-spacing: -.035em; }

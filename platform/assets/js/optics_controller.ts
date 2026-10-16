@@ -305,7 +305,12 @@ export function createOpticsController(root: HTMLElement) {
 
   return {
     mount() {
-      if (!canvas || !root.dataset.opticsKind || !root.dataset.opticsSource || !navigator.gpu) return
+      if (!canvas || !root.dataset.opticsKind || !root.dataset.opticsSource) return
+      // A browser that cannot draw it shows the still picture instead, as when drawing fails.
+      if (!navigator.gpu) {
+        root.dataset.opticsFailed = "true"
+        return
+      }
       mounted = true
       awake = true
       visible = !document.hidden
