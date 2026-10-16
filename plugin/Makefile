@@ -8,8 +8,9 @@ UV ?= uv
 RUN := $(UV) run
 
 # The contract tests marked real_cli ask a real `regents` read-only questions.
-# They are skipped unless this names one, for example:
-#     make test REGENTS_CLI_ARGV=regents
+# They are skipped unless this names one by its full path (the tests put their
+# own `regents` first on PATH, which a bare name would find), for example:
+#     make test REGENTS_CLI_ARGV="$(command -v regents)"
 REGENTS_CLI_ARGV ?=
 
 .DEFAULT_GOAL := check
