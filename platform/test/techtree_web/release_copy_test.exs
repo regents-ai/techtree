@@ -192,6 +192,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "https://github.com/NVIDIA-NeMo",
     "https://github.com/NVIDIA/NeMo-Fabric",
     "https://github.com/NVIDIA/NeMo-Relay",
+    "https://github.com/regents-ai",
     "https://github.com/regents-ai/techtree",
     "https://github.com/regents-ai/techtree/stargazers"
   ]

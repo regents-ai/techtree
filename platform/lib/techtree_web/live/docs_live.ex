@@ -491,6 +491,12 @@ defmodule TechtreeWeb.DocsLive do
             <p>
               Source and issue tracking live at <a href="https://github.com/regents-ai/techtree">github.com/regents-ai/techtree</a>.
             </p>
+            <p>
+              What changed in each release is in the <.link navigate={~p"/changelog"}>changelog</.link>.
+              To turn a repository into practice for agents, see
+              <.link navigate={~p"/repo2rlenv"}>Repo2RLEnv</.link>
+              <.capability_status capability={:hosted_building} />
+            </p>
           </section>
 
           <TechtreeWeb.ResearchContent.sections />

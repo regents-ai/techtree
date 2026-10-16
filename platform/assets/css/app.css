@@ -140,13 +140,36 @@ code { font-size: .9em; }
 /* A short page still puts the footer at the bottom of the window. */
 .techtree-frame > [data-phx-main] { flex: 1 0 auto; display: flex; flex-direction: column; }
 .techtree-frame .rg-sheet-row:has(> .rg-sheet-row__main > main) { flex: 1 0 auto; }
-.product-links {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3);
-  padding: var(--space-3) var(--rg-panel-padding); font-size: .875rem;
+/* The footer every Regent site shares (`Layouts.product_links/1`). */
+.regent-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--rg-panel-padding);
+  border-top: 1px solid var(--hairline);
+  font-size: 0.8125rem;
 }
-.product-links > .rg-disclosure { flex: 1 1 18rem; max-width: 40rem; margin-left: auto; }
-.product-links__related { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-.product-links a { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; }
+.regent-footer p { margin: 0; }
+.regent-footer__social { display: flex; align-items: center; gap: var(--space-2); }
+.regent-footer__social > a, .regent-footer__social > a svg { display: inline-flex; width: 1.5rem; height: 1.5rem; }
+.regent-footer__links { display: flex; flex-wrap: wrap; column-gap: var(--space-3); }
+.regent-footer__links a { display: inline-flex; align-items: center; min-height: 2.75rem; color: inherit; }
+.regent-footer__links .regent-footer__guide {
+  display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0; border: 0;
+  background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer;
+}
+/* The two legal documents stay together, apart from the rest by a hairline where
+   they share its line and on a line of their own on a phone. */
+.regent-footer__legal { display: flex; column-gap: var(--space-3); }
+@media (min-width: 48rem) {
+  .regent-footer__legal { padding-inline-start: var(--space-3); border-inline-start: 1px solid var(--hairline); }
+}
+@media (max-width: 47.99rem) { .regent-footer__legal { flex-basis: 100%; } }
+.regent-footer__guide-body p { margin: 0; color: var(--rg-p-muted); }
+.regent-footer__guide-body a { min-height: 2.75rem; }
+.regent-footer__guide-body:popover-open { display: grid; }
 
 /* Product-owned links consume the same primary skin/label as real buttons.
    No local pseudo-element or animation overrides the canonical shimmer. */
@@ -392,7 +415,6 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .hero__products { width: 100%; margin-top: 14rem; }
   .home-setup { grid-template-columns: minmax(0, 1fr); }
   .featured, .offline-verify, .capabilities, .climb-list__item { grid-template-columns: minmax(0, 1fr); }
-  .product-links > .rg-disclosure { margin-left: 0; max-width: 100%; }
 }
 @media (max-width: 36rem) {
   .hero__products { grid-template-columns: minmax(0, 1fr); margin-top: 13rem; gap: var(--space-1); }

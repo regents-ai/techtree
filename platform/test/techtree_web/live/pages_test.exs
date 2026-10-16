@@ -152,6 +152,7 @@ defmodule TechtreeWeb.PagesTest do
           assert attributes =~ "rg-copy" or attributes =~ "copycommand" or
                    attributes =~ "data-theme-toggle" or
                    attributes =~ "masthead__menu-button" or
+                   attributes =~ "regent-footer__guide" or
                    attributes =~ ~s|phx-click="filter_tasks"|,
                  "#{page} has a button that is not a local-only control"
 
@@ -254,7 +255,7 @@ defmodule TechtreeWeb.PagesTest do
     test "every page that does not name a Climb still renders", %{conn: conn} do
       for page <- @pages_without_catalog do
         assert {:ok, view, _html} = live(conn, page)
-        assert has_element?(view, ~s(footer a[href="https://regents.sh"]))
+        assert has_element?(view, "footer.regent-footer")
       end
     end
 
