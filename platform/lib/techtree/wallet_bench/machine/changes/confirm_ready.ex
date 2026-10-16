@@ -6,9 +6,11 @@ defmodule Techtree.WalletBench.Machine.Changes.ConfirmReady do
   with, the tested account cannot read `/work`, use sudo, list the checkpoints or
   reach the management socket (`readiness.sh`, which locks them and empties
   `/tmp` first: a restore leaves that disk as the last attempt left it), and the
-  harness reports the version the baseline recorded. Any check that does not hold marks the machine failed with that reason,
-  at once and without a retry (plan D18). A call to Sprites that fails is an
-  error, which the job retries.
+  harness reports the version the baseline recorded. Any check that does not
+  hold, or a readiness answer that is not exactly the four account checks as
+  true or false and a harness version, marks the machine failed with that
+  reason, at once and without a retry (plan D18). A call to Sprites that fails
+  is an error, which the job retries.
   """
 
   use Ash.Resource.Change
@@ -59,14 +61,7 @@ defmodule Techtree.WalletBench.Machine.Changes.ConfirmReady do
          :ok <- RegentSprites.write_file(machine.name, @upload_path, bytes),
          {:ok, read_back} <- RegentSprites.read_file(machine.name, @upload_path),
          {:ok, sprite} <- RegentSprites.get(machine.name),
-         {:ok, %{"account" => account, "harness_version" => harness_version}} <-
-           Remote.json(machine.name, [
-             "bash",
-             "/work/bin/machine/readiness.sh",
-             machine.harness_id
-           ]) do
-      reachable = for {check, true} <- account, do: check
-
+         {:ok, account, harness_version} <- readiness(machine) do
       detail = %{
         boot_id: boot_id,
         upload_round_trip: read_back == bytes,
@@ -76,27 +71,60 @@ defmodule Techtree.WalletBench.Machine.Changes.ConfirmReady do
         harness_version: harness_version
       }
 
-      cond do
-        boot_id != machine.boot_id ->
-          {:failed, "The machine restarted after its restore.", detail}
+      verdict(machine, detail, read_back == bytes)
+    end
+  end
 
-        read_back != bytes ->
-          {:failed, "A file written to the machine did not read back the same.", detail}
+  # The answer readiness.sh gives: exactly the four account checks, each true or
+  # false, and the harness version. Any other answer fails the machine.
+  defp readiness(machine) do
+    case Remote.json(machine.name, ["bash", "/work/bin/machine/readiness.sh", machine.harness_id]) do
+      {:ok,
+       %{
+         "account" =>
+           %{
+             "work_readable" => work_readable,
+             "sudo" => sudo,
+             "checkpoints_listable" => checkpoints_listable,
+             "socket_reachable" => socket_reachable
+           } = account,
+         "harness_version" => harness_version
+       }}
+      when is_boolean(work_readable) and is_boolean(sudo) and is_boolean(checkpoints_listable) and
+             is_boolean(socket_reachable) and is_binary(harness_version) ->
+        {:ok, account, harness_version}
 
-        {sprite.version, sprite.environment_version} !=
-            {machine.sprite_version, machine.environment_version} ->
-          {:failed, "The machine's image changed since it was created.", detail}
+      {:ok, _unrecognised} ->
+        {:failed, "The readiness check printed an answer it does not give.", %{}}
 
-        reachable != [] ->
-          {:failed, "The tested account can reach the bench: #{Enum.join(reachable, ", ")}.",
-           detail}
+      {:error, error} ->
+        {:error, error}
+    end
+  end
 
-        harness_version != machine.manifest["harness_version"] ->
-          {:failed, "The harness version changed since the baseline was built.", detail}
+  defp verdict(machine, detail, round_trip?) do
+    reachable = for {check, true} <- detail.account, do: check
 
-        true ->
-          {:ok, detail}
-      end
+    cond do
+      detail.boot_id != machine.boot_id ->
+        {:failed, "The machine restarted after its restore.", detail}
+
+      not round_trip? ->
+        {:failed, "A file written to the machine did not read back the same.", detail}
+
+      {detail.sprite_version, detail.environment_version} !=
+          {machine.sprite_version, machine.environment_version} ->
+        {:failed, "The machine's image changed since it was created.", detail}
+
+      reachable != [] ->
+        {:failed, "The tested account can reach the bench: #{Enum.join(reachable, ", ")}.",
+         detail}
+
+      detail.harness_version != machine.manifest["harness_version"] ->
+        {:failed, "The harness version changed since the baseline was built.", detail}
+
+      true ->
+        {:ok, detail}
     end
   end
 end
