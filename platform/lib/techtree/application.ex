@@ -7,6 +7,8 @@ defmodule Techtree.Application do
 
   @impl true
   def start(_type, _args) do
+    :ok = Techtree.JobFailure.attach()
+
     children =
       [
         TechtreeWeb.Telemetry,
