@@ -398,7 +398,11 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" => %{
             "200" => json("The agent's pairing.", agent_data(ref("AgentCheckIn"))),
             "401" => error("`verification_failed`: the signature could not be verified."),
-            "404" => error("`not_paired`: this agent is not paired with an account."),
+            "404" =>
+              error(
+                "`not_paired`: this agent is not paired with an account. `account_missing`: " <>
+                  "this site has no account for the paired person yet; they sign in here once."
+              ),
             "503" =>
               error(
                 "`verification_unavailable`: the sign-in service could not be reached or gave no answer."
