@@ -66,7 +66,7 @@ defmodule TechtreeWeb.Plugs.PairedAgent do
           conn,
           503,
           :account_unavailable,
-          "The canonical account could not be read.",
+          "The person's account could not be read.",
           "Try again with a fresh signed request."
         )
     end
