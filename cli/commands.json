@@ -41,7 +41,7 @@
         {
           "field": "harness",
           "type": "string",
-          "description": "Supported harness identifier.",
+          "description": "What the agent runs on, one of: hermes, grok_bot, muse, openclaw, nemoclaw, ironclaw, pi, claude_code, codex, cursor, gemini_cli, dots, other. Send other if yours is not listed.",
           "required": true
         }
       ]

@@ -1143,7 +1143,7 @@ defmodule TechtreeWeb.OpenAPI do
           "name" => %{"type" => "string", "description" => "What the person calls this agent."},
           "harness" => %{
             "type" => "string",
-            "enum" => Enum.map(RegentAgents.Harness.values(), &Atom.to_string/1),
+            "enum" => Enum.map(RegentAgents.Harness.offered(), &Atom.to_string/1),
             "description" => "What the agent runs on; `other` for anything not listed."
           }
         }

@@ -40,9 +40,11 @@ defmodule TechtreeWeb.PairingBox do
   # agent's message; codes made before keep working until they expire.
   @impl true
   def handle_event("issue_pairing_code", %{"harness" => harness}, socket) do
-    case Harness.match(harness) do
-      {:ok, harness} -> {:noreply, issue(socket, harness)}
-      :error -> {:noreply, socket}
+    with {:ok, harness} <- Harness.match(harness),
+         true <- harness in Harness.offered() do
+      {:noreply, issue(socket, harness)}
+    else
+      _not_offered -> {:noreply, socket}
     end
   end
 
@@ -65,7 +67,7 @@ defmodule TechtreeWeb.PairingBox do
   defp harnesses,
     do:
       for(
-        harness <- Harness.values(),
+        harness <- Harness.offered(),
         do: %{value: to_string(harness), label: Harness.label(harness)}
       )
 
@@ -94,7 +96,7 @@ defmodule TechtreeWeb.PairingBox do
   defp pairing(nil), do: %{messages: messages(@no_code)}
 
   defp messages(code),
-    do: Harness.values() |> Enum.map(&agent_message(code, &1)) |> Enum.uniq()
+    do: Harness.offered() |> Enum.map(&agent_message(code, &1)) |> Enum.uniq()
 
   # A code on screen gives way to the agent that used it, so a spent code is
   # never left there to send again.
