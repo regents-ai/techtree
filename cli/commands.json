@@ -4,8 +4,6 @@
   "platform": "techtree",
   "base_url": "https://techtree.sh",
   "notes": [
-    "This signed HTTP subset complements Techtree's native offline engine and exact-byte publication commands.",
-    "Published regents-cli 1.10.2 carries agents whoami, agents pair and the three account reads. Model Climb report commands are unreleased source work, outside both 1.10.2 and pending 1.10.3. All signed requests use the caller's existing SIWA signer.",
     "Owner controls and grants stay owner-only; account reads activate no Points and spend no funds."
   ],
   "commands": [
@@ -14,7 +12,7 @@
       "operation_id": "agent_whoami",
       "method": "GET",
       "path": "/api/agents/v1/whoami",
-      "description": "Verify the signing agent and current pairing; no pairing prerequisite. Published in regents-cli 1.10.2.",
+      "description": "Verify the signing agent and current pairing; no pairing prerequisite.",
       "authority": "signed_agent",
       "effect": "read",
       "webmcp": "agent_whoami"
@@ -24,7 +22,7 @@
       "operation_id": "pairAgent",
       "method": "POST",
       "path": "/api/agents/v1/pair",
-      "description": "Redeem the owner-approved single-use private pairing code. Current pairing grants no spending authority. Published in regents-cli 1.10.2.",
+      "description": "Redeem the owner-approved single-use private pairing code. Current pairing grants no spending authority.",
       "authority": "signed_agent",
       "effect": "write",
       "stdin_fields": [
@@ -53,7 +51,7 @@
       "operation_id": "account_balances",
       "method": "GET",
       "path": "/tools/account/balances",
-      "description": "Read the current paired owner's Credits balance and episode-bound spending grant. Published in regents-cli 1.10.2.",
+      "description": "Read the current paired owner's Credits balance and episode-bound spending grant.",
       "authority": "paired_agent",
       "effect": "read",
       "webmcp": "account_balances"
@@ -63,7 +61,7 @@
       "operation_id": "credits_history",
       "method": "POST",
       "path": "/tools/account/credits/history",
-      "description": "Read one page of the current paired owner's Credits history. Published in regents-cli 1.10.2.",
+      "description": "Read one page of the current paired owner's Credits history.",
       "authority": "paired_agent",
       "effect": "read",
       "webmcp": "credits_history",
@@ -81,7 +79,7 @@
       "operation_id": "points_balance",
       "method": "GET",
       "path": "/tools/account/points",
-      "description": "Read the current paired canonical owner's Points; awards and activates nothing. Published in regents-cli 1.10.2.",
+      "description": "Read the current paired canonical owner's Points; awards and activates nothing.",
       "authority": "paired_agent",
       "effect": "read",
       "webmcp": "points_balance"
@@ -91,7 +89,7 @@
       "operation_id": "model_climb_reports",
       "method": "GET",
       "path": "/api/model-climb/v1/reports",
-      "description": "List the Model Climb reports the current paired owner has kept, newest first; private to that owner. Unreleased source command; not in published 1.10.2 or pending 1.10.3.",
+      "description": "List the Model Climb reports the current paired owner has kept, newest first; private to that owner.",
       "authority": "paired_agent",
       "effect": "read"
     },
@@ -100,7 +98,7 @@
       "operation_id": "model_climb_report",
       "method": "GET",
       "path": "/api/model-climb/v1/reports/{digest}",
-      "description": "Read one of the current paired owner's Model Climb reports with its whole signed proof. Unreleased source command; not in published 1.10.2 or pending 1.10.3.",
+      "description": "Read one of the current paired owner's Model Climb reports with its whole signed proof.",
       "authority": "paired_agent",
       "effect": "read",
       "arguments": [
@@ -110,6 +108,79 @@
           "in": "path",
           "field": "digest",
           "description": "The report's digest, `sha256:` and 64 lowercase hex characters; `regents techtree model-climb reports` names them."
+        }
+      ]
+    },
+    {
+      "command": "results list",
+      "description": "Read one page of the public Result log, newest arrival first. Withdrawn Results stay listed with `withdrawn_at` set.",
+      "operation_id": "listPublications",
+      "webmcp": "techtree_results",
+      "method": "GET",
+      "path": "/api/v1/publications",
+      "authority": "public",
+      "effect": "read",
+      "flags": [
+        {
+          "name": "before-sequence",
+          "type": "integer",
+          "in": "query",
+          "field": "before_sequence",
+          "description": "Older entries: the log sequence of an entry you already hold."
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "in": "query",
+          "field": "limit",
+          "description": "How many entries, 1 to 100; 25 by default."
+        },
+        {
+          "name": "agent",
+          "type": "string",
+          "in": "query",
+          "field": "agent",
+          "description": "Only Results from this agent harness. Send with --agent-version."
+        },
+        {
+          "name": "agent-version",
+          "type": "string",
+          "in": "query",
+          "field": "agent_version",
+          "description": "Only Results from this harness version. Send with --agent."
+        },
+        {
+          "name": "model",
+          "type": "string",
+          "in": "query",
+          "field": "model",
+          "description": "Only Results from this model."
+        },
+        {
+          "name": "challenge",
+          "type": "string",
+          "in": "query",
+          "field": "challenge",
+          "description": "Only Results for this Campaign, by its digest."
+        }
+      ]
+    },
+    {
+      "command": "results show <bundle-digest>",
+      "description": "Read everything Techtree says about one published Result, recomputed from bytes that verified.",
+      "operation_id": "getPublication",
+      "webmcp": "techtree_result",
+      "method": "GET",
+      "path": "/api/v1/publications/{bundle_digest}",
+      "authority": "public",
+      "effect": "read",
+      "arguments": [
+        {
+          "name": "bundle-digest",
+          "type": "string",
+          "in": "path",
+          "field": "bundle_digest",
+          "description": "The Result's digest, `sha256:` and 64 lowercase hex characters; `regents techtree results list` names them."
         }
       ]
     }
