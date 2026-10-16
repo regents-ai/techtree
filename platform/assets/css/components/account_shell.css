@@ -105,7 +105,12 @@
 .account-shell .account-control { min-width: 0; flex-wrap: wrap; }
 .account-shell .account-name { overflow-wrap: anywhere; }
 .account-shell .account-chip { min-width: 0; }
-@media (max-width: 40rem) { .account-shell__head { align-items: flex-start; } }
+@media (max-width: 40rem) {
+  .account-shell__head { align-items: flex-start; }
+  /* The five views stay on one row on a phone. */
+  .account-shell__tabs { flex-wrap: nowrap; gap: 0; max-width: 100%; overflow-x: auto; }
+  .account-shell__tabs a { padding-inline: .3rem; font-size: .85rem; white-space: nowrap; }
+}
 
 .account-shell .shell-credits {
   display: inline-flex;
