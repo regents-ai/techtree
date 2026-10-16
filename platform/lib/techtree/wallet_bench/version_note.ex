@@ -73,7 +73,9 @@ defmodule Techtree.WalletBench.VersionNote do
     end
 
     destroy :withdraw do
-      description "Take a note down. Operator only."
+      description "Take a note down. Operator only; the note and its name go with it."
+      require_atomic? false
+      change Techtree.WalletBench.Changes.Operator
     end
   end
 

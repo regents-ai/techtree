@@ -2,7 +2,8 @@ defmodule Techtree.WalletBench.Attempt.Changes.RecordEvent do
   @moduledoc """
   Appends an attempt's or a turn's new state to the attempt's events, in the
   same transaction. A step puts what it saw under the changeset context's
-  `:event_detail` (`put_detail/2`).
+  `:event_detail` (`put_detail/2`). With `step: name`, the event is that named
+  step instead of the new state, for an action that leaves the state as it was.
   """
 
   use Ash.Resource.Change
@@ -10,9 +11,10 @@ defmodule Techtree.WalletBench.Attempt.Changes.RecordEvent do
   alias Techtree.WalletBench.{Attempt, Catalog, Turn}
 
   @impl true
-  def change(changeset, _opts, _context) do
+  def change(changeset, opts, _context) do
     Ash.Changeset.after_action(changeset, fn changeset, record ->
-      {attempt_id, step} = step(record)
+      {attempt_id, state_step} = step(record)
+      step = Keyword.get(opts, :step, state_step)
 
       Techtree.WalletBench.AttemptEvent
       |> Ash.Changeset.for_create(:record, %{

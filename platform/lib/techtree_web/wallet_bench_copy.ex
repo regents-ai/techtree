@@ -90,6 +90,8 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   @doc "An attempt event's step, such as `leased` or `T1a running`, in words."
   @spec step(String.t()) :: String.t()
+  def step("safety_cleared"), do: "Safety stop cleared"
+
   def step(step) do
     case String.split(step, " ") do
       [state] -> status(String.to_existing_atom(state))

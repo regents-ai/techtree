@@ -17,8 +17,9 @@ defmodule Techtree.WalletBench do
   policy forbids it. Machines are requested and retired by an operator, from a
   console, with policies skipped (`request_machine/2` and `retire_machine/2`);
   the jobs write through AshOban. Every operator action names its operator as
-  the actor, `actor: %Techtree.Actors.Operator{name: "..."}`, and the event or
-  record it writes keeps that name (`Techtree.WalletBench.Changes.Operator`).
+  the actor, `actor: %Techtree.Actors.Operator{name: "..."}`, or is refused
+  (`Techtree.WalletBench.Changes.Operator`). The event or record it writes keeps
+  that name; withdrawing a version note deletes the note, so that name goes too.
   """
 
   use Ash.Domain, otp_app: :techtree

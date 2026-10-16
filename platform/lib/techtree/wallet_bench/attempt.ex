@@ -322,7 +322,7 @@ defmodule Techtree.WalletBench.Attempt do
         })
       end
 
-      change RecordEvent
+      change {RecordEvent, step: "safety_cleared"}
     end
 
     update :stop do
