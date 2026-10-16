@@ -18,7 +18,7 @@ defmodule TechtreeWeb.PageCopy do
     <div class="pagecopy" data-markdown-skip>
       <Regent.Primitives.button
         type="button"
-        class="pagecopy__main"
+        class="pagecopy__main rg-copy"
         id="copy-page"
         phx-hook="CopyCommandPage"
         phx-update="ignore"

@@ -358,8 +358,10 @@ activate Points, or move funds. Pairing codes go on stdin.
 Who may run them: `results list` and `results show` are public and unsigned, the same reads
 as the site's `techtree_results` and `techtree_result` tools. `agents whoami` and
 `agents pair` need only the agent's own signed request. The other five need a paired agent:
-one whose person has paired it with their account. The two Model Climb report reads have no
-site tool, because the site has no page for a person's private reports.
+one whose person has paired it with their account. If that person hasn't signed in on this
+site yet, those five answer 403 `person_not_here`; the person signs in once and the agent
+sends the request again. The two Model Climb report reads have no site tool, because the
+site has no page for a person's private reports.
 
 ### regents techtree results list
 
@@ -631,7 +633,8 @@ Three limits are accepted for M0 and are stated here so nobody is surprised by t
     `objects`, `manifest`, `signature`, `carried`, `report`, `references`, `attestation`).
   - `idempotency_conflict`: the key was already used for a different proof.
   - `agent_not_paired`: this agent has no current pairing.
-- **History:** 2026-10-13 added.
+  - `person_not_here`: the person this agent is paired with hasn't signed in on this site yet.
+- **History:** 2026-10-13 added; 2026-10-16 `person_not_here`.
 
 ### regents techtree model-climb reports (M3)
 

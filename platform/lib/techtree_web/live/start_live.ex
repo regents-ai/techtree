@@ -203,7 +203,7 @@ defmodule TechtreeWeb.StartLive do
               Techtree keeps every review, attempt and result on your computer; only the model calls you approve go to your provider.
             </p>
           </div>
-          <.link navigate={~p"/verify"} class="rg-button rg-button--secondary">Understand verification →</.link>
+          <.link navigate={~p"/verify"} class="rg-button rg-button--secondary">Understand verification</.link>
         </div>
       </section>
     </Layouts.page>

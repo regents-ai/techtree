@@ -392,8 +392,8 @@ defmodule TechtreeWeb.OpenAPI do
           "operationId" => "getAgentCheckIn",
           "summary" => "An agent checks in with the pairing it holds",
           "description" =>
-            "Signed with the agent's own key, with no body. Techtree keeps no account " <>
-              "for a person, so `account` is always empty here.",
+            "Signed with the agent's own key, with no body. The check-in names the " <>
+              "person's Techtree account: display name, ENS name and wallets.",
           "security" => [%{"AgentSignature" => []}],
           "responses" => %{
             "200" => json("The agent's pairing.", agent_data(ref("AgentCheckIn"))),

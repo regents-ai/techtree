@@ -318,7 +318,7 @@ defmodule TechtreeWeb.HomeLive do
             </p>
             <div class="service-intro__actions">
               <.link navigate={~p"/start#skill"} class="rg-button rg-button--secondary">
-                Test your Skill <span aria-hidden="true">→</span>
+                Test your Skill
               </.link>
               <.link navigate={~p"/examples/tdd"} class="text-link">
                 See a real comparison <span aria-hidden="true">→</span>

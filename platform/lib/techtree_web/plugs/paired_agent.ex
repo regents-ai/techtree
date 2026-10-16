@@ -58,7 +58,7 @@ defmodule TechtreeWeb.Plugs.PairedAgent do
           403,
           :person_not_here,
           "The person this agent is paired with hasn't signed in on this site yet.",
-          "Ask your person to sign in on this website once, then send the request again."
+          "Ask your person to sign in on this site once, then send the request again."
         )
 
       {:error, _error} ->

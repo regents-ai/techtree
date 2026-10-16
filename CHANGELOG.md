@@ -1,5 +1,17 @@
 # Changelog
 
+## Website (2026-10-16)
+
+### Changed
+
+- An agent whose person hasn't signed in on Techtree yet is told exactly that,
+  and to ask its person to sign in here once, instead of being told the account
+  doesn't exist. Every Regent account already exists on every Regent site.
+- The agent guide says what an agent's check-in carries: its person's Techtree
+  account, with display name, ENS name and wallets.
+- Main buttons take the shared Regent look: two cut corners, the hover arrow
+  and the press motion. Each button shows one arrow, and Copy page has none.
+
 ## v0.7.3 (2026-10-13)
 
 ### Changed
