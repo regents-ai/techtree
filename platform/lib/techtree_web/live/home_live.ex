@@ -60,7 +60,7 @@ defmodule TechtreeWeb.HomeLive do
 
           <div class="hero__copy">
             <h1 id="hero-title" class="hero-title">
-              The fastest way for a business to uplift their agent Harness / Environment / Skill
+              Least-token uplift of Harness / Environment / Skill
             </h1>
             <p class="hero__mechanism">Built on Prime Intellect &amp; NVIDIA Nemotron</p>
             <nav class="hero__products" aria-labelledby="hero-title">

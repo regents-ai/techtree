@@ -1,5 +1,12 @@
 # Changelog
 
+## Website (2026-10-17)
+
+### Changed
+
+- The home page headline reads "Least-token uplift of Harness / Environment /
+  Skill".
+
 ## Website (2026-10-16)
 
 ### Changed

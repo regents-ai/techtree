@@ -25,7 +25,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(
                live,
                "#hero-title",
-               "The fastest way for a business to uplift their agent Harness / Environment / Skill"
+               "Least-token uplift of Harness / Environment / Skill"
              )
 
       assert has_element?(live, ".hero__mechanism", "Built on Prime Intellect & NVIDIA Nemotron")
@@ -209,7 +209,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     {:ok, _live, html} = live(conn, ~p"/")
     text = visible_text(html)
 
-    assert text =~ "The fastest way for a business to uplift their agent"
+    assert text =~ "Least-token uplift of Harness / Environment / Skill"
     refute text =~ "Evidence graph"
     assert text =~ HomeLive.agent_line()
     refute html =~ "copy-home-cli"
