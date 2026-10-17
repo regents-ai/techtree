@@ -15,6 +15,10 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ReleaseInfo
 
+  # What the headline says an improvement is for, turned one after another by the
+  # HeroOutcome hook; screen readers hear all three at once.
+  @outcomes ["use less tokens", "perform evals stronger", "create better traces"]
+
   @impl true
   def mount(_params, _session, socket) do
     release = ReleaseInfo.current()
@@ -34,7 +38,8 @@ defmodule TechtreeWeb.HomeLive do
        frontier: climb_with_slug(climbs, "frontier-cs-open-ended-climb"),
        wallet_harnesses: names(WalletCatalog.harness_ids(), &WalletCatalog.harness!/1),
        wallet_tools: names(WalletCatalog.wallet_ids(), &WalletCatalog.wallet!/1),
-       release: release
+       release: release,
+       outcomes: @outcomes
      )}
   end
 
@@ -60,7 +65,26 @@ defmodule TechtreeWeb.HomeLive do
 
           <div class="hero__copy">
             <h1 id="hero-title" class="hero-title">
-              Least-token uplift of Harness / Environment / Skill
+              <span class="offscreen">
+                Improve any agent's Harness / Environment / Skills to {either(@outcomes)}
+              </span>
+              <span aria-hidden="true">
+                Improve any agent's Harness&nbsp;/ Environment&nbsp;/ Skills to
+                <span
+                  id="hero-outcome"
+                  class="hero-outcome"
+                  phx-hook="HeroOutcome"
+                  phx-update="ignore"
+                >
+                  <span
+                    :for={{outcome, index} <- Enum.with_index(@outcomes)}
+                    class="hero-outcome__phrase"
+                    data-shown={index == 0}
+                  >
+                    {outcome}
+                  </span>
+                </span>
+              </span>
             </h1>
             <p class="hero__mechanism">Built on Prime Intellect &amp; NVIDIA Nemotron</p>
             <nav class="hero__products" aria-labelledby="hero-title">
@@ -484,4 +508,8 @@ defmodule TechtreeWeb.HomeLive do
     </div>
     """
   end
+
+  # "a, b or c", as the headline reads to someone who hears it.
+  defp either(outcomes),
+    do: Enum.join(Enum.drop(outcomes, -1), ", ") <> " or " <> List.last(outcomes)
 end

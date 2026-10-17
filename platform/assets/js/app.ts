@@ -5,6 +5,7 @@ import {AccountPicture} from "./hooks/account_picture"
 import {AccountShell} from "./hooks/account_shell"
 import {SidePanel} from "./hooks/side_panel"
 import {PanelAgents} from "./hooks/panel_agents"
+import {HeroOutcome} from "./hooks/hero_outcome"
 import {VerifiedConnections} from "./hooks/verified_connections"
 import {OnchainSteps} from "./hooks/onchain_steps"
 import "../vendor/regent_ui/blog.mjs"
@@ -323,7 +324,7 @@ Hooks.CopyCommandPageView = {
   },
 }
 
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, SidePanel, PanelAgents, VerifiedConnections, OnchainSteps, MotionCount, MotionRefusal})
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, SidePanel, PanelAgents, HeroOutcome, VerifiedConnections, OnchainSteps, MotionCount, MotionRefusal})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

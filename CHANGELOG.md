@@ -4,6 +4,9 @@
 
 ### Changed
 
+- The home page headline reads "Improve any agent's Harness / Environment /
+  Skills to", and its last words turn through "use less tokens", "perform evals
+  stronger" and "create better traces".
 - While the Regent sign-in service can't say what your agents have been doing,
   the side panel asks again at most once a minute per agent, and activity from
   the Regents mobile app is shown with the other sites.

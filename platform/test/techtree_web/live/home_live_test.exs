@@ -24,9 +24,20 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(
                live,
-               "#hero-title",
-               "Least-token uplift of Harness / Environment / Skill"
+               "#hero-title .offscreen",
+               "Improve any agent's Harness / Environment / Skills to use less tokens, " <>
+                 "perform evals stronger or create better traces"
              )
+
+      for phrase <- ["use less tokens", "perform evals stronger", "create better traces"] do
+        assert has_element?(
+                 live,
+                 ~s|#hero-outcome[phx-hook="HeroOutcome"] .hero-outcome__phrase|,
+                 phrase
+               )
+      end
+
+      assert has_element?(live, ".hero-outcome__phrase[data-shown]", "use less tokens")
 
       assert has_element?(live, ".hero__mechanism", "Built on Prime Intellect & NVIDIA Nemotron")
       assert has_element?(live, ~s|.hero__products[aria-labelledby="hero-title"]|)
@@ -209,7 +220,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     {:ok, _live, html} = live(conn, ~p"/")
     text = visible_text(html)
 
-    assert text =~ "Least-token uplift of Harness / Environment / Skill"
+    assert text =~ "Harness / Environment / Skills to use less tokens, perform evals stronger"
     refute text =~ "Evidence graph"
     assert text =~ HomeLive.agent_line()
     refute html =~ "copy-home-cli"

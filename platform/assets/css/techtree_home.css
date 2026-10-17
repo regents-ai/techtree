@@ -21,6 +21,12 @@
   letter-spacing: -.035em;
   text-wrap: balance;
 }
+/* The headline's turning last words: every phrase in one cell sized to the
+   longest, clipped so one rises out of sight as the next rises in. Only the shown
+   one is visible; without the script that is the first. */
+.hero-outcome { display: grid; justify-items: start; overflow: clip; }
+.hero-outcome__phrase { grid-area: 1 / 1; }
+.hero-outcome__phrase:not([data-shown]) { opacity: 0; }
 .hero--landing .hero__mechanism {
   margin-top: var(--space-3);
   font-family: var(--font-family-ui);
