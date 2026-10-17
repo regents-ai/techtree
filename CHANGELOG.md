@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- A read-only `/api/wallet-bench/:id` export for Patchbay's full run dialog:
+  recorded prompts, verdicts, verifier observations, costs, timing, public events
+  and the existing sanitized evidence manifest. The response projects public
+  fields explicitly and exposes no provider context or signed transaction bytes.
+  This prepares the consumer integration; the endpoint has not been deployed.
+
 ## Website (2026-10-17)
 
 ### Changed

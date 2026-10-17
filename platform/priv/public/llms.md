@@ -24,6 +24,7 @@ the person's own computer.
 - [Agent access and recovery](https://techtree.sh/agents.md): identity, pairing and protected operations.
 
 - [Wallet Bench](https://techtree.sh/wallet-bench.md): which coding agent works with which wallet tool, as Markdown, with every test that has a result. The page is [/wallet-bench](https://techtree.sh/wallet-bench).
+- [One Wallet Bench run as JSON](https://techtree.sh/api/wallet-bench/b317a5d1-bfd0-4ed3-aef8-0b797f5f60bf): `GET /api/wallet-bench/{attempt_uuid}`, schema 1. Public recorded setup, stages, prompts, judge answers/reasons, verifier observations, costs, times, event history and sanitized artifact fingerprints. Decimal quantities are strings; unknown readings are null. Rubric wording and configured limits are identified as current catalog values. The read starts no benchmark and moves no money.
 - [Docs](https://techtree.sh/docs): install, run, verify, publish and integrate, with the API's errors, rate limits and versioning.
 - [OpenAPI description](https://techtree.sh/openapi.json): every public API address, typed.
 - [Tool manifest](https://techtree.sh/capabilities): the browser tools below, as JSON.

@@ -108,6 +108,7 @@ GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
 GET /repo2rlenv                 the planned Repo2RLEnv service
 GET /blog, /blog/:slug          published posts
+GET /api/wallet-bench/:id       one public wallet-bench attempt as JSON
 
 GET /healthz                    is a catalog being served, and which one
 GET /api/v1/bootstrap           the installation contract, exact bytes
@@ -149,6 +150,34 @@ stranger, and whether retrying could help:
 
 The last one is deliberate: bytes that do not match the digest they are filed
 under are never served, under any status.
+
+### Wallet Bench run export
+
+`GET /api/wallet-bench/:id` returns `schema_version: 1` with the public setup,
+recorded stages and exact prompts, criterion verdicts and reasons, judge text,
+Base and money-verifier observations, costs in USD, timestamps, funding transaction
+references, and the public event timeline. Patchbay uses this read to keep the full
+run inside its results dialog. It uses the same authorized attempt reads as the
+Techtree run page and never starts a benchmark, signs, funds, or changes a record.
+
+Each artifact carries its existing sanitized-byte SHA-256, size, and canonical
+`/wallet-bench/:id/evidence/:turn/:file` URL. Artifact bodies are not included;
+the existing download verifies the fingerprint before serving the bytes. Text
+artifacts are served as `text/plain`; image MIME is `null` in the manifest until
+the download checks the actual bytes. No machine/provider contexts, bucket keys,
+raw signed funding transactions, or private event details are exported.
+
+Stages declare `criterion_count` (nine for install/wallet, five for money, zero
+for unscored return) and `criterion_source: current_catalog`. Answers and reasons
+are recorded; question wording is the current published rubric.
+
+Decimal costs, durations, and token base-unit amounts are JSON strings, with
+`null` for missing readings. A stage's `timing.limit_source` is `current_catalog`:
+its limit is today's configured cap, not proof of the cap used in that historical
+run. The attempt's finish time comes from its terminal recorded event; a missing
+event remains `null`. Unknown or malformed IDs return 404. Responses may be cached
+publicly for 30 seconds. This source change requires deployment before the new
+endpoint is available to consumers.
 
 ### The installation contract
 

@@ -75,6 +75,12 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
+  scope "/api", TechtreeWeb do
+    pipe_through :api
+
+    get "/wallet-bench/:id", WalletBenchController, :show
+  end
+
   pipeline :paired_agent do
     plug TechtreeWeb.Plugs.PairedAgent
   end
