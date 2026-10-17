@@ -50,6 +50,60 @@ defmodule TechtreeWeb.OpenAPI do
 
   defp paths do
     %{
+      "/api/wallet-bench/{id}" => %{
+        "get" => %{
+          "operationId" => "getWalletBenchRun",
+          "summary" => "One recorded public Wallet Bench run",
+          "description" =>
+            "Schema-1 public projection used by Patchbay's full-screen report. Contains " <>
+              "recorded setup, prompts, judge answers and reasons, verifier observations, " <>
+              "costs, timing, event history and sanitized artifact fingerprints. Decimal " <>
+              "quantities are strings; unknown readings are null. Each stage declares " <>
+              "criterion_count (9, 5 or 0), criterion_source=current_catalog, and " <>
+              "timing.limit_source=current_catalog: question wording and configured caps " <>
+              "are current definitions, not historical measurements. Artifact bodies " <>
+              "remain on the fingerprint-checked evidence route. This anonymous read " <>
+              "starts no benchmark, signs nothing and moves no money. Cached for 30 seconds.",
+          "parameters" => [
+            %{
+              "name" => "id",
+              "in" => "path",
+              "required" => true,
+              "description" => "The published attempt UUID.",
+              "schema" => %{"type" => "string", "format" => "uuid"}
+            }
+          ],
+          "responses" => %{
+            "200" =>
+              json("The recorded public run.", %{
+                "type" => "object",
+                "required" => [
+                  "schema_version",
+                  "id",
+                  "harness_id",
+                  "wallet_id",
+                  "setup",
+                  "stages",
+                  "costs",
+                  "timeline",
+                  "funding"
+                ],
+                "properties" => %{
+                  "schema_version" => %{"type" => "integer", "const" => 1},
+                  "id" => %{"type" => "string", "format" => "uuid"},
+                  "harness_id" => %{"type" => "string"},
+                  "wallet_id" => %{"type" => "string"},
+                  "setup" => %{"type" => "object"},
+                  "stages" => %{"type" => "array", "items" => %{"type" => "object"}},
+                  "costs" => %{"type" => "object"},
+                  "timeline" => %{"type" => "array", "items" => %{"type" => "object"}},
+                  "funding" => %{"type" => "array", "items" => %{"type" => "object"}}
+                }
+              }),
+            "404" => error("The attempt UUID is malformed or no public attempt has that ID.")
+          }
+        }
+      },
       "/healthz" => %{
         "get" => %{
           "operationId" => "getHealth",
