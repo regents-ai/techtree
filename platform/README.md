@@ -284,8 +284,9 @@ local server refuses to start, because nobody could sign in. Other tasks run wit
 Every page can sign in. The header shows Sign in, or the person's name, which opens
 the side panel (`TechtreeWeb.SidePanelLive`): Sign out, Manage Account, the agents
 paired with the account with where each was last active, and Pair New Agent. Each
-agent's reading from the sign-in service is kept five minutes on the machine
-(`Techtree.Agents.ActivityReading`). The shared account lives at `/account`, with
+agent's reading from the sign-in service is kept five minutes on the machine, and a
+failed read one minute (`Techtree.Agents.ActivityReading`); reads that give no reading
+are counted in `health.agent_activity_unread.total` by reason. The shared account lives at `/account`, with
 Credits, Points, wallets and connections in the same frame. Sign-in uses the site's
 own Privy settings and a revocable server session, so every page is served under the
 sign-in content policy. Pairing uses that verified account; publication still needs

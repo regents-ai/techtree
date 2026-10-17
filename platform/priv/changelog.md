@@ -4,6 +4,9 @@
 
 ### Changed
 
+- While the Regent sign-in service can't say what your agents have been doing,
+  the side panel asks again at most once a minute per agent, and activity from
+  the Regents mobile app is shown with the other sites.
 - The home page headline reads "Least-token uplift of Harness / Environment /
   Skill".
 

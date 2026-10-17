@@ -92,6 +92,13 @@ defmodule TechtreeWeb.Telemetry do
       last_value("techtree.rate_limit.sweep.deleted"),
       last_value("techtree.rate_limit.sweep.size"),
 
+      # Agents' activity reads that gave no reading (Techtree.Agents.ActivityReading)
+      counter("health.agent_activity_unread.total",
+        event_name: [:techtree, :agents, :activity_unread],
+        tags: [:reason],
+        description: "Agents' activity reads from the sign-in service that gave no reading"
+      ),
+
       # VM Metrics
       summary("vm.memory.total", unit: {:byte, :kilobyte}),
       summary("vm.total_run_queue_lengths.total"),
