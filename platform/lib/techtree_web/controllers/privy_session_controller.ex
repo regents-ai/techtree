@@ -5,6 +5,7 @@ defmodule TechtreeWeb.PrivySessionController do
   alias Techtree.AccessContext
   alias Techtree.Accounts.{RequestRateLimiter, SessionAuthority, VerifiedSession}
   alias TechtreeWeb.{ClientAddress, PrivyProof}
+  alias TechtreeWeb.Live.Session
 
   require Logger
 
@@ -81,16 +82,24 @@ defmodule TechtreeWeb.PrivySessionController do
   cookie, so the page says so and the browser retires it through the session
   endpoints, which can.
   """
-  def enforce_authority(conn) do
+  def enforce_authority(conn, page) do
     session = get_session(conn)
 
-    {lineage, account, _lapses_at} =
-      session |> SessionAuthority.claim() |> SessionAuthority.resolve()
+    case session |> SessionAuthority.claim() |> Session.resolve(page) do
+      {lineage, account, _lapses_at} ->
+        conn
+        |> assign(:current_lineage, lineage)
+        |> assign(:current_human_account, account)
+        |> assign(:session_refused, is_nil(lineage) and SessionAuthority.claim_shaped?(session))
 
-    conn
-    |> assign(:current_lineage, lineage)
-    |> assign(:current_human_account, account)
-    |> assign(:session_refused, is_nil(lineage) and SessionAuthority.claim_shaped?(session))
+      # A public page the database can't answer for draws signed out. The claim
+      # isn't refused, so the browser keeps its cookie and stays signed in.
+      :database_down ->
+        conn
+        |> assign(:current_lineage, nil)
+        |> assign(:current_human_account, nil)
+        |> assign(:session_refused, false)
+    end
   end
 
   defp admit_bootstrap(conn, nil) do

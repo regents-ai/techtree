@@ -2,11 +2,13 @@ defmodule TechtreeWeb.Outage do
   @moduledoc """
   A page's database reads, told apart from the database not answering at all.
 
-  When the reads raise, the page asks the database one trivial question. If it
-  answers, the failure belongs to the page and is raised again unchanged, so a
-  bug still shows as one. Only when it doesn't answer does the page say it
-  can't show its data right now instead of failing whole, and the failure is
-  logged here, since the error tracker keeps its records in that same database.
+  A read that raised counts as an outage only when it lost its connection to the
+  database and the database then doesn't answer one trivial question. Anything
+  else, a bug, a slow query or a connection lost while the database still
+  answers, is raised again unchanged, so it still shows as what it is. In an
+  outage the page says it can't show its data right now instead of failing
+  whole, and the failure is logged here, since the error tracker keeps its
+  records in that same database.
   """
 
   require Logger
@@ -21,7 +23,7 @@ defmodule TechtreeWeb.Outage do
     {:ok, reads.()}
   rescue
     error ->
-      if answering?() do
+      if not connection_lost?(error) or answering?() do
         reraise error, __STACKTRACE__
       else
         Logger.warning(
@@ -31,6 +33,20 @@ defmodule TechtreeWeb.Outage do
         :database_down
       end
   end
+
+  # Ash keeps a data-layer failure only as its formatted text, which opens with
+  # the name of the exception, so that name is what says the connection was lost.
+  defp connection_lost?(%DBConnection.ConnectionError{}), do: true
+
+  defp connection_lost?(%Ash.Error.Unknown{errors: errors}),
+    do: Enum.any?(errors, &connection_lost?/1)
+
+  defp connection_lost?(%Ash.Error.Unknown.UnknownError{
+         error: "** (DBConnection.ConnectionError)" <> _
+       }),
+       do: true
+
+  defp connection_lost?(_error), do: false
 
   # Asked without queueing for a connection, so a database that refuses them
   # answers no at once rather than after the pool's wait.

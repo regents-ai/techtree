@@ -12,6 +12,8 @@ defmodule TechtreeWeb.OutagePagesTest do
 
   use TechtreeWeb, :verified_routes
 
+  alias Techtree.Accounts.SessionAuthority
+
   import ExUnit.CaptureLog
   import Phoenix.ConnTest
   import Phoenix.LiveViewTest
@@ -19,6 +21,12 @@ defmodule TechtreeWeb.OutagePagesTest do
   @endpoint TechtreeWeb.Endpoint
 
   setup do
+    refusing = cut_database()
+    on_exit(fn -> bring_back(refusing) end)
+    {:ok, conn: build_conn()}
+  end
+
+  defp cut_database do
     :ok = Supervisor.terminate_child(Techtree.Supervisor, Techtree.Repo)
 
     {:ok, refusing} =
@@ -33,15 +41,21 @@ defmodule TechtreeWeb.OutagePagesTest do
         backoff_min: 10
       )
 
-    on_exit(fn ->
-      ref = Process.monitor(refusing)
-      Process.exit(refusing, :shutdown)
-      assert_receive {:DOWN, ^ref, :process, _pid, _reason}, 5_000
-      {:ok, _pool} = Supervisor.restart_child(Techtree.Supervisor, Techtree.Repo)
-      Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, :manual)
-    end)
+    Process.unlink(refusing)
+    refusing
+  end
 
-    {:ok, conn: build_conn()}
+  # The usual pool, back as the suite expects it. A test may bring it back
+  # itself first; then this finds it already running.
+  defp bring_back(refusing) do
+    if Process.alive?(refusing), do: Supervisor.stop(refusing)
+
+    case Supervisor.restart_child(Techtree.Supervisor, Techtree.Repo) do
+      {:ok, _pool} -> :ok
+      {:error, :running} -> :ok
+    end
+
+    Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, :manual)
   end
 
   # A port that was free a moment ago, so a connection to it is refused.
@@ -101,5 +115,89 @@ defmodule TechtreeWeb.OutagePagesTest do
            )
 
     refute has_element?(live, "#wallet-bench-empty")
+  end
+
+  # A browser that holds a sign-in, made without the database: the claim's own
+  # shape is all a page reads before it asks the database about it.
+  defp signed_in(conn) do
+    lineage = 32 |> :crypto.strong_rand_bytes() |> Base.url_encode64(padding: false)
+    session = SessionAuthority.session(%{lineage: lineage, generation: 1})
+    {Plug.Test.init_test_session(conn, session), session}
+  end
+
+  test "a signed-in visitor sees a public page signed out, and keeps the sign-in", %{conn: conn} do
+    {conn, session} = signed_in(conn)
+
+    conn = quietly(fn -> get(conn, ~p"/wallet-bench") end)
+
+    assert html_response(conn, 200) =~ ~s(id="wallet-bench-unreadable")
+    assert html_response(conn, 200) =~ ~s|data-account-target="sign-in"|
+    refute html_response(conn, 200) =~ ~s|name="session-refused"|
+
+    # The session the response writes back still carries the same sign-in, so
+    # nothing renews, rotates or drops it.
+    for {key, value} <- session, do: assert(Plug.Conn.get_session(conn, key) == value)
+  end
+
+  # The side panel is drawn by the page's outer layout, which the test client
+  # doesn't connect, so its live mount is run here as a connecting socket would.
+  defp connecting(session) do
+    %Phoenix.LiveView.Socket{transport_pid: self(), private: %{connect_info: %{session: session}}}
+  end
+
+  @rendered %{"client_key" => "outage-test", "render_route" => "/results"}
+
+  test "the side panel's live connection goes on signed out for a signed-in visitor" do
+    {_conn, session} = signed_in(build_conn())
+
+    assert {:cont, socket} =
+             quietly(fn ->
+               TechtreeWeb.Live.Session.on_mount(
+                 :load_visitor,
+                 %{},
+                 @rendered,
+                 connecting(session)
+               )
+             end)
+
+    assert socket.assigns.account_control.kind == :sign_in
+    assert socket.assigns.session_lease == nil
+  end
+
+  test "the account pages' live connection still fails whole" do
+    {_conn, session} = signed_in(build_conn())
+
+    assert_raise Ash.Error.Unknown, fn ->
+      quietly(fn ->
+        TechtreeWeb.Live.Session.on_mount(:load_human, %{}, @rendered, connecting(session))
+      end)
+    end
+  end
+
+  test "once the database is back, a page drawn signed out in the outage redirects once" do
+    {_conn, session} = signed_in(build_conn())
+
+    bring_back(Process.whereis(Techtree.Repo))
+    Ecto.Adapters.SQL.Sandbox.checkout(Techtree.Repo)
+
+    # The panel can now read the claim: a sign-in this browser no longer holds,
+    # so it goes once to the public root, as it would with the database up
+    # all along, rather than drawing signed out again or looping.
+    assert {:halt, socket} =
+             TechtreeWeb.Live.Session.on_mount(:load_visitor, %{}, @rendered, connecting(session))
+
+    assert {:redirect, %{to: "/"}} = socket.redirected
+  end
+
+  test "a failure that isn't a lost connection is raised even in an outage" do
+    assert_raise ArgumentError, "not an outage", fn ->
+      TechtreeWeb.Outage.read(fn -> raise ArgumentError, "not an outage" end)
+    end
+  end
+
+  test "the account pages still fail whole, since nothing on them can be shown", %{conn: conn} do
+    {conn, _session} = signed_in(conn)
+
+    assert_raise Ash.Error.Unknown, fn -> quietly(fn -> get(conn, ~p"/account") end) end
   end
 end

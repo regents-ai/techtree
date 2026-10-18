@@ -41,6 +41,17 @@ defmodule TechtreeWeb.Router do
     }
   end
 
+  # The public pages read the session the same way, but draw signed out when the
+  # database doesn't answer rather than failing whole.
+  # sobelow_skip ["Config.CSP"]
+  pipeline :visitor_browser do
+    plug :enforce_visitor_session_authority
+
+    plug :put_secure_browser_headers, %{
+      "content-security-policy" => TechtreeWeb.ContentSecurityPolicy.sign_in()
+    }
+  end
+
   # The account pages and sign-in answers are never kept by the browser. Other
   # pages keep Phoenix's revalidated private caching, so back and forward work.
   pipeline :account_only do
@@ -100,7 +111,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:html_only, :browser, :account_browser]
+    pipe_through [:html_only, :browser, :visitor_browser]
 
     live "/", HomeLive
     get "/about", PublicPagesController, :show
@@ -126,7 +137,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:motion_lab, :html_only, :browser, :account_browser]
+    pipe_through [:motion_lab, :html_only, :browser, :visitor_browser]
 
     live_session :motion_lab, on_mount: [{TechtreeWeb.Showcase, :motion_lab}] do
       live "/animations", AnimationsLive, :index
@@ -223,5 +234,8 @@ defmodule TechtreeWeb.Router do
   defp no_store(conn, _opts), do: put_resp_header(conn, "cache-control", "private, no-store")
 
   defp enforce_session_authority(conn, _opts),
-    do: TechtreeWeb.PrivySessionController.enforce_authority(conn)
+    do: TechtreeWeb.PrivySessionController.enforce_authority(conn, :account)
+
+  defp enforce_visitor_session_authority(conn, _opts),
+    do: TechtreeWeb.PrivySessionController.enforce_authority(conn, :public)
 end

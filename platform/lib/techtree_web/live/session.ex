@@ -7,6 +7,7 @@ defmodule TechtreeWeb.Live.Session do
   alias Techtree.AccessContext
   alias Techtree.Accounts.{EnsIdentity, HumanAccount, SessionAuthority}
   alias TechtreeWeb.ClientAddress
+  alias TechtreeWeb.Outage
 
   @public_root "/"
 
@@ -32,7 +33,30 @@ defmodule TechtreeWeb.Live.Session do
     })
   end
 
-  def on_mount(:load_human, _params, session, socket) do
+  @doc """
+  Reads the session for a page. The account pages (`:load_human`) fail whole when
+  the database doesn't answer. A public page and the side panel beside every page
+  (`:load_visitor`) draw as signed out instead, so they stay up in an outage; the
+  cookie is left exactly as it was, so the visitor is still signed in once the
+  database answers and the page is loaded again.
+  """
+  def on_mount(:load_human, _params, session, socket), do: load(:account, session, socket)
+  def on_mount(:load_visitor, _params, session, socket), do: load(:public, session, socket)
+
+  @doc """
+  Resolves a claim as `SessionAuthority.resolve/1` does; on a `:public` page a
+  database that doesn't answer gives `:database_down` instead of raising.
+  """
+  def resolve(claim, :account), do: SessionAuthority.resolve(claim)
+
+  def resolve(claim, :public) do
+    case Outage.read(fn -> SessionAuthority.resolve(claim) end) do
+      {:ok, resolved} -> resolved
+      :database_down -> :database_down
+    end
+  end
+
+  defp load(page, session, socket) do
     socket =
       assign(socket,
         client_key: Map.fetch!(session, "client_key"),
@@ -41,12 +65,12 @@ defmodule TechtreeWeb.Live.Session do
       )
 
     if connected?(socket) do
-      connected(socket, session, get_connect_info(socket, :session))
+      connected(socket, session, get_connect_info(socket, :session), page)
     else
-      {_lineage, account, _lapses_at} =
-        session |> SessionAuthority.claim() |> SessionAuthority.resolve()
-
-      {:cont, assign_principal(socket, account)}
+      case session |> SessionAuthority.claim() |> resolve(page) do
+        {_lineage, account, _lapses_at} -> {:cont, assign_principal(socket, account)}
+        :database_down -> {:cont, assign_principal(socket, nil)}
+      end
     end
   end
 
@@ -56,22 +80,24 @@ defmodule TechtreeWeb.Live.Session do
   # otherwise one full request for the same route realigns them. Anything else
   # lands on the public root, which is outside the product shell and so cannot
   # raise the same rejection again.
-  defp connected(socket, %{"render_topic" => rendered} = static, handshake),
-    do: admit(socket, rendered, static["render_route"], SessionAuthority.claim(handshake))
+  defp connected(socket, %{"render_topic" => rendered} = static, handshake, page),
+    do: admit(socket, rendered, static["render_route"], SessionAuthority.claim(handshake), page)
 
-  defp connected(socket, static, handshake) do
+  defp connected(socket, static, handshake, page) do
     if SessionAuthority.claim_shaped?(handshake),
-      do: admit(socket, nil, static["render_route"], SessionAuthority.claim(handshake)),
+      do: admit(socket, nil, static["render_route"], SessionAuthority.claim(handshake), page),
       else: {:cont, assign_principal(socket, nil)}
   end
 
-  defp admit(socket, _rendered, _route, nil), do: {:halt, redirect(socket, to: @public_root)}
+  defp admit(socket, _rendered, _route, nil, _page),
+    do: {:halt, redirect(socket, to: @public_root)}
 
-  defp admit(socket, rendered, route, %{lineage: lineage} = claim) do
-    with {^lineage, account, lapses_at} <- SessionAuthority.resolve(claim),
+  defp admit(socket, rendered, route, %{lineage: lineage} = claim, page) do
+    with {^lineage, account, lapses_at} <- resolve(claim, page),
          ^rendered <- SessionAuthority.topic(lineage) do
       {:cont, hold(socket, lineage, account, lapses_at)}
     else
+      :database_down -> {:cont, assign_principal(socket, nil)}
       {nil, nil, nil} -> {:halt, redirect(socket, to: @public_root)}
       _other_session -> {:halt, redirect(socket, to: route)}
     end

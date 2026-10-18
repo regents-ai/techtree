@@ -8,8 +8,8 @@ defmodule TechtreeWeb.OutageTest do
   end
 
   test "with the database answering, a failing read is raised again unchanged" do
-    assert_raise RuntimeError, "a bug in the page", fn ->
-      Outage.read(fn -> raise "a bug in the page" end)
+    assert_raise DBConnection.ConnectionError, "a connection the page lost", fn ->
+      Outage.read(fn -> raise DBConnection.ConnectionError, "a connection the page lost" end)
     end
   end
 end

@@ -15,7 +15,7 @@ defmodule TechtreeWeb.SidePanelLive do
 
   import TechtreeWeb.Components.AccountControls, only: [account_control: 1]
 
-  on_mount {TechtreeWeb.Live.Session, :load_human}
+  on_mount {TechtreeWeb.Live.Session, :load_visitor}
 
   @impl true
   def mount(_params, _session, socket) do
