@@ -18,6 +18,8 @@
   Bench stay up for visitors who aren't signed in and say what can't be shown
   right now, instead of the whole page failing or wrongly saying there's
   nothing there. (8aeb179)
+- During a database outage those pages now answer in about half the time.
+  (8030b33)
 
 ## Website (2026-10-17)
 
