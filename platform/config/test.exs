@@ -12,9 +12,16 @@ config :techtree, Techtree.Repo,
   password: System.get_env("PGPASSWORD", "postgres"),
   hostname: System.get_env("PGHOST", "localhost"),
   database: "techtree_test#{System.get_env("MIX_TEST_PARTITION")}",
-  pool: Ecto.Adapters.SQL.Sandbox,
   # Keep parallel worktrees within the local PostgreSQL connection budget.
+  pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 8
+
+# The browser test server (assets/test/browser) answers real page loads, which
+# commit what they write, so it runs on an ordinary pool of three on its own
+# database (MIX_TEST_PARTITION=browser) rather than the test sandbox.
+if System.get_env("TECHTREE_BROWSER_TEST") == "1" do
+  config :techtree, Techtree.Repo, pool: DBConnection.ConnectionPool, pool_size: 3
+end
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.

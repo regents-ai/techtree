@@ -12,13 +12,6 @@ config :techtree, Techtree.Repo,
 
 config :techtree, Oban, prefix: database_schema
 
-# The browser test server (assets/test/browser) answers real page loads, which
-# commit what they write, so it runs on an ordinary pool of three on its own
-# database (MIX_TEST_PARTITION=browser) rather than the test sandbox.
-if config_env() == :test and System.get_env("TECHTREE_BROWSER_TEST") == "1" do
-  config :techtree, Techtree.Repo, pool: DBConnection.ConnectionPool, pool_size: 3
-end
-
 config :error_tracker, prefix: database_schema
 
 # The motion lab at /animations (TechtreeWeb.Showcase). Production must choose
