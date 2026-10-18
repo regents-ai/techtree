@@ -7,7 +7,6 @@ import {SidePanel} from "./hooks/side_panel"
 import {PanelAgents} from "./hooks/panel_agents"
 import {HeroOutcome} from "./hooks/hero_outcome"
 import {VerifiedConnections} from "./hooks/verified_connections"
-import {OnchainSteps} from "./hooks/onchain_steps"
 import "../vendor/regent_ui/blog.mjs"
 import "../vendor/regent_ui/pill_select.mjs"
 
@@ -184,6 +183,15 @@ if (!browserCsrfToken()) throw new Error("Missing CSRF token")
 const labHooks = document.querySelector("main.motion-lab")
   ? (await import("./motion_lab")).hooks : {}
 
+// The wallet code drives only the Approve and Buy buttons in the Buy Credits
+// window on the account pages. Those pages run in their own live session, so
+// reaching one always loads the page afresh and asks again. Every account page
+// loads it, signed in or not, since a sign-in can arrive on an open page
+// without a reload. It is loaded before the page connects, so it is ready
+// before either button can be pressed.
+const walletHooks = document.getElementById("account-shell")
+  ? {OnchainSteps: (await import("./hooks/onchain_steps")).OnchainSteps} : {}
+
 const Hooks: Record<string, object> = {
   Optics: {
     ...Optics,
@@ -327,7 +335,7 @@ Hooks.CopyCommandPageView = {
   },
 }
 
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, SidePanel, PanelAgents, HeroOutcome, VerifiedConnections, OnchainSteps, MotionCount, MotionRefusal})
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, SidePanel, PanelAgents, HeroOutcome, VerifiedConnections, ...walletHooks, MotionCount, MotionRefusal})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
