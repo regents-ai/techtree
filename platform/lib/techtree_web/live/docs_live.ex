@@ -139,9 +139,11 @@ defmodule TechtreeWeb.DocsLive do
             <h2>Install and check this machine</h2>
             <%= cond do %>
               <% @install == :unreadable -> %>
-                <p>The install steps can't be shown right now. Try again in a minute.</p>
+                <p id="install-unreadable">
+                  The install steps can't be shown right now. Try again in a minute.
+                </p>
               <% is_nil(@release) or not @release.installable? -> %>
-                <p>There's no version of Techtree to install yet.</p>
+                <p id="install-none">There's no version of Techtree to install yet.</p>
               <% @release.introductory_reference -> %>
                 <.command_block
                   id="copy-docs-install"

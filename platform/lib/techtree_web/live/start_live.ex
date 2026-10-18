@@ -81,11 +81,11 @@ defmodule TechtreeWeb.StartLive do
         <Regent.Structure.panel :if={!@setup_commands} class="rg-panel__body setup-unavailable">
           <%= if @install == :unreadable do %>
             <p class="eyebrow">Install steps unavailable</p>
-            <h2>The install steps can't be shown right now.</h2>
+            <h2 id="install-unreadable">The install steps can't be shown right now.</h2>
             <p>Try again in a minute. The guide explains how a test works in the meantime.</p>
           <% else %>
             <p class="eyebrow">Not ready to install yet</p>
-            <h2>There's no version of Techtree to install yet.</h2>
+            <h2 id="install-none">There's no version of Techtree to install yet.</h2>
             <p>
               The command to copy will appear here as soon as the first version is out. Until then, the guide explains how a test works.
             </p>

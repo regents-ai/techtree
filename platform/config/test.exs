@@ -23,7 +23,8 @@ config :techtree, TechtreeWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: browser_port],
   check_origin: ["http://127.0.0.1:#{browser_port}"],
   secret_key_base: "fJEVwbcHenhXO0I0VkIPCVbw+UngMhEYquu/I6Vvo87vhMrsp4BT5B6GM8Nkr+q7",
-  server: false
+  # The browser tests (assets/test/browser) start this server themselves.
+  server: System.get_env("TECHTREE_BROWSER_TEST") == "1"
 
 # The example comparison reads test data made with the CLI's scripted stand-ins,
 # and links its export at a stand-in revision.

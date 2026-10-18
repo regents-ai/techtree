@@ -75,34 +75,30 @@ defmodule TechtreeWeb.OutagePagesTest do
   test "Home says its Climbs and install command can't be shown", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/") end)
 
-    assert has_element?(live, "#climbs-unreadable", "The Climbs can't be shown right now.")
-    assert has_element?(live, ".release-state", "The command can't be shown right now.")
-    refute render(live) =~ "There's no version of Techtree to install yet."
+    assert has_element?(live, "#climbs-unreadable")
+    assert has_element?(live, "#install-unreadable")
+    refute has_element?(live, "#install-none")
   end
 
   test "Start and Docs say the install steps can't be shown, not that there's nothing to install",
        %{conn: conn} do
     {:ok, start, _html} = quietly(fn -> live(conn, ~p"/start") end)
 
-    assert has_element?(
-             start,
-             ".setup-unavailable",
-             "The install steps can't be shown right now."
-           )
+    assert has_element?(start, "#install-unreadable")
 
-    refute render(start) =~ "There's no version of Techtree to install yet."
+    refute has_element?(start, "#install-none")
 
     {:ok, docs, _html} = quietly(fn -> live(conn, ~p"/docs") end)
-    assert has_element?(docs, "#install", "The install steps can't be shown right now.")
-    refute render(docs) =~ "There's no version of Techtree to install yet."
+    assert has_element?(docs, "#install-unreadable")
+    refute has_element?(docs, "#install-none")
   end
 
   test "Results says it can't show Results and hides the filters", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/results") end)
 
-    assert has_element?(live, "#results-database-down", "Results can't be shown right now.")
+    assert has_element?(live, "#results-database-down")
     refute has_element?(live, ".results-filters")
-    refute render(live) =~ "Nobody has published a Result yet."
+    refute has_element?(live, "#results-none")
   end
 
   test "Wallet Bench says its tests can't be shown, not that none have run", %{conn: conn} do

@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli release readiness
+.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli release readiness browser
 
 check: check-plugin check-platform check-required-fixes check-cli check-contracts
 
@@ -13,6 +13,11 @@ plugin-release-core:
 
 check-platform:
 	cd platform && mix deps.get && mix assets.setup && mix assets.build && mix precommit
+
+# The browser tests alone: the main pages in headless Chromium at 1280, 390 and
+# 320 wide, signed out and signed in. check-platform runs them too.
+browser:
+	cd platform/assets && npm run test:browser
 
 # Every site runs the same check against ash-template's current main branch, so a
 # newly published required fix reaches every site's next gate. Needs `gh auth login`.

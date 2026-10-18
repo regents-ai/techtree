@@ -58,3 +58,7 @@ npm-debug.log
 /priv/static/images/blog/
 /blog_content/
 /skills_content/
+
+# What a browser test run leaves behind on failure.
+/assets/test-results/
+/assets/playwright-report/

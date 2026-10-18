@@ -502,11 +502,13 @@ defmodule TechtreeWeb.HomeLive do
         <summary>Use the command line instead</summary>
         <%= cond do %>
           <% @catalog == :unreadable -> %>
-            <p class="release-state">
+            <p id="install-unreadable" class="release-state">
               The command can't be shown right now. Try again in a minute.
             </p>
           <% is_nil(@release) or not @release.installable? -> %>
-            <p class="release-state">There's no version of Techtree to install yet.</p>
+            <p id="install-none" class="release-state">
+              There's no version of Techtree to install yet.
+            </p>
           <% true -> %>
             <.command_block
               id="copy-home-cli"

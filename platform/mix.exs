@@ -185,7 +185,10 @@ defmodule Techtree.MixProject do
         "ash.codegen --check",
         "usage_rules.sync --check",
         "cmd --cd assets npm run typecheck",
-        "test"
+        "test",
+        # The main pages in headless Chromium at desktop and phone widths, against a
+        # server the browser tests start on their own database (assets/test/browser).
+        "cmd --cd assets npm run test:browser"
       ],
       "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
       "assets.build": [
