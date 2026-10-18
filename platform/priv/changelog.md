@@ -21,7 +21,8 @@
 - During a database outage those pages now answer in about half the time.
   (8030b33)
 - During a database outage, signed-in visitors also see those pages, shown
-  signed out. They're still signed in once the database is back. (1e81987)
+  signed out. They're still signed in once the database is back. (1e81987,
+  9c618d2)
 - Pages other than your Account pages load less, because the wallet code now
   loads only on the Account pages. (73bbbae)
 
