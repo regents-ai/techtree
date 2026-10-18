@@ -5,18 +5,19 @@
 ### Changed
 
 - When your device asks for less motion, the home page headline keeps its
-  first ending instead of changing every few seconds.
+  first ending instead of changing every few seconds. (9971f6c)
 - On phones narrower than 375 pixels, the header shows the Techtree mark
   without the word, so the light and dark switch no longer covers it.
+  (9971f6c)
 - The Start page's note for when there's nothing to install yet, and the
   Wallet Bench page before any test has run, now say what will appear and
-  where to go next.
+  where to go next. (8eef75e)
 - The X and GitHub icons at the foot of every page, and the Techtree link on
-  the page-not-found screen, are easier to tap on a phone.
+  the page-not-found screen, are easier to tap on a phone. (8eef75e)
 - If the site's database stops answering, Home, Start, Docs, Results and Wallet
   Bench stay up for visitors who aren't signed in and say what can't be shown
   right now, instead of the whole page failing or wrongly saying there's
-  nothing there.
+  nothing there. (8aeb179)
 
 ## Website (2026-10-17)
 
