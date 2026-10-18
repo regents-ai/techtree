@@ -26,7 +26,6 @@ import {Optics, type OpticsHook} from "./optics_controller"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionCount, MotionRefusal} from "./hooks/motion/moments"
-import {hooks as labHooks} from "./motion_lab"
 import {installPublicTools} from "./public_tools"
 
 mountMotion(document)
@@ -180,6 +179,11 @@ syncTheme()
 
 if (!browserCsrfToken()) throw new Error("Missing CSRF token")
 
+// The motion lab's own presses and moments are used only on the lab page, which
+// nothing links to, so they load only when that page is opened directly.
+const labHooks = document.querySelector("main.motion-lab")
+  ? (await import("./motion_lab")).hooks : {}
+
 const Hooks: Record<string, object> = {
   Optics: {
     ...Optics,
@@ -191,7 +195,6 @@ const Hooks: Record<string, object> = {
     },
   },
   MotionList,
-  // The motion lab's own presses and moments, used only on /animations.
   ...labHooks,
 }
 
