@@ -19,19 +19,19 @@
     <meta
       :if={assigns[:theme]}
       name="theme-color"
-      content={if(assigns[:theme] == "light", do: "#F6F4EA", else: "#161616")}
+      content={if(assigns[:theme] == "light", do: "#F3F5EF", else: "#0D1611")}
     />
     <meta
       :if={!assigns[:theme]}
       name="theme-color"
       media="(prefers-color-scheme: light)"
-      content="#F6F4EA"
+      content="#F3F5EF"
     />
     <meta
       :if={!assigns[:theme]}
       name="theme-color"
       media="(prefers-color-scheme: dark)"
-      content="#161616"
+      content="#0D1611"
     />
     <meta
       name="description"
