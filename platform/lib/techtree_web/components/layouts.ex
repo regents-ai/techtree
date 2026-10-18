@@ -58,7 +58,7 @@ defmodule TechtreeWeb.Layouts do
               <rect x="48" y="24" width="10" height="10" />
             </svg>
           </span>
-          <span>Techtree</span>
+          <span class="masthead__wordmark">Techtree</span>
         </a>
         <nav class="masthead__nav" aria-label="Primary">
           <span class="masthead__selector">

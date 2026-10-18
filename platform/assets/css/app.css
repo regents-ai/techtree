@@ -92,6 +92,9 @@ code { font-size: .9em; }
 }
 .masthead__name { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 2.75rem; white-space: nowrap; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
 .masthead__mark { width: 1.5rem; flex: 0 0 auto; }
+/* Under 375 wide the theme switch and Sign in leave room for the mark alone; the
+   link is still named "Techtree home". */
+@media (max-width: 23.43rem) { .masthead__wordmark { display: none; } }
 .masthead__nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: .875rem; min-width: 0; }
 .masthead__selector { display: flex; flex-wrap: wrap; min-width: 0; }
 .masthead__selector a {

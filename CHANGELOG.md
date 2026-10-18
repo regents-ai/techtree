@@ -1,5 +1,14 @@
 # Changelog
 
+## Website (2026-10-18)
+
+### Changed
+
+- When your device asks for less motion, the home page headline keeps its
+  first ending instead of changing every few seconds.
+- On phones narrower than 375 pixels, the header shows the Techtree mark
+  without the word, so the light and dark switch no longer covers it.
+
 ## Website (2026-10-17)
 
 ### Changed
