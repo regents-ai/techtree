@@ -5,33 +5,30 @@
 ### Changed
 
 - In the seconds after the site's database restarts, a page shows its "can't
-  be shown right now" note for one visit instead of an error page. (55d9380)
+  be shown right now" note for one visit instead of an error page.
 
 ## Website (2026-10-18)
 
 ### Changed
 
 - When your device asks for less motion, the home page headline keeps its
-  first ending instead of changing every few seconds. (9971f6c)
+  first ending instead of changing every few seconds.
 - On phones narrower than 375 pixels, the header shows the Techtree mark
   without the word, so the light and dark switch no longer covers it.
-  (9971f6c)
 - The Start page's note for when there's nothing to install yet, and the
   Wallet Bench page before any test has run, now say what will appear and
-  where to go next. (8eef75e)
+  where to go next.
 - The X and GitHub icons at the foot of every page, and the Techtree link on
-  the page-not-found screen, are easier to tap on a phone. (8eef75e)
+  the page-not-found screen, are easier to tap on a phone.
 - If the site's database stops answering, Home, Start, Docs, Results and Wallet
   Bench stay up for visitors who aren't signed in and say what can't be shown
   right now, instead of the whole page failing or wrongly saying there's
-  nothing there. (8aeb179)
+  nothing there.
 - During a database outage those pages now answer in about half the time.
-  (8030b33)
 - During a database outage, signed-in visitors also see those pages, shown
-  signed out. They're still signed in once the database is back. (1e81987,
-  9c618d2)
+  signed out. They're still signed in once the database is back.
 - Pages other than your Account pages load less, because the wallet code now
-  loads only on the Account pages. (73bbbae)
+  loads only on the Account pages.
 
 ## Website (2026-10-17)
 
