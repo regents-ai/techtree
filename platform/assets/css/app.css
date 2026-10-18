@@ -483,5 +483,5 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
    44 pixels of height. The padding sits on the inline link, so the text it lies
    in doesn't move; only the pressable area grows. */
 @media (pointer: coarse) {
-  :is(p, li, dd, td) > a:only-child { padding-block: .875rem; }
+  :is(p, li, dd, td) > a:only-child, .account-credits__manage { padding-block: .875rem; }
 }

@@ -12,9 +12,24 @@ config :techtree, Techtree.Repo,
   password: System.get_env("PGPASSWORD", "postgres"),
   hostname: System.get_env("PGHOST", "localhost"),
   database: "techtree_test#{System.get_env("MIX_TEST_PARTITION")}",
-  # Keep parallel worktrees within the local PostgreSQL connection budget.
   pool: Ecto.Adapters.SQL.Sandbox,
+  # Keep parallel worktrees within the local PostgreSQL connection budget.
   pool_size: 8
+
+# Tests never reach a chain or the shared sign-in service: every address they
+# would call is a closed local port, so a read that isn't stubbed fails at once
+# instead of reaching Base, Ethereum or siwa.regents.sh.
+nowhere = "http://127.0.0.1:9"
+
+config :regent_credits,
+  chains: %{
+    base: %{chain_id: 8453, name: "Base", rpc_url: nowhere},
+    ethereum: %{chain_id: 1, name: "Ethereum", rpc_url: nowhere}
+  }
+
+config :regent_agents, siwa: [url: nowhere, audience: "techtree"]
+config :techtree, Techtree.WalletBench, base_rpc: nowhere
+config :techtree, :chain_nodes, %{8453 => nowhere, 1 => nowhere}
 
 # The browser test server (assets/test/browser) answers real page loads, which
 # commit what they write, so it runs on an ordinary pool of three on its own

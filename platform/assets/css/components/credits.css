@@ -253,7 +253,12 @@
   min-height: 1.5rem;
   color: var(--color-fg-muted);
 }
-@media (pointer: coarse) { .credits-panel__legal a { min-height: 2.75rem; } }
+@media (pointer: coarse) {
+  .credits-panel__history, .credits-panel__legal a { min-height: 2.75rem; }
+  /* The figure is the field: a finger needs it full height, and wide enough to
+     find while it is still empty. */
+  .credits-panel__amount input { min-height: 2.75rem; min-width: 2ch; }
+}
 
 @media (max-width: 47.99rem) {
   .shell-credits-dialog {

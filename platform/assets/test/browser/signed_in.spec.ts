@@ -77,3 +77,20 @@ test("signed in, Buy Credits opens with Approve and Buy wired to the wallet", as
   expect(await layoutProblems(page)).toEqual([])
   expect(errors).toEqual([])
 })
+
+// Regression: Purchase History in Buy Credits was 24 px tall on a phone (Sentinel).
+test("on a phone, Buy Credits opens and everything in it fits a finger", async ({browser}) => {
+  const context = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+  const outside = await keepOffline(context)
+  await signIn(context)
+  const page = await context.newPage()
+  const errors = watchErrors(page)
+  await page.goto("/account", {waitUntil: "networkidle"})
+  await page.locator("#shell-credits-button").click()
+  await expect(page.locator("#shell-credits")).toBeVisible()
+  await expect(page.locator("[data-onchain-step='approve']")).toBeVisible()
+  expect(await layoutProblems(page)).toEqual([])
+  expect(errors).toEqual([])
+  expect(outside).toEqual([])
+  await context.close()
+})

@@ -6,8 +6,10 @@ ones alone. A line marked **Gap** has no automated proof yet.
 
 Browser checks live in `platform/assets/test/browser/` and run headless Chromium
 against a Techtree the tests start themselves, at 1280, 390 and 320 wide, with no
-access to the outside world (GitHub's star count is answered with a fixed number;
-any other outside request fails the test). Each page check fails on a page error,
+access to the outside world. In the browser, GitHub's star count is answered with a
+fixed number and any other outside request fails the test. On the server, test
+config points every chain and sign-in service at a closed local port, and each test
+fails if the server holds a connection to anywhere but this machine. Each page check fails on a page error,
 a console error, sideways scrolling, or a press target too small: 44 px for a
 finger on a touch screen, 24 px for a mouse control.
 
@@ -35,7 +37,7 @@ finger on a touch screen, 24 px for a mouse control.
 | Open the side panel from their name: Sign out, Manage Account, Techtree account, their agents, Pair New Agent | `signed_in.spec.ts`, `side_panel_live_test.exs` |
 | Use the side panel on a phone without sideways scrolling | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
-| Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens, both buttons show and fit, and the wallet code loads on the account pages and on no other page |
+| Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens at desktop and phone width, both buttons show, everything in it fits a finger, and the wallet code loads on the account pages and on no other page |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
 | Approve and Buy Credits on Base | **Gap:** needs a wallet and the chain; not run |

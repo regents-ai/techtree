@@ -69,7 +69,9 @@ defmodule TechtreeWeb.AccountLive do
           held={@credits_read.value && RegentCredits.Amount.format(@credits_read.value.held)}
           state={if @credits_read.state in [:idle, :empty], do: :loading, else: @credits_read.state}
         >
-          <a href="https://regents.sh/account">Manage Credits on regents.sh</a>
+          <a href="https://regents.sh/account" class="account-credits__manage">
+            Manage Credits on regents.sh
+          </a>
         </Regent.Account.credits_summary>
 
         <.live_component
