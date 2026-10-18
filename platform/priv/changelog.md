@@ -16,6 +16,8 @@
   can't be drawn shows the same.
 - The picture shown when a Techtree link is shared uses the new colours, and
   the browser tab icon and app icons show the Techtree mark in Canopy green.
+- When a Techtree link is shared on X, its picture now carries a written
+  description for people who can't see it.
 - In the side panel's Pair New Agent box, each agent picture sits in one
   frame on white in both themes, and before you choose, the box reads "Choose
   type of agent below to get pairing message."
