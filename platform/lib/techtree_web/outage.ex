@@ -34,17 +34,29 @@ defmodule TechtreeWeb.Outage do
       end
   end
 
-  # Ash keeps a data-layer failure only as its formatted text, which opens with
-  # the name of the exception, so that name is what says the connection was lost.
+  # A connection is lost when the pool can't reach the database, or when Postgres
+  # ends it: a restart or failover answers first with a shutdown, and a server
+  # still starting with "cannot connect now" (SQLSTATE class 57P).
+  @lost_codes [:admin_shutdown, :crash_shutdown, :cannot_connect_now]
+  @lost_states ["57P01", "57P02", "57P03"]
+
   defp connection_lost?(%DBConnection.ConnectionError{}), do: true
+  defp connection_lost?(%Postgrex.Error{postgres: %{code: code}}), do: code in @lost_codes
 
   defp connection_lost?(%Ash.Error.Unknown{errors: errors}),
     do: Enum.any?(errors, &connection_lost?/1)
 
+  # Ash keeps a data-layer failure only as its formatted text, which opens with
+  # the exception's name and, for Postgres, the severity and SQLSTATE.
   defp connection_lost?(%Ash.Error.Unknown.UnknownError{
          error: "** (DBConnection.ConnectionError)" <> _
        }),
        do: true
+
+  defp connection_lost?(%Ash.Error.Unknown.UnknownError{
+         error: "** (Postgrex.Error) FATAL " <> state
+       }),
+       do: Enum.any?(@lost_states, &String.starts_with?(state, &1))
 
   defp connection_lost?(_error), do: false
 

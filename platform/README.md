@@ -325,6 +325,23 @@ monorepo root.
 No model-provider credential is read by this application.
 
 
+## When the database doesn't answer
+
+Home, Start, Docs, Results and Wallet Bench, and the side panel on every page, read
+through `TechtreeWeb.Outage`. A read that lost its connection (the pool can't reach
+Postgres, or Postgres ended it with a shutdown or "cannot connect now") while the
+database then doesn't answer `SELECT 1` gives the page's "can't be shown right now"
+note instead of a 500, and one warning in the log, since the error tracker keeps its
+records in the same database. Any other failure is raised as it was.
+
+On these public pages a signed-in visitor is shown signed out for that request. The
+cookie is never written or refused, so the next page load after the database answers
+is signed in again. The account pages and `/auth/*` stay strict and answer 500.
+
+Accepted edge: with every pool connection busy on a healthy database, a read that
+times out in the queue (about 5.6 s) reads the same way, so a signed-in visitor can
+see a public page signed out until the next load. Nothing is granted either way.
+
 ## Shared database namespace
 
 Development and test databases use `public` by default. Production runs on the shared

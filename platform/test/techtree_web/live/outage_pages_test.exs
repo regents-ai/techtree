@@ -189,6 +189,48 @@ defmodule TechtreeWeb.OutagePagesTest do
     assert {:redirect, %{to: "/"}} = socket.redirected
   end
 
+  # What Postgres answers first when a restart or failover ends a connection,
+  # raw and as Ash passes it on.
+  test "a connection Postgres shut down counts as lost when the database doesn't answer" do
+    shutdown = %Postgrex.Error{
+      postgres: %{
+        code: :admin_shutdown,
+        pg_code: "57P01",
+        severity: "FATAL",
+        message: "terminating connection due to administrator command"
+      }
+    }
+
+    assert :database_down = quietly(fn -> TechtreeWeb.Outage.read(fn -> raise shutdown end) end)
+
+    wrapped =
+      Ash.Error.Unknown.exception(
+        errors: [
+          Ash.Error.Unknown.UnknownError.exception(
+            error:
+              "** (Postgrex.Error) FATAL 57P01 (admin_shutdown) terminating connection due to administrator command"
+          )
+        ]
+      )
+
+    assert :database_down = quietly(fn -> TechtreeWeb.Outage.read(fn -> raise wrapped end) end)
+  end
+
+  test "any other Postgres error is raised even in an outage" do
+    assert_raise Postgrex.Error, fn ->
+      TechtreeWeb.Outage.read(fn ->
+        raise %Postgrex.Error{
+          postgres: %{
+            code: :undefined_column,
+            pg_code: "42703",
+            severity: "ERROR",
+            message: "column does not exist"
+          }
+        }
+      end)
+    end
+  end
+
   test "a failure that isn't a lost connection is raised even in an outage" do
     assert_raise ArgumentError, "not an outage", fn ->
       TechtreeWeb.Outage.read(fn -> raise ArgumentError, "not an outage" end)
