@@ -329,13 +329,14 @@ No model-provider credential is read by this application.
 
 Home, Start, Docs, Results and Wallet Bench, and the side panel on every page, read
 through `TechtreeWeb.Outage`. A read that lost its connection (the pool can't reach
-Postgres, or Postgres ended it with a shutdown or "cannot connect now") while the
-database then doesn't answer `SELECT 1` gives the page's "can't be shown right now"
-note instead of a 500, and one warning in the log, since the error tracker keeps its
-records in the same database. Any other failure is raised as it was.
+Postgres, or Postgres ended it with a shutdown or "cannot connect now") gives the
+page's "can't be shown right now" note instead of a 500, and one warning in the log,
+since the error tracker keeps its records in the same database. That includes the
+seconds after a restart, when each pooled connection fails once before the pool
+replaces it. Any other failure is raised as it was.
 
 On these public pages a signed-in visitor is shown signed out for that request. The
-cookie is never written or refused, so the next page load after the database answers
+cookie is never written or refused, so the next page load after the database is back
 is signed in again. The account pages and `/auth/*` stay strict and answer 500.
 
 Accepted edge: with every pool connection busy on a healthy database, a read that

@@ -35,17 +35,17 @@ defmodule TechtreeWeb.Live.Session do
 
   @doc """
   Reads the session for a page. The account pages (`:load_human`) fail whole when
-  the database doesn't answer. A public page and the side panel beside every page
-  (`:load_visitor`) draw as signed out instead, so they stay up in an outage; the
-  cookie is left exactly as it was, so the visitor is still signed in once the
-  database answers and the page is loaded again.
+  the read loses its database connection. A public page and the side panel beside
+  every page (`:load_visitor`) draw as signed out instead, so they stay up in an
+  outage; the cookie is left exactly as it was, so the visitor is still signed in
+  once the database is back and the page is loaded again.
   """
   def on_mount(:load_human, _params, session, socket), do: load(:account, session, socket)
   def on_mount(:load_visitor, _params, session, socket), do: load(:public, session, socket)
 
   @doc """
   Resolves a claim as `SessionAuthority.resolve/1` does; on a `:public` page a
-  database that doesn't answer gives `:database_down` instead of raising.
+  read that lost its database connection gives `:database_down` instead of raising.
   """
   def resolve(claim, :account), do: SessionAuthority.resolve(claim)
 

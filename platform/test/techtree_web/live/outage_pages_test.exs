@@ -191,7 +191,7 @@ defmodule TechtreeWeb.OutagePagesTest do
 
   # What Postgres answers first when a restart or failover ends a connection,
   # raw and as Ash passes it on.
-  test "a connection Postgres shut down counts as lost when the database doesn't answer" do
+  test "a connection Postgres shut down counts as lost" do
     shutdown = %Postgrex.Error{
       postgres: %{
         code: :admin_shutdown,

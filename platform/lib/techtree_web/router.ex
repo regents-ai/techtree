@@ -42,7 +42,7 @@ defmodule TechtreeWeb.Router do
   end
 
   # The public pages read the session the same way, but draw signed out when the
-  # database doesn't answer rather than failing whole.
+  # database connection is lost rather than failing whole.
   # sobelow_skip ["Config.CSP"]
   pipeline :visitor_browser do
     plug :enforce_visitor_session_authority
