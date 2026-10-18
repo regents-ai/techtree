@@ -53,6 +53,10 @@
   font-size: 0.8125rem;
   white-space: nowrap;
 }
+/* A finger needs the full 44 pixels. */
+@media (pointer: coarse) {
+  .shell-aside__head .rg-button { min-height: 2.75rem; }
+}
 
 #shell-aside section {
   display: grid;

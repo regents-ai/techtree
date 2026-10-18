@@ -478,3 +478,10 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .runs-index__table-frame, .tasks { overflow: visible; }
   .runs-table__header, .runs-table__row, .tasks__row { min-width: 0; }
 }
+
+/* On a touch screen a link that stands on its own in its line gets a finger's
+   44 pixels of height. The padding sits on the inline link, so the text it lies
+   in doesn't move; only the pressable area grows. */
+@media (pointer: coarse) {
+  :is(p, li, dd, td) > a:only-child { padding-block: .875rem; }
+}

@@ -6,6 +6,9 @@
 
 - In the seconds after the site's database restarts, a page shows its "can't
   be shown right now" note for one visit instead of an error page.
+- On touch screens, links that stand on their own, the side panel's Sign out
+  and account buttons, and the links at the foot of the Buy Credits window are
+  easier to tap.
 
 ## Website (2026-10-18)
 

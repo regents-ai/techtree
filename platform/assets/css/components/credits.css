@@ -85,6 +85,9 @@
 }
 
 .credits-panel__history {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   color: var(--color-fg-muted);
   font-size: 0.85rem;
   text-decoration: underline;
@@ -245,8 +248,12 @@
 }
 
 .credits-panel__legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   color: var(--color-fg-muted);
 }
+@media (pointer: coarse) { .credits-panel__legal a { min-height: 2.75rem; } }
 
 @media (max-width: 47.99rem) {
   .shell-credits-dialog {
