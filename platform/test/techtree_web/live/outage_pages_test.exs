@@ -75,40 +75,40 @@ defmodule TechtreeWeb.OutagePagesTest do
   test "Home says its Climbs and install command can't be shown", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/") end)
 
-    assert has_element?(live, "#climbs-unreadable")
-    assert has_element?(live, "#install-unreadable")
-    refute has_element?(live, "#install-none")
+    assert has_element?(live, "[role=status]", "Climbs can't be shown")
+    assert has_element?(live, ".installer [role=status]", "can't be shown")
+    refute has_element?(live, ".installer p", "no version of Techtree")
   end
 
   test "Start and Docs say the install steps can't be shown, not that there's nothing to install",
        %{conn: conn} do
     {:ok, start, _html} = quietly(fn -> live(conn, ~p"/start") end)
 
-    assert has_element?(start, "#install-unreadable")
+    assert has_element?(
+             start,
+             ".setup-unavailable [role=status] h2",
+             "install steps can't be shown"
+           )
 
-    refute has_element?(start, "#install-none")
+    refute has_element?(start, ".setup-unavailable h2", "no version of Techtree")
 
     {:ok, docs, _html} = quietly(fn -> live(conn, ~p"/docs") end)
-    assert has_element?(docs, "#install-unreadable")
-    refute has_element?(docs, "#install-none")
+    assert has_element?(docs, "#install [role=status]", "install steps can't be shown")
+    refute has_element?(docs, "#install p", "no version of Techtree")
   end
 
   test "Results says it can't show Results and hides the filters", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/results") end)
 
-    assert has_element?(live, "#results-database-down")
+    assert has_element?(live, "[role=status]", "Results can't be shown")
     refute has_element?(live, ".results-filters")
-    refute has_element?(live, "#results-none")
+    refute has_element?(live, ".runs-index__empty", "Nobody has published")
   end
 
   test "Wallet Bench says its tests can't be shown, not that none have run", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/wallet-bench") end)
 
-    assert has_element?(
-             live,
-             "#wallet-bench-unreadable",
-             "Wallet tests can't be shown right now."
-           )
+    assert has_element?(live, "[role=status]", "Wallet tests can't be shown")
 
     refute has_element?(live, "#wallet-bench-empty")
   end

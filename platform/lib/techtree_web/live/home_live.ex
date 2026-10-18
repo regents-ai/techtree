@@ -414,7 +414,7 @@ defmodule TechtreeWeb.HomeLive do
         <Regent.Structure.section_bar class="section-heading rg-support-band">
           <h2 id="climbs-title" class="rg-section-bar__label">Published Climbs</h2>
         </Regent.Structure.section_bar>
-        <p :if={@catalog == :unreadable} id="climbs-unreadable" class="empty-state">
+        <p :if={@catalog == :unreadable} id="climbs-unreadable" class="empty-state" role="status">
           The Climbs can't be shown right now. Try again in a minute.<br />
           <.link navigate={~p"/docs"}>Read the guide meanwhile</.link>
         </p>
@@ -502,11 +502,11 @@ defmodule TechtreeWeb.HomeLive do
         <summary>Use the command line instead</summary>
         <%= cond do %>
           <% @catalog == :unreadable -> %>
-            <p id="install-unreadable" class="release-state">
+            <p class="release-state" role="status">
               The command can't be shown right now. Try again in a minute.
             </p>
           <% is_nil(@release) or not @release.installable? -> %>
-            <p id="install-none" class="release-state">
+            <p class="release-state">
               There's no version of Techtree to install yet.
             </p>
           <% true -> %>

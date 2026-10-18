@@ -142,7 +142,8 @@ defmodule TechtreeWeb.StartLiveTest do
 
     {:ok, live, html} = live(conn, ~p"/start")
 
-    assert has_element?(live, ".setup-unavailable #install-none")
+    assert has_element?(live, ".setup-unavailable h2", "no version of Techtree")
+    refute has_element?(live, ".setup-unavailable [role=status]")
 
     for id <- [
           "copy-start-example",

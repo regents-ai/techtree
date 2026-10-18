@@ -307,7 +307,7 @@ defmodule TechtreeWeb.RunsLive.Index do
           <span>Participant-attested · Integrity-checked · Not independently reproduced</span>
         </p>
 
-        <p :if={@empty == :log} id="results-none" class="runs-index__empty empty-state">
+        <p :if={@empty == :log} class="runs-index__empty empty-state">
           Nobody has published a Result yet. Each Result comes from a Climb: the same agent on the same tasks, once without a Skill and once with it.
           <.link navigate={~p"/start"}>Start your first Climb</.link>
           to make one on your computer.
@@ -327,6 +327,7 @@ defmodule TechtreeWeb.RunsLive.Index do
           :if={@empty == :database_down}
           id="results-database-down"
           class="runs-index__empty empty-state"
+          role="status"
         >
           Results can't be shown right now. Try again in a minute.<br />
           <.link navigate={~p"/verify"}>See how to check a Result yourself</.link>

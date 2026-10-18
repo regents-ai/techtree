@@ -178,7 +178,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <.link :if={@all?} patch={~p"/wallet-bench"}>Show fewer</.link>
         </p>
 
-        <p :if={@bench == :unreadable} id="wallet-bench-unreadable" class="empty-state">
+        <p :if={@bench == :unreadable} id="wallet-bench-unreadable" class="empty-state" role="status">
           Wallet tests can't be shown right now. Try again in a minute.<br />
           <.link
             href="#how-tests-run"
