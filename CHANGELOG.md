@@ -13,6 +13,10 @@
   where to go next.
 - The X and GitHub icons at the foot of every page, and the Techtree link on
   the page-not-found screen, are easier to tap on a phone.
+- If the site's database stops answering, Home, Start, Docs, Results and Wallet
+  Bench stay up for visitors who aren't signed in and say what can't be shown
+  right now, instead of the whole page failing or wrongly saying there's
+  nothing there.
 
 ## Website (2026-10-17)
 

@@ -18,13 +18,19 @@ defmodule TechtreeWeb.StartLive do
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ModelAccess
+  alias TechtreeWeb.Outage
   alias TechtreeWeb.ReleaseInfo
 
   @title "Choose where to start."
 
   @impl true
   def mount(_params, _session, socket) do
-    release = ReleaseInfo.current()
+    {release, install} =
+      case Outage.read(&ReleaseInfo.current/0) do
+        {:ok, release} -> {release, :read}
+        :database_down -> {nil, :unreadable}
+      end
+
     minimums = if release, do: release.minimums, else: %{}
 
     {:ok,
@@ -34,7 +40,8 @@ defmodule TechtreeWeb.StartLive do
        instruction: instruction(),
        minimums: minimums,
        example: example(release),
-       setup_commands: setup_commands(release)
+       setup_commands: setup_commands(release),
+       install: install
      )}
   end
 
@@ -72,11 +79,17 @@ defmodule TechtreeWeb.StartLive do
         </header>
 
         <Regent.Structure.panel :if={!@setup_commands} class="rg-panel__body setup-unavailable">
-          <p class="eyebrow">Not ready to install yet</p>
-          <h2>There's no version of Techtree to install yet.</h2>
-          <p>
-            The command to copy will appear here as soon as the first version is out. Until then, the guide explains how a test works.
-          </p>
+          <%= if @install == :unreadable do %>
+            <p class="eyebrow">Install steps unavailable</p>
+            <h2>The install steps can't be shown right now.</h2>
+            <p>Try again in a minute. The guide explains how a test works in the meantime.</p>
+          <% else %>
+            <p class="eyebrow">Not ready to install yet</p>
+            <h2>There's no version of Techtree to install yet.</h2>
+            <p>
+              The command to copy will appear here as soon as the first version is out. Until then, the guide explains how a test works.
+            </p>
+          <% end %>
           <.link navigate={~p"/docs"} class="text-link">Read the guide →</.link>
         </Regent.Structure.panel>
 

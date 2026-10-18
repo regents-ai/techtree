@@ -13,19 +13,26 @@ defmodule TechtreeWeb.DocsLive do
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ModelAccess
+  alias TechtreeWeb.Outage
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.StartLive
 
   @impl true
   def mount(_params, _session, socket) do
-    release = ReleaseInfo.current()
+    {release, install} =
+      case Outage.read(&ReleaseInfo.current/0) do
+        {:ok, release} -> {release, :read}
+        :database_down -> {nil, :unreadable}
+      end
+
     frontier = release && ReleaseInfo.climb(release, "frontier-cs-open-ended-climb")
 
     {:ok,
      assign(socket,
        page_title: "Docs",
        release: release,
+       install: install,
        instruction: StartLive.instruction(),
        plugin_commands: plugin_commands(release),
        introductory_routes: release && routes(release.introductory_reference),
@@ -131,12 +138,10 @@ defmodule TechtreeWeb.DocsLive do
           <section id="install" class="doc-section">
             <h2>Install and check this machine</h2>
             <%= cond do %>
-              <% is_nil(@release) -> %>
-                <p>No release is published on this channel.</p>
-              <% not @release.installable? -> %>
-                <p>
-                  This channel currently publishes stand-in coordinates, not an installable release.
-                </p>
+              <% @install == :unreadable -> %>
+                <p>The install steps can't be shown right now. Try again in a minute.</p>
+              <% is_nil(@release) or not @release.installable? -> %>
+                <p>There's no version of Techtree to install yet.</p>
               <% @release.introductory_reference -> %>
                 <.command_block
                   id="copy-docs-install"

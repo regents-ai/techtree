@@ -13,6 +13,7 @@ defmodule TechtreeWeb.ReleaseInfo do
   command to run or an address to follow.
   """
 
+  alias Techtree.Catalog.Error
   alias Techtree.Catalog.Query
 
   @type t :: %{
@@ -30,15 +31,14 @@ defmodule TechtreeWeb.ReleaseInfo do
         }
 
   @doc """
-  The active release as display data, or `nil` when nothing is published.
+  The active release as display data, or `nil` when nothing is published. Any
+  other failure to read it raises.
   """
   @spec current() :: t() | nil
   def current do
-    with {:ok, payload, digest} <- Query.bootstrap_payload(),
-         {:ok, instructions} when is_map(instructions) <- Jason.decode(payload) do
-      describe(instructions, digest)
-    else
-      _error -> nil
+    case Query.bootstrap_payload() do
+      {:ok, payload, digest} -> payload |> Jason.decode!() |> describe(digest)
+      {:error, %Error{code: :bootstrap_release_missing}} -> nil
     end
   end
 

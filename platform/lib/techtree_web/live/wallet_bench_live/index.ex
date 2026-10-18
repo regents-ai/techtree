@@ -10,6 +10,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
 
   alias Techtree.WalletBench
   alias Techtree.WalletBench.Judge
+  alias TechtreeWeb.Outage
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   @impl true
@@ -26,14 +27,30 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   def handle_info(%Phoenix.Socket.Broadcast{}, socket),
     do: {:noreply, socket |> load() |> listed()}
 
+  # A refresh the database can't answer keeps what is already on screen; only a
+  # first read that fails says so, rather than showing no tests.
   defp load(socket) do
-    attempts = WalletBench.list_attempts!(load: [:turns, :model_spend_usd])
+    reads = fn ->
+      {WalletBench.list_attempts!(load: [:turns, :model_spend_usd]),
+       WalletBench.list_version_notes!()}
+    end
 
-    assign(socket,
-      attempts: attempts,
-      answer: Copy.answer(attempts),
-      notes: WalletBench.list_version_notes!()
-    )
+    case Outage.read(reads) do
+      {:ok, {attempts, notes}} ->
+        assign(socket,
+          bench: :read,
+          attempts: attempts,
+          answer: Copy.answer(attempts),
+          notes: notes
+        )
+
+      :database_down ->
+        socket
+        |> assign_new(:bench, fn -> :unreadable end)
+        |> assign_new(:attempts, fn -> [] end)
+        |> assign_new(:answer, fn -> Copy.answer([]) end)
+        |> assign_new(:notes, fn -> [] end)
+    end
   end
 
   defp listed(%{assigns: %{all?: true, attempts: attempts}} = socket),
@@ -161,7 +178,17 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <.link :if={@all?} patch={~p"/wallet-bench"}>Show fewer</.link>
         </p>
 
-        <p :if={@attempts == []} id="wallet-bench-empty" class="empty-state">
+        <p :if={@bench == :unreadable} id="wallet-bench-unreadable" class="empty-state">
+          Wallet tests can't be shown right now. Try again in a minute.<br />
+          <.link
+            href="#how-tests-run"
+            phx-click={JS.set_attribute({"open", ""}, to: "#how-tests-run")}
+          >
+            See how a test runs
+          </.link>
+        </p>
+
+        <p :if={@bench == :read and @attempts == []} id="wallet-bench-empty" class="empty-state">
           No wallet tests have run yet. Each one will appear here with what the agent did and whether its wallet passed the checks.<br />
           <.link
             href="#how-tests-run"

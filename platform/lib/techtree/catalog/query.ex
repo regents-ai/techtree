@@ -141,14 +141,14 @@ defmodule Techtree.Catalog.Query do
   end
 
   @doc """
-  The bootstrap release currently being published, if there is one.
+  The bootstrap release currently being published, if there is one. A read that
+  fails raises rather than reporting that nothing is published.
   """
   @spec active_bootstrap_release() :: {:ok, Catalog.BootstrapRelease.t()} | {:error, Error.t()}
   def active_bootstrap_release do
-    case Catalog.active_bootstrap_release(Catalog.channel()) do
-      {:ok, nil} -> {:error, no_active_bootstrap()}
-      {:ok, release} -> {:ok, release}
-      {:error, _reason} -> {:error, no_active_bootstrap()}
+    case Catalog.active_bootstrap_release!(Catalog.channel(), not_found_error?: false) do
+      nil -> {:error, no_active_bootstrap()}
+      release -> {:ok, release}
     end
   end
 

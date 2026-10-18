@@ -13,6 +13,7 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.ClimbCopy
+  alias TechtreeWeb.Outage
   alias TechtreeWeb.ReleaseInfo
 
   # What the headline says an improvement is for, turned one after another by the
@@ -21,8 +22,12 @@ defmodule TechtreeWeb.HomeLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    release = ReleaseInfo.current()
-    climbs = Query.list_climbs()
+    {release, climbs, catalog} =
+      case Outage.read(fn -> {ReleaseInfo.current(), Query.list_climbs()} end) do
+        {:ok, {release, climbs}} -> {release, climbs, :read}
+        :database_down -> {nil, [], :unreadable}
+      end
+
     campaign = release && Enum.find(climbs, &(&1.reference == release.introductory_reference))
 
     {:ok,
@@ -39,6 +44,7 @@ defmodule TechtreeWeb.HomeLive do
        wallet_harnesses: names(WalletCatalog.harness_ids(), &WalletCatalog.harness!/1),
        wallet_tools: names(WalletCatalog.wallet_ids(), &WalletCatalog.wallet!/1),
        release: release,
+       catalog: catalog,
        outcomes: @outcomes
      )}
   end
@@ -122,7 +128,7 @@ defmodule TechtreeWeb.HomeLive do
                 </span>
               </.link>
             </nav>
-            <.installer release={@release} agent_line={@agent_line} />
+            <.installer release={@release} catalog={@catalog} agent_line={@agent_line} />
           </div>
         </div>
 
@@ -399,11 +405,20 @@ defmodule TechtreeWeb.HomeLive do
         </p>
       </section>
 
-      <section :if={@climbs != []} id="climbs" class="home-section" aria-labelledby="climbs-title">
+      <section
+        :if={@climbs != [] or @catalog == :unreadable}
+        id="climbs"
+        class="home-section"
+        aria-labelledby="climbs-title"
+      >
         <Regent.Structure.section_bar class="section-heading rg-support-band">
           <h2 id="climbs-title" class="rg-section-bar__label">Published Climbs</h2>
         </Regent.Structure.section_bar>
-        <ul class="climb-list">
+        <p :if={@catalog == :unreadable} id="climbs-unreadable" class="empty-state">
+          The Climbs can't be shown right now. Try again in a minute.<br />
+          <.link navigate={~p"/docs"}>Read the guide meanwhile</.link>
+        </p>
+        <ul :if={@climbs != []} class="climb-list">
           <li :for={{climb, copy} <- @climbs} class="climb-list__item">
             <a class="text-link" href={~p"/climbs/#{climb.projection["slug"]}"}>{climb.title}</a>
             <p :if={copy}>{copy.scope}</p>
@@ -470,6 +485,7 @@ defmodule TechtreeWeb.HomeLive do
   defp climb_with_slug(climbs, slug), do: Enum.find(climbs, &(&1.projection["slug"] == slug))
 
   attr :release, :map, default: nil
+  attr :catalog, :atom, values: [:read, :unreadable], required: true
   attr :agent_line, :string, required: true
 
   defp installer(assigns) do
@@ -485,12 +501,12 @@ defmodule TechtreeWeb.HomeLive do
       <details class="installer__manual">
         <summary>Use the command line instead</summary>
         <%= cond do %>
-          <% is_nil(@release) -> %>
-            <p class="release-state">No release is published on this channel yet.</p>
-          <% not @release.installable? -> %>
+          <% @catalog == :unreadable -> %>
             <p class="release-state">
-              This channel publishes stand-in coordinates, so there is no command to copy yet.
+              The command can't be shown right now. Try again in a minute.
             </p>
+          <% is_nil(@release) or not @release.installable? -> %>
+            <p class="release-state">There's no version of Techtree to install yet.</p>
           <% true -> %>
             <.command_block
               id="copy-home-cli"

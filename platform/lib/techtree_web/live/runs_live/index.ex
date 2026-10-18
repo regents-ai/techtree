@@ -61,6 +61,7 @@ defmodule TechtreeWeb.RunsLive.Index do
   alias Techtree.Network.ResultFilters
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ModelAccess
+  alias TechtreeWeb.Outage
   alias TechtreeWeb.ResultAssessment
 
   @impl true
@@ -70,15 +71,19 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   @impl true
   def handle_params(params, _uri, socket) do
+    case Outage.read(fn -> show(socket, params) end) do
+      {:ok, socket} -> {:noreply, socket}
+      :database_down -> {:noreply, show_empty(socket, [], :database_down, [])}
+    end
+  end
+
+  defp show(socket, params) do
     families = Query.agent_families()
 
-    socket =
-      case Query.read_page_options(params) do
-        {:ok, options} -> show_selection(socket, families, params, options)
-        {:error, _reason} -> show_empty(socket, families, :unreadable, [])
-      end
-
-    {:noreply, socket}
+    case Query.read_page_options(params) do
+      {:ok, options} -> show_selection(socket, families, params, options)
+      {:error, _reason} -> show_empty(socket, families, :unreadable, [])
+    end
   end
 
   defp show_selection(socket, families, params, options) do
@@ -175,7 +180,11 @@ defmodule TechtreeWeb.RunsLive.Index do
           </header>
         </section>
 
-        <section class="results-filters" aria-label="Filter published Results">
+        <section
+          :if={@empty != :database_down}
+          class="results-filters"
+          aria-label="Filter published Results"
+        >
           <div class="results-filter-row">
             <h2 class="results-filter-label"><span>01</span> Harness</h2>
             <div id="agent-version-browser" phx-hook="AgentVersions" aria-label="Agent versions">
@@ -312,6 +321,15 @@ defmodule TechtreeWeb.RunsLive.Index do
         <p :if={@empty == :unreadable} id="results-unreadable" class="runs-index__empty empty-state">
           This address doesn't describe a list of Results.<br />
           <.link patch={~p"/results"}>Show the newest Results</.link>
+        </p>
+
+        <p
+          :if={@empty == :database_down}
+          id="results-database-down"
+          class="runs-index__empty empty-state"
+        >
+          Results can't be shown right now. Try again in a minute.<br />
+          <.link navigate={~p"/verify"}>See how to check a Result yourself</.link>
         </p>
 
         <p :if={@empty == :no_earlier} id="results-no-earlier" class="runs-index__empty empty-state">
