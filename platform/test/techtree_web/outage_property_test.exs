@@ -52,6 +52,14 @@ defmodule TechtreeWeb.OutagePropertyTest do
       map(tuple({member_of(@other_codes), string(:printable)}), fn {{_code, state}, rest} ->
         ash_text("** (Postgrex.Error) ERROR #{state} " <> rest)
       end),
+      # Fatal, but not about the connection: a bad password or a missing database.
+      map(tuple({member_of(~w(28P01 3D000 53300)), string(:printable)}), fn {state, rest} ->
+        ash_text("** (Postgrex.Error) FATAL #{state} " <> rest)
+      end),
+      # A shutdown code later in an ordinary error's message is still an ordinary error.
+      map(tuple({member_of(@other_codes), member_of(@lost_states)}), fn {{_code, state}, lost} ->
+        ash_text("** (Postgrex.Error) ERROR #{state} relation mentions #{lost}")
+      end),
       # A bug's own message may well mention a shutdown code or the error's name.
       map(tuple({member_of(@lost_states), string(:printable)}), fn {state, rest} ->
         RuntimeError.exception("FATAL #{state} DBConnection.ConnectionError " <> rest)

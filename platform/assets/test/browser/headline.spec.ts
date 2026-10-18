@@ -1,4 +1,4 @@
-import {expect, test} from "@playwright/test"
+import {expect, keepOffline, test} from "./support/test"
 
 const shown = ".hero-outcome__phrase[data-shown]"
 
@@ -14,10 +14,12 @@ test("the headline's ending turns while it is on screen", async ({page}) => {
 
 test("with less motion asked for, the headline keeps its first ending", async ({browser}) => {
   const context = await browser.newContext({reducedMotion: "reduce"})
+  const outside = await keepOffline(context)
   const page = await context.newPage()
   await page.goto("/", {waitUntil: "networkidle"})
   const first = await page.locator(shown).textContent()
   await page.waitForTimeout(4_000)
   await expect(page.locator(shown)).toHaveText(first as string)
+  expect(outside).toEqual([])
   await context.close()
 })

@@ -5,18 +5,20 @@ proves it works. `make check` runs every check below; `make browser` runs the br
 ones alone. A line marked **Gap** has no automated proof yet.
 
 Browser checks live in `platform/assets/test/browser/` and run headless Chromium
-against a Techtree the tests start themselves, at 1280, 390 and 320 wide. Each page
-check fails on a page error, a console error, sideways scrolling, or a press target
-too small for a finger (44 px on a touch screen, 24 px with a mouse).
+against a Techtree the tests start themselves, at 1280, 390 and 320 wide, with no
+access to the outside world (GitHub's star count is answered with a fixed number;
+any other outside request fails the test). Each page check fails on a page error,
+a console error, sideways scrolling, or a press target too small: 44 px for a
+finger on a touch screen, 24 px for a mouse control.
 
 ## Public pages (signed out)
 
 | What a visitor can do | Proved by |
 | --- | --- |
 | Read the home page, with the headline's ending turning and holding still under reduced motion | `pages.spec.ts`, `headline.spec.ts`, `home_live_test.exs` |
-| Choose where to start, and copy the install steps when a release is published | `pages.spec.ts`, `start_live_test.exs`, `release_copy_test.exs` |
+| Choose where to start, and copy the install steps when a release is published | `start_live_test.exs`, `release_copy_test.exs`; `pages.spec.ts` checks the page with no release. **Gap:** no browser check with a release published |
 | Read the docs | `pages.spec.ts`, `docs_live_test.exs` |
-| Browse and filter published Results | `pages.spec.ts`, `runs_live_test.exs` |
+| Browse and filter published Results | `runs_live_test.exs`; `pages.spec.ts` checks the page with no Results. **Gap:** no browser check with Results to filter |
 | Open one Result | `runs_live_test.exs`. **Gap:** no browser check with a published Result |
 | See Wallet Bench tests, or why there are none | `pages.spec.ts`, `wallet_bench_live_test.exs` |
 | Open one Wallet Bench test and its evidence | **Gap:** no check with a recorded test |
@@ -33,7 +35,7 @@ too small for a finger (44 px on a touch screen, 24 px with a mouse).
 | Open the side panel from their name: Sign out, Manage Account, Techtree account, their agents, Pair New Agent | `signed_in.spec.ts`, `side_panel_live_test.exs` |
 | Use the side panel on a phone without sideways scrolling | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
-| Open the Buy Credits window with Approve and Buy wired to the wallet | `signed_in.spec.ts` (the wallet code loads on account pages only) |
+| Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens, both buttons show and fit, and the wallet code loads on the account pages and on no other page |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
 | Approve and Buy Credits on Base | **Gap:** needs a wallet and the chain; not run |

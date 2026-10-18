@@ -1,4 +1,4 @@
-import {expect, test} from "@playwright/test"
+import {expect, test} from "./support/test"
 import {layoutProblems, watchErrors} from "./support/visitor"
 
 // Every public page, signed out, at a desktop and a phone width: it loads, its

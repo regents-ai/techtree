@@ -26,7 +26,7 @@ export default defineConfig({
     // stand in for the change under test.
     command: [
       `${server} mix do ash_postgres.create --quiet + techtree.setup_local_auth + ash.setup --quiet`,
-      `${server} mix assets.deploy`,
+      `${server} mix do phx.digest.clean --all + assets.deploy`,
       `${server} PORT=${port} mix phx.server`,
     ].join(" && "),
     // Health answers 503 on a database with no release imported, so readiness is the home page.
