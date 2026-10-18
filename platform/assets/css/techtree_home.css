@@ -41,9 +41,9 @@
   mask-image: linear-gradient(to right, transparent 28%, rgb(0 0 0 / .25) 48%, #000 68%);
 }
 .hero--landing .hero__products { width: 100%; margin-top: var(--space-4); }
-.hero-product--skill { --hero-product-fill: var(--palette-powder-blue); }
-.hero-product--harness { --hero-product-fill: var(--palette-tangerine-tango); }
-.hero-product--env { --hero-product-fill: var(--palette-platinum); }
+.hero-product--skill { --hero-product-fill: var(--tt-card-skill); --hero-product-ink: var(--tt-card-skill-ink); }
+.hero-product--harness { --hero-product-fill: var(--tt-card-harness); --hero-product-ink: var(--tt-card-harness-ink); }
+.hero-product--env { --hero-product-fill: var(--tt-card-env); --hero-product-ink: var(--tt-card-env-ink); }
 .hero-product__name {
   display: block;
   font-family: var(--font-family-title);

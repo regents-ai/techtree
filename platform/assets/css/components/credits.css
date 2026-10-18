@@ -12,12 +12,12 @@
   border-radius: 1.25rem;
   background: var(--color-surface);
   color: var(--color-fg);
-  box-shadow: 0 1.5rem 3rem -1rem color-mix(in oklch, var(--palette-charcoal) 35%, transparent);
+  box-shadow: 0 1.5rem 3rem -1rem color-mix(in oklch, var(--tt-shade) 35%, transparent);
   overflow-y: auto;
 }
 
 .shell-credits-dialog::backdrop {
-  background: color-mix(in oklch, var(--palette-charcoal) 30%, transparent);
+  background: color-mix(in oklch, var(--tt-shade) 30%, transparent);
 }
 
 .shell-credits-dialog .credits-panel__head {
