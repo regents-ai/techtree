@@ -117,8 +117,8 @@ window.addEventListener("pagehide", () => window.clearInterval(githubStarRefresh
 const THEME_COOKIE = "techtree_theme"
 const THEME_MAX_AGE = 60 * 60 * 24 * 365
 const THEMES = {
-  light: {crownVariant: "2", browserColor: "#F6F4EA"},
-  dark: {crownVariant: "4", browserColor: "#161616"},
+  light: {crownVariant: "2", browserColor: "#F3F5EF"},
+  dark: {crownVariant: "4", browserColor: "#0D1611"},
 }
 type Theme = keyof typeof THEMES
 const lightDevice = window.matchMedia("(prefers-color-scheme: light)")

@@ -3,13 +3,10 @@
   position: relative;
 }
 
-/* Canonical account-control border token from the template's tokens/root.css. */
+/* The template's account-control border token, mixed from Techtree's own ink. */
 .account-shell,
 .side-panel {
-  --ash-line-strong: light-dark(
-    color-mix(in oklab, var(--palette-charcoal) 40%, var(--color-border)),
-    color-mix(in oklab, var(--color-fg) 40%, var(--color-border))
-  );
+  --ash-line-strong: color-mix(in oklab, var(--color-fg) 40%, var(--color-border));
 }
 
 .account-control,

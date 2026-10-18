@@ -28,7 +28,7 @@ import {drawer, menu, sheet} from "./hooks/motion/slides"
 const REPLAY = "lab:replay"
 
 // The two accent colours sparks, stitches and rings are drawn in.
-const SPARK_COLORS = ["var(--palette-tangerine-tango)", "var(--palette-powder-blue)"]
+const SPARK_COLORS = ["var(--color-accent)", "var(--color-accent-secondary)"]
 
 /*
  * Sparks, rings and stitches are drawn in `#motion-lab-fx`, a layer over the
