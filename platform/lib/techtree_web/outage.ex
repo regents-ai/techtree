@@ -32,11 +32,12 @@ defmodule TechtreeWeb.Outage do
       end
   end
 
-  # Refusing a connection is not answering, whether the query reports it or the
-  # pool raises because no connection can be had.
-  defp answering? do
-    match?({:ok, _result}, Repo.query("SELECT 1", [], timeout: @question_timeout_ms))
-  rescue
-    _no_connection in [DBConnection.ConnectionError, DBConnection.OwnershipError] -> false
-  end
+  # Asked without queueing for a connection, so a database that refuses them
+  # answers no at once rather than after the pool's wait.
+  defp answering?,
+    do:
+      match?(
+        {:ok, _result},
+        Repo.query("SELECT 1", [], queue: false, timeout: @question_timeout_ms)
+      )
 end
