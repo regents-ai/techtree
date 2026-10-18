@@ -1,5 +1,12 @@
 # Changelog
 
+## Website (2026-10-19)
+
+### Changed
+
+- In the seconds after the site's database restarts, a page shows its "can't
+  be shown right now" note for one visit instead of an error page. (55d9380)
+
 ## Website (2026-10-18)
 
 ### Changed
