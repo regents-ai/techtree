@@ -123,7 +123,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           </div>
         </section>
 
-        <details class="wallet-bench__how">
+        <details id="how-tests-run" class="wallet-bench__how">
           <summary>How each test runs</summary>
           <ol class="wallet-bench__steps">
             <li>A clean machine starts with the coding agent installed and nothing else.</li>
@@ -161,7 +161,15 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <.link :if={@all?} patch={~p"/wallet-bench"}>Show fewer</.link>
         </p>
 
-        <p :if={@attempts == []} class="quiet">No tests have run yet.</p>
+        <p :if={@attempts == []} id="wallet-bench-empty" class="empty-state">
+          No wallet tests have run yet. Each one will appear here with what the agent did and whether its wallet passed the checks.<br />
+          <.link
+            href="#how-tests-run"
+            phx-click={JS.set_attribute({"open", ""}, to: "#how-tests-run")}
+          >
+            See how a test runs
+          </.link>
+        </p>
 
         <div
           :if={@attempts != []}

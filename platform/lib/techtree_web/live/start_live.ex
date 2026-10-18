@@ -72,12 +72,12 @@ defmodule TechtreeWeb.StartLive do
         </header>
 
         <Regent.Structure.panel :if={!@setup_commands} class="rg-panel__body setup-unavailable">
-          <p class="eyebrow">Installation unavailable on this channel</p>
-          <h2>No concrete release is available to install yet.</h2>
+          <p class="eyebrow">Not ready to install yet</p>
+          <h2>There's no version of Techtree to install yet.</h2>
           <p>
-            This channel does not provide installable release coordinates, so there is no instruction or command to copy yet.
+            The command to copy will appear here as soon as the first version is out. Until then, the guide explains how a test works.
           </p>
-          <.link navigate={~p"/docs"} class="text-link">Read the setup documentation →</.link>
+          <.link navigate={~p"/docs"} class="text-link">Read the guide →</.link>
         </Regent.Structure.panel>
 
         <nav class="start-paths" aria-label="Ways to start">

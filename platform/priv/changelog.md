@@ -8,6 +8,11 @@
   first ending instead of changing every few seconds.
 - On phones narrower than 375 pixels, the header shows the Techtree mark
   without the word, so the light and dark switch no longer covers it.
+- The Start page's note for when there's nothing to install yet, and the
+  Wallet Bench page before any test has run, now say what will appear and
+  where to go next.
+- The X and GitHub icons at the foot of every page, and the Techtree link on
+  the page-not-found screen, are easier to tap on a phone.
 
 ## Website (2026-10-17)
 

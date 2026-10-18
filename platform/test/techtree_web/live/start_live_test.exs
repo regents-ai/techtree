@@ -145,7 +145,7 @@ defmodule TechtreeWeb.StartLiveTest do
     assert has_element?(
              live,
              ".setup-unavailable",
-             "No concrete release is available to install yet."
+             "There's no version of Techtree to install yet."
            )
 
     for id <- [

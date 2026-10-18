@@ -156,8 +156,11 @@ code { font-size: .9em; }
   font-size: 0.8125rem;
 }
 .regent-footer p { margin: 0; }
-.regent-footer__social { display: flex; align-items: center; gap: var(--space-2); }
-.regent-footer__social > a, .regent-footer__social > a svg { display: inline-flex; width: 1.5rem; height: 1.5rem; }
+/* Each icon draws at 24px inside a 44px press target; the row is pulled out by the
+   difference so the icons still line up with the text around them. */
+.regent-footer__social { display: flex; align-items: center; margin: -.625rem; }
+.regent-footer__social > a { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; }
+.regent-footer__social > a svg { width: 1.5rem; height: 1.5rem; }
 .regent-footer__links { display: flex; flex-wrap: wrap; column-gap: var(--space-3); }
 .regent-footer__links a { display: inline-flex; align-items: center; min-height: 2.75rem; color: inherit; }
 .regent-footer__links .regent-footer__guide {
@@ -407,6 +410,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 .error-page > p { max-width: var(--measure); }
 .error-page nav { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .error-page nav a { min-height: 2.75rem; display: inline-flex; align-items: center; }
+.error-page__name { min-height: 2.75rem; display: inline-flex; align-items: center; justify-self: start; }
 
 @media (max-width: 63.99rem) {
   .masthead__inner { grid-template-columns: minmax(0, 1fr) auto auto; }
