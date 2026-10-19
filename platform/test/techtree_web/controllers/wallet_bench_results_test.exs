@@ -118,46 +118,54 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     refute_received {:plug_conn, :sent}
   end
 
-  test "with every download place taken, a visitor is asked to try again", %{
-    conn: conn,
-    tests: tests,
-    files: files
-  } do
-    store(files)
-    parent = self()
+  # A single recorded file is held whole while it is sent, so it takes a place
+  # like the zip does (security assessment of 19 Oct, finding 2).
+  for {what, path} <- [{"the zip", "results.zip"}, {"a single file", "evidence/T2/session.jsonl"}] do
+    test "with every download place taken, #{what} asks the visitor to try again", %{
+      conn: conn,
+      tests: tests,
+      files: files
+    } do
+      store(files)
+      parent = self()
 
-    holders =
-      for _place <- 1..4 do
-        spawn_link(fn ->
-          Registry.register(TechtreeWeb.ResultsDownloads, :download, nil)
-          send(parent, :holding)
-          receive do: (:done -> :ok)
-        end)
-      end
+      holders =
+        for _place <- 1..4 do
+          spawn_link(fn ->
+            Registry.register(TechtreeWeb.ResultsDownloads, :download, nil)
+            send(parent, :holding)
+            receive do: (:done -> :ok)
+          end)
+        end
 
-    for _holder <- holders, do: assert_receive(:holding)
+      for _holder <- holders, do: assert_receive(:holding)
 
-    conn = get(conn, ~p"/wallet-bench/#{tests.passed.id}/results.zip")
-    page = html_response(conn, 503)
-    assert page =~ "Try again in a minute."
-    # The busy page is the whole page, never drawn inside the site's own.
-    assert length(String.split(page, "<!DOCTYPE html>")) == 2
-    assert get_resp_header(conn, "retry-after") == ["30"]
+      conn = get(conn, "/wallet-bench/#{tests.passed.id}/#{unquote(path)}")
+      page = html_response(conn, 503)
+      assert page =~ "Try again in a minute."
+      # The busy page is the whole page, never drawn inside the site's own.
+      assert length(String.split(page, "<!DOCTYPE html>")) == 2
+      assert get_resp_header(conn, "retry-after") == ["30"]
 
-    for holder <- holders, do: send(holder, :done)
-  end
-
-  test "a download gives its place back when it ends", %{conn: conn, tests: tests, files: files} do
-    store(files)
-
-    for _download <- 1..6 do
-      assert build_conn()
-             |> get(~p"/wallet-bench/#{tests.passed.id}/results.zip")
-             |> response(200)
+      for holder <- holders, do: send(holder, :done)
     end
 
-    assert Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) == 0
-    _ = conn
+    test "#{what} gives its download place back when it ends", %{
+      conn: conn,
+      tests: tests,
+      files: files
+    } do
+      store(files)
+
+      for _download <- 1..6 do
+        assert build_conn()
+               |> get("/wallet-bench/#{tests.passed.id}/#{unquote(path)}")
+               |> response(200)
+      end
+
+      assert Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) == 0
+      _ = conn
+    end
   end
 
   # results.json names every field it carries, at every level; whatever else the

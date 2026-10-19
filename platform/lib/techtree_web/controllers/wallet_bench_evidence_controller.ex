@@ -19,18 +19,21 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   @load [:machine, :turns, :payments, :model_spend_usd, :judge_cost_usd]
 
   # The type is one of four fixed values, chosen from the stored file's own header and never from the request; an
-  # image or plain text runs no script, and the site sends nosniff and its CSP with every answer.
+  # image or plain text runs no script, and the site sends nosniff and its CSP with every answer. A file is held
+  # whole while it is sent, so it takes one of the machine's download places like a zip.
   # sobelow_skip ["XSS.ContentType", "XSS.SendResp"]
   def show(conn, %{"id" => id, "turn" => turn_name, "file" => file}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, attempt} <- WalletBench.get_attempt(id, load: [:turns]),
          %{evidence: %{^file => _recorded}} = turn <-
            Enum.find(attempt.turns, &(Catalog.turn_name(&1.test) == turn_name)) do
-      {:ok, body} = Evidence.recorded(turn, file)
+      with_download_place(conn, fn ->
+        {:ok, body} = Evidence.recorded(turn, file)
 
-      conn
-      |> put_resp_content_type(content_type(file, body), nil)
-      |> send_resp(200, body)
+        conn
+        |> put_resp_content_type(content_type(file, body), nil)
+        |> send_resp(200, body)
+      end)
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no recorded file has that name"
     end
@@ -49,36 +52,30 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   the error page, not a broken download. The zip then reads the files one at a
   time, checking each again, so a download holds one file in memory at most;
   a file that changes between the two reads ends the connection before any of
-  its bytes go out. At most #{@downloads} downloads are built at once on a
-  machine; another gets a page asking to try again.
+  its bytes go out. At most #{@downloads} downloads, zips and single files
+  together, are sent at once on a machine; another gets a page asking to try
+  again.
   """
   def results(conn, %{"id" => id}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
-      if room_for_download?() do
-        try do
-          send_results(conn, attempt)
-        after
-          Registry.unregister(TechtreeWeb.ResultsDownloads, :download)
-        end
-      else
-        busy(conn)
-      end
+      with_download_place(conn, fn -> send_results(conn, attempt) end)
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no wallet test has that number"
     end
   end
 
-  # Each download holds a place while it is built, given back when it ends; a
+  # Each download holds a place while it is sent, given back when it ends; a
   # process that dies gives its place back with it.
-  defp room_for_download? do
+  defp with_download_place(conn, send) do
     {:ok, _owner} = Registry.register(TechtreeWeb.ResultsDownloads, :download, nil)
 
-    if Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) > @downloads do
+    try do
+      if Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) > @downloads,
+        do: busy(conn),
+        else: send.()
+    after
       Registry.unregister(TechtreeWeb.ResultsDownloads, :download)
-      false
-    else
-      true
     end
   end
 
