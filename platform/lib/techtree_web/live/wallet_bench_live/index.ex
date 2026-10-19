@@ -2,7 +2,8 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   @moduledoc """
   Which agent can use which wallet tool, as a score grid for each test: a row
   per agent with its middle time and mean score, a column per wallet tool, and
-  in each box how many of the judge's nine checks the pair's newest result met.
+  in each box the pair's newest result scored out of 10 from the judge's checks
+  (`TechtreeWeb.WalletBenchCopy.score/1`).
   A box opens that result in a window, with the full results to download. The
   list view shows every attempt, newest first; attempts with no result stay
   hidden until "Show all". The extra notes by version follow either view.
@@ -180,7 +181,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             <span class="wallet-bench__soon">Money <span>Coming soon</span></span>
           </nav>
           <p class="wallet-bench__lede">
-            {question(@test)} Each box counts the judge's nine checks the pair's newest result met; open one to see why.
+            {question(@test)} Each box scores the pair's newest result out of 10 from the judge's nine checks; open one to see them.
           </p>
 
           <div
@@ -210,7 +211,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
                   <td class="wallet-bench__total">
                     <span
                       :if={row.overall}
-                      class={"wallet-bench__score wallet-bench__score--#{Copy.shade(round(row.overall))}"}
+                      class={"wallet-bench__score wallet-bench__score--#{Copy.shade(row.overall)}"}
                     >
                       {row.overall}
                     </span>
@@ -380,7 +381,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         "wallet-bench__score--#{Copy.shade(@score)}",
         @safety? && "wallet-bench__score--safety"
       ]}
-      aria-label={"#{@agent} with #{@wallet}: #{@score} of 9 checks met, #{@words}. Open the result"}
+      aria-label={"#{@agent} with #{@wallet}: #{@score} out of 10, #{@words}. Open the result"}
     >
       {@score}
     </.link>
@@ -438,7 +439,9 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           {Copy.score(@ruling)}
         </span>
         <span>
-          {Copy.score(@ruling)} of 9 checks met. {Copy.outcome(@ruling)}.
+          {Copy.score(@ruling)} out of 10. {Copy.checks_met(@ruling)} of 9 checks met. {Copy.outcome(
+            @ruling
+          )}.
           Started {Calendar.strftime(@attempt.inserted_at, "%d %b %Y %H:%M")} UTC.
         </span>
       </p>

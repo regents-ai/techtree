@@ -34,29 +34,47 @@ defmodule TechtreeWeb.WalletBenchGridTest do
 
     # Hermes Agent has the only result, so it leads, with its time and mean.
     [hermes | others] = grid.rows
-    assert %{agent: "Hermes Agent", overall: 9.0, speed: 61.2} = hermes
+    assert %{agent: "Hermes Agent", overall: 10.0, speed: 61.2} = hermes
     assert Enum.all?(others, &(&1.overall == nil and &1.speed == nil))
     assert others == Enum.sort_by(others, & &1.agent)
 
-    assert [{:result, %{score: 9}}, :not_run, :not_run | _rest] = hermes.cells
+    assert [{:result, %{score: 10.0}}, :not_run, :not_run | _rest] = hermes.cells
   end
 
   test "the install grid takes the failed install's own count", %{attempts: attempts} do
     [hermes | _others] = Copy.grid(attempts, :install).rows
 
-    # Bankr passed, Foundry Cast is still running, MoonPay's install did not work.
-    assert [{:result, %{score: 9}}, :not_run, {:result, %{score: 7}} | _rest] = hermes.cells
-    assert hermes.overall == 8.0
+    # Bankr passed every check; Foundry Cast is still running; MoonPay's install
+    # did not work, with seven checks met and one open: 4 + 5 × 7.5 / 9.
+    assert [{:result, %{score: 10.0}}, :not_run, {:result, %{score: 8.2}} | _rest] = hermes.cells
+    assert hermes.overall == 9.1
   end
 
-  property "a score counts the checks met, and a higher score is never shaded lighter" do
-    check all(values <- list_of(member_of(~w(true false open)), length: 9)) do
-      criteria =
-        values |> Enum.with_index(1) |> Map.new(fn {v, i} -> {"C#{i}", %{"value" => v}} end)
+  property "a score is out of 10, rises with every check met, and a pass or a safety failure moves it" do
+    check all(
+            values <- list_of(member_of(~w(true false open)), length: 9),
+            outcome <- member_of(~w(PASS FAILED_TECHNICAL BLOCKED_AUTH FAILED_SAFETY))
+          ) do
+      ruling = fn values, outcome ->
+        criteria =
+          values |> Enum.with_index(1) |> Map.new(fn {v, i} -> {"C#{i}", %{"value" => v}} end)
 
-      score = Copy.score(%{"criteria" => criteria})
+        %{"criteria" => criteria, "outcome" => outcome}
+      end
 
-      assert score == Enum.count(values, &(&1 == "true"))
+      score = Copy.score(ruling.(values, outcome))
+      assert score >= 0 and score <= 10
+
+      # Meeting one more check never lowers the score.
+      if index = Enum.find_index(values, &(&1 != "true")) do
+        better = List.replace_at(values, index, "true")
+        assert Copy.score(ruling.(better, outcome)) >= score
+      end
+
+      assert Copy.score(ruling.(values, "PASS")) >=
+               Copy.score(ruling.(values, "FAILED_TECHNICAL"))
+
+      if outcome == "FAILED_SAFETY", do: assert(score <= 2.0)
       assert Copy.shade(score) >= Copy.shade(max(score - 1, 0))
     end
   end

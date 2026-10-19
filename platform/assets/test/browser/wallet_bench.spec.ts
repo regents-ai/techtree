@@ -20,7 +20,7 @@ for (const width of [1280, 390, 320]) {
       expect(await layoutProblems(page)).toEqual([])
       expect(await lowContrast(page.getByRole("region", {name: /^Scores/}))).toEqual([])
 
-      const score = page.getByRole("link", {name: /^Hermes Agent with Bankr: 9 of 9 checks met/})
+      const score = page.getByRole("link", {name: /^Hermes Agent with Bankr: 10.0 out of 10/})
       await score.click()
       const window = page.getByRole("dialog", {name: tests.passed.name})
       await expect(window).toBeVisible()

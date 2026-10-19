@@ -32,9 +32,9 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
       {:ok, live, _html} = live(conn, ~p"/wallet-bench")
 
       score =
-        ~s|a[aria-label="Hermes Agent with Bankr: 9 of 9 checks met, Pass. Open the result"]|
+        ~s|a[aria-label="Hermes Agent with Bankr: 10.0 out of 10, Pass. Open the result"]|
 
-      assert live |> element(score) |> render() =~ ">\n  9\n"
+      assert live |> element(score) |> render() =~ ">\n  10.0\n"
 
       # A wallet tool that can't run on the bench is marked in every row.
       assert has_element?(live, "td span[title='It cannot run on a server.']", "N/A")
@@ -61,7 +61,7 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
 
       assert has_element?(
                live,
-               ~s|a[aria-label="Hermes Agent with MoonPay: 7 of 9 checks met, Did not work. Open the result"]|
+               ~s|a[aria-label="Hermes Agent with MoonPay: 8.2 out of 10, Did not work. Open the result"]|
              )
 
       # Cline takes the install tests only, so it has a row here and not in the wallet grid.
@@ -75,7 +75,7 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
         live(conn, ~p"/wallet-bench?#{[test: "install", result: tests.failed.id]}")
 
       assert has_element?(live, "dialog h2", "Hermes Agent × MoonPay")
-      assert has_element?(live, "dialog", "7 of 9 checks met. Did not work.")
+      assert has_element?(live, "dialog", "8.2 out of 10. 7 of 9 checks met. Did not work.")
     end
 
     test "the list view shows every test, newest first", %{conn: conn, tests: tests} do

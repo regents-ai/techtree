@@ -21,9 +21,10 @@ defmodule TechtreeWeb.WalletBenchMD do
     Which coding agent can set up and use which wallet tool, from Techtree's
     AgentWalletBench. The same results as #{url(~p"/wallet-bench")}.
 
-    Each score counts the judge's nine checks the pair's newest result met,
-    linked to that result. A dash means not tested yet, N/A a wallet tool
-    that can't run on the bench, and "safety" a safety failure.
+    Each score is the pair's newest result out of 10, from the judge's nine
+    checks (an open check counts half, a pass adds a point, a safety failure
+    is at most 2), linked to that result. A dash means not tested yet, N/A a
+    wallet tool that can't run on the bench, and "safety" a safety failure.
     #{Enum.map_join(Copy.grid_tests(), &section(attempts, &1))}
 
     ## Every test with a result

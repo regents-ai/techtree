@@ -19,9 +19,9 @@ defmodule TechtreeWeb.WalletBenchMDTest do
     end
 
     assert hermes.(wallet) =~
-             "| Hermes Agent | 1m | 9.0 | [9](#{url(~p"/wallet-bench/#{tests.passed.id}")}) | - | - | - | N/A |"
+             "| Hermes Agent | 1m | 10.0 | [10.0](#{url(~p"/wallet-bench/#{tests.passed.id}")}) | - | - | - | N/A |"
 
     assert hermes.(install) =~
-             "| Hermes Agent | 1m | 8.0 | [9](#{url(~p"/wallet-bench/#{tests.passed.id}")}) | - | [7](#{url(~p"/wallet-bench/#{tests.failed.id}")}) |"
+             "| Hermes Agent | 1m | 9.1 | [10.0](#{url(~p"/wallet-bench/#{tests.passed.id}")}) | - | [8.2](#{url(~p"/wallet-bench/#{tests.failed.id}")}) |"
   end
 end
