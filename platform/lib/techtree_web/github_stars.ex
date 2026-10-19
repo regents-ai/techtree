@@ -4,26 +4,39 @@ defmodule TechtreeWeb.GithubStars do
   with the page, so a visitor's browser never calls GitHub (which allows each
   address 60 unsigned reads an hour). A count is kept on this machine for an
   hour; a failed read is kept for ten minutes, during which the header shows no
-  count.
+  count. A page never waits on GitHub: when nothing is kept, it is drawn without
+  a count and one read starts beside it, so the pages after it show the count.
   """
   use Nebulex.Cache, otp_app: :techtree, adapter: Nebulex.Adapters.Local
 
   @kept :timer.hours(1)
   @failure_kept :timer.minutes(10)
 
-  @doc "The count, kept or freshly read, or `:none` when it couldn't be read."
+  @doc "The kept count, or `:none` while there is none to show."
   @spec count() :: {:ok, non_neg_integer()} | :none
   def count do
     case get!(:count) do
-      nil -> read_and_keep()
-      count -> count
+      nil ->
+        read_beside()
+        :none
+
+      count ->
+        count
     end
   end
 
-  defp read_and_keep do
+  @doc "Reads the count from GitHub now and keeps it."
+  @spec refresh() :: {:ok, non_neg_integer()} | :none
+  def refresh do
     count = read()
     put!(:count, count, ttl: if(count == :none, do: @failure_kept, else: @kept))
     count
+  end
+
+  # One read at a time: the first page to find nothing kept starts it.
+  defp read_beside do
+    if put_new!(:reading, true, ttl: :timer.seconds(5)),
+      do: Task.Supervisor.start_child(TechtreeWeb.GithubStars.Reads, &refresh/0)
   end
 
   defp read do

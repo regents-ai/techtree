@@ -21,8 +21,11 @@ defmodule TechtreeWeb.GithubStarsTest do
       Keyword.put(config, :req_options, plug: {Req.Test, GithubStars})
     )
 
-    # The count these tests read is kept on this machine; nothing after them sees it.
+    # The count these tests read is kept on this machine, and a read started
+    # beside a page may still be running; nothing after them sees either.
     on_exit(fn ->
+      reads = TechtreeWeb.GithubStars.Reads
+      for pid <- Task.Supervisor.children(reads), do: Task.Supervisor.terminate_child(reads, pid)
       Application.put_env(:techtree, :github_stars, config)
       GithubStars.delete_all()
     end)
@@ -40,6 +43,7 @@ defmodule TechtreeWeb.GithubStarsTest do
 
   test "the header shows the count GitHub gave, read once for many pages", %{conn: conn} do
     answer(200, %{"stargazers_count" => 1_234})
+    GithubStars.refresh()
 
     for path <- [~p"/", ~p"/docs"] do
       document = header(conn, path)
@@ -53,11 +57,27 @@ defmodule TechtreeWeb.GithubStarsTest do
 
   test "when GitHub doesn't answer, the link stays and shows no count", %{conn: conn} do
     answer(503, %{"message" => "unavailable"})
+    GithubStars.refresh()
 
     document = header(conn, ~p"/docs")
 
     assert document |> LazyHTML.query(".masthead__github") |> Enum.count() == 1
     assert document |> LazyHTML.query(".masthead__github-count") |> Enum.count() == 0
+  end
+
+  test "a page with no count kept is drawn at once, without one, while GitHub is slow" do
+    # The read beside the page runs in its own process, so the answer is shared.
+    Req.Test.set_req_test_to_shared()
+
+    Req.Test.stub(GithubStars, fn conn ->
+      Process.sleep(2_000)
+      Req.Test.json(conn, %{"stargazers_count" => 5})
+    end)
+
+    {elapsed, document} = :timer.tc(fn -> header(build_conn(), ~p"/docs") end)
+
+    assert document |> LazyHTML.query(".masthead__github-count") |> Enum.count() == 0
+    assert elapsed < 1_000_000
   end
 
   property "a compact count reads back as the count, to the nearest tenth of its unit" do
