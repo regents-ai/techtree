@@ -86,6 +86,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /tools/account/points",
              "get /verify",
              "get /wallet-bench",
+             "get /wallet-bench.json",
              "get /wallet-bench.md",
              "get /wallet-bench/:id",
              "get /wallet-bench/:id/evidence/:turn/:file",

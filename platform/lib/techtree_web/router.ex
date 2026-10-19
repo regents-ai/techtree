@@ -157,6 +157,7 @@ defmodule TechtreeWeb.Router do
     get "/robots.txt", PublicPagesController, :robots
     get "/agents.md", AgentsController, :show
     get "/wallet-bench.md", WalletBenchController, :markdown
+    get "/wallet-bench.json", WalletBenchController, :scores
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security

@@ -24,6 +24,7 @@ finger on a touch screen, 24 px for a mouse control.
 | See Wallet Bench tests, or why there are none | `pages.spec.ts`, `wallet_bench_live_test.exs` |
 | Read the Wallet Bench score grid for each test, and the list | `wallet_bench.spec.ts` (desktop and phone, contrast in light and dark), `wallet_bench_live_test.exs`, `wallet_bench_grid_test.exs`, `wallet_bench_md_test.exs` |
 | Open a score's result window, download its full results, close it back to the score | `wallet_bench.spec.ts`, `wallet_bench_live_test.exs`, `wallet_bench_results_test.exs` (each file byte for byte; a changed file stops the download) |
+| Read the Wallet Bench scores as data from another site (`/wallet-bench.json`) | `wallet_bench_scores_test.exs` |
 | Open one Wallet Bench test and its evidence | `wallet_bench.spec.ts` (passed, failed and running tests at three widths) |
 | Check a Result yourself (Verify) | `pages.spec.ts`, `proofs_live_test.exs` |
 | Read a Climb | `climbs_live_test.exs`. **Gap:** no browser check with an imported Climb |
