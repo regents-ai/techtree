@@ -140,18 +140,18 @@ const GRAZE_LIGHT = {
   internalIntensity: 0.1,
   spectralIntensity: 2.35,
   echoIntensity: 0,
-  inputColor: [1, 1, 1],
-  internalColor: [1, 1, 1],
+  // Canopy's pale lime highlight, #E9FFD0.
+  inputColor: [0.815, 1, 0.631],
+  internalColor: [0.815, 1, 0.631],
   spectralColor: null,
 } as const;
 
 export const CROWN_VARIANTS = {
   2: {
     ...GRAZE_LIGHT,
-    // Orange and Titanium share one slate hero field. The cool opposing-color
-    // squares in scene.ts distinguish this Orange study from Titanium's orange
-    // squares without introducing a second surface behind the crown.
-    backgroundColor: [0.061575, 0.077282, 0.092116, 1],
+    // After the shared ACES + sRGB presentation pass, this is Canopy's deep
+    // green #1F3A2C field; the page fades it in from the light ground.
+    backgroundColor: [0.023756, 0.048571, 0.034981, 1],
     absorption: [1, 0.82, 0.42],
     glassDispersion: 0.02,
     reflectionStrength: 0.7,
@@ -162,9 +162,9 @@ export const CROWN_VARIANTS = {
   },
   4: {
     ...GRAZE_LIGHT,
-    // After the shared ACES + sRGB presentation pass, this is the hero's
-    // #46535e surface color rather than a visibly inset canvas rectangle.
-    backgroundColor: [0.061575, 0.077282, 0.092116, 1],
+    // After the shared ACES + sRGB presentation pass, this is Canopy's dark
+    // #1D3A2B field rather than a visibly inset canvas rectangle.
+    backgroundColor: [0.022145, 0.048571, 0.034071, 1],
     absorption: [0.45, 0.48, 0.52],
     spectralSamples: 20,
     beamHalfWidth: 0.044,
@@ -172,9 +172,10 @@ export const CROWN_VARIANTS = {
     inputIntensity: 3.9,
     internalIntensity: 0.1,
     spectralIntensity: 0.72,
-    inputColor: [1, 0.17, 0.004],
-    internalColor: [1, 0.14, 0.002],
-    spectralColor: [1, 0.11, 0.001],
+    // Lime beams around Canopy's #C8F25C, splitting toward its #2FA866 green.
+    inputColor: [0.65, 1, 0.12],
+    internalColor: [0.6, 1, 0.1],
+    spectralColor: [0.2, 1, 0.34],
     glassDispersion: 0.012,
     reflectionStrength: 0.85,
     environmentExposure: 1.05,
