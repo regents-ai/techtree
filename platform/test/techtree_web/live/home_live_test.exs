@@ -239,18 +239,6 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute html =~ "masthead__github-mark"
   end
 
-  test "the project source link refreshes GitHub stars and formats large counts compactly" do
-    javascript = File.read!(Path.expand("../../../assets/js/app.ts", __DIR__))
-
-    assert javascript =~ ~s|notation: "compact"|
-    assert javascript =~ ~s|maximumFractionDigits: 1|
-    assert javascript =~ "window.setInterval(syncGitHubStars, GITHUB_STAR_REFRESH_MS)"
-    assert javascript =~ ~s|cache: "no-store"|
-
-    refute javascript =~
-             ~r/if \(Number\.isInteger\(cached\)\) \{\s*showGitHubStars\(cached\)\s*return/s
-  end
-
   test "the sheet shares canonical type, spacing and control skins" do
     css = File.read!(Path.expand("../../../assets/css/app.css", __DIR__))
 

@@ -129,14 +129,14 @@ defmodule Techtree.Catalog.Query do
   end
 
   @doc """
-  The release currently being served, if there is one.
+  The release currently being served, if there is one. A read that fails raises
+  rather than reporting that no release is active.
   """
   @spec active_catalog_release() :: {:ok, Catalog.CatalogRelease.t()} | {:error, Error.t()}
   def active_catalog_release do
-    case Catalog.active_catalog_release(Catalog.channel()) do
-      {:ok, nil} -> {:error, no_active_release()}
-      {:ok, release} -> {:ok, release}
-      {:error, _reason} -> {:error, no_active_release()}
+    case Catalog.active_catalog_release!(Catalog.channel(), not_found_error?: false) do
+      nil -> {:error, no_active_release()}
+      release -> {:ok, release}
     end
   end
 

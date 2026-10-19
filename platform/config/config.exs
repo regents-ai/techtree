@@ -211,6 +211,14 @@ config :techtree, :session_bootstrap_rate_limit, limit: 30, window_seconds: 300
 
 # Each paired agent's reading from the sign-in service, kept five minutes. Older
 # readings leave with the generation the collector drops every ten minutes.
+# The header's star count, read by the server (TechtreeWeb.GithubStars), and the
+# cache that keeps it.
+config :techtree, :github_stars,
+  api_url: "https://api.github.com",
+  repository: "regents-ai/techtree"
+
+config :techtree, TechtreeWeb.GithubStars, gc_interval: :timer.hours(6), max_size: 10
+
 config :techtree, Techtree.Agents.ActivityReading,
   gc_interval: :timer.minutes(10),
   max_size: 10_000

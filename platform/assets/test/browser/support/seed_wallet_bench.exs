@@ -1,6 +1,6 @@
 # Recorded Wallet Bench tests for the browser tests (Techtree.WalletBenchFixture),
 # seeded in the browser test database; prints their ids by outcome.
-unless Mix.env() == :test and System.get_env("MIX_TEST_PARTITION") == "browser",
+unless Mix.env() == :test and String.starts_with?(System.get_env("MIX_TEST_PARTITION", ""), "browser"),
   do: raise("browser test database only")
 
 Logger.configure(level: :warning)

@@ -1,7 +1,7 @@
 # A signed-in visitor for the browser tests: an account in the browser test
 # database and a session bound to it, printed as the cookie a browser would hold.
 # Run from platform/ with the browser test server's environment.
-unless Mix.env() == :test and System.get_env("MIX_TEST_PARTITION") == "browser",
+unless Mix.env() == :test and String.starts_with?(System.get_env("MIX_TEST_PARTITION", ""), "browser"),
   do: raise("browser test database only")
 
 {:ok, _} = Application.ensure_all_started([:postgrex, :ecto_sql, :ash, :ash_postgres])

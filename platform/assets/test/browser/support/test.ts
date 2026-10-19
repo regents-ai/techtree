@@ -12,7 +12,7 @@ function serverOutsideConnections(): string[] {
       return ""
     }
   }
-  const pid = run(["-tiTCP:4012", "-sTCP:LISTEN"]).trim().split("\n")[0]
+  const pid = run([`-tiTCP:${process.env.TECHTREE_BROWSER_PORT}`, "-sTCP:LISTEN"]).trim().split("\n")[0]
   if (!pid) return []
   return run(["-nP", "-a", "-p", pid, "-iTCP", "-sTCP:ESTABLISHED"])
     .split("\n")
@@ -22,15 +22,12 @@ function serverOutsideConnections(): string[] {
     .filter(remote => !/^(127\.0\.0\.1|\[::1\]|localhost):/.test(remote))
 }
 
-// Keeps a browser context offline from the world: the one outside service a page
-// calls, GitHub's star count, is answered with a fixed count, and every other
-// outside address is recorded so the test can fail on it.
+// Keeps a browser context offline from the world: every outside address a page
+// asks for is answered empty and recorded, so the test can fail on it.
 export async function keepOffline(context: BrowserContext): Promise<string[]> {
   const outside: string[] = []
   await context.route(url => !["127.0.0.1", "localhost"].includes(url.hostname), route => {
     const url = new URL(route.request().url())
-    if (url.hostname === "api.github.com")
-      return route.fulfill({json: {stargazers_count: 5}, headers: {"access-control-allow-origin": "*"}})
     outside.push(url.origin + url.pathname)
     return route.fulfill({status: 204})
   })

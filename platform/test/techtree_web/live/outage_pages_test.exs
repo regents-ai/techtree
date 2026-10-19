@@ -13,6 +13,8 @@ defmodule TechtreeWeb.OutagePagesTest do
   use TechtreeWeb, :verified_routes
 
   alias Techtree.Accounts.SessionAuthority
+  alias Techtree.Catalog.Importer
+  alias Techtree.CatalogFixture
 
   import ExUnit.CaptureLog
   import Phoenix.ConnTest
@@ -21,8 +23,9 @@ defmodule TechtreeWeb.OutagePagesTest do
   @endpoint TechtreeWeb.Endpoint
 
   setup do
-    refusing = cut_database()
-    on_exit(fn -> bring_back(refusing) end)
+    TechtreeWeb.HealthMemory.delete_all()
+    cut_database()
+    on_exit(&bring_back/0)
     {:ok, conn: build_conn()}
   end
 
@@ -42,17 +45,19 @@ defmodule TechtreeWeb.OutagePagesTest do
       )
 
     Process.unlink(refusing)
-    refusing
   end
 
-  # The usual pool, back as the suite expects it. A test may bring it back
-  # itself first; then this finds it already running.
-  defp bring_back(refusing) do
-    if Process.alive?(refusing), do: Supervisor.stop(refusing)
+  # The usual pool, back as the suite expects it: the stand-in pool registered in
+  # its place is stopped and the supervised one restarted. A test may bring it
+  # back itself first; then this finds it already running.
+  defp bring_back do
+    case List.keyfind(Supervisor.which_children(Techtree.Supervisor), Techtree.Repo, 0) do
+      {_id, :undefined, _type, _modules} ->
+        if refusing = Process.whereis(Techtree.Repo), do: Supervisor.stop(refusing)
+        {:ok, _pool} = Supervisor.restart_child(Techtree.Supervisor, Techtree.Repo)
 
-    case Supervisor.restart_child(Techtree.Supervisor, Techtree.Repo) do
-      {:ok, _pool} -> :ok
-      {:error, :running} -> :ok
+      _running ->
+        :ok
     end
 
     Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, :manual)
@@ -110,7 +115,7 @@ defmodule TechtreeWeb.OutagePagesTest do
 
     assert has_element?(live, "[role=status]", "Wallet tests can't be shown")
 
-    refute has_element?(live, "#wallet-bench-empty")
+    refute has_element?(live, "[role=status]", "No wallet tests have run yet")
   end
 
   # A browser that holds a sign-in, made without the database: the claim's own
@@ -126,7 +131,12 @@ defmodule TechtreeWeb.OutagePagesTest do
 
     conn = quietly(fn -> get(conn, ~p"/wallet-bench") end)
 
-    assert html_response(conn, 200) =~ ~s(id="wallet-bench-unreadable")
+    assert conn
+           |> html_response(200)
+           |> LazyHTML.from_document()
+           |> LazyHTML.query("[role=status]")
+           |> LazyHTML.text() =~ "Wallet tests can't be shown"
+
     assert html_response(conn, 200) =~ ~s|data-account-target="sign-in"|
     refute html_response(conn, 200) =~ ~s|name="session-refused"|
 
@@ -173,7 +183,7 @@ defmodule TechtreeWeb.OutagePagesTest do
   test "once the database is back, a page drawn signed out in the outage redirects once" do
     {_conn, session} = signed_in(build_conn())
 
-    bring_back(Process.whereis(Techtree.Repo))
+    bring_back()
     Ecto.Adapters.SQL.Sandbox.checkout(Techtree.Repo)
 
     # The panel can now read the claim: a sign-in this browser no longer holds,
@@ -237,5 +247,35 @@ defmodule TechtreeWeb.OutagePagesTest do
     {conn, _session} = signed_in(conn)
 
     assert_raise Ash.Error.Unknown, fn -> quietly(fn -> get(conn, ~p"/account") end) end
+  end
+
+  # Regression (Sentinel, v167 after-read): a health check that landed in a
+  # database blip answered 503 and said no release was active.
+  test "a brief database blip after a healthy answer doesn't fail the health check", %{conn: conn} do
+    bring_back()
+    Ecto.Adapters.SQL.Sandbox.checkout(Techtree.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, {:shared, self()})
+    CatalogFixture.use_bundle(CatalogFixture.root())
+    Importer.import!(CatalogFixture.root())
+
+    assert %{"status" => "ok"} = conn |> get(~p"/healthz") |> json_response(200)
+
+    cut_database()
+
+    assert %{"status" => "ok", "database" => "unreachable"} =
+             quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(200) end)
+
+    # Once the grace is over, the loss fails the check, with its real reason.
+    TechtreeWeb.HealthMemory.delete_all()
+
+    assert %{"status" => "unavailable", "reason" => "database_unreachable"} =
+             quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(503) end)
+  end
+
+  test "a database loss with no recent healthy answer fails with the real reason", %{conn: conn} do
+    body = quietly(fn -> conn |> get(~p"/healthz") |> json_response(503) end)
+
+    assert %{"status" => "unavailable", "reason" => "database_unreachable"} = body
+    refute body["reason"] == "no_active_release"
   end
 end

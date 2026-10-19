@@ -79,12 +79,13 @@ defmodule TechtreeWeb.StartLive do
         </header>
 
         <Regent.Structure.panel :if={!@setup_commands} class="rg-panel__body setup-unavailable">
-          <div :if={@install == :unreadable} role="status">
-            <p class="eyebrow">Install steps unavailable</p>
-            <h2>The install steps can't be shown right now.</h2>
-            <p>Try again in a minute. The guide explains how a test works in the meantime.</p>
-          </div>
-          <%= if @install != :unreadable do %>
+          <%= if @install == :unreadable do %>
+            <div role="status">
+              <p class="eyebrow">Install steps unavailable</p>
+              <h2>The install steps can't be shown right now.</h2>
+              <p>Try again in a minute. The guide explains how a test works in the meantime.</p>
+            </div>
+          <% else %>
             <p class="eyebrow">Not ready to install yet</p>
             <h2>There's no version of Techtree to install yet.</h2>
             <p>

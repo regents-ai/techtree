@@ -414,7 +414,7 @@ defmodule TechtreeWeb.HomeLive do
         <Regent.Structure.section_bar class="section-heading rg-support-band">
           <h2 id="climbs-title" class="rg-section-bar__label">Published Climbs</h2>
         </Regent.Structure.section_bar>
-        <p :if={@catalog == :unreadable} id="climbs-unreadable" class="empty-state" role="status">
+        <p :if={@catalog == :unreadable} class="empty-state" role="status">
           The Climbs can't be shown right now. Try again in a minute.<br />
           <.link navigate={~p"/docs"}>Read the guide meanwhile</.link>
         </p>

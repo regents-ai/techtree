@@ -6,7 +6,12 @@ import type {BrowserContext, Page} from "@playwright/test"
 function inBrowserDatabase(script: string): string {
   const out = execFileSync("mix", ["run", "--no-start", `assets/test/browser/support/${script}`], {
     cwd: "..",
-    env: {...process.env, MIX_ENV: "test", MIX_TEST_PARTITION: "browser", TECHTREE_BROWSER_TEST: "1"},
+    env: {
+      ...process.env,
+      MIX_ENV: "test",
+      MIX_TEST_PARTITION: process.env.TECHTREE_BROWSER_PARTITION,
+      TECHTREE_BROWSER_TEST: "1",
+    },
     encoding: "utf8",
   })
   return out.trim().split("\n").findLast(line => line.startsWith("{")) as string

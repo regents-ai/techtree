@@ -1,11 +1,16 @@
 import {defineConfig, devices} from "@playwright/test"
 
 // The browser tests start their own Techtree in the test environment, on its own
-// database (techtree_testbrowser) and port, and stop it afterwards. They read
-// pages the way a visitor does; nothing here reaches the live site.
-const port = 4012
+// database (techtree_test<partition>) and port, and stop it afterwards. They read
+// pages the way a visitor does; nothing here reaches the live site. Two copies run
+// side by side when each sets its own TECHTREE_BROWSER_PARTITION (starting with
+// "browser") and TECHTREE_BROWSER_PORT.
+const partition = process.env.TECHTREE_BROWSER_PARTITION ?? "browser"
+const port = Number(process.env.TECHTREE_BROWSER_PORT ?? 4012)
+process.env.TECHTREE_BROWSER_PARTITION = partition
+process.env.TECHTREE_BROWSER_PORT = String(port)
 const baseURL = `http://127.0.0.1:${port}`
-const server = "MIX_ENV=test MIX_TEST_PARTITION=browser TECHTREE_BROWSER_TEST=1"
+const server = `MIX_ENV=test MIX_TEST_PARTITION=${partition} TECHTREE_BROWSER_TEST=1`
 
 export default defineConfig({
   testDir: "./test/browser",

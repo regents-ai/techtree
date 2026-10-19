@@ -178,7 +178,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <.link :if={@all?} patch={~p"/wallet-bench"}>Show fewer</.link>
         </p>
 
-        <p :if={@bench == :unreadable} id="wallet-bench-unreadable" class="empty-state" role="status">
+        <p :if={@bench == :unreadable} class="empty-state" role="status">
           Wallet tests can't be shown right now. Try again in a minute.<br />
           <.link
             href="#how-tests-run"
@@ -188,7 +188,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           </.link>
         </p>
 
-        <p :if={@bench == :read and @attempts == []} id="wallet-bench-empty" class="empty-state">
+        <p :if={@bench == :read and @attempts == []} class="empty-state" role="status">
           No wallet tests have run yet. Each one will appear here with what the agent did and whether its wallet passed the checks.<br />
           <.link
             href="#how-tests-run"

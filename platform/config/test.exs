@@ -18,8 +18,11 @@ config :techtree, Techtree.Repo,
 
 # Tests never reach a chain or the shared sign-in service: every address they
 # would call is a closed local port, so a read that isn't stubbed fails at once
-# instead of reaching Base, Ethereum or siwa.regents.sh.
+# instead of reaching Base, Ethereum or siwa.regents.sh. Any request that still
+# names an outside host raises where it starts (Techtree.OfflineHttp).
 nowhere = "http://127.0.0.1:9"
+
+config :req, default_options: [adapter: &Techtree.OfflineHttp.run/1]
 
 config :regent_credits,
   chains: %{
@@ -30,6 +33,7 @@ config :regent_credits,
 config :regent_agents, siwa: [url: nowhere, audience: "techtree"]
 config :techtree, Techtree.WalletBench, base_rpc: nowhere
 config :techtree, :chain_nodes, %{8453 => nowhere, 1 => nowhere}
+config :techtree, :github_stars, api_url: nowhere, repository: "regents-ai/techtree"
 
 # The browser test server (assets/test/browser) answers real page loads, which
 # commit what they write, so it runs on an ordinary pool of three on its own

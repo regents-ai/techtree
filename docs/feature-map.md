@@ -6,8 +6,7 @@ ones alone. A line marked **Gap** has no automated proof yet.
 
 Browser checks live in `platform/assets/test/browser/` and run headless Chromium
 against a Techtree the tests start themselves, at 1280, 390 and 320 wide, with no
-access to the outside world. In the browser, GitHub's star count is answered with a
-fixed number and any other outside request fails the test. On the server, test
+access to the outside world. In the browser, any outside request fails the test. On the server, test
 config points every chain and sign-in service at a closed local port, and each test
 fails if the server holds a connection to anywhere but this machine. Each page check fails on a page error,
 a console error, sideways scrolling, or a press target too small: 44 px for a

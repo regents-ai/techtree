@@ -325,7 +325,6 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p
           :if={@empty == :database_down}
-          id="results-database-down"
           class="runs-index__empty empty-state"
           role="status"
         >

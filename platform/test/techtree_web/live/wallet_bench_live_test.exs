@@ -10,13 +10,8 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
   test "with no tests yet, it says what will appear and points to how a test runs", %{conn: conn} do
     {:ok, live, _html} = live(conn, ~p"/wallet-bench")
 
-    assert has_element?(live, "#wallet-bench-empty")
-
-    assert has_element?(
-             live,
-             ~s|#wallet-bench-empty a[href="#how-tests-run"]|,
-             "See how a test runs"
-           )
+    assert has_element?(live, "[role=status]", "No wallet tests have run yet")
+    assert has_element?(live, ~s|[role=status] a[href="#how-tests-run"]|, "See how a test runs")
 
     assert has_element?(live, "details#how-tests-run")
     refute has_element?(live, ".wallet-bench__frame")

@@ -23,6 +23,8 @@ defmodule Techtree.Application do
          )},
         RegentAgents.Listener,
         Techtree.Agents.ActivityReading,
+        TechtreeWeb.HealthMemory,
+        TechtreeWeb.GithubStars,
         # Each agent's reading for an open side panel, unlinked from the page.
         {Task.Supervisor, name: Techtree.Agents.Reads},
         RegentCredits.Listener,

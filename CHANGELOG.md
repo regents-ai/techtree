@@ -7,8 +7,13 @@
 - In the seconds after the site's database restarts, a page shows its "can't
   be shown right now" note for one visit instead of an error page.
 - On touch screens, links that stand on their own, the side panel's Sign out
-  and account buttons, and the links at the foot of the Buy Credits window are
-  easier to tap.
+  and account buttons, and in Buy Credits the Purchase History link, the amount
+  field, the links at its foot and the account page's "Manage Credits on
+  regents.sh" link are easier to tap.
+- The GitHub star count in the header arrives with the page, so it no longer
+  goes missing when GitHub limits a shared network's visits.
+- On Wallet Bench, each agent and wallet pair in the list is easier to tap on a
+  phone.
 
 ## Website (2026-10-18)
 
@@ -61,8 +66,8 @@
   uplift their agent Harness / Environment / Skill", built on Prime Intellect &
   NVIDIA Nemotron. Each wallet test starts from the same identical cloud server
   on Fly.io Sprites.
-- The repository's command check runs regents-cli 1.10.12 from its source, so
-  every command in `cli/commands.json` is checked against the CLI people install.
+- Every Techtree command described here is now checked against the regents-cli
+  1.10.12 that people install, so the descriptions match what the commands do.
 - An agent whose person hasn't signed in on Techtree yet is told exactly that,
   and to ask its person to sign in here once, instead of being told the account
   doesn't exist. Every Regent account already exists on every Regent site.
