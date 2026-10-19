@@ -22,7 +22,7 @@ config :techtree, Techtree.Repo,
 # names an outside host raises where it starts (Techtree.OfflineHttp).
 nowhere = "http://127.0.0.1:9"
 
-config :req, default_options: [adapter: &Techtree.OfflineHttp.run/1]
+config :req, default_options: [adapter: Techtree.OfflineHttp]
 
 config :regent_credits,
   chains: %{
@@ -38,8 +38,18 @@ config :techtree, :github_stars, api_url: nowhere, repository: "regents-ai/techt
 # The browser test server (assets/test/browser) answers real page loads, which
 # commit what they write, so it runs on an ordinary pool of three on its own
 # database (MIX_TEST_PARTITION=browser) rather than the test sandbox.
+# Its wallet tests' recorded files are kept in a folder on this machine
+# (Techtree.EvidenceShelf) rather than the private bucket.
 if System.get_env("TECHTREE_BROWSER_TEST") == "1" do
   config :techtree, Techtree.Repo, pool: DBConnection.ConnectionPool, pool_size: 3
+
+  config :techtree, Techtree.WalletBench.Evidence,
+    endpoint: nowhere,
+    bucket: "evidence",
+    region: "auto",
+    access_key_id: "browser-tests",
+    secret_access_key: "browser-tests",
+    req_options: [plug: Techtree.EvidenceShelf]
 end
 
 # We don't run a server during test. If one is required,

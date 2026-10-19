@@ -248,34 +248,114 @@ defmodule TechtreeWeb.WalletBenchCopy do
   @spec wallet_result([map()]) :: map() | nil
   def wallet_result(turns), do: ruling(turns, [:T2, :T2_signature])
 
-  @doc """
-  Which agent works with which wallet: for every agent asked the wallet
-  question, each tested wallet's newest judged wallet result and the attempt it
-  came from (nil when none is judged). Takes attempts newest first, with turns.
-  """
-  @spec answer([map()]) :: %{wallets: [String.t()], rows: [map()]}
-  def answer(attempts) do
-    wallets =
-      Catalog.tested_wallet_ids() |> Enum.map(&Catalog.wallet!/1) |> Enum.sort_by(& &1.name)
+  @typedoc "A grid's test: the install, or the wallet set-up."
+  @type grid_test :: :install | :wallet
 
-    harnesses =
-      for id <- Catalog.harness_ids(), :T2 in Catalog.tests(id), do: Catalog.harness!(id)
+  @doc "The tests the grid shows, in its order, by the name its address uses."
+  @spec grid_tests() :: [{String.t(), grid_test()}]
+  def grid_tests, do: [{"wallet", :wallet}, {"install", :install}]
+
+  @spec grid_test_name(grid_test()) :: String.t()
+  def grid_test_name(:install), do: "Install"
+  def grid_test_name(:wallet), do: "Wallet"
+
+  @doc """
+  The score grid for one test: a row for every agent that takes it, a column
+  for every wallet tool, the tools that run first. Each cell is the pair's
+  newest result for the test (`{:result, ...}`), `:not_run` when it has none,
+  or `{:fixed, reason}` for a wallet tool that never runs. Each row carries its
+  agent's middle time for the test and its mean score; rows run from the
+  highest mean down, agents with no result last. Takes attempts newest first,
+  with turns.
+  """
+  @spec grid([map()], grid_test()) :: %{wallets: [map()], rows: [map()]}
+  def grid(attempts, test) do
+    wallets =
+      Catalog.wallet_ids()
+      |> Enum.map(&Catalog.wallet!/1)
+      |> Enum.sort_by(&{&1.fixed != nil, &1.name})
 
     rows =
-      for harness <- Enum.sort_by(harnesses, & &1.name) do
+      for id <- Catalog.harness_ids(), first_turn(test) in Catalog.tests(id) do
+        harness = Catalog.harness!(id)
+        cells = for wallet <- wallets, do: cell(attempts, test, harness.id, wallet)
+
         %{
           agent: harness.name,
-          cells: for(wallet <- wallets, do: newest_judged(attempts, harness.id, wallet.id))
+          cells: cells,
+          speed: speed(attempts, test, harness.id),
+          overall: overall(cells)
         }
       end
 
-    %{wallets: Enum.map(wallets, & &1.name), rows: rows}
+    %{wallets: wallets, rows: Enum.sort_by(rows, &{-(&1.overall || -1), &1.agent})}
   end
 
-  @doc "A wallet ruling in the answer's few words."
-  @spec verdict(map()) :: String.t()
-  def verdict(%{"outcome" => "PASS*"}), do: "Pass, flagged"
-  def verdict(judgment), do: outcome(judgment)
+  @doc "How many of the judge's checks a ruling met."
+  @spec score(map()) :: non_neg_integer()
+  def score(%{"criteria" => criteria}),
+    do: Enum.count(criteria, fn {_id, c} -> c["value"] == "true" end)
+
+  @doc "How strongly a score's box is shaded, from 1 (few checks met) to 5 (all nine)."
+  @spec shade(non_neg_integer()) :: 1..5
+  def shade(9), do: 5
+  def shade(score) when score >= 7, do: 4
+  def shade(score) when score >= 5, do: 3
+  def shade(score) when score >= 3, do: 2
+  def shade(_score), do: 1
+
+  @doc "A time in seconds as the grid shows it: `45s`, `3m`."
+  @spec duration(number()) :: String.t()
+  def duration(seconds) when seconds < 60, do: "#{round(seconds)}s"
+  def duration(seconds), do: "#{round(seconds / 60)}m"
+
+  @doc "A test's result in a turn list: a safety failure in either try, else the latest ruling."
+  @spec result([map()], grid_test()) :: map() | nil
+  def result(turns, :install), do: install_result(turns)
+  def result(turns, :wallet), do: wallet_result(turns)
+
+  @doc "The tests of an attempt's turns that make up a grid test's result."
+  @spec grid_turns([map()], grid_test()) :: [map()]
+  def grid_turns(turns, test), do: Enum.filter(turns, &(&1.test in turn_tests(test)))
+
+  defp turn_tests(:install), do: [:T1a, :T1b]
+  defp turn_tests(:wallet), do: [:T2, :T2_signature]
+
+  defp first_turn(test), do: hd(turn_tests(test))
+
+  defp cell(_attempts, _test, _harness_id, %{fixed: %{reason: reason}}), do: {:fixed, reason}
+
+  defp cell(attempts, test, harness_id, %{id: wallet_id}) do
+    Enum.find_value(attempts, :not_run, fn
+      %{harness_id: ^harness_id, wallet_id: ^wallet_id} = attempt ->
+        if ruling = result(attempt.turns, test),
+          do: {:result, %{attempt: attempt, ruling: ruling, score: score(ruling)}}
+
+      _other ->
+        nil
+    end)
+  end
+
+  # The middle of the agent's judged times for the test, across every pair.
+  defp speed(attempts, test, harness_id) do
+    times =
+      for %{harness_id: ^harness_id} = attempt <- attempts,
+          turn <- grid_turns(attempt.turns, test),
+          turn.judgment && turn.wall_seconds,
+          do: Decimal.to_float(turn.wall_seconds)
+
+    case Enum.sort(times) do
+      [] -> nil
+      sorted -> Enum.at(sorted, div(length(sorted), 2))
+    end
+  end
+
+  defp overall(cells) do
+    case for({:result, %{score: score}} <- cells, do: score) do
+      [] -> nil
+      scores -> Float.round(Enum.sum(scores) / length(scores), 1)
+    end
+  end
 
   @doc "Whether an attempt is in the short list: still running, or with a ruling."
   @spec settled_or_running?(map()) :: boolean()
@@ -285,16 +365,6 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   def settled_or_running?(attempt),
     do: install_result(attempt.turns) != nil or wallet_result(attempt.turns) != nil
-
-  defp newest_judged(attempts, harness_id, wallet_id) do
-    Enum.find_value(attempts, fn
-      %{harness_id: ^harness_id, wallet_id: ^wallet_id} = attempt ->
-        if ruling = wallet_result(attempt.turns), do: %{attempt: attempt, ruling: ruling}
-
-      _other ->
-        nil
-    end)
-  end
 
   @spec dollars(Decimal.t() | nil) :: String.t()
   def dollars(nil), do: "$0.00"

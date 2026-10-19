@@ -1,5 +1,5 @@
 import {execFileSync} from "node:child_process"
-import type {BrowserContext, Page} from "@playwright/test"
+import type {BrowserContext, Locator, Page} from "@playwright/test"
 
 // Runs one of the support scripts in the browser test database and returns the
 // JSON it printed last.
@@ -80,6 +80,43 @@ export async function layoutProblems(page: Page): Promise<string[]> {
       if (!touch && el.tagName === "A" && style.display === "inline") continue
       if (box.height < minHeight || box.width < 24)
         problems.push(`${el.tagName.toLowerCase()} ${el.id || el.getAttribute("aria-label") || el.textContent?.trim().slice(0, 24)} is ${Math.round(box.width)}x${Math.round(box.height)}`)
+    }
+    return problems
+  })
+}
+
+// Text inside `scope` whose contrast with what is behind it falls under WCAG's
+// 4.5:1, as the page renders it: each colour is drawn onto a canvas and read
+// back, so any colour the stylesheet mixes is measured as shown.
+export async function lowContrast(scope: Locator): Promise<string[]> {
+  return scope.evaluate(root => {
+    const canvas = document.createElement("canvas")
+    canvas.width = canvas.height = 1
+    const pen = canvas.getContext("2d", {willReadFrequently: true})!
+    const rgba = (color: string) => {
+      pen.clearRect(0, 0, 1, 1)
+      pen.fillStyle = color
+      pen.fillRect(0, 0, 1, 1)
+      return Array.from(pen.getImageData(0, 0, 1, 1).data)
+    }
+    const background = (el: Element | null): number[] => {
+      for (; el; el = el.parentElement) {
+        const [r, g, b, a] = rgba(getComputedStyle(el).backgroundColor)
+        if (a === 255) return [r, g, b]
+      }
+      return [255, 255, 255]
+    }
+    const luminance = ([r, g, b]: number[]) =>
+      [r, g, b].map(c => c / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0)
+    const problems: string[] = []
+    for (const el of root.querySelectorAll<HTMLElement>("*")) {
+      const text = Array.from(el.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim()
+      const box = el.getBoundingClientRect()
+      if (!text || box.width <= 1 || box.height <= 1) continue
+      const [light, dark] = [luminance(rgba(getComputedStyle(el).color)), luminance(background(el))].sort((a, b) => b - a)
+      const ratio = (light + 0.05) / (dark + 0.05)
+      if (ratio < 4.5) problems.push(`"${text}" at ${ratio.toFixed(2)}:1`)
     }
     return problems
   })

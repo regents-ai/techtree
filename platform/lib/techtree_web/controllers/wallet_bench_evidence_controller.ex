@@ -14,6 +14,9 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
 
   alias Techtree.WalletBench
   alias Techtree.WalletBench.{Catalog, Evidence}
+  alias TechtreeWeb.WalletBenchCopy, as: Copy
+
+  @load [:machine, :turns, :payments, :model_spend_usd, :judge_cost_usd]
 
   # The type is one of four fixed values, chosen from the stored file's own header and never from the request; an
   # image or plain text runs no script, and the site sends nosniff and its CSP with every answer.
@@ -31,6 +34,93 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no recorded file has that name"
     end
+  end
+
+  @doc """
+  The whole test as one zip: `results.json`, what the test's page shows as the
+  bench recorded it, and every file each test recorded, under its test's name.
+  Each file is read back through the same fingerprint check as a single file.
+  """
+  def results(conn, %{"id" => id}) do
+    with {:ok, id} <- Ecto.UUID.cast(id),
+         {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
+      folder = "wallet-test-#{String.slice(attempt.id, 0, 8)}"
+
+      files =
+        for turn <- attempt.turns, file <- Map.keys(turn.evidence || %{}), do: {turn, file}
+
+      recorded =
+        files
+        |> Task.async_stream(
+          fn {turn, file} ->
+            {~c"#{folder}/#{Catalog.turn_name(turn.test)}/#{file}", Evidence.recorded(turn, file)}
+          end,
+          max_concurrency: 4,
+          timeout: :timer.seconds(20)
+        )
+        |> Enum.map(fn
+          {:ok, {name, {:ok, body}}} ->
+            {name, body}
+
+          {:ok, {_name, {:error, reason}}} ->
+            raise "A recorded file can't be read: #{inspect(reason)}"
+        end)
+
+      results =
+        {~c"#{folder}/results.json", Jason.encode!(summary(attempt), pretty: true)}
+
+      {:ok, {_name, zip}} = :zip.create(~c"#{folder}.zip", [results | recorded], [:memory])
+
+      conn
+      |> put_resp_header("content-disposition", ~s(attachment; filename="#{folder}.zip"))
+      |> put_resp_content_type("application/zip", nil)
+      |> send_resp(200, zip)
+    else
+      _missing -> raise TechtreeWeb.NotFoundError, "no wallet test has that number"
+    end
+  end
+
+  defp summary(attempt) do
+    %{
+      page: url(~p"/wallet-bench/#{attempt.id}"),
+      agent: Catalog.harness!(attempt.harness_id).name,
+      wallet_tool: Catalog.wallet!(attempt.wallet_id).name,
+      status: Copy.status(attempt.state),
+      started_at: attempt.inserted_at,
+      failure: attempt.failure,
+      machine:
+        attempt.machine &&
+          Map.take(attempt.machine.manifest, ~w(harness_version model reasoning_effort os)),
+      agent_address: attempt.agent_address,
+      model_cost_usd: attempt.model_spend_usd,
+      judge_cost_usd: attempt.judge_cost_usd,
+      tests:
+        for turn <- attempt.turns do
+          %{
+            test: Copy.test(turn.test),
+            folder: Catalog.turn_name(turn.test),
+            state: Copy.turn_state(turn.state),
+            prompt: turn.prompt,
+            started_at: turn.started_at,
+            ended_at: turn.ended_at,
+            seconds: turn.wall_seconds,
+            model_cost_usd: turn.model_spend_usd,
+            judge_cost_usd: turn.judge_cost_usd,
+            failure: turn.failure,
+            ruling: turn.judgment,
+            bench_checks: turn.checks,
+            files: turn.evidence || %{}
+          }
+        end,
+      funding:
+        for payment <- attempt.payments do
+          %{
+            sent: Copy.payment(payment),
+            state: Copy.payment_state(payment.state),
+            transaction: payment.hash
+          }
+        end
+    }
   end
 
   # The same headers the machine's image_type.py reads.

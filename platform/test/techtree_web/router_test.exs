@@ -89,6 +89,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /wallet-bench.md",
              "get /wallet-bench/:id",
              "get /wallet-bench/:id/evidence/:turn/:file",
+             "get /wallet-bench/:id/results.zip",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
              "post /api/v1/profile/sync",

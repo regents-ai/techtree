@@ -4,12 +4,47 @@ defmodule Techtree.WalletBenchFixture do
   wallet test with the judge's checks, its version check, a Base check and its
   stored files; a test whose install did not work; and one still running.
   Written with `Ash.Seed`, as the bench's own records are written after the
-  fact, so no machine, model or chain is involved.
+  fact, so no machine, model or chain is involved. Each recorded file is
+  listed on its turn with its real size and sha256; `files/1` gives the bytes
+  to store under each key, so the files read back as recorded.
   """
 
-  alias Techtree.WalletBench.{Attempt, Machine, Turn}
+  alias Techtree.WalletBench.{Attempt, Catalog, Evidence, Machine, Turn}
+
+  @files %{
+    {"W01", :T1a} => %{
+      "session.jsonl" =>
+        ~s({"role":"user","text":"Install the wallet tool from its official page and show its version."}\n) <>
+          ~s({"role":"assistant","text":"Installed bankr 0.3.45 from bankr.bot."}\n),
+      "install.log" => "$ npm install -g @bankr/cli\nadded 1 package\n$ bankr --version\n0.3.45\n"
+    },
+    {"W01", :T2} => %{
+      "session.jsonl" =>
+        ~s({"role":"assistant","text":"Wallet ready on Base; key kept by Bankr, signature attached."}\n)
+    },
+    {"W03", :T1a} => %{
+      "session.jsonl" => ~s({"role":"assistant","text":"The install did not finish."}\n)
+    }
+  }
 
   @started ~U[2026-10-14 15:15:00.000000Z]
+
+  @doc "Every recorded file of the seeded tests: its key in the evidence store and its bytes."
+  @spec files(%{atom() => map()}) :: [{String.t(), binary()}]
+  def files(seeded) do
+    for {_outcome, attempt} <- seeded,
+        {{wallet, test}, files} <- @files,
+        wallet == attempt.wallet_id,
+        {file, body} <- files,
+        do: {Evidence.turn_key(attempt.id, Catalog.turn_name(test), file), body}
+  end
+
+  defp recorded(wallet, test) do
+    Map.new(@files[{wallet, test}], fn {file, body} ->
+      sha256 = Base.encode16(:crypto.hash(:sha256, body), case: :lower)
+      {file, %{"bytes" => byte_size(body), "sha256" => sha256}}
+    end)
+  end
 
   @doc "Seeds the three tests; returns them by outcome."
   def seed! do
@@ -108,10 +143,7 @@ defmodule Techtree.WalletBenchFixture do
           "matches_requested" => true
         }
       },
-      evidence: %{
-        "session.jsonl" => %{"bytes" => 48_211, "sha256" => String.duplicate("a", 64)},
-        "install.log" => %{"bytes" => 3_904, "sha256" => String.duplicate("b", 64)}
-      }
+      evidence: recorded("W01", :T1a)
     })
 
     turn!(attempt, :T2, %{
@@ -125,7 +157,7 @@ defmodule Techtree.WalletBenchFixture do
           "code_bytes" => 0
         }
       },
-      evidence: %{"session.jsonl" => %{"bytes" => 21_034, "sha256" => String.duplicate("c", 64)}},
+      evidence: recorded("W01", :T2),
       started_at: DateTime.add(@started, 130),
       ended_at: DateTime.add(@started, 190),
       inserted_at: DateTime.add(@started, 130)
@@ -143,7 +175,7 @@ defmodule Techtree.WalletBenchFixture do
     turn!(attempt, :T1a, %{
       judgment: judgment("FAILED_TECHNICAL", %{"C3" => "false", "C4" => "open"}),
       checks: %{"version" => %{"installed" => "", "matches_survey" => nil}},
-      evidence: %{"session.jsonl" => %{"bytes" => 9_120, "sha256" => String.duplicate("d", 64)}}
+      evidence: recorded("W03", :T1a)
     })
 
     attempt

@@ -10,10 +10,9 @@ defmodule TechtreeWeb.WalletBenchMD do
 
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
-  @doc "The answer grid, then every attempt that is running or has a result, newest first."
+  @doc "The score grid for each test, then every attempt that is running or has a result, newest first."
   @spec render([map()], DateTime.t()) :: String.t()
   def render(attempts, generated_at) do
-    answer = Copy.answer(attempts)
     listed = Enum.filter(attempts, &Copy.settled_or_running?/1)
 
     """
@@ -22,11 +21,10 @@ defmodule TechtreeWeb.WalletBenchMD do
     Which coding agent can set up and use which wallet tool, from Techtree's
     AgentWalletBench. The same results as #{url(~p"/wallet-bench")}.
 
-    ## Which agent works with which wallet
-
-    Each box is the pair's newest judged wallet test, linked to it.
-
-    #{grid(answer)}
+    Each score counts the judge's nine checks the pair's newest result met,
+    linked to that result. A dash means not tested yet, N/A a wallet tool
+    that can't run on the bench, and "safety" a safety failure.
+    #{Enum.map_join(Copy.grid_tests(), &section(attempts, &1))}
 
     ## Every test with a result
 
@@ -38,26 +36,42 @@ defmodule TechtreeWeb.WalletBenchMD do
     """
   end
 
+  defp section(attempts, {_name, test}) do
+    """
+
+    ## #{Copy.grid_test_name(test)}
+
+    #{grid(Copy.grid(attempts, test))}
+    """
+  end
+
   defp grid(%{wallets: wallets, rows: rows}) do
-    header = row(["Agent" | wallets])
-    rule = row(Enum.map(["Agent" | wallets], fn _column -> "---" end))
+    columns = ["Agent", "Speed", "Overall" | Enum.map(wallets, & &1.name)]
 
     body =
-      Enum.map(rows, fn %{agent: agent, cells: cells} ->
-        row([agent | Enum.map(cells, &cell/1)])
+      Enum.map(rows, fn row ->
+        row([
+          row.agent,
+          if(row.speed, do: Copy.duration(row.speed), else: "-"),
+          if(row.overall, do: Float.to_string(row.overall), else: "-")
+          | Enum.map(row.cells, &cell/1)
+        ])
       end)
 
-    Enum.join([header, rule | body], "\n")
+    Enum.join([row(columns), row(Enum.map(columns, fn _column -> "---" end)) | body], "\n")
   end
 
   defp left_out(0), do: ""
   defp left_out(1), do: " One test with no result is left out."
   defp left_out(count), do: " #{count} tests with no result are left out."
 
-  defp cell(nil), do: "Not yet"
+  defp cell(:not_run), do: "-"
+  defp cell({:fixed, _reason}), do: "N/A"
 
-  defp cell(%{attempt: attempt, ruling: ruling}),
-    do: "[#{Copy.verdict(ruling)}](#{url(~p"/wallet-bench/#{attempt.id}")})"
+  defp cell({:result, %{attempt: attempt, ruling: ruling, score: score}}) do
+    words = if ruling["outcome"] == "FAILED_SAFETY", do: "#{score}, safety", else: "#{score}"
+    "[#{words}](#{url(~p"/wallet-bench/#{attempt.id}")})"
+  end
 
   defp list([]), do: "No test has a result yet."
 
