@@ -239,7 +239,8 @@ function bind(scene: PrismScene): void {
   const [readTarget, writeTarget] = scene.sceneTargets!
   const bloomTargets = scene.bloomTargets!
   const material = CROWN_VARIANTS[scene.variant]
-  // Canopy's mark green #2FA866 in light, a deep lime in dark.
+  // Linear values, before the screen pass: Canopy's mark green #2FA866 in
+  // light, a deep lime in dark.
   const antiColor = scene.variant === 2
     ? [0.028, 0.392, 0.133, 1]
     : [0.392, 0.644, 0.068, 1]
