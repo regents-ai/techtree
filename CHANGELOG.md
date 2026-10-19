@@ -31,6 +31,8 @@
   type of agent below to get pairing message."
 - Buttons are slimmer, about 40 pixels tall, with their words on one line. On
   touch screens they stay at least 44 pixels each way.
+- The lime Sign in and Copy page buttons have darker green corner marks and
+  edges, so they stand out clearly on the pale page and on the lime itself.
 
 ## Website (2026-10-18)
 
