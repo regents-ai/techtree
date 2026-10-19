@@ -363,10 +363,12 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   attr :wallet, :string, required: true
   attr :to, :any, required: true, doc: "this page's address with a result open"
 
-  defp score(%{cell: {:result, %{attempt: attempt, ruling: ruling, score: score}}} = assigns) do
+  defp score(
+         %{cell: {:result, %{attempt_id: attempt_id, ruling: ruling, score: score}}} = assigns
+       ) do
     assigns =
       assign(assigns,
-        attempt: attempt,
+        attempt_id: attempt_id,
         score: score,
         safety?: ruling["outcome"] == "FAILED_SAFETY",
         words: Copy.outcome(ruling)
@@ -374,8 +376,8 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
 
     ~H"""
     <.link
-      id={"score-#{@attempt.id}"}
-      patch={@to.(@attempt.id)}
+      id={"score-#{@attempt_id}"}
+      patch={@to.(@attempt_id)}
       class={[
         "wallet-bench__score",
         "wallet-bench__score--#{Copy.shade(@score)}",

@@ -294,6 +294,19 @@ defmodule TechtreeWeb.OutagePagesTest do
              quietly(fn -> conn |> get(~p"/healthz") |> json_response(503) end)
   end
 
+  test "the Wallet Bench scores feed asks to try again, in JSON", %{conn: conn} do
+    TechtreeWeb.WalletBenchScores.delete_all()
+
+    conn = quietly(fn -> get(conn, ~p"/wallet-bench.json") end)
+
+    assert Plug.Conn.get_resp_header(conn, "retry-after") == ["30"]
+
+    assert %{"error" => %{"code" => "scores_unavailable", "message" => message}} =
+             json_response(conn, 503)
+
+    assert message =~ "try again"
+  end
+
   test "a database loss with no recent healthy answer fails with the real reason", %{conn: conn} do
     body = quietly(fn -> conn |> get(~p"/healthz") |> json_response(503) end)
 

@@ -24,6 +24,7 @@ the person's own computer.
 - [Agent access and recovery](https://techtree.sh/agents.md): identity, pairing and protected operations.
 
 - [Wallet Bench](https://techtree.sh/wallet-bench.md): which coding agent works with which wallet tool, as Markdown, with every test that has a result. The page is [/wallet-bench](https://techtree.sh/wallet-bench).
+- [Wallet Bench scores](https://techtree.sh/wallet-bench.json): the same score grids as JSON, for each test every agent's row and a score out of 10 per wallet tool, each linked to its result on the page.
 - [Docs](https://techtree.sh/docs): install, run, verify, publish and integrate, with the API's errors, rate limits and versioning.
 - [OpenAPI description](https://techtree.sh/openapi.json): every public API address, typed.
 - [Tool manifest](https://techtree.sh/capabilities): the browser tools below, as JSON.

@@ -153,11 +153,16 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
+    pipe_through :api
+
+    get "/wallet-bench.json", WalletBenchController, :scores
+  end
+
+  scope "/", TechtreeWeb do
     get "/sitemap.xml", SitemapController, :index
     get "/robots.txt", PublicPagesController, :robots
     get "/agents.md", AgentsController, :show
     get "/wallet-bench.md", WalletBenchController, :markdown
-    get "/wallet-bench.json", WalletBenchController, :scores
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security

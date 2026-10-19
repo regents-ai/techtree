@@ -289,6 +289,38 @@ defmodule TechtreeWeb.WalletBenchCopy do
   """
   @spec grid([map()], grid_test()) :: %{wallets: [map()], rows: [map()]}
   def grid(attempts, test) do
+    newest =
+      Enum.reduce(attempts, %{}, fn attempt, newest ->
+        case result(attempt.turns, test) do
+          nil ->
+            newest
+
+          ruling ->
+            Map.put_new(newest, {attempt.harness_id, attempt.wallet_id}, {attempt.id, ruling})
+        end
+      end)
+
+    speeds =
+      for(
+        attempt <- attempts,
+        turn <- grid_turns(attempt.turns, test),
+        turn.judgment && turn.wall_seconds,
+        do: {attempt.harness_id, Decimal.to_float(turn.wall_seconds)}
+      )
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Map.new(fn {harness_id, times} -> {harness_id, middle(times)} end)
+
+    assemble(test, newest, speeds)
+  end
+
+  @doc """
+  The score grid for one test from what it is made of: each pair's newest
+  ruling, `{attempt_id, ruling}` by `{harness_id, wallet_id}`, and each agent's
+  middle time by `harness_id`. `grid/2` and the scores feed
+  (`TechtreeWeb.WalletBenchScores`) both build the grid here.
+  """
+  @spec assemble(grid_test(), map(), map()) :: %{wallets: [map()], rows: [map()]}
+  def assemble(test, newest, speeds) do
     wallets =
       Catalog.wallet_ids()
       |> Enum.map(&Catalog.wallet!/1)
@@ -297,18 +329,16 @@ defmodule TechtreeWeb.WalletBenchCopy do
     rows =
       for id <- Catalog.harness_ids(), first_turn(test) in Catalog.tests(id) do
         harness = Catalog.harness!(id)
-        cells = for wallet <- wallets, do: cell(attempts, test, harness.id, wallet)
-
-        %{
-          agent: harness.name,
-          cells: cells,
-          speed: speed(attempts, test, harness.id),
-          overall: overall(cells)
-        }
+        cells = for wallet <- wallets, do: cell(newest, harness.id, wallet)
+        %{agent: harness.name, cells: cells, speed: speeds[harness.id], overall: overall(cells)}
       end
 
     %{wallets: wallets, rows: Enum.sort_by(rows, &{-(&1.overall || -1), &1.agent})}
   end
+
+  @doc "The middle of a list of times, the later of the two when the count is even."
+  @spec middle([number()]) :: number()
+  def middle(times), do: times |> Enum.sort() |> Enum.at(div(length(times), 2))
 
   @doc """
   A result's score out of 10, one decimal: the share of the judge's checks it
@@ -360,30 +390,15 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   defp first_turn(test), do: hd(turn_tests(test))
 
-  defp cell(_attempts, _test, _harness_id, %{fixed: %{reason: reason}}), do: {:fixed, reason}
+  defp cell(_newest, _harness_id, %{fixed: %{reason: reason}}), do: {:fixed, reason}
 
-  defp cell(attempts, test, harness_id, %{id: wallet_id}) do
-    Enum.find_value(attempts, :not_run, fn
-      %{harness_id: ^harness_id, wallet_id: ^wallet_id} = attempt ->
-        if ruling = result(attempt.turns, test),
-          do: {:result, %{attempt: attempt, ruling: ruling, score: score(ruling)}}
+  defp cell(newest, harness_id, %{id: wallet_id}) do
+    case newest[{harness_id, wallet_id}] do
+      nil ->
+        :not_run
 
-      _other ->
-        nil
-    end)
-  end
-
-  # The middle of the agent's judged times for the test, across every pair.
-  defp speed(attempts, test, harness_id) do
-    times =
-      for %{harness_id: ^harness_id} = attempt <- attempts,
-          turn <- grid_turns(attempt.turns, test),
-          turn.judgment && turn.wall_seconds,
-          do: Decimal.to_float(turn.wall_seconds)
-
-    case Enum.sort(times) do
-      [] -> nil
-      sorted -> Enum.at(sorted, div(length(sorted), 2))
+      {attempt_id, ruling} ->
+        {:result, %{attempt_id: attempt_id, ruling: ruling, score: score(ruling)}}
     end
   end
 

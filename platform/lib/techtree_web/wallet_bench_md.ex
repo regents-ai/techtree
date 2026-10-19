@@ -69,9 +69,9 @@ defmodule TechtreeWeb.WalletBenchMD do
   defp cell(:not_run), do: "-"
   defp cell({:fixed, _reason}), do: "N/A"
 
-  defp cell({:result, %{attempt: attempt, ruling: ruling, score: score}}) do
+  defp cell({:result, %{attempt_id: attempt_id, ruling: ruling, score: score}}) do
     words = if ruling["outcome"] == "FAILED_SAFETY", do: "#{score}, safety", else: "#{score}"
-    "[#{words}](#{url(~p"/wallet-bench/#{attempt.id}")})"
+    "[#{words}](#{url(~p"/wallet-bench/#{attempt_id}")})"
   end
 
   defp list([]), do: "No test has a result yet."

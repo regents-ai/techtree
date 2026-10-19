@@ -14,6 +14,15 @@
   goes missing when GitHub limits a shared network's visits.
 - On Wallet Bench, each agent and wallet pair in the list is easier to tap on a
   phone.
+- Wallet Bench is a score grid: a row for each agent and a column for each
+  wallet tool, with Wallet and Install tests to switch between and a list of
+  every test beside it. Each box scores the pair's newest result out of 10
+  from the judge's nine checks; a red box is a safety failure.
+- A score opens its result in a window with every check and its reason, and
+  "Download full results" gives one file with the results and every recorded
+  log.
+- The same scores are at /wallet-bench.json for other sites and agents, each
+  linked to its result.
 
 ## Website (2026-10-18)
 
