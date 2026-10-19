@@ -25,7 +25,8 @@ export default defineConfig({
     // the server sends a compressed copy when there is one, so a stale one would
     // stand in for the change under test.
     command: [
-      `${server} mix do ash_postgres.create --quiet + techtree.setup_local_auth + ash.setup --quiet`,
+      // A fresh database each run, so no run depends on what an earlier one left.
+      `${server} mix do ash_postgres.drop --quiet + ash_postgres.create --quiet + techtree.setup_local_auth + ash.setup --quiet`,
       `${server} mix do phx.digest.clean --all + assets.deploy`,
       `${server} PORT=${port} mix phx.server`,
     ].join(" && "),

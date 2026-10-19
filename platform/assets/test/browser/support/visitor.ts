@@ -1,15 +1,26 @@
 import {execFileSync} from "node:child_process"
 import type {BrowserContext, Page} from "@playwright/test"
 
-// A fresh signed-in session for one browser context. Each context gets its own:
-// the site ends a session another browser presents after it has moved on.
-export async function signIn(context: BrowserContext): Promise<void> {
-  const out = execFileSync("mix", ["run", "--no-start", "assets/test/browser/support/sign_in.exs"], {
+// Runs one of the support scripts in the browser test database and returns the
+// JSON it printed last.
+function inBrowserDatabase(script: string): string {
+  const out = execFileSync("mix", ["run", "--no-start", `assets/test/browser/support/${script}`], {
     cwd: "..",
     env: {...process.env, MIX_ENV: "test", MIX_TEST_PARTITION: "browser", TECHTREE_BROWSER_TEST: "1"},
     encoding: "utf8",
   })
-  const {name, value} = JSON.parse(out.trim().split("\n").at(-1) as string)
+  return out.trim().split("\n").findLast(line => line.startsWith("{")) as string
+}
+
+// Three recorded Wallet Bench tests, by outcome: passed, failed and running.
+export function seedWalletBench(): {passed: string; failed: string; running: string} {
+  return JSON.parse(inBrowserDatabase("seed_wallet_bench.exs"))
+}
+
+// A fresh signed-in session for one browser context. Each context gets its own:
+// the site ends a session another browser presents after it has moved on.
+export async function signIn(context: BrowserContext): Promise<void> {
+  const {name, value} = JSON.parse(inBrowserDatabase("sign_in.exs"))
   await context.addCookies([{name, value, domain: "127.0.0.1", path: "/"}])
   // There is no Privy sign-in behind this session, so the provider bridge is
   // answered with an empty script; the real one would rightly sign it out.
