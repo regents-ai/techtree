@@ -170,6 +170,22 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
     assert reads |> Enum.take_while(& &1) |> Enum.sum() == 4
   end
 
+  # Regression (v171): the live database keeps the bench's tables in the site's
+  # own schema, and the feed's queries named none, so it answered 500.
+  test "the feed reads the tables in the Repo's own schema" do
+    previous = Application.get_env(:techtree, Techtree.Repo)
+    on_exit(fn -> Application.put_env(:techtree, Techtree.Repo, previous) end)
+
+    Application.put_env(
+      :techtree,
+      Techtree.Repo,
+      Keyword.put(previous, :default_prefix, "techtree_elsewhere")
+    )
+
+    error = assert_raise Postgrex.Error, fn -> WalletBenchScores.read() end
+    assert error.postgres.message =~ ~s(relation "techtree_elsewhere.wallet_bench_turns" does not exist)
+  end
+
   test "any other failure is the plain JSON error, with nothing from inside", %{
     conn: conn,
     tests: tests

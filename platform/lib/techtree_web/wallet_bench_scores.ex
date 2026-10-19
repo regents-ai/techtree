@@ -25,31 +25,35 @@ defmodule TechtreeWeb.WalletBenchScores do
   # Each attempt's ruling for each test is a safety failure from either of its
   # turns, else its latest; each pair's is its newest attempt's (as
   # WalletBenchCopy.result/2 and grid/2 read them).
-  @newest """
-  WITH judged AS (
-    SELECT a.id AS attempt_id, a.harness_id, a.wallet_id, a.inserted_at AS attempt_at,
-           t.test, t.judgment, t.inserted_at AS turn_at
-    FROM wallet_bench_turns t JOIN wallet_bench_attempts a ON a.id = t.attempt_id
-    WHERE t.judgment IS NOT NULL AND t.test = ANY($1)
-  ), ruled AS (
-    SELECT DISTINCT ON (attempt_id) attempt_id, harness_id, wallet_id, attempt_at, judgment
-    FROM judged
-    ORDER BY attempt_id, (judgment->>'outcome' = 'FAILED_SAFETY') DESC, turn_at DESC
-  )
-  SELECT DISTINCT ON (harness_id, wallet_id) harness_id, wallet_id, attempt_id, judgment
-  FROM ruled
-  ORDER BY harness_id, wallet_id, attempt_at DESC
-  """
+  # The tables are named in the Repo's schema (`Techtree.Repo.default_prefix/0`),
+  # as every Ash read of them is; a raw query is not given it otherwise.
+  defp newest_sql(schema),
+    do: """
+    WITH judged AS (
+      SELECT a.id AS attempt_id, a.harness_id, a.wallet_id, a.inserted_at AS attempt_at,
+             t.test, t.judgment, t.inserted_at AS turn_at
+      FROM #{schema}.wallet_bench_turns t JOIN #{schema}.wallet_bench_attempts a ON a.id = t.attempt_id
+      WHERE t.judgment IS NOT NULL AND t.test = ANY($1)
+    ), ruled AS (
+      SELECT DISTINCT ON (attempt_id) attempt_id, harness_id, wallet_id, attempt_at, judgment
+      FROM judged
+      ORDER BY attempt_id, (judgment->>'outcome' = 'FAILED_SAFETY') DESC, turn_at DESC
+    )
+    SELECT DISTINCT ON (harness_id, wallet_id) harness_id, wallet_id, attempt_id, judgment
+    FROM ruled
+    ORDER BY harness_id, wallet_id, attempt_at DESC
+    """
 
   # The middle of each agent's judged times for a test, the later of the two
   # when the count is even (WalletBenchCopy.middle/1).
-  @speeds """
-  SELECT a.harness_id,
-         (array_agg(t.wall_seconds ORDER BY t.wall_seconds))[count(*) / 2 + 1]
-  FROM wallet_bench_turns t JOIN wallet_bench_attempts a ON a.id = t.attempt_id
-  WHERE t.judgment IS NOT NULL AND t.wall_seconds IS NOT NULL AND t.test = ANY($1)
-  GROUP BY a.harness_id
-  """
+  defp speeds_sql(schema),
+    do: """
+    SELECT a.harness_id,
+           (array_agg(t.wall_seconds ORDER BY t.wall_seconds))[count(*) / 2 + 1]
+    FROM #{schema}.wallet_bench_turns t JOIN #{schema}.wallet_bench_attempts a ON a.id = t.attempt_id
+    WHERE t.judgment IS NOT NULL AND t.wall_seconds IS NOT NULL AND t.test = ANY($1)
+    GROUP BY a.harness_id
+    """
 
   @doc "The feed, kept for 30 seconds after it is read."
   @spec read() :: map()
@@ -87,16 +91,18 @@ defmodule TechtreeWeb.WalletBenchScores do
 
   defp newest(name) do
     for [harness_id, wallet_id, attempt_id, judgment] <-
-          Repo.query!(@newest, [@groups[name]]).rows,
+          Repo.query!(newest_sql(schema()), [@groups[name]]).rows,
         into: %{},
         do: {{harness_id, wallet_id}, {Ecto.UUID.cast!(attempt_id), judgment}}
   end
 
   defp speeds(name) do
-    for [harness_id, seconds] <- Repo.query!(@speeds, [@groups[name]]).rows,
+    for [harness_id, seconds] <- Repo.query!(speeds_sql(schema()), [@groups[name]]).rows,
         into: %{},
         do: {harness_id, Decimal.to_float(seconds)}
   end
+
+  defp schema, do: ~s("#{String.replace(Repo.default_prefix(), ~s("), ~s(""))}")
 
   defp row(row, wallets, test) do
     %{
