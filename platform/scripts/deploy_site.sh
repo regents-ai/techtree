@@ -19,8 +19,20 @@ fi
 
 # The live image, whose served files the new release keeps through the rollover,
 # and one of those files, asked for again once the deploy is done.
-if ! previous_image="$(flyctl image show --app techtree-sh --json | jq -er '.[0] | "\(.Registry)/\(.Repository)@\(.Digest)"')" ||
-  [[ "$previous_image" != registry.fly.io/techtree-sh@sha256:* ]]; then
+if ! live_images="$(flyctl image show --app techtree-sh --json | jq -er 'map("\(.Registry)/\(.Repository)@\(.Digest)") | unique | .[]')"; then
+  echo "Refusing to deploy: the live image can't be read, so its files can't be kept." >&2
+  exit 1
+fi
+
+if [[ "$(wc -l <<<"$live_images" | tr -d ' ')" != 1 ]]; then
+  echo "Refusing to deploy: the machines run different images, so there is no one release to keep files from:" >&2
+  echo "$live_images" >&2
+  exit 1
+fi
+
+previous_image="$live_images"
+
+if [[ "$previous_image" != registry.fly.io/techtree-sh@sha256:* ]]; then
   echo "Refusing to deploy: the live image can't be read, so its files can't be kept." >&2
   exit 1
 fi

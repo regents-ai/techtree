@@ -116,6 +116,24 @@ defmodule Techtree.DeploySiteScriptTest do
     end
   end
 
+  test "no deploy when the machines run different images", %{tmp_dir: dir} do
+    other = "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ef", 32)
+
+    assert {output, status} =
+             deploy(dir, %{image: Jason.encode!([image(@live), image(other), image(@live)])})
+
+    assert status != 0
+    assert output =~ "Refusing to deploy: the machines run different images"
+    assert output =~ other
+    assert deployed(dir) == {:error, :enoent}
+  end
+
+  test "machines on the same image deploy as one", %{tmp_dir: dir} do
+    assert {_output, 0} = deploy(dir, %{image: Jason.encode!([image(@live), image(@live)])})
+    assert {:ok, deploys} = deployed(dir)
+    assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+  end
+
   test "no deploy when the live page names no script to check afterwards", %{tmp_dir: dir} do
     assert {output, status} = deploy(dir, %{page: "<html>no script</html>"})
     assert status != 0

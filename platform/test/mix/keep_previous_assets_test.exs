@@ -76,6 +76,17 @@ defmodule Mix.Tasks.Techtree.KeepPreviousAssetsTest do
     end
   end
 
+  # Two releases in one image is never the one release to keep files from.
+  test "two previous releases stop the build", %{tmp_dir: dir} do
+    previous = release(dir, "previous", %{"cache_manifest.json" => manifest(%{})})
+    File.mkdir_p!(Path.join(previous, "techtree-0.1.0/priv/static"))
+    current = release(dir, "current", %{"assets/js/site.js" => "new site"})
+
+    assert_raise Mix.Error, ~r/Expected one Techtree release in .*, found 2/, fn ->
+      KeepPreviousAssets.run([previous, current])
+    end
+  end
+
   # The previous image couldn't be pulled, so there is no previous release to read.
   test "no previous release at all stops the build", %{tmp_dir: dir} do
     current = release(dir, "current", %{"assets/js/site.js" => "new site"})
