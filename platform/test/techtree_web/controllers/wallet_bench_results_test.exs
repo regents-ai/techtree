@@ -138,7 +138,10 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     for _holder <- holders, do: assert_receive(:holding)
 
     conn = get(conn, ~p"/wallet-bench/#{tests.passed.id}/results.zip")
-    assert html_response(conn, 503) =~ "Try again in a minute."
+    page = html_response(conn, 503)
+    assert page =~ "Try again in a minute."
+    # The busy page is the whole page, never drawn inside the site's own.
+    assert length(String.split(page, "<!DOCTYPE html>")) == 2
     assert get_resp_header(conn, "retry-after") == ["30"]
 
     for holder <- holders, do: send(holder, :done)

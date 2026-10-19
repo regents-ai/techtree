@@ -86,6 +86,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     conn
     |> put_resp_header("retry-after", "30")
     |> put_status(503)
+    |> put_root_layout(false)
     |> put_view(html: TechtreeWeb.ErrorHTML)
     |> render(:"503")
   end
@@ -125,12 +126,12 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     |> send_stream(Zstream.zip([results | entries]))
   end
 
-  # Each piece goes out as it is made; a visitor who leaves stops the rest.
+  # Each piece goes out as it is made; a connection that closes or fails stops the rest.
   defp send_stream(conn, stream) do
     Enum.reduce_while(stream, conn, fn data, conn ->
       case chunk(conn, data) do
         {:ok, conn} -> {:cont, conn}
-        {:error, :closed} -> {:halt, conn}
+        {:error, _gone} -> {:halt, conn}
       end
     end)
   end

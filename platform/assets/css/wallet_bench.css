@@ -34,7 +34,7 @@ a.wallet-bench__score:hover { outline: 2px solid var(--color-fg); outline-offset
 .wallet-bench__score--2 { background: color-mix(in oklab, var(--color-accent) 40%, var(--color-bg)); }
 .wallet-bench__score--3 { background: color-mix(in oklab, var(--color-accent) 70%, var(--color-bg)); }
 .wallet-bench__score--4, .wallet-bench__score--time { background: var(--color-accent); color: var(--color-fg-on-accent); }
-.wallet-bench__score--5 { background: color-mix(in oklab, var(--color-accent) 55%, var(--color-fg)); color: var(--color-bg); }
+.wallet-bench__score--5 { background: color-mix(in oklab, var(--color-accent) 30%, var(--color-fg)); color: var(--color-bg); }
 .wallet-bench__score--safety { background: var(--color-error); color: var(--color-bg); }
 .wallet-bench__none, .wallet-bench__na { color: var(--color-fg-muted); }
 .wallet-bench__na { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; border-radius: 4px; background: color-mix(in oklab, var(--color-fg) 6%, var(--color-bg)); font-size: .6875rem; }
