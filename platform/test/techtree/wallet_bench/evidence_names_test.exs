@@ -21,12 +21,12 @@ defmodule Techtree.WalletBench.EvidenceNamesTest do
           ".",
           "..",
           "",
-          "a\\\\b",
-          "..\\\\..\\\\x",
+          "a\\b",
+          "..\\..\\x",
           "a/b",
           "C:x",
-          "nul\\0",
-          "tab\\tname",
+          "nul\0",
+          "tab\tname",
           "what?",
           "a|b",
           String.duplicate("a", 129)
@@ -38,7 +38,7 @@ defmodule Techtree.WalletBench.EvidenceNamesTest do
   property "no kept name holds a path separator or a control character" do
     check all(name <- string(:printable, min_length: 1, max_length: 140)) do
       if Evidence.file_name?(name) do
-        refute name =~ ~r{[/\\\\\\x00-\\x1f]}
+        refute name =~ ~r{[/\\\x00-\x1f]}
         refute name in [".", ".."]
       end
     end
