@@ -1,9 +1,10 @@
 """The read-only tools, against the regents-cli that is actually installed.
 
-Specification section 7.15. These run only when ``REGENTS_CLI_ARGV`` names a
-regents-cli, and only the commands that read: readiness, the catalog, one
-Climb, and a proof verification that is expected to fail because the run does
-not exist. Nothing here prepares a draft, starts a run, calls a model, or
+Specification section 7.15. These run against the regents-cli that
+``REGENTS_CLI_ARGV`` names (the plugin's Makefile pins the release
+``release-core.json`` names), and only the commands that read: readiness, the
+catalog, one Climb, and a proof verification that is expected to fail because
+the run does not exist. Nothing here prepares a draft, starts a run, calls a model, or
 spends anything.
 """
 
@@ -25,15 +26,9 @@ from techtree_hermes.services.assets import ReleaseSkillProvider
 from techtree_hermes.services.container import PluginServices
 from techtree_hermes.tools import TOOL_HANDLERS
 
-REGENTS_CLI_ARGV = os.environ.get("REGENTS_CLI_ARGV", "")
+REGENTS_CLI_ARGV = os.environ["REGENTS_CLI_ARGV"]
 
-pytestmark = [
-    pytest.mark.real_cli,
-    pytest.mark.skipif(
-        not REGENTS_CLI_ARGV,
-        reason="REGENTS_CLI_ARGV does not name a regents-cli to ask",
-    ),
-]
+pytestmark = [pytest.mark.real_cli]
 
 RUN_ID = "run_" + "0" * 32
 

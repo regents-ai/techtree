@@ -7,7 +7,9 @@ answer each one gives.
 Two layers. The recorded answers in ``tests/fixtures/cli`` are exact bytes
 captured from regents, so the contract is checked on every run, everywhere.
 The live tests re-check the same commands against the regents-cli that
-``REGENTS_CLI_ARGV`` names, which is what catches the day the two repositories drift.
+``REGENTS_CLI_ARGV`` names (the plugin's Makefile pins the release
+``release-core.json`` names), which is what catches the day the two repositories
+drift.
 
 A recorded answer is never edited. Editing one turns a capture into an
 assertion about what somebody expected regents to say, which is the one thing
@@ -50,22 +52,14 @@ RECORDED_COMMANDS: dict[str, str | None] = {
 }
 
 
-def _cli_argv() -> list[str] | None:
-    configured = os.environ.get("REGENTS_CLI_ARGV")
-    return shlex.split(configured) if configured else None
-
-
 #: Named rather than found on PATH: another program can be installed as
 #: ``regents``, and these tests are about regents-cli.
-REQUIRES_CLI = pytest.mark.skipif(
-    _cli_argv() is None,
-    reason="REGENTS_CLI_ARGV does not name a regents-cli to ask",
-)
+def _cli_argv() -> list[str]:
+    return shlex.split(os.environ["REGENTS_CLI_ARGV"])
 
 
 def _run(*arguments: str) -> subprocess.CompletedProcess[str]:
     argv = _cli_argv()
-    assert argv is not None
     return subprocess.run(
         [*argv, *CLI_NAMESPACE, *arguments, *CLI_JSON_FLAGS],
         capture_output=True,
@@ -154,7 +148,6 @@ def test_the_recorded_release_verification_passed() -> None:
 
 
 @pytest.mark.real_cli
-@REQUIRES_CLI
 def test_doctor_returns_one_answer_this_plugin_accepts() -> None:
     completed = _run("doctor")
 
@@ -169,7 +162,6 @@ def test_doctor_returns_one_answer_this_plugin_accepts() -> None:
 
 
 @pytest.mark.real_cli
-@REQUIRES_CLI
 def test_the_climb_list_answer_is_accepted() -> None:
     completed = _run("climb", "list")
 
@@ -180,7 +172,6 @@ def test_the_climb_list_answer_is_accepted() -> None:
 
 
 @pytest.mark.real_cli
-@REQUIRES_CLI
 def test_the_installed_regents_belongs_to_this_plugins_release() -> None:
     """The cross-repository check the release depends on, run for real."""
     completed = _run(*RELEASE_INFO_ARGUMENTS)
@@ -192,7 +183,6 @@ def test_the_installed_regents_belongs_to_this_plugins_release() -> None:
 
 
 @pytest.mark.real_cli
-@REQUIRES_CLI
 def test_a_read_only_failure_is_reported_in_band() -> None:
     """A failing command still answers with one JSON object and an exit code."""
     completed = _run("climb", "show", "does-not-exist@1")
@@ -204,7 +194,6 @@ def test_a_read_only_failure_is_reported_in_band() -> None:
 
 
 @pytest.mark.real_cli
-@REQUIRES_CLI
 def test_a_missing_run_is_not_found() -> None:
     completed = _run("run", "status", "run_" + "0" * 32)
 
@@ -215,7 +204,6 @@ def test_a_missing_run_is_not_found() -> None:
 
 
 @pytest.mark.real_cli
-@REQUIRES_CLI
 def test_the_version_flag_answers_outside_the_answer_contract() -> None:
     """`regents --version` prints one plain line, so the plugin must not parse it.
 
@@ -223,7 +211,6 @@ def test_the_version_flag_answers_outside_the_answer_contract() -> None:
     it here keeps a later change from bridging it by mistake.
     """
     argv = _cli_argv()
-    assert argv is not None
     completed = subprocess.run(
         [*argv, "--version"], capture_output=True, text=True, check=False, timeout=60
     )
