@@ -270,16 +270,28 @@ defmodule TechtreeWeb.OutagePagesTest do
              quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(200) end)
 
     # The healthy answer was given 44 seconds ago: still inside the grace.
-    HealthMemory.remember(healthy, HealthMemory.now() - :timer.seconds(44))
+    given_at = HealthMemory.now() - :timer.seconds(44)
+    HealthMemory.remember(healthy, given_at)
 
     assert %{"status" => "ok", "database" => "unreachable"} =
              quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(200) end)
+
+    # An answer from the grace is not a live success: the grace still counts
+    # from the last one, so a real outage can't keep the machine healthy.
+    assert HealthMemory.get!(:healthy) == {healthy, given_at}
 
     # 46 seconds ago: the grace is over, and the loss fails the check with its real reason.
     HealthMemory.remember(healthy, HealthMemory.now() - :timer.seconds(46))
 
     assert %{"status" => "unavailable", "reason" => "database_unreachable"} =
              quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(503) end)
+  end
+
+  test "a machine that starts during a database loss fails the check", %{conn: conn} do
+    HealthMemory.delete_all()
+
+    assert %{"status" => "unavailable", "reason" => "database_unreachable"} =
+             quietly(fn -> conn |> get(~p"/healthz") |> json_response(503) end)
   end
 
   test "a database loss with no recent healthy answer fails with the real reason", %{conn: conn} do

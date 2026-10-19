@@ -1,0 +1,26 @@
+defmodule TechtreeWeb.BrowserCopyTest do
+  @moduledoc """
+  The browser tests drop and recreate their own database before each run, by a
+  shell command that carries TECHTREE_BROWSER_COPY. A copy that isn't lowercase
+  letters, digits and underscores is refused before any command runs.
+  """
+  use ExUnit.Case, async: true
+
+  @tag :tmp_dir
+  test "a copy that could break out of the command is refused, and nothing runs", %{
+    tmp_dir: dir
+  } do
+    ran = Path.join(dir, "command-ran")
+
+    {output, status} =
+      System.cmd("npx", ["playwright", "test"],
+        cd: Path.expand("../../assets", __DIR__),
+        env: [{"TECHTREE_BROWSER_COPY", "x';touch #{ran};exit 1;'"}],
+        stderr_to_stdout: true
+      )
+
+    assert status != 0
+    assert output =~ "TECHTREE_BROWSER_COPY may hold only lowercase letters"
+    refute File.exists?(ran)
+  end
+end

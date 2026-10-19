@@ -5,14 +5,18 @@ import {defineConfig, devices} from "@playwright/test"
 // pages the way a visitor does; nothing here reaches the live site. Two copies run
 // side by side when each sets its own TECHTREE_BROWSER_COPY and TECHTREE_BROWSER_PORT.
 // The database each run drops is always named for the browser tests
-// (techtree_testbrowser<copy>), so a run never drops another test database.
+// (techtree_testbrowser<copy>), so a run never drops another test database. The
+// copy goes into the shell command below, so it may hold only lowercase letters,
+// digits and underscores; anything else is refused before any command runs.
 const copy = process.env.TECHTREE_BROWSER_COPY ?? ""
+if (!/^[a-z0-9_]*$/.test(copy))
+  throw new Error("TECHTREE_BROWSER_COPY may hold only lowercase letters, digits and underscores")
 const partition = `browser${copy}`
 const port = Number(process.env.TECHTREE_BROWSER_PORT ?? 4012)
 process.env.TECHTREE_BROWSER_PARTITION = partition
 process.env.TECHTREE_BROWSER_PORT = String(port)
 const baseURL = `http://127.0.0.1:${port}`
-const server = `MIX_ENV=test MIX_TEST_PARTITION=${partition} TECHTREE_BROWSER_TEST=1`
+const server = `MIX_ENV=test MIX_TEST_PARTITION='${partition}' TECHTREE_BROWSER_TEST=1`
 
 export default defineConfig({
   testDir: "./test/browser",
