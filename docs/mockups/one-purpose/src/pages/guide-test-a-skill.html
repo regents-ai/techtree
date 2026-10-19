@@ -1,0 +1,68 @@
+<!-- {"out": "docs/test-a-skill/index.html", "title": "Test your Skill", "description": "Make practice tasks from your Skill and see if it helps.", "main_class": "page page--wide", "docs": true} -->
+<article class="mk-guide">
+  <nav class="mk-crumbs" aria-label="Breadcrumb">
+    <a class="text-link" href="/docs/"><span aria-hidden="true">←</span> All guides</a>
+  </nav>
+
+  <header class="mk-page-head mk-page-head--guide">
+    <p class="eyebrow">Guide · Get started</p>
+    <h1>Test your Skill</h1>
+    <p class="lede">Make practice tasks from your Skill, then see whether it helps your agent.</p>
+    <div class="mk-guide__share">
+      <button type="button" class="rg-button rg-button--secondary rg-copy" data-copy-link>
+        <span class="rg-button__label">
+          <span class="rg-copy__words">
+            <span class="rg-copy__idle">Copy link</span>
+            <span class="rg-copy__copied">Copied</span>
+            <span class="rg-copy__selected">Selected</span>
+            <span class="rg-copy__failed">Couldn't copy</span>
+          </span>
+        </span>
+      </button>
+      <span class="mk-guide__time">Three steps · You approve every paid step</span>
+    </div>
+  </header>
+
+  <p class="mk-guide__aside">
+    Rather have your agent do it? <a class="text-link" href="/">Give it one line from the home page <span aria-hidden="true">→</span></a>
+  </p>
+
+  <section class="mk-step" aria-labelledby="step-1">
+    <h2 id="step-1"><span class="mk-step__num">01</span> Make the tasks</h2>
+    <p>Techtree reads your Skill and plans practice tasks with you. Before anything is sent to a model, it shows you what will happen and waits for your yes.</p>
+    <mk-command label="Make tasks from a Skill">
+regents techtree forge inspect-skill path/to/your-skill
+regents techtree forge plan SOURCE_ID --provider PROVIDER --model MODEL
+# Look over the plan, fix anything, then build and keep the tasks that work.
+    </mk-command>
+    <p>The tasks you keep become your set. A few of them are kept aside, so no later version of your Skill can learn from them.</p>
+  </section>
+
+  <section class="mk-step" aria-labelledby="step-2">
+    <h2 id="step-2"><span class="mk-step__num">02</span> Run them both ways, then compare</h2>
+    <p>Your agent works the same tasks twice, with the same model and the same limits: once without the Skill, once with it.</p>
+    <mk-command label="Compare without and with the Skill">
+regents techtree forge run --arm baseline --collection COLLECTION_ID --provider PROVIDER --model MODEL
+regents techtree forge run --arm candidate --collection COLLECTION_ID --provider PROVIDER --model MODEL --skill path/to/your-skill
+regents techtree forge compare BASELINE_RUN_ID CANDIDATE_RUN_ID
+    </mk-command>
+    <p>The comparison says whether the Skill helped, hurt, was mixed or made no difference, on every task and on the tasks kept aside. It also writes a report you can open in your browser. <a class="text-link" href="/page-list/#tdd-example">See a finished one <span aria-hidden="true">→</span></a></p>
+  </section>
+
+  <section class="mk-step" aria-labelledby="step-3">
+    <h2 id="step-3"><span class="mk-step__num">03</span> Improve it once, if you want to</h2>
+    <p>Get what a new version may learn from. The tasks kept aside are never included.</p>
+    <mk-command label="Prepare a new version">
+regents techtree uplift context COMPARISON_ID
+regents techtree uplift prepare --from-run COMPARISON_ID --candidate-skill path/to/revised-skill
+    </mk-command>
+    <p>Then run the start line it prints. The new version is judged only on the tasks kept aside.</p>
+  </section>
+
+  <nav class="mk-next" aria-label="Next guide">
+    <a class="rg-button rg-button--primary" href="/page-list/#docs-compare-versions">
+      <span class="rg-button__label">Next: Compare two versions</span>
+    </a>
+    <a class="text-link" href="/page-list/#docs-help">Stuck? When something goes wrong</a>
+  </nav>
+</article>

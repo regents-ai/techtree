@@ -1,0 +1,183 @@
+/* Mockup layer on top of the live Techtree stylesheet. Everything here is new
+   or a proposed change; the rest of the look comes from techtree-live.css. */
+
+/* Buttons: two cut corners, an orange pixel in each cut, the moving arrow and
+   the press come from mockup.js. Copy and theme buttons keep their own shape. */
+.rg-button:not(.rg-theme-toggle):not(.rg-button--quiet) {
+  --mk-cut: var(--rg-cut-control, 12px);
+  --mk-edge: var(--rg-p-control-border);
+  background:
+    linear-gradient(var(--brand-accent), var(--brand-accent)) left top / 3px 3px no-repeat,
+    linear-gradient(var(--brand-accent), var(--brand-accent)) right bottom / 3px 3px no-repeat;
+}
+.rg-button:not(.rg-theme-toggle):not(.rg-button--quiet)::before {
+  clip-path: polygon(var(--mk-cut) 0, 100% 0, 100% calc(100% - var(--mk-cut)),
+    calc(100% - var(--mk-cut)) 100%, 0 100%, 0 var(--mk-cut));
+}
+.rg-button--secondary:not(.rg-theme-toggle)::before {
+  background:
+    linear-gradient(135deg, transparent calc(50% - .75px), var(--mk-edge) calc(50% - .75px),
+      var(--mk-edge) calc(50% + .75px), transparent calc(50% + .75px)) left top / var(--mk-cut) var(--mk-cut) no-repeat border-box,
+    linear-gradient(135deg, transparent calc(50% - .75px), var(--mk-edge) calc(50% - .75px),
+      var(--mk-edge) calc(50% + .75px), transparent calc(50% + .75px)) right bottom / var(--mk-cut) var(--mk-cut) no-repeat border-box,
+    var(--rg-p-surface);
+}
+.rg-button--primary:not(.rg-copy) .rg-button__label { white-space: nowrap; }
+
+/* Home */
+.hero--landing .mk-hero-aside { margin-top: var(--space-2); }
+.hero--landing .mk-hero-note {
+  margin-top: var(--space-1);
+  color: var(--color-fg-muted);
+  font-size: .8125rem;
+}
+.mk-flow { margin-top: var(--space-4); }
+.mk-flow small { color: var(--color-fg-muted); }
+
+/* A list of places to go: a name, one sentence, and an arrow that leans on hover. */
+.mk-rows {
+  display: grid;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--hairline);
+}
+.mk-rows--two { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--space-6); border-top: 0; }
+.mk-rows--two > li { border-top: 1px solid var(--hairline); }
+.mk-rows > li { border-bottom: 1px solid var(--hairline); }
+.mk-row {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-1) var(--space-4);
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-1);
+  color: var(--color-fg);
+  text-decoration: none;
+}
+.mk-rows--two .mk-row { grid-template-columns: minmax(0, 1fr) auto; }
+.mk-rows--two .mk-row__line { grid-row: 2; }
+.mk-row__name { font-family: var(--font-family-title); font-size: 1.125rem; line-height: 1.3; }
+.mk-row__line { color: var(--color-fg-muted); font-size: .9375rem; }
+.mk-row__go {
+  grid-column: -2;
+  grid-row: 1 / span 2;
+  width: .5rem;
+  height: .5rem;
+  margin-inline: var(--space-1) .25rem;
+  border-block-start: 2px solid currentColor;
+  border-inline-end: 2px solid currentColor;
+  transform: translateX(var(--mk-go-x, 0)) rotate(45deg);
+  transition: transform 160ms cubic-bezier(.23, 1, .32, 1);
+}
+.mk-row:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) {
+  .mk-row:hover { background: var(--color-surface); }
+  .mk-row:hover .mk-row__go { --mk-go-x: 4px; color: var(--brand-accent); }
+}
+
+/* Page headings for Docs, a guide and the page list */
+.mk-page-head { max-width: 48rem; padding-block: var(--space-4) var(--space-2); }
+.mk-page-head h1 {
+  margin-top: var(--space-2);
+  font-family: var(--font-family-title);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+}
+.mk-page-head .lede { margin-top: var(--space-2); font-size: 1.0625rem; }
+.mk-guide-group { margin-top: var(--space-6); }
+h2.mk-group-title {
+  font: .75rem/1 var(--font-family-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+.mk-guide-group .mk-rows { margin-top: var(--space-2); }
+.mk-also {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-3);
+  margin-top: var(--space-6);
+  color: var(--color-fg-muted);
+  font-size: .875rem;
+}
+
+/* One guide */
+.mk-guide { max-width: none; }
+.mk-guide .mk-page-head, .mk-guide .mk-guide__aside { max-width: var(--measure); }
+.mk-crumbs { margin-top: calc(-1 * var(--space-2)); }
+.mk-guide__share { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-top: var(--space-3); }
+.mk-guide__time { color: var(--color-fg-muted); font-size: .8125rem; }
+.mk-guide__aside { margin-top: var(--space-2); color: var(--color-fg-muted); font-size: .875rem; }
+.mk-step { margin-top: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--hairline); }
+main .mk-step h2 { display: flex; align-items: baseline; gap: var(--space-2); font-family: var(--font-family-title); font-size: 1.5rem; font-weight: 400; line-height: 1.25; }
+.mk-step__num { flex: none; white-space: nowrap; color: var(--brand-accent); font: .875rem/1 var(--font-family-mono); }
+.mk-step > p { margin-top: var(--space-2); max-width: var(--measure); }
+.mk-step .command { margin-top: var(--space-3); }
+.mk-next { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--hairline); }
+
+/* Page list */
+.mk-pages { margin: var(--space-2) 0 0; padding: 0; list-style: none; border-top: 1px solid var(--hairline); }
+.mk-page {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-3) var(--space-1);
+  border-bottom: 1px solid var(--hairline);
+  scroll-margin-top: var(--space-6);
+}
+.mk-page:target { background: var(--color-surface); box-shadow: inset 3px 0 0 var(--brand-accent); }
+.mk-page__path { font: .875rem/1.5 var(--font-family-mono); overflow-wrap: anywhere; }
+.mk-page__job { font-family: var(--font-family-title); font-size: 1.0625rem; line-height: 1.35; }
+.mk-page__change { color: var(--color-fg-muted); font-size: .875rem; }
+.mk-new {
+  margin-left: var(--space-1);
+  padding: .1rem .35rem;
+  border: 1px solid var(--brand-accent);
+  color: var(--brand-accent);
+  font-size: .6875rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.mk-shots { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: var(--space-4); margin-top: var(--space-3); }
+.mk-shots figure { margin: 0; }
+.mk-shots img { display: block; width: 100%; height: auto; border: 1px solid var(--hairline); }
+.mk-shots figcaption { margin-top: var(--space-1); color: var(--color-fg-muted); font: .75rem/1.4 var(--font-family-mono); }
+
+/* Mockup marker; hidden in the pictures */
+.mk-pill {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+  padding: .4rem .7rem;
+  border: 1px solid var(--hairline-strong);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font: .75rem/1 var(--font-family-mono);
+  text-decoration: none;
+}
+html[data-shot] .mk-pill { display: none; }
+
+/* Things that rise into view, only once JavaScript is ready to show them */
+html[data-motion-ready] [data-reveal]:not([data-revealed]) { opacity: 0; }
+
+@media (max-width: 47.99rem) {
+  .mk-rows--two { grid-template-columns: minmax(0, 1fr); }
+  .mk-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .mk-row__line { grid-row: 2; }
+  .mk-page { grid-template-columns: minmax(0, 1fr); }
+  .mk-shots { grid-template-columns: minmax(0, 1fr); }
+  .mk-shots__phone { max-width: 16rem; }
+  .mk-flow { grid-template-columns: minmax(0, 1fr); }
+  .mk-flow > li { border-right: 1px solid var(--rg-local-rule, var(--hairline)); border-bottom: 0; }
+  .mk-flow > li:last-child { border-bottom: 1px solid var(--rg-local-rule, var(--hairline)); }
+  .mk-pill { left: auto; right: .75rem; bottom: .75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-row__go { transition: none; }
+}

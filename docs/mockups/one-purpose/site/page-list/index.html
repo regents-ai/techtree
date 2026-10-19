@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en" data-brand="techtree">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <meta name="description" content="Every Techtree page and the one thing it lets you do.">
+    <title>Page list · Techtree</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <script>
+      // Same rule as the live site: the visitor's choice, or none so the device decides.
+      (() => {
+        const match = document.cookie.match(/(?:^|; )techtree_theme=(light|dark)/)
+        if (match) document.documentElement.dataset.theme = match[1]
+      })()
+    </script>
+    <link rel="stylesheet" href="/assets/css/techtree-live.css">
+    <link rel="stylesheet" href="/assets/css/mockup.css">
+    <script type="module" src="/assets/js/mockup.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="rg-sheet rg-frame techtree-frame">
+      <header class="masthead">
+        <div class="masthead__inner">
+          <a class="masthead__name" href="/" aria-label="Techtree home">
+            <span class="masthead__mark" aria-hidden="true">
+              <svg viewBox="0 0 58 34" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                <rect x="0" y="0" width="10" height="10"></rect>
+                <rect x="24" y="0" width="10" height="10"></rect>
+                <rect x="48" y="0" width="10" height="10"></rect>
+                <rect x="0" y="12" width="10" height="10"></rect>
+                <rect x="12" y="12" width="10" height="10"></rect>
+                <rect x="24" y="12" width="10" height="10"></rect>
+                <rect x="36" y="12" width="10" height="10"></rect>
+                <rect x="48" y="12" width="10" height="10"></rect>
+                <rect x="0" y="24" width="10" height="10"></rect>
+                <rect x="12" y="24" width="10" height="10"></rect>
+                <rect x="24" y="24" width="10" height="10"></rect>
+                <rect x="36" y="24" width="10" height="10"></rect>
+                <rect x="48" y="24" width="10" height="10"></rect>
+              </svg>
+            </span>
+            <span>Techtree</span>
+          </a>
+          <nav class="masthead__nav" aria-label="Primary">
+            <span class="masthead__selector">
+              <span class="masthead__menu">
+                <button type="button" class="masthead__menu-button" aria-haspopup="true">
+                  Products <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"></path></svg>
+                </button>
+                <span class="masthead__menu-list">
+                  <a href="/">Test a Skill</a>
+                  <a href="/page-list/#climbs">Climbs</a>
+                  <a href="/page-list/#results">Results</a>
+                  <a href="/page-list/#wallet-bench">Wallet Bench</a>
+                  <a href="/page-list/#verify">Verify</a>
+                  <a href="/page-list/#repo2rlenv">Repo2RLEnv</a>
+                </span>
+              </span>
+              <a href="/docs/">Docs</a>
+              <a href="/page-list/#account">Account</a>
+            </span>
+          </nav>
+          <button type="button" class="rg-button rg-button--secondary theme-toggle rg-theme-toggle" id="site-theme-toggle" title="Switch between light and dark" data-theme-toggle>
+            <span class="rg-button__label">
+              <span class="theme-toggle__stage" aria-hidden="true">
+                <span class="theme-toggle__laser"></span>
+                <span class="theme-toggle__cube">
+                  <span class="theme-toggle__face theme-toggle__face--front"></span><span class="theme-toggle__face theme-toggle__face--back"></span><span class="theme-toggle__face theme-toggle__face--left"></span><span class="theme-toggle__face theme-toggle__face--right"></span><span class="theme-toggle__face theme-toggle__face--top"></span><span class="theme-toggle__face theme-toggle__face--bottom"></span>
+                </span>
+              </span>
+              <span class="rg-theme-toggle__state rg-theme-toggle__state--dark">Dark theme on. Switch to light theme.</span>
+              <span class="rg-theme-toggle__state rg-theme-toggle__state--light">Light theme on. Switch to dark theme.</span>
+            </span>
+          </button>
+        </div>
+      </header>
+
+      <div class="rg-sheet-row rg-sheet-row--no-rail">
+        <div class="rg-sheet-row__main">
+          <main id="main-content" class="page page--wide">
+<header class="mk-page-head">
+  <p class="eyebrow">Mockup · 16 Oct 2026</p>
+  <h1>One page, one job</h1>
+  <p class="lede">Every Techtree address, and the one thing it lets you do. Each sentence is what you would say when you share the link.</p>
+</header>
+
+<section class="mk-guide-group" aria-labelledby="mocked">
+  <h2 id="mocked" class="mk-group-title">Mocked up here</h2>
+  <ul class="mk-pages">
+    <li id="home" class="mk-page">
+      <p class="mk-page__path"><a href="/">/</a></p>
+      <p class="mk-page__job">Find out if your Skill really helps your agent.</p>
+      <p class="mk-page__change">Was eight sections. Now one line to paste into your agent, three steps, and links out.</p>
+    </li>
+    <li id="docs" class="mk-page">
+      <p class="mk-page__path"><a href="/docs/">/docs</a></p>
+      <p class="mk-page__job">Find the guide for what you want to do.</p>
+      <p class="mk-page__change">Was eleven guides on one long page. Now a short index; each guide has its own address.</p>
+    </li>
+    <li id="docs-test-a-skill" class="mk-page">
+      <p class="mk-page__path"><a href="/docs/test-a-skill/">/docs/test-a-skill</a></p>
+      <p class="mk-page__job">Make practice tasks from your Skill and see if it helps.</p>
+      <p class="mk-page__change">The sample guide page. Every other guide follows its shape.</p>
+    </li>
+  </ul>
+</section>
+
+<section class="mk-guide-group" aria-labelledby="moved">
+  <h2 id="moved" class="mk-group-title">Pages the home page links to</h2>
+  <ul class="mk-pages">
+    <li id="tdd-example" class="mk-page">
+      <p class="mk-page__path"><a href="https://techtree.sh/examples/tdd">/examples/tdd</a></p>
+      <p class="mk-page__job">Walk through one real Skill test, task by task.</p>
+      <p class="mk-page__change">Takes "See how a comparison runs" from the home page.</p>
+    </li>
+    <li id="climbs" class="mk-page">
+      <p class="mk-page__path">/climbs <span class="mk-new">New</span></p>
+      <p class="mk-page__job">Pick a ready-made test to run your Skill against.</p>
+      <p class="mk-page__change">Takes "Published Climbs" from the home page. Each Climb keeps its own page at /climbs/name.</p>
+    </li>
+    <li id="results" class="mk-page">
+      <p class="mk-page__path"><a href="https://techtree.sh/results">/results</a></p>
+      <p class="mk-page__job">Browse comparisons people have shared.</p>
+      <p class="mk-page__change">No change; the home page links to it.</p>
+    </li>
+    <li id="wallet-bench" class="mk-page">
+      <p class="mk-page__path"><a href="https://techtree.sh/wallet-bench">/wallet-bench</a></p>
+      <p class="mk-page__job">See which coding agents can set up a wallet safely.</p>
+      <p class="mk-page__change">Takes "Can a coding agent set up a wallet safely?" from the home page.</p>
+    </li>
+    <li id="repo2rlenv" class="mk-page">
+      <p class="mk-page__path"><a href="https://techtree.sh/repo2rlenv">/repo2rlenv</a></p>
+      <p class="mk-page__job">Turn a repository into practice for agents.</p>
+      <p class="mk-page__change">Already settled.</p>
+    </li>
+    <li id="verify" class="mk-page">
+      <p class="mk-page__path"><a href="https://techtree.sh/verify">/verify</a></p>
+      <p class="mk-page__job">Check that a Result is real.</p>
+      <p class="mk-page__change">Already settled as the only place to check a Result. The Docs index links here instead of keeping its own guide.</p>
+    </li>
+    <li id="about" class="mk-page">
+      <p class="mk-page__path">/about</p>
+      <p class="mk-page__job">See what each part of Techtree does and what works today.</p>
+      <p class="mk-page__change">Takes "What each tool is for" and "What works today" from the home page.</p>
+    </li>
+    <li id="start" class="mk-page">
+      <p class="mk-page__path">/start</p>
+      <p class="mk-page__job">Its job is now the home page's job.</p>
+      <p class="mk-page__change">Proposed: the address forwards to the home page; the command-line route lives in the Test your Skill guide.</p>
+    </li>
+    <li id="changelog" class="mk-page">
+      <p class="mk-page__path"><a href="https://techtree.sh/changelog">/changelog</a></p>
+      <p class="mk-page__job">See what changed in each release.</p>
+      <p class="mk-page__change">No change.</p>
+    </li>
+    <li id="account" class="mk-page">
+      <p class="mk-page__path"><a href="https://techtree.sh/account">/account</a></p>
+      <p class="mk-page__job">Manage your sign-in, wallets, points and credits.</p>
+      <p class="mk-page__change">Out of scope here; its tabs already have one address each.</p>
+    </li>
+  </ul>
+</section>
+
+<section class="mk-guide-group" aria-labelledby="guides">
+  <h2 id="guides" class="mk-group-title">Guides, one address each</h2>
+  <ul class="mk-pages">
+    <li id="docs-install" class="mk-page">
+      <p class="mk-page__path">/docs/install</p>
+      <p class="mk-page__job">Set up Techtree and check your computer is ready.</p>
+      <p class="mk-page__change">Was "Install and check this machine".</p>
+    </li>
+    <li id="docs-compare-versions" class="mk-page">
+      <p class="mk-page__path">/docs/compare-versions</p>
+      <p class="mk-page__job">Find out if your new version beats the old one.</p>
+      <p class="mk-page__change">Was "Compare two versions".</p>
+    </li>
+    <li id="docs-hello-world" class="mk-page">
+      <p class="mk-page__path">/docs/hello-world</p>
+      <p class="mk-page__job">Watch a small test run from start to finish.</p>
+      <p class="mk-page__change">Was "Hello World Climb".</p>
+    </li>
+    <li id="docs-frontier-cs" class="mk-page">
+      <p class="mk-page__path">/docs/frontier-cs</p>
+      <p class="mk-page__job">Improve a Skill on open programming problems scored from 0 to 1.</p>
+      <p class="mk-page__change">Was "Improve a Skill on Frontier-CS".</p>
+    </li>
+    <li id="docs-hermes" class="mk-page">
+      <p class="mk-page__path">/docs/hermes</p>
+      <p class="mk-page__job">Let Hermes run every step for you.</p>
+      <p class="mk-page__change">Was "Use Hermes".</p>
+    </li>
+    <li id="docs-publish" class="mk-page">
+      <p class="mk-page__path">/docs/publish</p>
+      <p class="mk-page__job">Put a finished Result on Techtree for anyone to check.</p>
+      <p class="mk-page__change">Was "Publish a Result". Taking a Result down lives here too.</p>
+    </li>
+    <li id="docs-programs" class="mk-page">
+      <p class="mk-page__path">/docs/programs</p>
+      <p class="mk-page__job">Get Climbs and Results as data your tools can use.</p>
+      <p class="mk-page__change">Was "The machine interface". Errors, limits and version notes move in with it.</p>
+    </li>
+    <li id="docs-browser-agents" class="mk-page">
+      <p class="mk-page__path">/docs/browser-agents</p>
+      <p class="mk-page__job">Let the agent in your browser read Techtree.</p>
+      <p class="mk-page__change">Was "Let a browser's agent read Techtree".</p>
+    </li>
+    <li id="docs-acting-for-you" class="mk-page">
+      <p class="mk-page__path">/docs/acting-for-you</p>
+      <p class="mk-page__job">Let your agent use Techtree for you, within limits you set.</p>
+      <p class="mk-page__change">Was "Agents acting for a person".</p>
+    </li>
+    <li id="docs-privacy" class="mk-page">
+      <p class="mk-page__path">/docs/privacy</p>
+      <p class="mk-page__job">Know what leaves your computer.</p>
+      <p class="mk-page__change">Takes "Your work stays local" from the home page, which keeps one line about it.</p>
+    </li>
+    <li id="docs-help" class="mk-page">
+      <p class="mk-page__path">/docs/help</p>
+      <p class="mk-page__job">Get a stuck test moving again.</p>
+      <p class="mk-page__change">Was the troubleshooting list at the end of Docs.</p>
+    </li>
+    <li id="docs-method" class="mk-page">
+      <p class="mk-page__path">/docs/method</p>
+      <p class="mk-page__job">See how Techtree decides whether a Skill helped.</p>
+      <p class="mk-page__change">Was the Method and "Where this goes" reading at the end of Docs.</p>
+    </li>
+  </ul>
+</section>
+
+<section class="mk-guide-group" aria-labelledby="pictures">
+  <h2 id="pictures" class="mk-group-title">Pictures</h2>
+  <div class="mk-shots">
+    <figure><img src="/page-list/shots/home-desktop-light.jpg" alt="Home page on a computer, light theme" loading="lazy"><figcaption>Home · computer · light</figcaption></figure>
+    <figure class="mk-shots__phone"><img src="/page-list/shots/home-phone-dark.jpg" alt="Home page on a phone, dark theme" loading="lazy"><figcaption>Home · phone · dark</figcaption></figure>
+    <figure><img src="/page-list/shots/docs-desktop-dark.jpg" alt="Docs index on a computer, dark theme" loading="lazy"><figcaption>Docs · computer · dark</figcaption></figure>
+    <figure class="mk-shots__phone"><img src="/page-list/shots/docs-phone-light.jpg" alt="Docs index on a phone, light theme" loading="lazy"><figcaption>Docs · phone · light</figcaption></figure>
+    <figure><img src="/page-list/shots/guide-desktop-light.jpg" alt="Test your Skill guide on a computer, light theme" loading="lazy"><figcaption>Guide · computer · light</figcaption></figure>
+    <figure class="mk-shots__phone"><img src="/page-list/shots/guide-phone-dark.jpg" alt="Test your Skill guide on a phone, dark theme" loading="lazy"><figcaption>Guide · phone · dark</figcaption></figure>
+  </div>
+</section>
+
+          </main>
+        </div>
+      </div>
+
+      <div class="rg-sheet-row rg-sheet-row--no-rail">
+        <div class="rg-sheet-row__main">
+          <footer class="regent-footer">
+            <div class="regent-footer__social">
+              <a href="https://x.com/regents_sh" target="_blank" rel="noopener noreferrer" aria-label="Techtree on X">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+              </a>
+              <a href="https://github.com/regents-ai" target="_blank" rel="noopener noreferrer" aria-label="Techtree on GitHub">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path></svg>
+              </a>
+            </div>
+            <nav class="regent-footer__links" aria-label="About Techtree">
+              <a href="https://app.uniswap.org/explore/tokens/base/0x6f89bcA4eA5931EdFCB09786267b251DeE752b07" target="_blank" rel="noopener noreferrer">Buy $REGENT</a>
+              <a href="/page-list/#about">About</a>
+              <a href="/docs/">Developer docs</a>
+              <span class="rg-tip">
+                <button type="button" class="regent-footer__guide" popovertarget="footer-agent-guide">Agent guide</button>
+                <div id="footer-agent-guide" class="rg-tip-body regent-footer__guide-body" popover>
+                  <p>Give your agent one of these.</p>
+                  <a href="https://techtree.sh/agents.md">What agents can do here</a>
+                  <a href="https://techtree.sh/llms.txt">The whole site in brief</a>
+                </div>
+              </span>
+              <a href="https://techtree.sh/contact">Contact</a>
+              <span class="regent-footer__legal">
+                <a href="https://techtree.sh/privacy">Privacy policy</a>
+                <a href="https://techtree.sh/terms">Terms of use</a>
+              </span>
+            </nav>
+            <p>© 2026 Regents Labs</p>
+          </footer>
+        </div>
+      </div>
+    </div>
+    <a class="mk-pill" href="/page-list/" data-mockup-pill>Mockup · all pages</a>
+  </body>
+</html>
