@@ -338,7 +338,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   @doc "The middle of a list of times, the later of the two when the count is even."
   @spec middle([number()]) :: number()
-  def middle(times), do: times |> Enum.sort() |> Enum.at(div(length(times), 2))
+  def middle(times), do: times |> Enum.sort() |> Enum.drop(div(length(times), 2)) |> hd()
 
   @doc """
   A result's score out of 10, one decimal: the share of the judge's checks it
