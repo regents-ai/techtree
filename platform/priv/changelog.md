@@ -29,6 +29,8 @@
 - In the side panel's Pair New Agent box, each agent picture sits in one
   frame on white in both themes, and before you choose, the box reads "Choose
   type of agent below to get pairing message."
+- Buttons are slimmer, about 40 pixels tall, with their words on one line. On
+  touch screens they stay at least 44 pixels each way.
 
 ## Website (2026-10-18)
 
