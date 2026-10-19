@@ -12,4 +12,4 @@ also `CHANGELOG.md`) only says what changed for people and agents.
 | v164 | 18 Oct 2026 | 4837f16 | Public pages stay up in a database outage (8aeb179); changelog names commits (4837f16) | v163 6b56b51 |
 | v165 | 18 Oct 2026 | 4fb4e44 | Outage pages answer in about half the time (8030b33) | v164 4837f16 |
 | v166 | 18 Oct 2026 | b9cd7a0 | Signed-in visitors in an outage (1e81987, 9c618d2); wallet code on the account pages only (73bbbae) | v165 4fb4e44 |
-| v167 | not yet shipped | the commit that adds this row | Outage note after a database restart (55d9380); changelog entry (185b387); release record off the site (80973c6 and this commit) | v166 b9cd7a0 |
+| v167 | 19 Oct 2026 | 66aa685 | Outage note after a database restart (55d9380); changelog entry (185b387); release record off the site (80973c6 and this commit) | v166 b9cd7a0 |
