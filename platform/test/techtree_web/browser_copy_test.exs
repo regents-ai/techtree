@@ -12,9 +12,12 @@ defmodule TechtreeWeb.BrowserCopyTest do
   } do
     ran = Path.join(dir, "command-ran")
 
+    # The installed Playwright, run directly: nothing is fetched.
+    assets = Path.expand("../../assets", __DIR__)
+
     {output, status} =
-      System.cmd("npx", ["playwright", "test"],
-        cd: Path.expand("../../assets", __DIR__),
+      System.cmd(Path.join(assets, "node_modules/.bin/playwright"), ["test"],
+        cd: assets,
         env: [{"TECHTREE_BROWSER_COPY", "x';touch #{ran};exit 1;'"}],
         stderr_to_stdout: true
       )
