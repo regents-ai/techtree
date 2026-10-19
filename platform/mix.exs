@@ -112,6 +112,8 @@ defmodule Techtree.MixProject do
       {:nebulex, "~> 3.0"},
       {:nebulex_local, "~> 3.0"},
       {:req, "~> 0.7"},
+      # A wallet test's full results are sent as a zip written as it is sent.
+      {:zstream, "~> 0.6.7"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.4"},

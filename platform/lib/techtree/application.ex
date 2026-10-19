@@ -26,6 +26,8 @@ defmodule Techtree.Application do
         TechtreeWeb.HealthMemory,
         TechtreeWeb.GithubStars,
         TechtreeWeb.GithubStars.Reader,
+        {Registry, keys: :duplicate, name: TechtreeWeb.ResultsDownloads},
+        TechtreeWeb.WalletBenchScores,
         # Each agent's reading for an open side panel, unlinked from the page.
         {Task.Supervisor, name: Techtree.Agents.Reads},
         RegentCredits.Listener,

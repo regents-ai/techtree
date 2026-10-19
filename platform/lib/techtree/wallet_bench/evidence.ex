@@ -50,6 +50,63 @@ defmodule Techtree.WalletBench.Evidence do
     end
   end
 
+  @doc """
+  Whether a file a turn recorded may keep its name: 1 to 128 characters, not
+  `.` or `..`, with no slash, backslash, control character or any of
+  `: * ? " < > |`. A name like that is the same single file on every system a
+  download is unpacked on, and reaches nothing outside its folder.
+  """
+  @spec file_name?(String.t()) :: boolean()
+  def file_name?(name),
+    do: name not in [".", ".."] and name =~ ~r/\A[^\/\\\x00-\x1f\x7f:*?"<>|]{1,128}\z/u
+
+  @doc """
+  Reads a recorded file through without keeping it, and says whether its size
+  and sha256 still match what the turn recorded.
+  """
+  @spec check(struct(), String.t()) :: :ok | {:error, term()}
+  def check(%{attempt_id: attempt_id, test: test, evidence: evidence}, file) do
+    turn = Catalog.turn_name(test)
+
+    with %{"bytes" => bytes, "sha256" => sha256} <-
+           Map.get(evidence || %{}, file, {:error, "#{turn} recorded no #{file}."}),
+         {:ok, {^bytes, digest}} <- digest(turn_key(attempt_id, turn, file)) do
+      if Base.encode16(digest, case: :lower) == sha256,
+        do: :ok,
+        else:
+          {:error, "The stored #{file} of #{turn} does not match the sha256 recorded with it."}
+    else
+      {:ok, {_other_size, _digest}} ->
+        {:error, "The stored #{file} of #{turn} is not the size recorded with it."}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # The size and sha256 of what is stored under `key`, read as it arrives.
+  defp digest(key) do
+    into = fn {:data, data}, {request, response} ->
+      {size, hash} = Req.Response.get_private(response, :digest, {0, :crypto.hash_init(:sha256)})
+      digest = {size + byte_size(data), :crypto.hash_update(hash, data)}
+      {:cont, {request, Req.Response.put_private(response, :digest, digest)}}
+    end
+
+    case Req.get(request(key), into: into) do
+      {:ok, %Req.Response{status: 200} = response} ->
+        {size, hash} =
+          Req.Response.get_private(response, :digest, {0, :crypto.hash_init(:sha256)})
+
+        {:ok, {size, :crypto.hash_final(hash)}}
+
+      {:ok, %Req.Response{status: status}} ->
+        {:error, {:evidence, status}}
+
+      {:error, exception} ->
+        {:error, exception}
+    end
+  end
+
   @doc "Reads what is stored under `key`."
   @spec get(String.t()) :: {:ok, binary()} | {:error, term()}
   def get(key) do

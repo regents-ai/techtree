@@ -1,5 +1,5 @@
 import {execFileSync} from "node:child_process"
-import type {BrowserContext, Page} from "@playwright/test"
+import type {BrowserContext, Locator, Page} from "@playwright/test"
 
 // Runs one of the support scripts in the browser test database and returns the
 // JSON it printed last.
@@ -83,4 +83,80 @@ export async function layoutProblems(page: Page): Promise<string[]> {
     }
     return problems
   })
+}
+
+// Text inside `scope` whose contrast with what is behind it falls under WCAG's
+// 4.5:1, as the page renders it: each colour is drawn onto a canvas and read
+// back, so any colour the stylesheet mixes is measured as shown.
+export async function lowContrast(scope: Locator): Promise<string[]> {
+  return scope.evaluate(root => {
+    const canvas = document.createElement("canvas")
+    canvas.width = canvas.height = 1
+    const pen = canvas.getContext("2d", {willReadFrequently: true})!
+    const rgba = (color: string) => {
+      pen.clearRect(0, 0, 1, 1)
+      pen.fillStyle = color
+      pen.fillRect(0, 0, 1, 1)
+      return Array.from(pen.getImageData(0, 0, 1, 1).data)
+    }
+    const background = (el: Element | null): number[] => {
+      for (; el; el = el.parentElement) {
+        const [r, g, b, a] = rgba(getComputedStyle(el).backgroundColor)
+        if (a === 255) return [r, g, b]
+      }
+      return [255, 255, 255]
+    }
+    const luminance = ([r, g, b]: number[]) =>
+      [r, g, b].map(c => c / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+        .reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0)
+    const problems: string[] = []
+    for (const el of root.querySelectorAll<HTMLElement>("*")) {
+      const text = Array.from(el.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim()
+      const box = el.getBoundingClientRect()
+      if (!text || box.width <= 1 || box.height <= 1) continue
+      const [light, dark] = [luminance(rgba(getComputedStyle(el).color)), luminance(background(el))].sort((a, b) => b - a)
+      const ratio = (light + 0.05) / (dark + 0.05)
+      if (ratio < 4.5) problems.push(`"${text}" at ${ratio.toFixed(2)}:1`)
+    }
+    return problems
+  })
+}
+
+// Records every layout shift the page makes from its first paint, so a check can
+// read the total (CLS) at any point after. Call before the page is opened.
+export async function watchShifts(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const shifts: number[] = []
+    ;(window as unknown as {shifts: number[]}).shifts = shifts
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries() as unknown as {value: number; hadRecentInput: boolean}[])
+        if (!entry.hadRecentInput) shifts.push(entry.value)
+    }).observe({type: "layout-shift", buffered: true})
+  })
+}
+
+export async function layoutShift(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as {shifts: number[]}).shifts.reduce((sum, v) => sum + v, 0))
+}
+
+// The names a zip's central directory lists, read from its end-of-directory
+// record. Throws when the file is not a whole zip: no end record, a directory
+// that doesn't fit, or an entry header out of place.
+export function zipEntries(zip: Buffer): string[] {
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
+  if (end < 0 || end + 22 > zip.length) throw new Error("not a whole zip: no end-of-directory record")
+  const count = zip.readUInt16LE(end + 10)
+  const size = zip.readUInt32LE(end + 12)
+  const start = zip.readUInt32LE(end + 16)
+  if (start + size !== end) throw new Error("not a whole zip: the directory doesn't end where the record says")
+  const names: string[] = []
+  for (let at = start, i = 0; i < count; i++) {
+    if (zip.readUInt32LE(at) !== 0x02014b50) throw new Error(`not a whole zip: entry ${i} is out of place`)
+    const nameLength = zip.readUInt16LE(at + 28)
+    const extra = zip.readUInt16LE(at + 30)
+    const comment = zip.readUInt16LE(at + 32)
+    names.push(zip.toString("utf8", at + 46, at + 46 + nameLength))
+    at += 46 + nameLength + extra + comment
+  }
+  return names
 }

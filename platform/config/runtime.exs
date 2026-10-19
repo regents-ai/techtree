@@ -48,12 +48,15 @@ if base_rpc = System.get_env("WALLETBENCH_BASE_RPC") do
   config :techtree, Techtree.WalletBench, base_rpc: base_rpc
 end
 
-config :techtree, Techtree.WalletBench.Evidence,
-  endpoint: System.get_env("WALLETBENCH_AWS_ENDPOINT_URL_S3"),
-  bucket: System.get_env("WALLETBENCH_BUCKET_NAME"),
-  region: System.get_env("WALLETBENCH_AWS_REGION"),
-  access_key_id: System.get_env("WALLETBENCH_AWS_ACCESS_KEY_ID"),
-  secret_access_key: System.get_env("WALLETBENCH_AWS_SECRET_ACCESS_KEY")
+# Tests keep their own evidence store (config/test.exs).
+if config_env() != :test do
+  config :techtree, Techtree.WalletBench.Evidence,
+    endpoint: System.get_env("WALLETBENCH_AWS_ENDPOINT_URL_S3"),
+    bucket: System.get_env("WALLETBENCH_BUCKET_NAME"),
+    region: System.get_env("WALLETBENCH_AWS_REGION"),
+    access_key_id: System.get_env("WALLETBENCH_AWS_ACCESS_KEY_ID"),
+    secret_access_key: System.get_env("WALLETBENCH_AWS_SECRET_ACCESS_KEY")
+end
 
 config :techtree, :privy,
   app_id: System.get_env("PRIVY_APP_ID"),

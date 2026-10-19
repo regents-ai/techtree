@@ -1,18 +1,56 @@
-/* Wallet tests: the list of attempts, and one attempt's rulings and evidence. */
+/* Wallet tests: the score grid and its result window, the list of attempts, and one attempt's rulings and evidence. */
 .wallet-bench { display: grid; gap: var(--space-4); }
+.wallet-bench > * { min-width: 0; }
 .wallet-bench__lede { margin-top: var(--space-2); max-width: 65ch; color: var(--color-fg-muted); }
 .wallet-bench__steps { display: grid; gap: var(--space-1); margin-top: var(--space-1); max-width: 65ch; padding-left: 1.5rem; color: var(--color-fg-muted); list-style: decimal; }
-.wallet-bench__frame { overflow-x: auto; border-block: 1px solid var(--hairline); }
+.wallet-bench__frame { position: relative; overflow-x: auto; border-block: 1px solid var(--hairline); }
 .wallet-bench__frame:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-.wallet-bench__answer { display: grid; gap: var(--space-2); }
-.wallet-bench .wallet-bench__grid { min-width: 0; }
-.wallet-bench__grid th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--color-bg); white-space: nowrap; font-weight: 600; }
-.wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: 1; }
-.wallet-bench__cell { white-space: nowrap; }
-.wallet-bench__cell > a, .wallet-bench__cell > span { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.75rem; }
-.wallet-bench__cell > a::before { content: ""; flex: 0 0 auto; width: .5rem; height: .5rem; background: var(--color-warning); }
-.wallet-bench__cell--pass > a::before { background: var(--color-success); }
-.wallet-bench__cell--fail > a::before { background: var(--color-error); }
+
+/* The page head, with the List and Grid switch beside the title. */
+.wallet-bench__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-2); }
+.wallet-bench__head h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); letter-spacing: -.02em; }
+.wallet-bench__switch, .wallet-bench__tests { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.wallet-bench__switch { padding: 3px; border: 1px solid var(--hairline); background: var(--color-surface); }
+.wallet-bench__switch a, .wallet-bench__tests a, .wallet-bench__soon { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.25rem; padding-inline: .875rem; font-size: .875rem; font-weight: 600; text-decoration: none; color: var(--color-fg-muted); }
+.wallet-bench__switch a[aria-current="page"] { color: var(--color-fg); background: var(--color-bg); box-shadow: 0 0 0 1px var(--hairline-strong); }
+.wallet-bench__tests a { border: 1px solid var(--hairline-strong); color: var(--color-fg); }
+.wallet-bench__tests a[aria-current="page"] { background: var(--color-fg); border-color: var(--color-fg); color: var(--color-bg); }
+.wallet-bench__soon { border: 1px solid var(--hairline); }
+.wallet-bench__soon span { font-weight: 400; }
+.wallet-bench__scores { display: grid; gap: var(--space-2); }
+.wallet-bench__key { font-size: .8125rem; }
+
+/* The score grid: an agent per row, a box per wallet tool. */
+.wallet-bench__grid { border-collapse: collapse; font-size: .8125rem; font-variant-numeric: tabular-nums; }
+.wallet-bench__grid th, .wallet-bench__grid td { padding: .375rem .5rem; text-align: center; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+.wallet-bench__grid thead th { font-weight: 600; font-size: .75rem; vertical-align: bottom; white-space: normal; min-width: 4.5rem; }
+.wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: 1; min-width: 9rem; text-align: left; background: var(--color-bg); font-size: .875rem; font-weight: 600; }
+.wallet-bench__grid .wallet-bench__total { background: color-mix(in oklab, var(--color-accent) 5%, var(--color-bg)); }
+.wallet-bench__grid thead .wallet-bench__total + th:not(.wallet-bench__total), .wallet-bench__grid td.wallet-bench__total + td:not(.wallet-bench__total) { border-left: 1px solid var(--hairline-strong); }
+.wallet-bench__score { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; padding-inline: .375rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--color-fg); }
+a.wallet-bench__score:hover { outline: 2px solid var(--color-fg); outline-offset: 1px; }
+/* More checks met, a stronger box: from a tint of the accent up to the accent darkened. */
+.wallet-bench__score--1 { background: color-mix(in oklab, var(--color-accent) 18%, var(--color-bg)); }
+.wallet-bench__score--2 { background: color-mix(in oklab, var(--color-accent) 40%, var(--color-bg)); }
+.wallet-bench__score--3 { background: color-mix(in oklab, var(--color-accent) 70%, var(--color-bg)); }
+.wallet-bench__score--4, .wallet-bench__score--time { background: var(--color-accent); color: var(--color-fg-on-accent); }
+.wallet-bench__score--5 { background: color-mix(in oklab, var(--color-accent) 55%, var(--color-fg)); color: var(--color-bg); }
+.wallet-bench__score--safety { background: var(--color-error); color: var(--color-bg); }
+.wallet-bench__none, .wallet-bench__na { color: var(--color-fg-muted); }
+.wallet-bench__na { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; border-radius: 4px; background: color-mix(in oklab, var(--color-fg) 6%, var(--color-bg)); font-size: .6875rem; }
+
+/* One result, opened from the grid. */
+.wallet-bench__window { inline-size: min(52rem, calc(100vw - 2rem)); max-block-size: calc(100dvh - 2rem); overflow: auto; padding: clamp(1rem, 4vw, var(--space-4)); border: 1px solid var(--color-fg-muted); background: var(--color-surface); color: var(--color-fg); }
+.wallet-bench__window::backdrop { background: color-mix(in oklab, var(--color-fg) 30%, transparent); }
+.wallet-bench__window[open] { display: grid; gap: var(--space-3); }
+.wallet-bench__window-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.wallet-bench__window-head h2 { overflow-wrap: anywhere; }
+.wallet-bench__window-head form { margin: 0; }
+.wallet-bench__close { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; border: 1px solid var(--hairline-strong); background: var(--color-bg); color: var(--color-fg); font-size: 1.25rem; cursor: pointer; }
+.wallet-bench__window-score { display: flex; align-items: center; gap: var(--space-2); }
+.wallet-bench__window-score .wallet-bench__score { min-width: 3rem; min-height: 2.5rem; font-size: 1.25rem; }
+.wallet-bench__window-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); position: sticky; bottom: calc(-1 * clamp(1rem, 4vw, var(--space-4))); padding-block: var(--space-2); background: var(--color-surface); border-top: 1px solid var(--hairline); }
+.wallet-bench__window-actions .text-link { display: inline-flex; align-items: center; min-height: 2.75rem; }
 .wallet-bench__listing { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .wallet-bench__listing a { display: inline-flex; align-items: center; min-height: 2.75rem; }
 .wallet-bench__how { max-width: 65ch; }
@@ -43,7 +81,14 @@
 .wallet-bench__events { display: grid; gap: var(--space-1); padding-left: 0; list-style: none; font-size: .875rem; }
 .wallet-bench__events time { display: inline-block; min-width: 5rem; font-family: var(--font-family-mono); color: var(--color-fg-muted); }
 
+@media (pointer: coarse) {
+  .wallet-bench__switch a, .wallet-bench__tests a { min-height: 2.75rem; }
+  a.wallet-bench__score { min-width: 2.75rem; min-height: 2.75rem; }
+}
+
 @media (max-width: 47.99rem) {
+  .wallet-bench__window { inline-size: 100vw; max-inline-size: 100vw; max-block-size: 100dvh; block-size: 100dvh; margin: 0; border: 0; }
+  .wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { min-width: 7rem; }
   .wallet-bench__facts { grid-template-columns: 1fr; }
   .wallet-bench__facts dd + dt { margin-top: var(--space-1); }
   .wallet-bench__criteria thead { display: none; }

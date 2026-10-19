@@ -60,5 +60,5 @@ minversion = "9.0"
 testpaths = ["tests"]
 addopts = ["-ra", "--strict-config", "--strict-markers"]
 markers = [
-  "real_cli: read-only contract tests against an installed regents; set REGENTS_CLI_ARGV to run them",
+  "real_cli: read-only contract tests against the regents-cli REGENTS_CLI_ARGV names (pinned in the Makefile)",
 ]

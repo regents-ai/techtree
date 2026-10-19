@@ -130,6 +130,7 @@ defmodule TechtreeWeb.Router do
     live "/wallet-bench", WalletBenchLive.Index
     live "/wallet-bench/:id", WalletBenchLive.Show
     get "/wallet-bench/:id/evidence/:turn/:file", WalletBenchEvidenceController, :show
+    get "/wallet-bench/:id/results.zip", WalletBenchEvidenceController, :results
 
     # The addresses release documents already point at, unchanged.
     live "/start", StartLive
@@ -149,6 +150,12 @@ defmodule TechtreeWeb.Router do
 
     get "/healthz", HealthController, :show
     get "/openapi.json", PublicPagesController, :openapi
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through :api
+
+    get "/wallet-bench.json", WalletBenchController, :scores
   end
 
   scope "/", TechtreeWeb do

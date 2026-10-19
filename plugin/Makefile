@@ -7,11 +7,16 @@
 UV ?= uv
 RUN := $(UV) run
 
-# The contract tests marked real_cli ask a real `regents` read-only questions.
-# They are skipped unless this names one by its full path (the tests put their
-# own `regents` first on PATH, which a bare name would find), for example:
-#     make test REGENTS_CLI_ARGV="$(command -v regents)"
-REGENTS_CLI_ARGV ?=
+# The contract tests marked real_cli ask a real `regents` read-only questions,
+# always: the regents-cli release this plugin's release-core.json names, at the
+# commit tagged with it, run by uv straight from GitHub. Move both with the
+# release core: tests/test_cli_pin.py fails when the version here and the
+# core's cli_version differ, and the live release test fails when the commit
+# isn't that release. The tests put their own `regents` first on PATH, so this
+# names the command in full rather than as a bare `regents`.
+REGENTS_CLI_VERSION := 1.10.7
+REGENTS_CLI_REV := e451ec087cd9c33b6792a49ae9137db3fcc5e97a
+REGENTS_CLI_ARGV ?= $(UV) run --no-project --with "regents-cli @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" regents
 
 .DEFAULT_GOAL := check
 
@@ -50,7 +55,7 @@ typecheck-tests:
 	$(RUN) python scripts/typecheck.py
 
 test:
-	REGENTS_CLI_ARGV="$(REGENTS_CLI_ARGV)" $(RUN) pytest
+	REGENTS_CLI_ARGV='$(REGENTS_CLI_ARGV)' $(RUN) pytest
 
 # The plugin's own doctor: manifest, schemas, release bytes, runtime imports,
 # and host readiness. Exits non-zero on a blocking failure.

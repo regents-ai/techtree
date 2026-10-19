@@ -117,16 +117,34 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   defp unpack(encoded) when byte_size(encoded) > @max_encoded_bytes,
     do: {:error, "The turn's archive is #{byte_size(encoded)} bytes, over its limit."}
 
+  # Every file keeps a name that is safe to unpack anywhere (Evidence.file_name?/1),
+  # and no two files share one; a turn whose archive breaks either is not kept.
   defp unpack(encoded) do
     with {:ok, archive} <- Base.decode64(encoded),
-         {:ok, entries} <- :erl_tar.extract({:binary, archive}, [:compressed, :memory]) do
-      {:ok,
-       Map.new(entries, fn {name, content} ->
-         {name |> to_string() |> Path.basename(), content}
-       end)}
+         {:ok, entries} <- :erl_tar.extract({:binary, archive}, [:compressed, :memory]),
+         files =
+           Enum.map(entries, fn {name, content} ->
+             {name |> to_string() |> Path.basename(), content}
+           end),
+         :ok <- names_kept(Enum.map(files, &elem(&1, 0))) do
+      {:ok, Map.new(files)}
     else
       :error -> {:error, "The turn's archive did not decode."}
+      {:error, reason} when is_binary(reason) -> {:error, reason}
       {:error, reason} -> {:error, "The turn's archive did not unpack: #{inspect(reason)}"}
+    end
+  end
+
+  defp names_kept(names) do
+    cond do
+      unsafe = Enum.find(names, &(not Evidence.file_name?(&1))) ->
+        {:error, "The turn's archive holds a file whose name can't be kept: #{inspect(unsafe)}."}
+
+      length(Enum.uniq(names)) != length(names) ->
+        {:error, "The turn's archive holds two files with the same name."}
+
+      true ->
+        :ok
     end
   end
 
