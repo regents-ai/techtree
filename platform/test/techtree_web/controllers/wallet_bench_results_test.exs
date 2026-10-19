@@ -69,33 +69,120 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     assert map_size(entries) == 1 + Enum.count(files, fn {key, _} -> key =~ tests.passed.id end)
   end
 
-  # A stored file that no longer matches its recorded sha256 is never handed out:
-  # the download stops at that file, before any of its bytes are sent.
-  test "a stored file changed since it was recorded stops the download", %{
+  # A stored file that no longer matches its record is found before the download
+  # begins, wherever it falls in the zip: the visitor gets the error page.
+  for {where, turn, file} <- [{"first", "T1a", "install.log"}, {"last", "T2", "session.jsonl"}] do
+    test "a changed #{where} file gets the error page, not a broken zip", %{
+      conn: conn,
+      tests: tests,
+      files: files
+    } do
+      key = Evidence.turn_key(tests.passed.id, unquote(turn), unquote(file))
+      store(Map.update!(files, key, &(&1 <> "changed")))
+
+      {status, _headers, body} =
+        assert_error_sent 500, fn ->
+          get(conn, ~p"/wallet-bench/#{tests.passed.id}/results.zip")
+        end
+
+      assert status == 500
+      assert body =~ "Something went wrong"
+      refute body =~ "PK"
+    end
+  end
+
+  # A file that changes between the check and its own read ends the connection
+  # before its bytes go out, and nothing is written after what was sent.
+  test "a file that changes while the zip is sent ends the download", %{
     conn: conn,
     tests: tests,
     files: files
   } do
     key = Evidence.turn_key(tests.passed.id, "T2", "session.jsonl")
-    store(Map.update!(files, key, &(&1 <> "changed")))
+    reads = :counters.new(1, [])
+
+    Req.Test.stub(Evidence, fn conn ->
+      asked = conn.path_info |> tl() |> Enum.map_join("/", &URI.decode/1)
+      if asked == key, do: :counters.add(reads, 1, 1)
+      changed = asked == key and :counters.get(reads, 1) > 1
+      body = if changed, do: files[asked] <> "changed", else: files[asked]
+      Plug.Conn.send_resp(conn, 200, body)
+    end)
 
     assert_raise RuntimeError, ~r/does not match the sha256 recorded with it/, fn ->
       get(conn, ~p"/wallet-bench/#{tests.passed.id}/results.zip")
     end
+
+    # One response began, and no second one followed it.
+    assert_received {:plug_conn, :sent}
+    refute_received {:plug_conn, :sent}
   end
 
-  # results.json names every field it carries; whatever else the bench keeps on
-  # a test's ruling or checks stays out of the download.
+  test "with every download place taken, a visitor is asked to try again", %{
+    conn: conn,
+    tests: tests,
+    files: files
+  } do
+    store(files)
+    parent = self()
+
+    holders =
+      for _place <- 1..4 do
+        spawn_link(fn ->
+          Registry.register(TechtreeWeb.ResultsDownloads, :download, nil)
+          send(parent, :holding)
+          receive do: (:done -> :ok)
+        end)
+      end
+
+    for _holder <- holders, do: assert_receive(:holding)
+
+    conn = get(conn, ~p"/wallet-bench/#{tests.passed.id}/results.zip")
+    assert html_response(conn, 503) =~ "Try again in a minute."
+    assert get_resp_header(conn, "retry-after") == ["30"]
+
+    for holder <- holders, do: send(holder, :done)
+  end
+
+  test "a download gives its place back when it ends", %{conn: conn, tests: tests, files: files} do
+    store(files)
+
+    for _download <- 1..6 do
+      assert build_conn()
+             |> get(~p"/wallet-bench/#{tests.passed.id}/results.zip")
+             |> response(200)
+    end
+
+    assert Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) == 0
+    _ = conn
+  end
+
+  # results.json names every field it carries, at every level; whatever else the
+  # bench keeps on a test stays out of the download.
   test "only the named fields reach results.json", %{conn: conn, tests: tests, files: files} do
     Techtree.Repo.query!(
       """
       UPDATE wallet_bench_turns
       SET judgment = judgment || '{"kept_only_here": "unlisted-ruling-field"}',
-          checks = coalesce(checks, '{}') || '{"kept_only_here": {"value": "unlisted-check-field"}}'
-      WHERE attempt_id = $1
+          checks = coalesce(checks, '{}') || '{"kept_only_here": {"value": "unlisted-check-field"}}',
+          evidence = jsonb_set(evidence, '{install.log,kept_only_here}', '"unlisted-file-field"')
+      WHERE attempt_id = $1 AND test = 'T1a'
       """,
       [Ecto.UUID.dump!(tests.passed.id)]
     )
+
+    Ash.Seed.seed!(Techtree.WalletBench.Payment, %{
+      attempt_id: tests.passed.id,
+      token: :usdc,
+      amount: 20_000,
+      state: :confirmed,
+      from: "0x" <> String.duplicate("1", 40),
+      to: "0x" <> String.duplicate("2", 40),
+      nonce: 0,
+      raw: "0x02unlisted-raw-field",
+      hash: "0x" <> String.duplicate("3", 64),
+      block: 1
+    })
 
     store(files)
     zip = conn |> get(~p"/wallet-bench/#{tests.passed.id}/results.zip") |> response(200)
@@ -105,15 +192,22 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
       Enum.find(entries, fn {name, _} -> List.to_string(name) =~ "results.json" end)
 
     refute results =~ "unlisted"
+    results = Jason.decode!(results)
+    keys = fn map -> map |> Map.keys() |> Enum.sort() end
 
-    assert %{"tests" => [install | _]} = Jason.decode!(results)
+    assert keys.(results) ==
+             ~w(agent agent_address failure funding judge_cost_usd machine model_cost_usd page started_at status tests wallet_tool)
 
-    assert Map.keys(install) |> Enum.sort() ==
+    assert [install | _] = results["tests"]
+
+    assert keys.(install) ==
              ~w(base_check ended_at failure files folder judge_cost_usd model_cost_usd prompt ruling seconds started_at state test version_installed)
 
-    assert Map.keys(install["ruling"]) |> Enum.sort() ==
-             ~w(checks judged_by outcome reasoning summary)
-
+    assert keys.(install["ruling"]) == ~w(checks judged_by outcome reasoning summary)
+    assert Enum.all?(install["ruling"]["checks"], &(keys.(&1) == ~w(answer check why)))
+    assert Enum.all?(Map.values(install["files"]), &(keys.(&1) == ~w(bytes sha256)))
+    assert [funding] = results["funding"]
+    assert keys.(funding) == ~w(sent state transaction)
     assert install["version_installed"] == "0.3.45, the release this run asked for."
   end
 

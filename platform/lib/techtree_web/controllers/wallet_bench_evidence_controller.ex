@@ -36,42 +36,93 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     end
   end
 
+  # Downloads this machine builds at once; one more is asked to try again.
+  @downloads 4
+
   @doc """
   The whole test as one zip, written as it is sent: `results.json`, the test's
   page in the bench's own record and words, then every file each test
-  recorded, under its test's name. Files are read one at a time, each through
-  the same fingerprint check as a single file, so a download holds one file in
-  memory at most. A file that fails its check stops the download there, so no
-  unchecked byte is sent.
+  recorded, under its test's name.
+
+  Before anything is sent, every file is read through once and its size and
+  sha256 checked against the turn's record, so a stored file that changed gets
+  the error page, not a broken download. The zip then reads the files one at a
+  time, checking each again, so a download holds one file in memory at most;
+  a file that changes between the two reads ends the connection before any of
+  its bytes go out. At most #{@downloads} downloads are built at once on a
+  machine; another gets a page asking to try again.
   """
   def results(conn, %{"id" => id}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
-      folder = "wallet-test-#{String.slice(attempt.id, 0, 8)}"
-      mtime = attempt.inserted_at
-
-      files =
-        for turn <- attempt.turns, file <- Enum.sort(Map.keys(turn.evidence || %{})) do
-          Zstream.entry(
-            "#{folder}/#{Catalog.turn_name(turn.test)}/#{file}",
-            Stream.map([file], &recorded!(turn, &1)),
-            mtime: mtime
-          )
+      if room_for_download?() do
+        try do
+          send_results(conn, attempt)
+        after
+          Registry.unregister(TechtreeWeb.ResultsDownloads, :download)
         end
-
-      results =
-        Zstream.entry("#{folder}/results.json", [Jason.encode!(summary(attempt), pretty: true)],
-          mtime: mtime
-        )
-
-      conn
-      |> put_resp_header("content-disposition", ~s(attachment; filename="#{folder}.zip"))
-      |> put_resp_content_type("application/zip", nil)
-      |> send_chunked(200)
-      |> send_stream(Zstream.zip([results | files]))
+      else
+        busy(conn)
+      end
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no wallet test has that number"
     end
+  end
+
+  # Each download holds a place while it is built, given back when it ends; a
+  # process that dies gives its place back with it.
+  defp room_for_download? do
+    {:ok, _owner} = Registry.register(TechtreeWeb.ResultsDownloads, :download, nil)
+
+    if Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) > @downloads do
+      Registry.unregister(TechtreeWeb.ResultsDownloads, :download)
+      false
+    else
+      true
+    end
+  end
+
+  defp busy(conn) do
+    conn
+    |> put_resp_header("retry-after", "30")
+    |> put_status(503)
+    |> put_view(html: TechtreeWeb.ErrorHTML)
+    |> render(:"503")
+  end
+
+  defp send_results(conn, attempt) do
+    files =
+      for turn <- attempt.turns,
+          file <- Enum.sort(Map.keys(turn.evidence || %{})),
+          do: {turn, file}
+
+    for {turn, file} <- files do
+      with {:error, reason} <- Evidence.check(turn, file),
+           do: raise(TechtreeWeb.ResultsUnreadableError, inspect(reason))
+    end
+
+    folder = "wallet-test-#{String.slice(attempt.id, 0, 8)}"
+    mtime = attempt.inserted_at
+
+    entries =
+      for {turn, file} <- files do
+        Zstream.entry(
+          "#{folder}/#{Catalog.turn_name(turn.test)}/#{file}",
+          Stream.map([file], &recorded!(turn, &1)),
+          mtime: mtime
+        )
+      end
+
+    results =
+      Zstream.entry("#{folder}/results.json", [Jason.encode!(summary(attempt), pretty: true)],
+        mtime: mtime
+      )
+
+    conn
+    |> put_resp_header("content-disposition", ~s(attachment; filename="#{folder}.zip"))
+    |> put_resp_content_type("application/zip", nil)
+    |> send_chunked(200)
+    |> send_stream(Zstream.zip([results | entries]))
   end
 
   # Each piece goes out as it is made; a visitor who leaves stops the rest.

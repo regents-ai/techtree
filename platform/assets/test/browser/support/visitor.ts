@@ -138,3 +138,25 @@ export async function watchShifts(page: Page): Promise<void> {
 export async function layoutShift(page: Page): Promise<number> {
   return page.evaluate(() => (window as unknown as {shifts: number[]}).shifts.reduce((sum, v) => sum + v, 0))
 }
+
+// The names a zip's central directory lists, read from its end-of-directory
+// record. Throws when the file is not a whole zip: no end record, a directory
+// that doesn't fit, or an entry header out of place.
+export function zipEntries(zip: Buffer): string[] {
+  const end = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
+  if (end < 0 || end + 22 > zip.length) throw new Error("not a whole zip: no end-of-directory record")
+  const count = zip.readUInt16LE(end + 10)
+  const size = zip.readUInt32LE(end + 12)
+  const start = zip.readUInt32LE(end + 16)
+  if (start + size !== end) throw new Error("not a whole zip: the directory doesn't end where the record says")
+  const names: string[] = []
+  for (let at = start, i = 0; i < count; i++) {
+    if (zip.readUInt32LE(at) !== 0x02014b50) throw new Error(`not a whole zip: entry ${i} is out of place`)
+    const nameLength = zip.readUInt16LE(at + 28)
+    const extra = zip.readUInt16LE(at + 30)
+    const comment = zip.readUInt16LE(at + 32)
+    names.push(zip.toString("utf8", at + 46, at + 46 + nameLength))
+    at += 46 + nameLength + extra + comment
+  }
+  return names
+}

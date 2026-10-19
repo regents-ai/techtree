@@ -1,6 +1,6 @@
 import {readFileSync} from "node:fs"
 import {expect, test} from "./support/test"
-import {type RecordedTest, layoutProblems, layoutShift, lowContrast, seedWalletBench, watchErrors, watchShifts} from "./support/visitor"
+import {type RecordedTest, layoutProblems, layoutShift, lowContrast, seedWalletBench, watchErrors, watchShifts, zipEntries} from "./support/visitor"
 
 // Wallet Bench with recorded tests: the score grid and a result opened from it
 // with its full results downloaded, the list, and each test's own page, at a
@@ -12,14 +12,16 @@ test.beforeAll(() => {
 
 // The grid draws once and stays still: nothing moves as the page connects, its
 // fonts arrive or it sits open for half a minute.
-test("the grid holds still while it loads and after", async ({page}) => {
-  test.setTimeout(90_000)
-  await page.setViewportSize({width: 1280, height: 844})
-  await watchShifts(page)
-  await page.goto("/wallet-bench", {waitUntil: "networkidle"})
-  await page.waitForTimeout(30_000)
-  expect(await layoutShift(page)).toBeLessThan(0.1)
-})
+for (const width of [1280, 390]) {
+  test(`the grid holds still while it loads and after, ${width} wide`, async ({page}) => {
+    test.setTimeout(90_000)
+    await page.setViewportSize({width, height: 844})
+    await watchShifts(page)
+    await page.goto("/wallet-bench", {waitUntil: "networkidle"})
+    await page.waitForTimeout(30_000)
+    expect(await layoutShift(page)).toBeLessThan(0.1)
+  })
+}
 
 for (const width of [1280, 390, 320]) {
   test.describe(`${width} wide`, () => {
@@ -44,10 +46,13 @@ for (const width of [1280, 390, 320]) {
         window.getByRole("link", {name: "Download full results"}).click(),
       ])
       expect(download.suggestedFilename()).toBe(`wallet-test-${tests.passed.id.slice(0, 8)}.zip`)
-      const zip = readFileSync(await download.path())
-      expect(zip.subarray(0, 4).toString("latin1")).toBe("PK\x03\x04")
-      expect(zip.toString("latin1")).toContain("results.json")
-      expect(zip.toString("latin1")).toContain("T2/session.jsonl")
+      const folder = `wallet-test-${tests.passed.id.slice(0, 8)}`
+      expect(zipEntries(readFileSync(await download.path())).sort()).toEqual([
+        `${folder}/T1a/install.log`,
+        `${folder}/T1a/session.jsonl`,
+        `${folder}/T2/session.jsonl`,
+        `${folder}/results.json`,
+      ])
 
       await page.keyboard.press("Escape")
       await expect(window).toBeHidden()
