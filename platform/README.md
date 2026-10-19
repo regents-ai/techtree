@@ -366,11 +366,27 @@ founder approval before release.
 
 ## Release builds
 
-`scripts/deploy_site.sh` deploys a clean, pushed checkout. The Docker build
-fetches the shared libraries from GitHub at the commits `mix.lock` pins. The
-script copies the monorepo's `blog/` and `skills/` into the ignored
-`blog_content/` and `skills_content/` first, because the blog and the Techtree
-skill are compiled in and live outside this build context.
+`scripts/deploy_site.sh` deploys a clean, pushed checkout, and every deploy goes
+through it. The Docker build fetches the shared libraries from GitHub at the
+commits `mix.lock` pins. The script copies the monorepo's `blog/` and `skills/`
+into the ignored `blog_content/` and `skills_content/` first, because the blog
+and the Techtree skill are compiled in and live outside this build context.
+
+Each new image also keeps the live release's served files beside its own, so a
+page the old machine served still gets its scripts and styles while the deploy
+rolls over. The script reads the live image (passed to the build as
+`PREVIOUS_IMAGE`) and, from the live home page, the name of its site script.
+`mix techtree.keep_previous_assets` then copies, in the build, exactly the files
+the previous release's `cache_manifest.json` lists, one release back, never
+replacing a file of the new release.
+
+The script refuses to deploy, saying why, when the tree is not clean or not
+pushed, when the live image can't be read or the machines run different
+images, or when the live page can't be read or names no site script; the build
+stops when the previous image can't be pulled or holds no manifest. After the
+deploy it asks for the previous release's site script again and fails unless it
+still answers. `test/scripts/deploy_site_test.exs` runs the script through each
+of these with stand-ins for `flyctl` and `curl`.
 
 ## Shared profile migrations
 

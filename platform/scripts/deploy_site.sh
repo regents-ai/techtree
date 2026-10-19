@@ -37,7 +37,14 @@ if [[ "$previous_image" != registry.fly.io/techtree-sh@sha256:* ]]; then
   exit 1
 fi
 
-if ! previous_script="$(curl -fsS https://techtree.sh/ | grep -o -m 1 '/assets/js/site-[0-9a-f]*\.js')"; then
+# The page is read whole before it is searched, so a large page is never cut
+# short by the search stopping early.
+if ! live_page="$(curl -fsS https://techtree.sh/)"; then
+  echo "Refusing to deploy: the live page can't be read, so no script can be checked afterwards." >&2
+  exit 1
+fi
+
+if ! previous_script="$(grep -o -m 1 '/assets/js/site-[0-9a-f]*\.js' <<<"$live_page")"; then
   echo "Refusing to deploy: the live page names no script to check afterwards." >&2
   exit 1
 fi

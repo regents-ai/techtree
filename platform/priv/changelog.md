@@ -4,6 +4,8 @@
 
 ### Changed
 
+- A page you opened just before the site updates keeps working while the update
+  rolls out, instead of losing its scripts and styles.
 - In the seconds after the site's database restarts, a page shows its "can't
   be shown right now" note for one visit instead of an error page.
 - On touch screens, links that stand on their own, the side panel's Sign out

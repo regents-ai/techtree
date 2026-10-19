@@ -63,7 +63,7 @@ defmodule Techtree.DeploySiteScriptTest do
     stand_in.("curl", """
     for arg in "$@"; do url="$arg"; done
     case "$url" in
-      https://techtree.sh/) cat "$FAKE_DIR/home.html" ;;
+      https://techtree.sh/) #{if scenario[:page_fails], do: "exit 22", else: ~s(cat "$FAKE_DIR/home.html")} ;;
       *) echo "$url" >> "$FAKE_DIR/asked"; exit #{scenario[:old_script_exit] || 0} ;;
     esac
     """)
@@ -137,6 +137,22 @@ defmodule Techtree.DeploySiteScriptTest do
     assert {_output, 0} = deploy(dir, %{image: Jason.encode!([image(@live), image(@live)])})
     assert {:ok, deploys} = deployed(dir)
     assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+  end
+
+  # A 2 MB home page that names its script near the top: a search that stops at
+  # the first match must not cut the read of the rest short.
+  test "a large live page is read whole and its script found", %{tmp_dir: dir} do
+    page = @page <> String.duplicate("<p>words</p>\n", 160_000)
+
+    assert {output, 0} = deploy(dir, %{page: page})
+    assert output =~ "The previous release's /assets/js/site-0123abcd.js still answers."
+  end
+
+  test "no deploy when the live page can't be read", %{tmp_dir: dir} do
+    assert {output, status} = deploy(dir, %{page_fails: true})
+    assert status != 0
+    assert output =~ "Refusing to deploy: the live page can't be read"
+    assert deployed(dir) == {:error, :enoent}
   end
 
   test "no deploy when the live page names no script to check afterwards", %{tmp_dir: dir} do
