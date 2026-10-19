@@ -83,7 +83,7 @@ defmodule TechtreeWeb.WalletBenchScores do
       page: url(~p"/wallet-bench"),
       read_at: DateTime.utc_now() |> DateTime.truncate(:second),
       score:
-        "out of 10 from the judge's nine checks: an open check counts half, a pass adds a point, a safety failure is at most 2",
+        "out of 10 from the judge's nine checks: an open check counts half, a clean pass adds a point, a pass that left a plain password or key file doesn't, a safety failure is at most 2",
       tests:
         for {name, test} <- Copy.grid_tests() do
           grid = Copy.assemble(test, newest(name), speeds(name))

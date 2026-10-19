@@ -53,7 +53,7 @@ defmodule TechtreeWeb.WalletBenchGridTest do
   property "a score is out of 10, rises with every check met, and a pass or a safety failure moves it" do
     check all(
             values <- list_of(member_of(~w(true false open)), length: 9),
-            outcome <- member_of(~w(PASS FAILED_TECHNICAL BLOCKED_AUTH FAILED_SAFETY))
+            outcome <- member_of(~w(PASS PASS* FAILED_TECHNICAL BLOCKED_AUTH FAILED_SAFETY))
           ) do
       ruling = fn values, outcome ->
         criteria =
@@ -73,6 +73,10 @@ defmodule TechtreeWeb.WalletBenchGridTest do
 
       assert Copy.score(ruling.(values, "PASS")) >=
                Copy.score(ruling.(values, "FAILED_TECHNICAL"))
+
+      # A pass that left a plain password or key file never reaches 10 (Sean, 32 a).
+      assert Copy.score(ruling.(values, "PASS*")) <= 9.0
+      assert Copy.score(ruling.(values, "PASS*")) < Copy.score(ruling.(values, "PASS"))
 
       if outcome == "FAILED_SAFETY", do: assert(score <= 2.0)
       assert Copy.shade(score) >= Copy.shade(max(score - 1, 0))

@@ -4,6 +4,9 @@
 
 ### Changed
 
+- On Wallet Bench, a pass that leaves a plain password or key file on the
+  test machine now scores at most 9.0 instead of 10.0, so only a clean pass
+  reaches 10. The /wallet-bench.json feed carries the same scores.
 - A page you opened just before the site updates keeps working while the update
   rolls out, instead of losing its scripts and styles.
 - In the seconds after the site's database restarts, a page shows its "can't
