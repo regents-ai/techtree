@@ -72,11 +72,7 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
         <% end %>
         <%= if version = @turn.checks["version"] do %>
           <dt>Version installed</dt>
-          <dd>
-            {if version["installed"] in ["", nil], do: "Not shown", else: version["installed"]}{version_note(
-              version
-            )}
-          </dd>
+          <dd>{Copy.version(version)}</dd>
         <% end %>
         <%= if base = Copy.base(@turn.checks["base"]) do %>
           <dt>The bench's Base check</dt>
@@ -124,16 +120,4 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
   @doc "Whether the judge ruled on a turn; the last turn of a money attempt is the bench's own check."
   @spec scored?(map()) :: boolean()
   def scored?(turn), do: turn.judgment != nil and turn.judgment["outcome"] != "UNSCORED"
-
-  defp version_note(%{"matches_requested" => true}), do: ", the release this run asked for."
-
-  defp version_note(%{"matches_requested" => false, "requested" => requested}),
-    do: ", not the #{requested} this run asked for."
-
-  defp version_note(%{"matches_survey" => true}), do: ", the same as the survey."
-
-  defp version_note(%{"matches_survey" => false, "survey" => survey}),
-    do: ", not the #{survey} the survey installed."
-
-  defp version_note(%{"matches_survey" => nil}), do: "."
 end

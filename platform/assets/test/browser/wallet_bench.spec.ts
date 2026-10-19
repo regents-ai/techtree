@@ -1,6 +1,6 @@
 import {readFileSync} from "node:fs"
 import {expect, test} from "./support/test"
-import {type RecordedTest, layoutProblems, lowContrast, seedWalletBench, watchErrors} from "./support/visitor"
+import {type RecordedTest, layoutProblems, layoutShift, lowContrast, seedWalletBench, watchErrors, watchShifts} from "./support/visitor"
 
 // Wallet Bench with recorded tests: the score grid and a result opened from it
 // with its full results downloaded, the list, and each test's own page, at a
@@ -8,6 +8,17 @@ import {type RecordedTest, layoutProblems, lowContrast, seedWalletBench, watchEr
 let tests: {passed: RecordedTest; failed: RecordedTest; running: RecordedTest}
 test.beforeAll(() => {
   tests = seedWalletBench()
+})
+
+// The grid draws once and stays still: nothing moves as the page connects, its
+// fonts arrive or it sits open for half a minute.
+test("the grid holds still while it loads and after", async ({page}) => {
+  test.setTimeout(90_000)
+  await page.setViewportSize({width: 1280, height: 844})
+  await watchShifts(page)
+  await page.goto("/wallet-bench", {waitUntil: "networkidle"})
+  await page.waitForTimeout(30_000)
+  expect(await layoutShift(page)).toBeLessThan(0.1)
 })
 
 for (const width of [1280, 390, 320]) {

@@ -121,3 +121,20 @@ export async function lowContrast(scope: Locator): Promise<string[]> {
     return problems
   })
 }
+
+// Records every layout shift the page makes from its first paint, so a check can
+// read the total (CLS) at any point after. Call before the page is opened.
+export async function watchShifts(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const shifts: number[] = []
+    ;(window as unknown as {shifts: number[]}).shifts = shifts
+    new PerformanceObserver(list => {
+      for (const entry of list.getEntries() as unknown as {value: number; hadRecentInput: boolean}[])
+        if (!entry.hadRecentInput) shifts.push(entry.value)
+    }).observe({type: "layout-shift", buffered: true})
+  })
+}
+
+export async function layoutShift(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as {shifts: number[]}).shifts.reduce((sum, v) => sum + v, 0))
+}

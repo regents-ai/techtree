@@ -58,7 +58,7 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     assert %{"agent" => "Hermes Agent", "wallet_tool" => "Bankr", "status" => "Finished"} =
              results
 
-    assert [%{"folder" => "T1a", "ruling" => %{"outcome" => "PASS"}}, %{"folder" => "T2"}] =
+    assert [%{"folder" => "T1a", "ruling" => %{"outcome" => "Pass"}}, %{"folder" => "T2"}] =
              results["tests"]
 
     for {key, body} <- files, String.contains?(key, tests.passed.id) do
@@ -69,7 +69,8 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     assert map_size(entries) == 1 + Enum.count(files, fn {key, _} -> key =~ tests.passed.id end)
   end
 
-  # A stored file that no longer matches its recorded sha256 is never handed out.
+  # A stored file that no longer matches its recorded sha256 is never handed out:
+  # the download stops at that file, before any of its bytes are sent.
   test "a stored file changed since it was recorded stops the download", %{
     conn: conn,
     tests: tests,
@@ -78,7 +79,42 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     key = Evidence.turn_key(tests.passed.id, "T2", "session.jsonl")
     store(Map.update!(files, key, &(&1 <> "changed")))
 
-    assert_error_sent 500, fn -> get(conn, ~p"/wallet-bench/#{tests.passed.id}/results.zip") end
+    assert_raise RuntimeError, ~r/does not match the sha256 recorded with it/, fn ->
+      get(conn, ~p"/wallet-bench/#{tests.passed.id}/results.zip")
+    end
+  end
+
+  # results.json names every field it carries; whatever else the bench keeps on
+  # a test's ruling or checks stays out of the download.
+  test "only the named fields reach results.json", %{conn: conn, tests: tests, files: files} do
+    Techtree.Repo.query!(
+      """
+      UPDATE wallet_bench_turns
+      SET judgment = judgment || '{"kept_only_here": "unlisted-ruling-field"}',
+          checks = coalesce(checks, '{}') || '{"kept_only_here": {"value": "unlisted-check-field"}}'
+      WHERE attempt_id = $1
+      """,
+      [Ecto.UUID.dump!(tests.passed.id)]
+    )
+
+    store(files)
+    zip = conn |> get(~p"/wallet-bench/#{tests.passed.id}/results.zip") |> response(200)
+    {:ok, entries} = :zip.unzip(zip, [:memory])
+
+    {_name, results} =
+      Enum.find(entries, fn {name, _} -> List.to_string(name) =~ "results.json" end)
+
+    refute results =~ "unlisted"
+
+    assert %{"tests" => [install | _]} = Jason.decode!(results)
+
+    assert Map.keys(install) |> Enum.sort() ==
+             ~w(base_check ended_at failure files folder judge_cost_usd model_cost_usd prompt ruling seconds started_at state test version_installed)
+
+    assert Map.keys(install["ruling"]) |> Enum.sort() ==
+             ~w(checks judged_by outcome reasoning summary)
+
+    assert install["version_installed"] == "0.3.45, the release this run asked for."
   end
 
   test "a test with no recorded files is its results alone", %{conn: conn, tests: tests} do

@@ -219,6 +219,25 @@ defmodule TechtreeWeb.WalletBenchCopy do
       end
   end
 
+  @doc "The version an install check found, and whether it is the one asked for."
+  @spec version(map()) :: String.t()
+  def version(check) do
+    shown = if check["installed"] in ["", nil], do: "Not shown", else: check["installed"]
+    shown <> version_note(check)
+  end
+
+  defp version_note(%{"matches_requested" => true}), do: ", the release this run asked for."
+
+  defp version_note(%{"matches_requested" => false, "requested" => requested}),
+    do: ", not the #{requested} this run asked for."
+
+  defp version_note(%{"matches_survey" => true}), do: ", the same as the survey."
+
+  defp version_note(%{"matches_survey" => false, "survey" => survey}),
+    do: ", not the #{survey} the survey installed."
+
+  defp version_note(%{"matches_survey" => nil}), do: "."
+
   @doc "A funding send in words."
   @spec payment(map()) :: String.t()
   def payment(%{token: :usdc, amount: amount}), do: BaseRpc.decimal(amount, 6) <> " USDC"

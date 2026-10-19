@@ -37,49 +37,62 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   end
 
   @doc """
-  The whole test as one zip: `results.json`, what the test's page shows as the
-  bench recorded it, and every file each test recorded, under its test's name.
-  Each file is read back through the same fingerprint check as a single file.
+  The whole test as one zip, written as it is sent: `results.json`, the test's
+  page in the bench's own record and words, then every file each test
+  recorded, under its test's name. Files are read one at a time, each through
+  the same fingerprint check as a single file, so a download holds one file in
+  memory at most. A file that fails its check stops the download there, so no
+  unchecked byte is sent.
   """
   def results(conn, %{"id" => id}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
       folder = "wallet-test-#{String.slice(attempt.id, 0, 8)}"
+      mtime = attempt.inserted_at
 
       files =
-        for turn <- attempt.turns, file <- Map.keys(turn.evidence || %{}), do: {turn, file}
-
-      recorded =
-        files
-        |> Task.async_stream(
-          fn {turn, file} ->
-            {~c"#{folder}/#{Catalog.turn_name(turn.test)}/#{file}", Evidence.recorded(turn, file)}
-          end,
-          max_concurrency: 4,
-          timeout: :timer.seconds(20)
-        )
-        |> Enum.map(fn
-          {:ok, {name, {:ok, body}}} ->
-            {name, body}
-
-          {:ok, {_name, {:error, reason}}} ->
-            raise "A recorded file can't be read: #{inspect(reason)}"
-        end)
+        for turn <- attempt.turns, file <- Enum.sort(Map.keys(turn.evidence || %{})) do
+          Zstream.entry(
+            "#{folder}/#{Catalog.turn_name(turn.test)}/#{file}",
+            Stream.map([file], &recorded!(turn, &1)),
+            mtime: mtime
+          )
+        end
 
       results =
-        {~c"#{folder}/results.json", Jason.encode!(summary(attempt), pretty: true)}
-
-      {:ok, {_name, zip}} = :zip.create(~c"#{folder}.zip", [results | recorded], [:memory])
+        Zstream.entry("#{folder}/results.json", [Jason.encode!(summary(attempt), pretty: true)],
+          mtime: mtime
+        )
 
       conn
       |> put_resp_header("content-disposition", ~s(attachment; filename="#{folder}.zip"))
       |> put_resp_content_type("application/zip", nil)
-      |> send_resp(200, zip)
+      |> send_chunked(200)
+      |> send_stream(Zstream.zip([results | files]))
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no wallet test has that number"
     end
   end
 
+  # Each piece goes out as it is made; a visitor who leaves stops the rest.
+  defp send_stream(conn, stream) do
+    Enum.reduce_while(stream, conn, fn data, conn ->
+      case chunk(conn, data) do
+        {:ok, conn} -> {:cont, conn}
+        {:error, :closed} -> {:halt, conn}
+      end
+    end)
+  end
+
+  defp recorded!(turn, file) do
+    case Evidence.recorded(turn, file) do
+      {:ok, body} -> body
+      {:error, reason} -> raise "A recorded file can't be read: #{inspect(reason)}"
+    end
+  end
+
+  # What the test's page shows, field by field: every value is named here, so
+  # nothing else the bench keeps on a test can reach the download.
   defp summary(attempt) do
     %{
       page: url(~p"/wallet-bench/#{attempt.id}"),
@@ -94,30 +107,52 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       agent_address: attempt.agent_address,
       model_cost_usd: attempt.model_spend_usd,
       judge_cost_usd: attempt.judge_cost_usd,
-      tests:
-        for turn <- attempt.turns do
-          %{
-            test: Copy.test(turn.test),
-            folder: Catalog.turn_name(turn.test),
-            state: Copy.turn_state(turn.state),
-            prompt: turn.prompt,
-            started_at: turn.started_at,
-            ended_at: turn.ended_at,
-            seconds: turn.wall_seconds,
-            model_cost_usd: turn.model_spend_usd,
-            judge_cost_usd: turn.judge_cost_usd,
-            failure: turn.failure,
-            ruling: turn.judgment,
-            bench_checks: turn.checks,
-            files: turn.evidence || %{}
-          }
-        end,
+      tests: Enum.map(attempt.turns, &turn_summary/1),
       funding:
         for payment <- attempt.payments do
           %{
             sent: Copy.payment(payment),
             state: Copy.payment_state(payment.state),
             transaction: payment.hash
+          }
+        end
+    }
+  end
+
+  defp turn_summary(turn) do
+    %{
+      test: Copy.test(turn.test),
+      folder: Catalog.turn_name(turn.test),
+      state: Copy.turn_state(turn.state),
+      prompt: turn.prompt,
+      started_at: turn.started_at,
+      ended_at: turn.ended_at,
+      seconds: turn.wall_seconds,
+      model_cost_usd: turn.model_spend_usd,
+      judge_cost_usd: turn.judge_cost_usd,
+      failure: turn.failure,
+      ruling: turn.judgment && ruling(turn),
+      version_installed: turn.checks["version"] && Copy.version(turn.checks["version"]),
+      base_check: Copy.base(turn.checks["base"]) || Copy.money(turn.checks["money"]),
+      files:
+        Map.new(turn.evidence || %{}, fn {file, recorded} ->
+          {file, Map.take(recorded, ~w(bytes sha256))}
+        end)
+    }
+  end
+
+  defp ruling(%{judgment: judgment} = turn) do
+    %{
+      outcome: Copy.outcome(judgment),
+      judged_by: judgment["model"],
+      summary: judgment["summary"],
+      reasoning: judgment["reasoning"],
+      checks:
+        for {id, check} <- Enum.sort(judgment["criteria"] || %{}) do
+          %{
+            check: Copy.criterion_question(turn.test, id),
+            answer: Copy.criterion(check["value"]),
+            why: check["reason"]
           }
         end
     }
