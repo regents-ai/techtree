@@ -39,7 +39,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     end
   end
 
-  # Downloads this machine builds at once; one more is asked to try again.
+  # Downloads this machine sends at once; one more is asked to try again.
   @downloads 4
 
   @doc """
@@ -70,12 +70,15 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   defp with_download_place(conn, send) do
     {:ok, _owner} = Registry.register(TechtreeWeb.ResultsDownloads, :download, nil)
 
-    try do
-      if Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) > @downloads,
-        do: busy(conn),
-        else: send.()
-    after
+    if Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) > @downloads do
       Registry.unregister(TechtreeWeb.ResultsDownloads, :download)
+      busy(conn)
+    else
+      try do
+        send.()
+      after
+        Registry.unregister(TechtreeWeb.ResultsDownloads, :download)
+      end
     end
   end
 
