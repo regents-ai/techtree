@@ -14,6 +14,19 @@
   goes missing when GitHub limits a shared network's visits.
 - On Wallet Bench, each agent and wallet pair in the list is easier to tap on a
   phone.
+- Techtree wears its new green Canopy colours in light and dark: a pale green
+  page in light and a deep forest green in dark, with lime buttons and green
+  corner marks. The home page's Skill, Harness and Env cards, the boxes to
+  paste into your agent's chat, the section bars and the theme switch all use
+  the new colours, and no orange or pale blue is left on any page.
+- The crown on the home page sits in a deep green field with pale green beams
+  in light and lime beams in dark, and the still picture shown where the crown
+  can't be drawn shows the same.
+- The picture shown when a Techtree link is shared uses the new colours, and
+  the browser tab icon and app icons show the Techtree mark in Canopy green.
+- In the side panel's Pair New Agent box, each agent picture sits in one
+  frame on white in both themes, and before you choose, the box reads "Choose
+  type of agent below to get pairing message."
 
 ## Website (2026-10-18)
 

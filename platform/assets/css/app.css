@@ -21,6 +21,46 @@ html { -webkit-text-size-adjust: 100%; font-synthesis: none; }
 html[data-theme="light"] { color-scheme: light; }
 html[data-theme="dark"] { color-scheme: dark; }
 html:not([data-theme]) { color-scheme: dark light; }
+
+/* Canopy colours for Techtree's own pieces: the home cards, the command box and
+   the shade behind dialogs. The site palette itself is regent_ui's Techtree one.
+   Dark unless light is chosen, or nothing is chosen and the device asks for light. */
+:root {
+  --tt-shade: #0F1B14;
+  --tt-card-border: #2C4234;
+  --tt-card-skill: #2A4A36;
+  --tt-card-skill-ink: #E4EEE6;
+  --tt-card-harness: #C8F25C;
+  --tt-card-harness-ink: #0D1611;
+  --tt-card-env: #1A2820;
+  --tt-card-env-ink: #E4EEE6;
+  --tt-command-rule: #2A3B30;
+  --tt-command-label: #8FA595;
+}
+html[data-theme="light"] {
+  --tt-card-border: #0F1B14;
+  --tt-card-skill: #CFE2D2;
+  --tt-card-skill-ink: #0F1B14;
+  --tt-card-harness: #1E6B45;
+  --tt-card-harness-ink: #F3F5EF;
+  --tt-card-env: #E6EBDF;
+  --tt-card-env-ink: #0F1B14;
+  --tt-command-rule: #24352B;
+  --tt-command-label: #B9C9BD;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-theme]) {
+    --tt-card-border: #0F1B14;
+    --tt-card-skill: #CFE2D2;
+    --tt-card-skill-ink: #0F1B14;
+    --tt-card-harness: #1E6B45;
+    --tt-card-harness-ink: #F3F5EF;
+    --tt-card-env: #E6EBDF;
+    --tt-card-env-ink: #0F1B14;
+    --tt-command-rule: #24352B;
+    --tt-command-label: #B9C9BD;
+  }
+}
 body, h1, h2, h3, h4, h5, h6, p, dl, dd, ul, ol, figure, blockquote { margin: 0; }
 ul, ol { padding: 0; list-style: none; }
 button, input, textarea, select { font: inherit; font-family: var(--font-family-ui); }
@@ -182,12 +222,12 @@ code { font-size: .9em; }
    No local pseudo-element or animation overrides the canonical shimmer. */
 .actions, .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .text-link { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.75rem; font-size: .875rem; }
-.command { margin-top: var(--space-2); }
+.command { --rg-panel-edge: var(--tt-command-rule); --rg-local-rule: var(--tt-command-rule); margin-top: var(--space-2); }
 .command__head {
   padding: var(--space-2) var(--rg-panel-padding); border-bottom: 1px solid var(--rg-local-rule);
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2);
 }
-.command__label { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }
+.command__label { color: var(--tt-command-label); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; }
 .command__copy { min-height: 2.75rem; font-size: .8125rem; }
 .command__block { min-width: 0; max-width: 100%; margin: 0; padding: var(--rg-panel-padding); overflow-x: auto; font-size: .875rem; line-height: 1.6; white-space: pre; }
 .command__block code { color: inherit; font-size: inherit; }
@@ -230,16 +270,13 @@ html[data-theme="light"] .hero__optics[data-optics-failed="true"] { background-i
   width: min(70%, 48rem); gap: var(--space-2);
 }
 .hero-product {
-  --rg-local-ink: var(--palette-charcoal);
+  --rg-local-ink: var(--hero-product-ink);
   position: relative; display: flex; flex-direction: column; justify-content: space-between;
   min-width: 0; min-height: 8rem; padding: var(--space-3) var(--space-2);
-  background: var(--hero-product-fill); color: var(--palette-charcoal);
-  border: 1px solid var(--palette-charcoal); text-decoration: none;
+  background: var(--hero-product-fill); color: var(--hero-product-ink);
+  border: 1px solid var(--tt-card-border); text-decoration: none;
   transition: transform 150ms var(--ease-out);
 }
-.hero-product--autolaunch { --hero-product-fill: var(--palette-tangerine-tango); }
-.hero-product--techtree { --hero-product-fill: var(--palette-powder-blue); }
-.hero-product--patchbay { --hero-product-fill: var(--palette-platinum); }
 .hero-product h2 { font-size: clamp(1.125rem, 1.8vw, 1.5rem); line-height: 1.2; letter-spacing: -.025em; }
 .hero-product__destination { display: flex; justify-content: space-between; gap: var(--space-1); margin-top: var(--space-3); font-size: .8125rem; }
 .hero-product:focus-visible { outline-color: var(--color-fg); transition: none; }
