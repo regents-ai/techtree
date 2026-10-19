@@ -10,6 +10,11 @@ defmodule Techtree.DeploySiteScriptTest do
 
   @moduletag :tmp_dir
 
+  # Each test's throwaway folder goes when the test does.
+  setup %{tmp_dir: dir} do
+    on_exit(fn -> File.rm_rf!(dir) end)
+  end
+
   @script Path.expand("../../scripts/deploy_site.sh", __DIR__)
   @live "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ab", 32)
   @page ~s(<script src="/assets/js/site-0123abcd.js?vsn=d"></script>)

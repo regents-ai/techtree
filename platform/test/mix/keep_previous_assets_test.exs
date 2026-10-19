@@ -10,6 +10,11 @@ defmodule Mix.Tasks.Techtree.KeepPreviousAssetsTest do
 
   @moduletag :tmp_dir
 
+  # Each test's throwaway folder goes when the test does.
+  setup %{tmp_dir: dir} do
+    on_exit(fn -> File.rm_rf!(dir) end)
+  end
+
   defp release(dir, name, files) do
     static = Path.join([dir, name, "techtree-0.2.0", "priv", "static"])
 
