@@ -19,16 +19,13 @@ fi
 
 # The live image, whose served files the new release keeps through the rollover,
 # and one of those files, asked for again once the deploy is done.
-previous_image="$(flyctl image show --app techtree-sh --json | jq -r '.[0] | "\(.Registry)/\(.Repository)@\(.Digest)"')"
-
-if [[ "$previous_image" != registry.fly.io/techtree-sh@sha256:* ]]; then
+if ! previous_image="$(flyctl image show --app techtree-sh --json | jq -er '.[0] | "\(.Registry)/\(.Repository)@\(.Digest)"')" ||
+  [[ "$previous_image" != registry.fly.io/techtree-sh@sha256:* ]]; then
   echo "Refusing to deploy: the live image can't be read, so its files can't be kept." >&2
   exit 1
 fi
 
-previous_script="$(curl -fsS https://techtree.sh/ | grep -o '/assets/js/site-[0-9a-f]*\.js' | head -1)"
-
-if [[ -z "$previous_script" ]]; then
+if ! previous_script="$(curl -fsS https://techtree.sh/ | grep -o -m 1 '/assets/js/site-[0-9a-f]*\.js')"; then
   echo "Refusing to deploy: the live page names no script to check afterwards." >&2
   exit 1
 fi
