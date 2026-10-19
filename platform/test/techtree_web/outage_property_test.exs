@@ -12,8 +12,21 @@ defmodule TechtreeWeb.OutagePropertyTest do
 
   alias TechtreeWeb.Outage
 
-  @lost_states ~w(57P01 57P02 57P03)
-  @lost_codes [:admin_shutdown, :crash_shutdown, :cannot_connect_now]
+  # Postgres ending the connection (class 57P), and the connection itself
+  # failing (class 08).
+  @lost [
+    {:admin_shutdown, "57P01"},
+    {:crash_shutdown, "57P02"},
+    {:cannot_connect_now, "57P03"},
+    {:connection_exception, "08000"},
+    {:connection_does_not_exist, "08003"},
+    {:connection_failure, "08006"},
+    {:sqlclient_unable_to_establish_sqlconnection, "08001"},
+    {:sqlserver_rejected_establishment_of_sqlconnection, "08004"},
+    {:transaction_resolution_unknown, "08007"},
+    {:protocol_violation, "08P01"}
+  ]
+  @lost_states Enum.map(@lost, &elem(&1, 1))
   # Postgres errors a read can meet that say nothing about the connection.
   @other_codes [
     {:query_canceled, "57014"},
@@ -36,13 +49,14 @@ defmodule TechtreeWeb.OutagePropertyTest do
   defp lost_connection do
     one_of([
       map(string(:printable), &DBConnection.ConnectionError.exception/1),
-      map(member_of(Enum.zip(@lost_codes, @lost_states)), fn {code, state} ->
-        postgres(code, state)
-      end),
+      map(member_of(@lost), fn {code, state} -> postgres(code, state) end),
       map(string(:printable), &ash_text("** (DBConnection.ConnectionError) " <> &1)),
-      map(tuple({member_of(@lost_states), string(:printable)}), fn {state, rest} ->
-        ash_text("** (Postgrex.Error) FATAL #{state} " <> rest)
-      end)
+      map(
+        tuple({member_of(~w(FATAL ERROR)), member_of(@lost_states), string(:printable)}),
+        fn {severity, state, rest} ->
+          ash_text("** (Postgrex.Error) #{severity} #{state} " <> rest)
+        end
+      )
     ])
   end
 

@@ -18,7 +18,9 @@ function inBrowserDatabase(script: string): string {
 }
 
 // Three recorded Wallet Bench tests, by outcome: passed, failed and running.
-export function seedWalletBench(): {passed: string; failed: string; running: string} {
+export type RecordedTest = {id: string; name: string}
+
+export function seedWalletBench(): {passed: RecordedTest; failed: RecordedTest; running: RecordedTest} {
   return JSON.parse(inBrowserDatabase("seed_wallet_bench.exs"))
 }
 

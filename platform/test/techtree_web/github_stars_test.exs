@@ -1,16 +1,20 @@
 defmodule TechtreeWeb.GithubStarsTest do
   @moduledoc """
-  The header's star count comes from the server, read once and kept, and a page
-  without a count still draws its GitHub link.
+  The header's star count comes from the server: read by one process however
+  many pages ask, kept when a later read fails, and never waited on by a page.
   """
 
   use TechtreeWeb.ConnCase, async: false
   use ExUnitProperties
 
   alias TechtreeWeb.GithubStars
+  alias TechtreeWeb.GithubStars.Reader
+
+  @counted "regents-ai/techtree on GitHub, 1234 stars"
+  @uncounted "Star on GitHub"
 
   # Every other test reaches nowhere for GitHub and shows no count; these answer
-  # for GitHub themselves.
+  # for GitHub themselves, through the reader.
   setup do
     GithubStars.delete_all()
     config = Application.fetch_env!(:techtree, :github_stars)
@@ -21,11 +25,12 @@ defmodule TechtreeWeb.GithubStarsTest do
       Keyword.put(config, :req_options, plug: {Req.Test, GithubStars})
     )
 
-    # The count these tests read is kept on this machine, and a read started
-    # beside a page may still be running; nothing after them sees either.
+    Req.Test.verify_on_exit!()
+
+    # A read still running finishes before the next test, and nothing it kept
+    # is seen after these tests.
     on_exit(fn ->
-      reads = TechtreeWeb.GithubStars.Reads
-      for pid <- Task.Supervisor.children(reads), do: Task.Supervisor.terminate_child(reads, pid)
+      settled()
       Application.put_env(:techtree, :github_stars, config)
       GithubStars.delete_all()
     end)
@@ -37,46 +42,94 @@ defmodule TechtreeWeb.GithubStarsTest do
     Req.Test.expect(GithubStars, fn conn ->
       conn |> Plug.Conn.put_status(status) |> Req.Test.json(body)
     end)
+
+    reader_reads_here()
   end
 
-  defp header(conn, path), do: conn |> get(path) |> html_response(200) |> LazyHTML.from_document()
+  # GitHub, as this test answers for it, is what the reader reaches.
+  defp reader_reads_here, do: :ok = Req.Test.allow(GithubStars, self(), Process.whereis(Reader))
 
-  test "the header shows the count GitHub gave, read once for many pages", %{conn: conn} do
+  # The reader has handled every ask sent before this.
+  defp settled, do: :sys.get_state(Reader)
+
+  # The header's GitHub link, found by its accessible name.
+  defp github_link(path, name) do
+    build_conn()
+    |> get(path)
+    |> html_response(200)
+    |> LazyHTML.from_document()
+    |> LazyHTML.query(~s|a[aria-label="#{name}"]|)
+  end
+
+  test "the header shows the count GitHub gave, read once for many pages" do
     answer(200, %{"stargazers_count" => 1_234})
-    GithubStars.refresh()
+    GithubStars.count()
+    settled()
 
-    for path <- [~p"/", ~p"/docs"] do
-      document = header(conn, path)
-
-      assert document |> LazyHTML.query(".masthead__github-count") |> LazyHTML.text() =~ "1.2k"
-
-      assert document |> LazyHTML.query(".masthead__github") |> LazyHTML.attribute("aria-label") ==
-               ["regents-ai/techtree on GitHub, 1234 stars"]
+    for path <- [~p"/", ~p"/docs", ~p"/start"] do
+      assert github_link(path, @counted) |> LazyHTML.text() =~ "1.2k"
     end
   end
 
-  test "when GitHub doesn't answer, the link stays and shows no count", %{conn: conn} do
+  test "before any read has worked, the link stays and shows no count" do
     answer(503, %{"message" => "unavailable"})
-    GithubStars.refresh()
+    GithubStars.count()
+    settled()
 
-    document = header(conn, ~p"/docs")
+    link = github_link(~p"/docs", @uncounted)
 
-    assert document |> LazyHTML.query(".masthead__github") |> Enum.count() == 1
-    assert document |> LazyHTML.query(".masthead__github-count") |> Enum.count() == 0
+    assert Enum.count(link) == 1
+    refute LazyHTML.text(link) =~ ~r/\d/
+  end
+
+  test "a failed read keeps the last count" do
+    answer(200, %{"stargazers_count" => 1_234})
+    GithubStars.count()
+    settled()
+
+    # The hour is up and GitHub stops answering.
+    GithubStars.delete(:fresh)
+    answer(503, %{"message" => "unavailable"})
+    GithubStars.count()
+    settled()
+
+    assert github_link(~p"/docs", @counted) |> LazyHTML.text() =~ "1.2k"
+  end
+
+  test "many pages at once, with nothing kept, make exactly one read" do
+    reads = :counters.new(1, [])
+
+    Req.Test.stub(GithubStars, fn conn ->
+      :counters.add(reads, 1, 1)
+      Process.sleep(200)
+      Req.Test.json(conn, %{"stargazers_count" => 1_234})
+    end)
+
+    reader_reads_here()
+
+    1..50
+    |> Task.async_stream(fn _page -> build_conn() |> get(~p"/docs") |> html_response(200) end,
+      max_concurrency: 50
+    )
+    |> Stream.run()
+
+    settled()
+
+    assert :counters.get(reads, 1) == 1
+    assert github_link(~p"/docs", @counted) |> Enum.count() == 1
   end
 
   test "a page with no count kept is drawn at once, without one, while GitHub is slow" do
-    # The read beside the page runs in its own process, so the answer is shared.
-    Req.Test.set_req_test_to_shared()
-
     Req.Test.stub(GithubStars, fn conn ->
       Process.sleep(2_000)
-      Req.Test.json(conn, %{"stargazers_count" => 5})
+      Req.Test.json(conn, %{"stargazers_count" => 1_234})
     end)
 
-    {elapsed, document} = :timer.tc(fn -> header(build_conn(), ~p"/docs") end)
+    reader_reads_here()
 
-    assert document |> LazyHTML.query(".masthead__github-count") |> Enum.count() == 0
+    {elapsed, link} = :timer.tc(fn -> github_link(~p"/docs", @uncounted) end)
+
+    assert Enum.count(link) == 1
     assert elapsed < 1_000_000
   end
 

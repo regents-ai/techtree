@@ -30,14 +30,12 @@ defmodule TechtreeWeb.Outage do
       end
   end
 
-  # A connection is lost when the pool can't reach the database, or when Postgres
-  # ends it: a restart or failover answers first with a shutdown, and a server
-  # still starting with "cannot connect now" (SQLSTATE class 57P).
-  @lost_codes [:admin_shutdown, :crash_shutdown, :cannot_connect_now]
-  @lost_states ["57P01", "57P02", "57P03"]
-
+  # A connection is lost when the pool can't reach the database, when the
+  # connection itself fails (SQLSTATE class 08), or when Postgres ends it: a
+  # restart or failover answers first with a shutdown, and a server still
+  # starting with "cannot connect now" (class 57P).
   defp connection_lost?(%DBConnection.ConnectionError{}), do: true
-  defp connection_lost?(%Postgrex.Error{postgres: %{code: code}}), do: code in @lost_codes
+  defp connection_lost?(%Postgrex.Error{postgres: %{pg_code: state}}), do: lost_state?(state)
 
   defp connection_lost?(%Ash.Error.Unknown{errors: errors}),
     do: Enum.any?(errors, &connection_lost?/1)
@@ -49,10 +47,15 @@ defmodule TechtreeWeb.Outage do
        }),
        do: true
 
-  defp connection_lost?(%Ash.Error.Unknown.UnknownError{
-         error: "** (Postgrex.Error) FATAL " <> state
-       }),
-       do: Enum.any?(@lost_states, &String.starts_with?(state, &1))
+  defp connection_lost?(%Ash.Error.Unknown.UnknownError{error: "** (Postgrex.Error) " <> text}) do
+    case String.split(text, " ", parts: 3) do
+      [_severity, state | _message] -> lost_state?(state)
+      _other -> false
+    end
+  end
 
   defp connection_lost?(_error), do: false
+
+  defp lost_state?("08" <> _connection_exception), do: true
+  defp lost_state?(state), do: state in ["57P01", "57P02", "57P03"]
 end

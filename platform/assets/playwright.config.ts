@@ -3,9 +3,11 @@ import {defineConfig, devices} from "@playwright/test"
 // The browser tests start their own Techtree in the test environment, on its own
 // database (techtree_test<partition>) and port, and stop it afterwards. They read
 // pages the way a visitor does; nothing here reaches the live site. Two copies run
-// side by side when each sets its own TECHTREE_BROWSER_PARTITION (starting with
-// "browser") and TECHTREE_BROWSER_PORT.
-const partition = process.env.TECHTREE_BROWSER_PARTITION ?? "browser"
+// side by side when each sets its own TECHTREE_BROWSER_COPY and TECHTREE_BROWSER_PORT.
+// The database each run drops is always named for the browser tests
+// (techtree_testbrowser<copy>), so a run never drops another test database.
+const copy = process.env.TECHTREE_BROWSER_COPY ?? ""
+const partition = `browser${copy}`
 const port = Number(process.env.TECHTREE_BROWSER_PORT ?? 4012)
 process.env.TECHTREE_BROWSER_PARTITION = partition
 process.env.TECHTREE_BROWSER_PORT = String(port)

@@ -62,6 +62,14 @@ config :techtree, TechtreeWeb.TddShowcase,
 # request budget within a minute.
 config :techtree, :request_rate_limit, limit: 1_000_000, window_seconds: 60
 
+# Publishing keeps its real budget, but over a window that doesn't turn over
+# during a run, so a test that sends one request too many is refused even when
+# a minute ticks over halfway through it. Techtree.RateLimitTest covers the
+# turnover with its own clock.
+config :techtree, Techtree.Network,
+  rate_limit: [limit: 10, window_seconds: 1_000_000_000],
+  agent_rate_limit: [limit: 10, window_seconds: 1_000_000_000]
+
 config :techtree, Oban, testing: :manual
 
 # Agents' signed requests reach a stub of the sign-in service, never the real

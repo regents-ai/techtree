@@ -22,8 +22,11 @@ defmodule TechtreeWeb.OutagePagesTest do
 
   @endpoint TechtreeWeb.Endpoint
 
+  alias TechtreeWeb.HealthMemory
+
   setup do
-    TechtreeWeb.HealthMemory.delete_all()
+    # Whatever an earlier test's health check left was answered long ago.
+    HealthMemory.remember(%{status: :ok}, HealthMemory.now() - :timer.hours(1))
     cut_database()
     on_exit(&bring_back/0)
     {:ok, conn: build_conn()}
@@ -259,14 +262,21 @@ defmodule TechtreeWeb.OutagePagesTest do
     Importer.import!(CatalogFixture.root())
 
     assert %{"status" => "ok"} = conn |> get(~p"/healthz") |> json_response(200)
+    healthy = HealthMemory.last_healthy()
 
     cut_database()
 
     assert %{"status" => "ok", "database" => "unreachable"} =
              quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(200) end)
 
-    # Once the grace is over, the loss fails the check, with its real reason.
-    TechtreeWeb.HealthMemory.delete_all()
+    # The healthy answer was given 44 seconds ago: still inside the grace.
+    HealthMemory.remember(healthy, HealthMemory.now() - :timer.seconds(44))
+
+    assert %{"status" => "ok", "database" => "unreachable"} =
+             quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(200) end)
+
+    # 46 seconds ago: the grace is over, and the loss fails the check with its real reason.
+    HealthMemory.remember(healthy, HealthMemory.now() - :timer.seconds(46))
 
     assert %{"status" => "unavailable", "reason" => "database_unreachable"} =
              quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(503) end)
