@@ -116,16 +116,17 @@ variable before then, and read "The channel variable" below first.
 
 ### 5. Deploy
 
-    flyctl deploy --app techtree-sh --remote-only --ha=false --strategy immediate
+    scripts/deploy_site.sh
 
-- `--remote-only` builds on Fly's x86-64 builder. An Apple-silicon laptop
-  building locally produces an arm64 image that Fly's machines cannot run.
-- `--ha=false` creates one machine rather than the default two.
-- `--strategy immediate` for **this deploy only**. `release_command` runs the
-  migrations, and then the machine starts with an empty database and correctly
-  reports 503 at `/healthz` — it has nothing true to publish yet. There is
-  nothing for a health check to wait for until step 6. Later deploys use the
-  default rolling strategy and are gated on the check properly.
+Every deploy goes through this script, from `platform/` on a clean, pushed
+branch. It builds on Fly's x86-64 builder (`--remote-only`; an Apple-silicon
+laptop building locally makes an arm64 image Fly's machines cannot run) with
+one machine (`--ha=false`). The new image keeps the live release's served files
+beside its own, so the script first reads the live image and a script the live
+page names, and refuses when it can't read either, or when the machines run
+different images. Once the deploy is done it asks for that script again and
+fails unless it still answers. There is no deploy without a live release to
+keep files from.
 
 ### 6. Import the release the image carries
 
@@ -295,7 +296,7 @@ priv/bootstrap/development.json` to get back to the bundle local work expects.
 
 ### 12b. Deploy that image
 
-    flyctl deploy --app techtree-sh --remote-only --ha=false
+    scripts/deploy_site.sh
 
 The machine is still serving `development`, so it keeps serving the development
 placeholder while the new image rolls out. The image now *carries* a `stable`
@@ -403,7 +404,7 @@ The current production image already carries the exact candidate and is healthy;
 skip this step for the activation described here. If a future re-cut changes
 any digest, deploy that new image only after the candidate is re-verified.
 
-    flyctl deploy --app techtree-sh --remote-only --ha=false
+    scripts/deploy_site.sh
 
 Default rolling strategy now: the health check gates it, and the running machine
 keeps serving the stable floor until the new one is healthy. The channel does
