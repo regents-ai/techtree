@@ -522,3 +522,25 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 @media (pointer: coarse) {
   :is(p, li, dd, td, th) > a:only-child, .account-credits__manage { padding-block: .875rem; }
 }
+
+/* The lime buttons in light draw their whole cut outline at rest, the one hover
+   draws, so the lime's edge reads on the pale page (3:1). Size, shape and the
+   arrow stay the design system's. */
+:root[data-theme="light"] .rg-button:where(:not(.rg-button--secondary):not(.rg-button--quiet)):not(:disabled):not([disabled]):not([aria-disabled="true"])::before {
+  --rg-button-cut-ink: var(--rg-button-active-border);
+  --rg-button-cut-gap: 0px;
+  background-size:
+    var(--rg-cut-control) var(--rg-cut-control), var(--rg-cut-control) var(--rg-cut-control),
+    calc(100% - var(--rg-cut-control) + 1px) 1px, 1px calc(100% - var(--rg-cut-control) + 1px),
+    calc(100% - var(--rg-cut-control) + 1px) 1px, 1px calc(100% - var(--rg-cut-control) + 1px);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .rg-button:where(:not(.rg-button--secondary):not(.rg-button--quiet)):not(:disabled):not([disabled]):not([aria-disabled="true"])::before {
+    --rg-button-cut-ink: var(--rg-button-active-border);
+    --rg-button-cut-gap: 0px;
+    background-size:
+      var(--rg-cut-control) var(--rg-cut-control), var(--rg-cut-control) var(--rg-cut-control),
+      calc(100% - var(--rg-cut-control) + 1px) 1px, 1px calc(100% - var(--rg-cut-control) + 1px),
+      calc(100% - var(--rg-cut-control) + 1px) 1px, 1px calc(100% - var(--rg-cut-control) + 1px);
+  }
+}
