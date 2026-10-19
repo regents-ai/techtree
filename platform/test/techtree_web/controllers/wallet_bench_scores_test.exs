@@ -183,7 +183,9 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
     )
 
     error = assert_raise Postgrex.Error, fn -> WalletBenchScores.read() end
-    assert error.postgres.message =~ ~s(relation "techtree_elsewhere.wallet_bench_turns" does not exist)
+
+    assert error.postgres.message =~
+             ~s(relation "techtree_elsewhere.wallet_bench_turns" does not exist)
   end
 
   test "any other failure is the plain JSON error, with nothing from inside", %{
