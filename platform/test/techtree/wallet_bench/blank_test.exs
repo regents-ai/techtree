@@ -28,6 +28,9 @@ defmodule Techtree.WalletBench.BlankTest do
     -----BEGIN EC PRIVATE KEY-----
     MHcCAQEEIBkg4LVWM9nuwNSk3yByxZpYRTBnVJk5oLh1mUQ+gL9zoAoGCCqGSM49
     -----END EC PRIVATE KEY-----
+    -----BEGIN PGP PRIVATE KEY BLOCK-----
+    lQOYBGcPgpPrivateKeyBodyLine
+    -----END PGP PRIVATE KEY BLOCK-----
     bankr bk_ABCDEFGHJKLMNPQRSTUV and model model-key-value-123
     list ["#{String.replace(@phrase, " ", ~s(", "))}"]
     openai sk-proj-abcdefghijklmnopqrstuvwxyz
@@ -49,6 +52,7 @@ defmodule Techtree.WalletBench.BlankTest do
           "4vJ9JU1b",
           "1,2,3",
           "MHcCAQEE",
+          "PrivateKeyBody",
           "bk_ABC",
           "model-key-value",
           "sk-proj",
@@ -117,11 +121,16 @@ defmodule Techtree.WalletBench.BlankTest do
     end
   end
 
-  test "a picture of several megabytes is blanked whole" do
-    picture = Base.encode64(hd(@starts) <> :binary.copy(<<1, 2, 3>>, 2_200_000))
-    blanked = Blank.blank(~s({"data": "#{picture}"}), [])
+  # A mostly white picture is mostly `/`, each escaped as `\\/` by some writers:
+  # one step of the match per escape, past the default limit at this size.
+  for {name, bytes} <- [mixed: <<1, 2, 3>>, white: <<255, 255, 255>>],
+      escape <- [:json, :html_safe] do
+    test "a #{name} picture of several megabytes is blanked whole (#{escape})" do
+      picture = Base.encode64(hd(@starts) <> :binary.copy(unquote(bytes), 1_400_000))
 
-    assert blanked == ~s({"data": "[redacted: picture]"})
+      assert Blank.blank(Jason.encode!(%{"data" => picture}, escape: unquote(escape)), []) ==
+               ~s({"data":"[redacted: picture]"})
+    end
   end
 
   # Inside JSON the line break is the escape `\n`, which a picture's own lines may use too.
@@ -143,5 +152,20 @@ defmodule Techtree.WalletBench.BlankTest do
     blanked = Blank.blank(~s({"out": "#{picture}\\n#{key}"}), Blank.known(key, []))
 
     assert blanked == ~s({"out": "[redacted: picture]\\n[redacted: API key]"})
+  end
+
+  # A known secret can start with letters a picture uses and hold a quote; it
+  # is blanked whole before the picture rule reads the line it starts.
+  test "a password with a quote on the line after an unpadded picture is blanked whole" do
+    picture = Base.encode64(hd(@starts) <> :binary.copy(<<9>>, 103))
+    password = ~s(Xk9mP2"vL#q8$wR)
+    known = Blank.known(nil, [%{"path" => "/home/a/.wallet/password", "values" => [password]}])
+    marker = "[redacted: password, from /home/a/.wallet/password]"
+
+    assert Blank.blank("$ base64 shot.png\n#{picture}\n#{password}\n$ ", known) ==
+             "$ base64 shot.png\n[redacted: picture]\n#{marker}\n$ "
+
+    assert Blank.blank(Jason.encode!(%{"o" => picture <> "\n" <> password <> "\n"}), known) ==
+             Jason.encode!(%{"o" => "[redacted: picture]\n" <> marker <> "\n"})
   end
 end

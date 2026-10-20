@@ -2,13 +2,13 @@ defmodule Techtree.WalletBench.Blank do
   @moduledoc """
   Blanks secrets out of a turn's evidence before anything is stored.
 
-  First every picture written out as base64 text (PNG, JPEG, GIF or WebP, as
-  a harness shows one it read), since a screenshot can hold a secret no other
-  rule sees. Then every known secret: each value read from the tested account's
+  First every known secret: each value read from the tested account's
   secret-looking files (`machine/secrets.py`), the model key and supplied
   operator keys regardless of what the agent left on disk. Each is
   blanked as written and as it appears inside a JSON string, and the blank
-  names the file it came from. Then patterns: PEM private keys, sign-in links
+  names the file it came from. Then every picture written out as base64 text
+  (PNG, JPEG, GIF or WebP, as a harness shows one it read), since a screenshot
+  can hold a secret no other rule sees. Then patterns: PEM and PGP private keys, sign-in links
   that carry a code, email addresses, API keys with a vendor's prefix (Anthropic,
   OpenAI, Bankr, Zerion, Privy, Circle), the Open Wallet Standard's agent token
   (Zerion's signing token), 32-byte hex values with or without `0x` (a
@@ -31,7 +31,8 @@ defmodule Techtree.WalletBench.Blank do
   @phrase_length 12
 
   @patterns [
-    {~r/-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----/s, "private key"},
+    {~r/-----BEGIN [A-Z ]*PRIVATE KEY[A-Z ]*-----.*?-----END [A-Z ]*PRIVATE KEY[A-Z ]*-----/s,
+     "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
     {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
@@ -51,7 +52,12 @@ defmodule Techtree.WalletBench.Blank do
   # (`\\n`, a `/` as `\\/`), and it may follow such an escape. It takes a
   # line after a break only when that whole line is base64, so the line after
   # a picture is never cut short, and padding ends it.
-  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+]++|\\*/|(?:(?:\\+[rn])++|[\r\n]++)(?=(?:[A-Za-z0-9+]++|\\*/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
+  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+/]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?=(?:[A-Za-z0-9+/]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
+
+  # Each escaped `/` or line of a picture is one more step of the match, and
+  # the default step limit ends a match silently; ten steps a byte covers any
+  # text, and a text that still reaches the limit raises rather than keep a picture.
+  @picture_steps_per_byte 10
 
   @type known :: {value :: String.t(), label :: String.t()}
 
@@ -132,20 +138,40 @@ defmodule Techtree.WalletBench.Blank do
   end
 
   @doc """
-  Blanks every picture, then every known secret, then every pattern, in
-  `text`. Pictures go first, so a known value that happens to sit inside one
-  cannot cut it in two.
+  Blanks every known secret, then every picture, then every pattern, in
+  `text`. Known secrets go first, so a picture's match never takes the start
+  of one and leaves the rest.
   """
   @spec blank(String.t(), [known()]) :: String.t()
   def blank(text, known) do
-    text = Regex.replace(@picture, text, mark("picture"))
-
     known
     |> Enum.flat_map(fn {value, label} -> Enum.map(forms(value), &{&1, label}) end)
     |> Enum.sort_by(fn {value, _label} -> -byte_size(value) end)
     |> Enum.reduce(text, fn {value, label}, text -> String.replace(text, value, mark(label)) end)
+    |> blank_pictures()
     |> blank_patterns()
     |> blank_phrases()
+  end
+
+  defp blank_pictures(text) do
+    steps = max(10_000_000, @picture_steps_per_byte * byte_size(text))
+    options = [:global, :report_errors, match_limit: steps, capture: :first]
+
+    case :re.run(text, Regex.source(@picture), options) do
+      :nomatch ->
+        text
+
+      {:match, pictures} ->
+        {kept, from} =
+          Enum.reduce(pictures, {[], 0}, fn [{at, length}], {kept, from} ->
+            {[kept, binary_part(text, from, at - from), mark("picture")], at + length}
+          end)
+
+        IO.iodata_to_binary([kept, binary_part(text, from, byte_size(text) - from)])
+
+      {:error, reason} ->
+        raise "Blanking pictures stopped (#{inspect(reason)}), so this text is not kept."
+    end
   end
 
   # The funder's key as configured and, without its 0x, as bare hex; only a key

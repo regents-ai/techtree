@@ -6,6 +6,7 @@
 
 - Wallet Bench's recorded files hide any picture shown inside a tested agent's
   own output, as they already hide keys and recovery phrases.
+- Wallet Bench's recorded files hide PGP private keys too.
 
 ## Website (2026-10-19)
 
