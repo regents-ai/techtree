@@ -7,6 +7,15 @@
 - Wallet Bench's recorded files hide any picture shown inside a tested agent's
   own output, as they already hide keys and recovery phrases.
 - Wallet Bench's recorded files hide PGP private keys too.
+- Wallet Bench's recorded files also hide a recovery phrase typed in capitals,
+  numbered, or with its words joined by hyphens, slashes, dots or other marks.
+- Wallet Bench refuses a tested agent's files when they would unpack to more
+  than the bench keeps.
+- Wallet Bench's scores and downloads count toward the same per-minute request
+  allowance as the API.
+- Publishing a Result is no longer, on rare occasions, refused for naming a
+  place on your own machine when it named none.
+- Browsers asking for /favicon.ico get Techtree's icon.
 
 ## Website (2026-10-19)
 
