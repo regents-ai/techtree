@@ -19,6 +19,8 @@
 - Wallet Bench's recorded files also hide BMP, TIFF, AVIF, HEIC and SVG
   pictures and PDFs shown inside a tested agent's output, in either base64
   alphabet and with indented lines.
+- A hidden email address or key at the start of a line no longer breaks the
+  recorded file it sits in, and long outputs are checked for secrets quickly.
 
 ## Website (2026-10-19)
 
