@@ -51,10 +51,11 @@ defmodule Techtree.WalletBench.Blank do
   # AVIF's and HEIC's a box length, before the fixed part), then at least 100
   # more of its characters, read possessively so a picture of any size is matched whole.
   # Its lines may break as written (`\n`) or escaped inside JSON, once or more
-  # (`\\n`, a `/` as `\\/`), and it may follow such an escape. It takes a
-  # line after a break only when that whole line is base64, so the line after
+  # (`\\n`, a `/` as `\\/`), and it may follow such an escape. It may use
+  # the web-safe alphabet, `-` and `_` for `+` and `/`. It takes a line after
+  # a break only when that whole line is base64, so the line after
   # a picture is never cut short, and padding ends it.
-  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR|Qk(?:[A-Za-z0-9+]|\\*/){6}AAAA|SUkqA|TU0AK|AAAA(?:[A-Za-z0-9+]|\\*/){2}Z0eXB(?:hdmlm|oZWlj|oZWl4|taWYx)|PHN2Z|PD94bWw|JVBERi0)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+/]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?=(?:[A-Za-z0-9+/]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
+  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|(?:\\*/|_)9j(?:\\*/|_)|R0lGOD|UklGR|Qk(?:[A-Za-z0-9+_-]|\\*/){6}AAAA|SUkqA|TU0AK|AAAA(?:[A-Za-z0-9+_-]|\\*/){2}Z0eXB(?:hdmlm|oZWlj|oZWl4|taWYx)|PHN2Z|PD94bWw|JVBERi0)(?=(?:[A-Za-z0-9+/_-]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+/_-]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?=(?:[A-Za-z0-9+/_-]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
 
   # Each escaped `/` or line of a picture is one more step of the match, and
   # the default step limit ends a match silently; ten steps a byte covers any

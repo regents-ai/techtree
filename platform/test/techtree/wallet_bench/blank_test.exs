@@ -138,15 +138,17 @@ defmodule Techtree.WalletBench.BlankTest do
     end
   end
 
+  # Some writers use the web-safe alphabet, `-` and `_` for `+` and `/`, and drop the padding.
   property "a picture written into a transcript is blanked whole, however it is written" do
     check all(
             start <- member_of(@starts),
             rest <- binary(min_length: 80, max_length: 600),
             before <- member_of(["", "screenshot:\n", "1\t"]),
             wrap <- member_of([nil, "\n", "\r\n"]),
-            escape <- member_of([:none, :json, :html_safe])
+            escape <- member_of([:none, :json, :html_safe]),
+            encode <- member_of([&Base.encode64/1, &Base.url_encode64(&1, padding: false)])
           ) do
-      picture = Base.encode64(start <> rest)
+      picture = encode.(start <> rest)
 
       written =
         if wrap,
