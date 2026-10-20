@@ -68,6 +68,23 @@ defmodule Techtree.WalletBench.BlankTest do
     assert blanked =~ "address #{@address} signature #{@signature}"
   end
 
+  # An agent may retype a phrase in its own layout (security assessment of
+  # 19 Oct, finding 5).
+  test "a recovery phrase retyped in capitals or joined by -, | or / is blanked" do
+    words = String.split(@phrase)
+
+    for written <- [
+          Enum.map_join(words, " ", &String.capitalize/1),
+          String.upcase(@phrase),
+          Enum.join(words, "-"),
+          Enum.join(words, " | "),
+          Enum.join(words, "/")
+        ] do
+      assert Blank.blank("phrase: #{written} done", []) ==
+               "phrase: [redacted: recovery phrase] done"
+    end
+  end
+
   # A picture a harness read is written into its output as base64; a screenshot
   # of a recovery phrase would otherwise be published inside the transcript
   # (reviews of 20 Oct, after pictures stopped being recorded as files).

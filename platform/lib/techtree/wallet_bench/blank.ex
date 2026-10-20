@@ -204,12 +204,12 @@ defmodule Techtree.WalletBench.Blank do
     end)
   end
 
-  # A run of recovery-phrase words: consecutive list words separated only by
-  # spaces, line breaks (also as `\n` inside JSON), a word's number, or the
-  # quotes, commas and brackets of a list.
+  # A run of recovery-phrase words, in any case: consecutive list words
+  # separated only by spaces, line breaks (also as `\n` inside JSON), a word's
+  # number, the quotes, commas and brackets of a list, or a `-`, `|` or `/`.
   defp blank_phrases(text) do
     # A word starts after a non-letter, or right after a `\n` or `\t` escape.
-    ~r/(?:(?<=\\[nt])|(?<![A-Za-z\\]))[a-z]{3,8}(?![A-Za-z])/
+    ~r/(?:(?<=\\[nt])|(?<![A-Za-z\\]))[A-Za-z]{3,8}(?![A-Za-z])/
     |> Regex.scan(text, return: :index)
     |> Enum.map(fn [{at, length}] -> {at, length} end)
     |> runs(text, [], [])
@@ -229,7 +229,7 @@ defmodule Techtree.WalletBench.Blank do
 
   defp runs([{at, length} = word | rest], text, run, done) do
     cond do
-      not MapSet.member?(@words, binary_part(text, at, length)) ->
+      not MapSet.member?(@words, String.downcase(binary_part(text, at, length))) ->
         runs(rest, text, [], [run | done])
 
       run == [] or joined?(text, hd(run), word) ->
@@ -242,7 +242,7 @@ defmodule Techtree.WalletBench.Blank do
 
   defp joined?(text, {at, length}, {next, _length}) do
     gap = binary_part(text, at + length, next - at - length)
-    gap =~ ~r/\A(?:\s|\\n|\\t|\\"|\d{1,2}[.):]|[,"'\[\]])+\z/
+    gap =~ ~r/\A(?:\s|\\n|\\t|\\"|\d{1,2}[.):]|[,"'\[\]\-|\/])+\z/
   end
 
   defp mark(label), do: "[redacted: " <> label <> "]"
