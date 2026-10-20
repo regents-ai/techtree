@@ -63,7 +63,10 @@ fail() {
 # Like the deploy (platform/scripts/deploy_site.sh), the build keeps the live
 # image's served files, so it pulls that image from Fly's registry; Docker must
 # be signed in to it (`flyctl auth docker`).
-previous="$(flyctl image show --app techtree-sh --json | jq -er 'map("\(.Registry)/\(.Repository)@\(.Digest)") | unique | .[]')"
+if ! previous="$(flyctl image show --app techtree-sh --json | jq -er 'map("\(.Registry)/\(.Repository)@\(.Digest)") | unique | .[]')"; then
+  echo "Refusing to release: the live image can't be read, so its files can't be kept." >&2
+  exit 1
+fi
 if [[ "$previous" != registry.fly.io/techtree-sh@sha256:* || "$previous" == *$'\n'* ]]; then
   echo "Refusing to release: the machines don't run one readable image, so its files can't be kept:" >&2
   echo "$previous" >&2

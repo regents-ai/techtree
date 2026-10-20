@@ -6,9 +6,10 @@
 # Usage: turn.sh <harness_id> <turn_id> <wall_cap_seconds> <resume_session_id | -> <executable> [help_args...]
 #   expects the prompt at /work/turns/<turn_id>/prompt.txt. help_args default to --help.
 #
-# Writes into the turn folder: start_utc, stream.jsonl (the agent's own output), trajectory.json (Harbor's record of
-# the turn), runner.log, exit_code, end_utc, wall_seconds, wall_cap_seconds, post-turn-inventory.txt, transcript.md,
-# turn-summary.json, tool-calls.json, model-calls.jsonl, verify-install.txt, verify-storage.txt and SHA256SUMS.
+# Writes into the turn folder, beside prompt.txt: start_utc, stream.jsonl (the agent's own output), trajectory.json
+# (Harbor's record of the turn), runner.log, exit_code, end_utc, wall_seconds, wall_cap_seconds,
+# post-turn-inventory.txt, transcript.md, transcript-errors.txt, turn-summary.json, tool-calls.json, model-calls.jsonl,
+# verify-install.txt, verify-storage.txt and SHA256SUMS.
 set -uo pipefail
 source /work/bin/machine/common.sh
 

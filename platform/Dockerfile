@@ -14,8 +14,9 @@ ARG ELIXIR_VERSION=1.19.5
 ARG OTP_VERSION=28.3.1
 ARG DEBIAN_VERSION=trixie-20260610
 ARG TECHTREE_SOURCE_REVISION
-# The image live when this one is built (scripts/deploy_site.sh names it), whose
-# served files this release keeps while a deploy rolls over. Required.
+# The image live when this one is built (platform/scripts/deploy_site.sh and
+# scripts/release.sh name it), whose served files this release keeps while a
+# deploy rolls over. Required.
 ARG PREVIOUS_IMAGE
 
 ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}-slim"

@@ -9,8 +9,8 @@
   reaches 10. The /wallet-bench.json feed carries the same scores.
 - When many people open Wallet Bench's recorded files at the same moment, a
   few are asked to try again in a minute, so the site stays up for everyone.
-- Wallet Bench no longer publishes pictures a tested agent saves on its test
-  machine. Its recorded files are text only, and each opens as text.
+- Wallet Bench no longer records pictures a tested agent saves on its test
+  machine, and a recorded file opens as text.
 - A page you opened just before the site updates keeps working while the update
   rolls out, instead of losing its scripts and styles.
 - In the seconds after the site's database restarts, a page shows its "can't
