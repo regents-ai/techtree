@@ -279,8 +279,8 @@ Once a job has been submitted, five more rules hold:
 |---|---|---|
 | Model | `Qwen/Qwen3.5-9B` @ `c202236235762e1c871ad0ccb60c8ee5ba337b9a` | Apache-2.0, not gated, 9.65B params, 19.3 GB bf16, `Qwen3_5ForConditionalGeneration` with a vision encoder |
 | Text/vision policy | text only; vision encoder frozen and not served | prime-rl LoRA forces `freeze_vision_encoder = true` |
-| Trainer | prime-rl `main` 1e5318108da29d10960e91e54b80305f597de39d (pyproject 0.9.0) | Python 3.12, Linux, CUDA 13, torch ≥ 2.13, transformers 5.6.2 |
-| Evaluator | `verifiers[harbor]` 0.3.2.dev208 | prime-rl main needs ≥ 0.3.2.dev158; stable 0.3.1 is too old |
+| Trainer | prime-rl v0.10.0 9e15490dcab1d506ce3462e69b8aa5dde45c6b3a, `uv.lock` sha256 d3ba57d0b68d01924b1a5c0882c7e8dccda13fdcbd527d7c8913f77d36014919 | Python 3.12, Linux, CUDA 13, torch ≥ 2.13, transformers 5.6.2 |
+| Evaluator | `verifiers[harbor]` e888a719adf328c87f271fba39fbc812ca99677b, prime-rl v0.10.0's `deps/verifiers` | verifiers v0.4.0 and 12 later commits; prime-rl v0.10.0 needs ≥ 0.4.0, whose only interface is `verifiers.v1` |
 | Server | vLLM 0.31.0 (`db9527a46873454610df6dbedf79a36d6bf1a7f6`) | `Qwen3_5ForConditionalGeneration`: LoRA supported |
 | dtype | bf16 for weights, optimization and reduction | prime-rl defaults optimization to fp32; set `optimization_dtype = reduce_dtype = "bfloat16"` |
 | Hardware | 2 × H100 80GB SXM in one Autoresearch batch job, one training, one inference | the adapter in vLLM's format is written only by SFT with online evals (section 7.3) |
@@ -301,7 +301,7 @@ MLP (32 layers):            gate_proj, up_proj, down_proj
 
 Expected matched modules in the text stack: 8×4 + 24×5 + 32×3 = **248**. Vision encoder and the multi-token-prediction layer: **0**.
 
-The check: the trainer's matched module list must equal the expected set exactly, and every adapter tensor must be nonzero in `lora_B` after training. Anything else fails admission, whatever the trainer reported. The M0 dry run (12 Oct 2026) confirmed the module paths. The recipe's targets:
+The check: the trainer's matched module list must equal the expected set exactly, and every adapter tensor must be nonzero in `lora_B` after training. Anything else fails admission, whatever the trainer reported. The M0 dry run (12 Oct 2026, on prime-rl 1e53181) confirmed the module paths; it runs again on v0.10.0 before the pin is used. The recipe's targets:
 
 ```text
 ^model\.language_model\.layers\.\d+\.self_attn\.(q_proj|k_proj|v_proj|o_proj)$

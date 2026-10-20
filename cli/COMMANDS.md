@@ -412,7 +412,7 @@ Three limits are accepted for M0 and are stated here so nobody is surprised by t
 ### regents techtree model-climb capabilities
 
 - **What it does:** says what this machine and this CLI can run: the contract version, the
-  compatibility profiles it knows (M0: Qwen3.5-9B on prime-rl 1e53181), whether Docker is
+  compatibility profiles it knows (M0: Qwen3.5-9B on prime-rl v0.10.0), whether Docker is
   available, and which operations are built.
 - **Who may run it:** anyone.
 - **What it changes:** nothing.
