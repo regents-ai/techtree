@@ -89,10 +89,12 @@ defmodule TechtreeWeb.Endpoint do
     guide: "/llms.txt",
     json_prefixes: ["api", "tools"]
 
-  # One budget per caller, shared by the health check and every `/api` path,
+  # One budget per caller, shared by the health check, every `/api` path,
   # answered or not, except publishing, which `TechtreeWeb.PublicationRate`
-  # counts on its own. Every answer says what is left of it; past it the answer
-  # is 429 with Retry-After. Pages are never counted, and counting never waits.
+  # counts on its own, and the Wallet Bench's scores and downloads, each of
+  # which reads the whole table or a stored file. Every answer says what is
+  # left of it; past it the answer is 429 with Retry-After. Pages are never
+  # counted, and counting never waits.
   plug :limit_rate
 
   # One route reads a request body, and nothing here needs to accept a file. A
@@ -127,6 +129,15 @@ defmodule TechtreeWeb.Endpoint do
         RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
       ["tools", "account" | _] ->
+        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+      [scores] when scores in ["wallet-bench.json", "wallet-bench.md"] ->
+        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+      ["wallet-bench", _id, "evidence" | _] ->
+        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+      ["wallet-bench", _id, "results.zip"] ->
         RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
       ["api" | _] ->

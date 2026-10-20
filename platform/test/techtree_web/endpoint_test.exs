@@ -119,6 +119,37 @@ defmodule TechtreeWeb.EndpointTest do
     end
   end
 
+  # Each of these reads the whole results table or a stored file, so one script
+  # asking for them in a loop is held to the same budget as the API (security
+  # assessment of 19 Oct, finding 2). Pages stay uncounted.
+  describe "the Wallet Bench" do
+    test "scores and downloads count against the default budget", %{conn: conn} do
+      id = Ecto.UUID.generate()
+
+      for path <- ["/wallet-bench.json", "/wallet-bench.md"] do
+        conn = get(conn, path)
+        assert [~s("default";q=) <> _] = get_resp_header(conn, "ratelimit-policy"), path
+      end
+
+      for path <- [
+            "/wallet-bench/#{id}/results.zip",
+            "/wallet-bench/#{id}/evidence/hello/session.jsonl"
+          ] do
+        {404, headers, _page} = assert_error_sent(404, fn -> get(conn, path) end)
+
+        assert {"ratelimit-policy", ~s("default";q=) <> _} =
+                 List.keyfind(headers, "ratelimit-policy", 0),
+               path
+      end
+    end
+
+    test "its page is not counted", %{conn: conn} do
+      conn = get(conn, "/wallet-bench")
+      assert html_response(conn, 200)
+      assert get_resp_header(conn, "ratelimit-policy") == []
+    end
+  end
+
   describe "a static file" do
     test "is served with the refusals a page is served with", %{conn: conn} do
       for path <- ["/favicon.svg", "/favicon-32.png", "/assets/css/site.css"] do

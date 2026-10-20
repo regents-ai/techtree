@@ -652,7 +652,7 @@ defmodule TechtreeWeb.OpenAPI do
             "The budget this request counted against, as \"policy\";q=requests;w=window seconds. " <>
               "Each client address has #{@request_rate_limit[:limit]} requests per " <>
               "#{@request_rate_limit[:window_seconds]} seconds, `default`, shared by the health " <>
-              "check and the API. Publishing and withdrawing count against their own budgets " <>
+              "check, the API and the Wallet Bench's scores and downloads. Publishing and withdrawing count against their own budgets " <>
               "instead: `publication` for each client address and `publication-agent` for " <>
               "each paired agent.",
           "schema" => %{"type" => "string"},

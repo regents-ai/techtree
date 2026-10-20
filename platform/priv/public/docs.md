@@ -76,7 +76,7 @@ An unknown address under `/api` answers JSON 404 whatever the `Accept` header sa
 
 ## Rate limits
 
-Each client address has {{request_limit}} requests per {{request_window}} seconds, shared by `/healthz`, the API and signed `/tools/account` reads. Publishing or withdrawing a Result has a budget of its own, {{publication_limit}} per {{publication_window}} seconds, and does not count against the first. Pages are not counted. Every answer says where you stand:
+Each client address has {{request_limit}} requests per {{request_window}} seconds, shared by `/healthz`, the API, signed `/tools/account` reads and the Wallet Bench's scores (`/wallet-bench.json`, `/wallet-bench.md`) and downloads. Publishing or withdrawing a Result has a budget of its own, {{publication_limit}} per {{publication_window}} seconds, and does not count against the first. Pages are not counted. Every answer says where you stand:
 
 ```http
 RateLimit-Policy: "default";q={{request_limit}};w={{request_window}}

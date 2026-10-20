@@ -4,7 +4,8 @@ defmodule Techtree.RateLimit do
 
   Two budgets are counted here: publishing a run, which a person does a handful
   of times an hour (`TechtreeWeb.PublicationRate`), and every other request to
-  the health check and the API (`TechtreeWeb.Endpoint`). Neither is a defence
+  the health check, the API and the Wallet Bench's scores and downloads
+  (`TechtreeWeb.Endpoint`). Neither is a defence
   against a determined attacker — nothing counted per address ever is — it is
   what stops one broken script from filling the log or crowding out everybody
   else while somebody works out what it is doing.
