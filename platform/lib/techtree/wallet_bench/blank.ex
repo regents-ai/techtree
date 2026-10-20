@@ -7,8 +7,9 @@ defmodule Techtree.WalletBench.Blank do
   operator keys regardless of what the agent left on disk. Each is
   blanked as written and as it appears inside a JSON string, and the blank
   names the file it came from. Then every picture written out as base64 text
-  (PNG, JPEG, GIF or WebP, as a harness shows one it read), since a screenshot
-  can hold a secret no other rule sees. Then patterns: PEM and PGP private keys, sign-in links
+  (PNG, JPEG, GIF, WebP, BMP, TIFF, AVIF, HEIC or SVG, as a harness shows one
+  it read, and PDF, which can carry one), since a screenshot can hold a secret
+  no other rule sees. Then patterns: PEM and PGP private keys, sign-in links
   that carry a code, email addresses, API keys with a vendor's prefix (Anthropic,
   OpenAI, Bankr, Zerion, Privy, Circle), the Open Wallet Standard's agent token
   (Zerion's signing token), 32-byte hex values with or without `0x` (a
@@ -46,13 +47,14 @@ defmodule Techtree.WalletBench.Blank do
     {~r/\[\s*(?:\d{1,3}\s*,\s*){63}\d{1,3}\s*\]/, "Solana private key"}
   ]
 
-  # A picture written out as base64: its start, then at least 100 more of its
-  # characters, read possessively so a picture of any size is matched whole.
+  # A picture written out as base64: its start (BMP's carries its size, and
+  # AVIF's and HEIC's a box length, before the fixed part), then at least 100
+  # more of its characters, read possessively so a picture of any size is matched whole.
   # Its lines may break as written (`\n`) or escaped inside JSON, once or more
   # (`\\n`, a `/` as `\\/`), and it may follow such an escape. It takes a
   # line after a break only when that whole line is base64, so the line after
   # a picture is never cut short, and padding ends it.
-  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+/]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?=(?:[A-Za-z0-9+/]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
+  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR|Qk(?:[A-Za-z0-9+]|\\*/){6}AAAA|SUkqA|TU0AK|AAAA(?:[A-Za-z0-9+]|\\*/){2}Z0eXB(?:hdmlm|oZWlj|oZWl4|taWYx)|PHN2Z|PD94bWw|JVBERi0)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+/]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?=(?:[A-Za-z0-9+/]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
 
   # Each escaped `/` or line of a picture is one more step of the match, and
   # the default step limit ends a match silently; ten steps a byte covers any

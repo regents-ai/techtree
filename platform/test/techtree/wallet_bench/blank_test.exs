@@ -119,7 +119,17 @@ defmodule Techtree.WalletBench.BlankTest do
     <<0x89, "PNG\r\n", 0x1A, "\n">>,
     <<0xFF, 0xD8, 0xFF, 0xE0>>,
     "GIF89a",
-    "RIFF" <> <<0, 0, 0, 0>> <> "WEBP"
+    "RIFF" <> <<0, 0, 0, 0>> <> "WEBP",
+    "BM" <> <<1234::little-32, 0::32>>,
+    "BM" <> <<0xFFFFFF::little-32, 0::32>>,
+    "II*" <> <<0>>,
+    "MM" <> <<0, 42>>,
+    <<0, 0, 0, 0x1C>> <> "ftypavif",
+    <<0, 0, 0, 0x18>> <> "ftypheic",
+    <<0, 0, 0, 0x1F>> <> "ftypmif1",
+    "<svg xmlns=\"http://www.w3.org/2000/svg\">",
+    "<?xml version=\"1.0\"?>",
+    "%PDF-1.7\n"
   ]
 
   defp refute_any_of(blanked, picture) do
