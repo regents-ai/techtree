@@ -60,7 +60,7 @@ defmodule Techtree.WalletBench.Blank do
   # a break, indented or not, only when the rest of that line is base64 and not
   # a `0x` hex value (an address, key or hash keeps its own rule), so the line
   # after a picture is never cut short, and padding ends it.
-  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|(?:\\*/|_)9j(?:\\*/|_)|R0lGOD|UklGR|Qk(?:[A-Za-z0-9+_-]|\\*/){6}AAAA|SUkqA|TU0AK|AAAA(?:[A-Za-z0-9+_-]|\\*/){2}Z0eXB(?:hdmlm|oZWlj|oZWl4|taWYx)|PHN2Z|PD94bWw|JVBERi0)(?=(?:[A-Za-z0-9+/_-]|\\+/|\\+[rnt]|[ \t]|\r?\n){100})(?:[A-Za-z0-9+/_-]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?:[ \t]|\\+t)*+(?!0x[0-9a-fA-F]++(?:\\+[rn]|[\r\n]|\\*\"|$))(?=(?:[A-Za-z0-9+/_-]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
+  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|(?:\\*/|_)9j(?:\\*/|_)|R0lGOD|UklGR|Qk(?:[A-Za-z0-9+_-]|\\*/){6}AAAA|SUkqA|SUkrA|TU0AK|AAAA(?:[A-Za-z0-9+_-]|\\*/){2}Z0eXB(?:hdml[mz]|oZWl[j4tz]|oZXZ[j4]|taWYx|tc2Yx)|PHN2Z|PCFET0NUWVBFIHN2Z|PD94bWw|JVBERi0)(?=(?:[A-Za-z0-9+/_-]|\\+/|\\+[rnt]|[ \t]|\r?\n){100})(?:[A-Za-z0-9+/_-]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?:[ \t]|\\+t)*+(?!0x[0-9a-fA-F]++(?:\\+[rn]|[\r\n]|\\*\"|$))(?=(?:[A-Za-z0-9+/_-]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
 
   # Each escaped `/` or line of a picture is one more step of the match, and
   # the default step limit ends a match silently; ten steps a byte covers any
