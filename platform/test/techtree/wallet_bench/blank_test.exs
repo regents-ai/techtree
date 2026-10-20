@@ -212,6 +212,23 @@ defmodule Techtree.WalletBench.BlankTest do
     assert blanked == ~s({"out": "[redacted: picture]\\n[redacted: API key]"})
   end
 
+  # An address, key or hash alone on the line after an unpadded picture is base64
+  # too, but keeps its own rule: the judge checks the address and needs the kind.
+  test "a 0x value on the line after an unpadded picture keeps its own rule" do
+    picture = Base.encode64(hd(@starts) <> :binary.copy(<<9>>, 103))
+    refute String.ends_with?(picture, "=")
+    key = "0x" <> String.duplicate("1f", 32)
+    hex = "[redacted: 32-byte hex value: a private key or a hash]"
+
+    for indent <- ["", "  "] do
+      assert Blank.blank("#{picture}\n#{indent}#{@address}\n#{indent}#{key}\n", []) ==
+               "[redacted: picture]\n#{indent}#{@address}\n#{indent}#{hex}\n"
+
+      assert Blank.blank(Jason.encode!(%{"o" => "#{picture}\n#{indent}#{@address}"}), []) ==
+               Jason.encode!(%{"o" => "[redacted: picture]\n#{indent}#{@address}"})
+    end
+  end
+
   # A known secret can start with letters a picture uses and hold a quote; it
   # is blanked whole before the picture rule reads the line it starts.
   test "a password with a quote on the line after an unpadded picture is blanked whole" do
