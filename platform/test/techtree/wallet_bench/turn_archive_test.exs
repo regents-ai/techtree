@@ -42,6 +42,23 @@ defmodule Techtree.WalletBench.TurnArchiveTest do
     assert {:error, "The turn's archive did not decode."} = TurnArchive.unpack("%%%")
   end
 
+  test "an archive cut short is refused" do
+    compressed = Base.decode64!(archive(%{"session.jsonl" => "a turn's words\n"}))
+    cut = binary_part(compressed, 0, byte_size(compressed) - 8)
+
+    assert {:error, "The turn's archive did not unpack: " <> _} =
+             TurnArchive.unpack(Base.encode64(cut))
+  end
+
+  test "an archive of more files than a turn records is refused" do
+    files = Map.new(1..257, &{"empty-#{&1}", ""})
+
+    assert {:error, "The turn's archive holds more than 256 files, over its limit."} =
+             TurnArchive.unpack(archive(files))
+
+    assert {:ok, _files} = TurnArchive.unpack(archive(Map.new(1..256, &{"empty-#{&1}", ""})))
+  end
+
   test "a file whose name could reach outside its folder is refused" do
     assert {:error, "The turn's archive holds a file whose name can't be kept: " <> _} =
              TurnArchive.unpack(archive(%{"what?" => "x"}))

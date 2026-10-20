@@ -5,14 +5,17 @@ defmodule Techtree.WalletBench.TurnArchive do
   The machine refuses to pack a folder over 20 MB, but the tested agent controls
   the machine, so the app does not trust that check: it unpacks the archive only
   while what comes out stays within the folder limit (plus room for the tar's
-  own headers), however small the archive was. Every file keeps a name that is
-  safe to unpack anywhere (`Techtree.WalletBench.Evidence.file_name?/1`), and no
-  two files share one; an archive that breaks either is not kept.
+  own headers), however small the archive was, and keeps at most 256 files.
+  Every file keeps a name that is safe to unpack anywhere
+  (`Techtree.WalletBench.Evidence.file_name?/1`), and no two files share one;
+  an archive that breaks either is not kept.
   """
 
   alias Techtree.WalletBench.Evidence
 
   @max_folder_bytes 20_000_000
+  # A turn records a handful of files; each one is blanked and stored on its own.
+  @max_files 256
   # Each file in a tar adds a 512-byte header and pads its bytes to 512.
   @max_tar_bytes @max_folder_bytes + 1_000_000
   # gzip can grow incompressible bytes a little, then base64 adds a third.
@@ -74,7 +77,10 @@ defmodule Techtree.WalletBench.TurnArchive do
         {:error,
          "The turn's archive unpacks to more than #{div(@max_tar_bytes, 1_000_000)} MB, over its limit."}
 
+      # Checks the stream's own length and checksum: a cut-short archive
+      # also stops at its end, and raises here.
       state == :finished ->
+        :ok = :zlib.inflateEnd(z)
         {:ok, IO.iodata_to_binary(Enum.reverse([out | pieces]))}
 
       true ->
@@ -84,6 +90,9 @@ defmodule Techtree.WalletBench.TurnArchive do
 
   defp names_kept(names) do
     cond do
+      length(names) > @max_files ->
+        {:error, "The turn's archive holds more than #{@max_files} files, over its limit."}
+
       unsafe = Enum.find(names, &(not Evidence.file_name?(&1))) ->
         {:error, "The turn's archive holds a file whose name can't be kept: #{inspect(unsafe)}."}
 
