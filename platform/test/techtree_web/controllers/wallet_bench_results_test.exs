@@ -168,6 +168,29 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     end
   end
 
+  # A picture a tested agent saved went out unchecked for secrets (security
+  # assessment of 19 Oct, finding 1). One already on record is sent as plain
+  # text, so it never shows as a picture.
+  test "a recorded picture is sent as plain text", %{conn: conn, tests: tests, files: files} do
+    png = <<0x89, "PNG\r\n", 0x1A, "\n", 0, 0, 0, 13, "IHDR", 0, 0, 0, 1, 0, 0, 0, 1>>
+    sha256 = Base.encode16(:crypto.hash(:sha256, png), case: :lower)
+
+    Techtree.Repo.query!(
+      """
+      UPDATE wallet_bench_turns
+      SET evidence = evidence || jsonb_build_object('image-0.png', jsonb_build_object('bytes', $2::int, 'sha256', $3::text))
+      WHERE attempt_id = $1 AND test = 'T1a'
+      """,
+      [Ecto.UUID.dump!(tests.passed.id), byte_size(png), sha256]
+    )
+
+    store(Map.put(files, Evidence.turn_key(tests.passed.id, "T1a", "image-0.png"), png))
+    conn = get(conn, "/wallet-bench/#{tests.passed.id}/evidence/T1a/image-0.png")
+
+    assert response(conn, 200) == png
+    assert get_resp_header(conn, "content-type") == ["text/plain; charset=utf-8"]
+  end
+
   # results.json names every field it carries, at every level; whatever else the
   # bench keeps on a test stays out of the download.
   test "only the named fields reach results.json", %{conn: conn, tests: tests, files: files} do

@@ -8,10 +8,10 @@ defmodule Techtree.WalletBench.EvidenceNamesTest do
 
   alias Techtree.WalletBench.Evidence
 
-  test "names the bench writes, and an agent's own picture, are kept" do
+  test "names the bench writes, and a name with a space, are kept" do
     for name <-
           ~w(session.jsonl install.log turn-summary.json exit_code model-calls.jsonl) ++
-            ["self portrait.png"] do
+            ["turn notes.txt"] do
       assert Evidence.file_name?(name), name
     end
   end

@@ -1,8 +1,6 @@
 defmodule TechtreeWeb.WalletBenchEvidenceController do
   @moduledoc """
-  One recorded file of a wallet test: an image the agent saved as that image,
-  when its own bytes say it is one of that kind, and everything else as plain
-  text.
+  One recorded file of a wallet test, as plain text.
 
   Only a file the turn recorded is served: the turn and file names are looked
   up in the turn's own list, never used as a path, and the bytes read back
@@ -18,10 +16,10 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
 
   @load [:machine, :turns, :payments, :model_spend_usd, :judge_cost_usd]
 
-  # The type is one of four fixed values, chosen from the stored file's own header and never from the request; an
-  # image or plain text runs no script, and the site sends nosniff and its CSP with every answer. A file is held
-  # whole while it is sent, so it takes one of the machine's download places like a zip.
-  # sobelow_skip ["XSS.ContentType", "XSS.SendResp"]
+  # Every file goes out as plain text, which runs no script and shows no picture, and the site sends nosniff and its
+  # CSP with every answer. A file is held whole while it is sent, so it takes one of the machine's download places like
+  # a zip.
+  # sobelow_skip ["XSS.SendResp"]
   def show(conn, %{"id" => id, "turn" => turn_name, "file" => file}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, attempt} <- WalletBench.get_attempt(id, load: [:turns]),
@@ -31,7 +29,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
         {:ok, body} = Evidence.recorded(turn, file)
 
         conn
-        |> put_resp_content_type(content_type(file, body), nil)
+        |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
       end)
     else
@@ -208,15 +206,5 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
           }
         end
     }
-  end
-
-  # The same headers the machine's image_type.py reads.
-  defp content_type(file, body) do
-    case {Path.extname(file), body} do
-      {".png", <<0x89, "PNG\r\n", 0x1A, "\n", _rest::binary>>} -> "image/png"
-      {ext, <<0xFF, 0xD8, _rest::binary>>} when ext in [".jpg", ".jpeg"] -> "image/jpeg"
-      {".webp", <<"RIFF", _size::binary-size(4), "WEBP", _rest::binary>>} -> "image/webp"
-      _text -> "text/plain; charset=utf-8"
-    end
   end
 end
