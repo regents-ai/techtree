@@ -6,7 +6,9 @@ defmodule Techtree.WalletBench.Blank do
   secret-looking files (`machine/secrets.py`), the model key and supplied
   operator keys regardless of what the agent left on disk. Each is
   blanked as written and as it appears inside a JSON string, and the blank
-  names the file it came from. Then patterns: PEM private keys, sign-in links
+  names the file it came from. Then patterns: pictures written out as base64
+  text (PNG, JPEG, GIF or WebP, as a harness shows one it read), since a
+  screenshot can hold a secret no other rule sees; PEM private keys, sign-in links
   that carry a code, email addresses, API keys with a vendor's prefix (Anthropic,
   OpenAI, Bankr, Zerion, Privy, Circle), the Open Wallet Standard's agent token
   (Zerion's signing token), 32-byte hex values with or without `0x` (a
@@ -29,6 +31,9 @@ defmodule Techtree.WalletBench.Blank do
   @phrase_length 12
 
   @patterns [
+    # A JPEG's `/9j/` start may be written `\/9j\/` inside JSON.
+    {~r"(?<![A-Za-z0-9+/])(?:iVBORw0KGg|\\?/9j\\?/|R0lGOD|UklGR)(?:[A-Za-z0-9+/=]|\\/|\\[rn]){100,}",
+     "picture"},
     {~r/-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----/s, "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
     {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},

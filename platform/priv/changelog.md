@@ -1,5 +1,12 @@
 # Changelog
 
+## Website (2026-10-20)
+
+### Changed
+
+- Wallet Bench's recorded files hide any picture shown inside a tested agent's
+  own output, as they already hide keys and recovery phrases.
+
 ## Website (2026-10-19)
 
 ### Changed

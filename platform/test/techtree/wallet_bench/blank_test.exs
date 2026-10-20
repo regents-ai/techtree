@@ -3,6 +3,7 @@ defmodule Techtree.WalletBench.BlankTest do
   # published. Every known secret and every secret pattern is blanked, also
   # inside JSON strings, while the address and signature the judge checks stay.
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
   alias Techtree.WalletBench.Blank
 
@@ -61,5 +62,44 @@ defmodule Techtree.WalletBench.BlankTest do
     assert blanked =~ "[redacted: password, from /home/bench/.foundry/recovery/w.password]"
     assert blanked =~ "[redacted: recovery phrase]"
     assert blanked =~ "address #{@address} signature #{@signature}"
+  end
+
+  # A picture a harness read is written into its output as base64; a screenshot
+  # of a recovery phrase would otherwise be published inside the transcript
+  # (review of 20 Oct, after pictures stopped being recorded as files).
+  property "a picture written into a transcript is blanked whole, however it is escaped" do
+    check all(
+            start <-
+              member_of([
+                <<0x89, "PNG\r\n", 0x1A, "\n">>,
+                <<0xFF, 0xD8, 0xFF, 0xE0>>,
+                "GIF89a",
+                "RIFF" <> <<0, 0, 0, 0>> <> "WEBP"
+              ]),
+            rest <- binary(min_length: 80, max_length: 600),
+            lines? <- boolean(),
+            escape <- member_of([:json, :html_safe])
+          ) do
+      picture = Base.encode64(start <> rest)
+
+      written =
+        if lines?,
+          do:
+            picture
+            |> String.codepoints()
+            |> Enum.chunk_every(76)
+            |> Enum.map_join("\n", &Enum.join/1),
+          else: picture
+
+      text =
+        ~s({"type":"tool_result","content":) <>
+          Jason.encode!(%{"data" => written, "note" => "kept"}, escape: escape) <> "}"
+
+      blanked = Blank.blank(text, [])
+
+      assert blanked =~ "[redacted: picture]"
+      refute blanked =~ String.slice(picture, 8, 24)
+      assert blanked =~ ~s("note":"kept")
+    end
   end
 end
