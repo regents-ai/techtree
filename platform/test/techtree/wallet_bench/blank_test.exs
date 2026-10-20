@@ -66,40 +66,70 @@ defmodule Techtree.WalletBench.BlankTest do
 
   # A picture a harness read is written into its output as base64; a screenshot
   # of a recovery phrase would otherwise be published inside the transcript
-  # (review of 20 Oct, after pictures stopped being recorded as files).
-  property "a picture written into a transcript is blanked whole, however it is escaped" do
+  # (reviews of 20 Oct, after pictures stopped being recorded as files).
+  @starts [
+    <<0x89, "PNG\r\n", 0x1A, "\n">>,
+    <<0xFF, 0xD8, 0xFF, 0xE0>>,
+    "GIF89a",
+    "RIFF" <> <<0, 0, 0, 0>> <> "WEBP"
+  ]
+
+  defp refute_any_of(blanked, picture) do
+    for piece <- picture |> String.codepoints() |> Enum.chunk_every(16, 16, :discard) do
+      refute blanked =~ Enum.join(piece), "part of the picture survived blanking"
+    end
+  end
+
+  property "a picture written into a transcript is blanked whole, however it is written" do
     check all(
-            start <-
-              member_of([
-                <<0x89, "PNG\r\n", 0x1A, "\n">>,
-                <<0xFF, 0xD8, 0xFF, 0xE0>>,
-                "GIF89a",
-                "RIFF" <> <<0, 0, 0, 0>> <> "WEBP"
-              ]),
+            start <- member_of(@starts),
             rest <- binary(min_length: 80, max_length: 600),
-            lines? <- boolean(),
-            escape <- member_of([:json, :html_safe])
+            before <- member_of(["", "screenshot:\n", "1\t"]),
+            wrap <- member_of([nil, "\n", "\r\n"]),
+            escape <- member_of([:none, :json, :html_safe])
           ) do
       picture = Base.encode64(start <> rest)
 
       written =
-        if lines?,
+        if wrap,
           do:
             picture
             |> String.codepoints()
             |> Enum.chunk_every(76)
-            |> Enum.map_join("\n", &Enum.join/1),
+            |> Enum.map_join(wrap, &Enum.join/1),
           else: picture
 
       text =
-        ~s({"type":"tool_result","content":) <>
-          Jason.encode!(%{"data" => written, "note" => "kept"}, escape: escape) <> "}"
+        case escape do
+          :none ->
+            before <> written <> " kept"
+
+          escape ->
+            Jason.encode!(%{"data" => before <> written, "note" => "kept"}, escape: escape)
+        end
 
       blanked = Blank.blank(text, [])
 
       assert blanked =~ "[redacted: picture]"
-      refute blanked =~ String.slice(picture, 8, 24)
-      assert blanked =~ ~s("note":"kept")
+      assert blanked =~ "kept"
+      refute_any_of(blanked, String.replace(picture, "/", ""))
+      if escape != :none, do: assert({:ok, _} = Jason.decode(blanked))
     end
+  end
+
+  test "a picture of several megabytes is blanked whole" do
+    picture = Base.encode64(hd(@starts) <> :binary.copy(<<1, 2, 3>>, 2_200_000))
+    blanked = Blank.blank(~s({"data": "#{picture}"}), [])
+
+    assert blanked == ~s({"data": "[redacted: picture]"})
+  end
+
+  # Inside JSON the line break is the escape `\n`, which a picture's own lines may use too.
+  test "the line after a padded picture stays" do
+    picture = Base.encode64(hd(@starts) <> :binary.copy(<<7>>, 101))
+    assert String.ends_with?(picture, "=")
+
+    assert Blank.blank(~s({"out": "#{picture}\\n#{@address} sent"}), []) ==
+             ~s({"out": "[redacted: picture]\\n#{@address} sent"})
   end
 end

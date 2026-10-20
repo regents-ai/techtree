@@ -2,13 +2,13 @@ defmodule Techtree.WalletBench.Blank do
   @moduledoc """
   Blanks secrets out of a turn's evidence before anything is stored.
 
-  First every known secret: each value read from the tested account's
+  First every picture written out as base64 text (PNG, JPEG, GIF or WebP, as
+  a harness shows one it read), since a screenshot can hold a secret no other
+  rule sees. Then every known secret: each value read from the tested account's
   secret-looking files (`machine/secrets.py`), the model key and supplied
   operator keys regardless of what the agent left on disk. Each is
   blanked as written and as it appears inside a JSON string, and the blank
-  names the file it came from. Then patterns: pictures written out as base64
-  text (PNG, JPEG, GIF or WebP, as a harness shows one it read), since a
-  screenshot can hold a secret no other rule sees; PEM private keys, sign-in links
+  names the file it came from. Then patterns: PEM private keys, sign-in links
   that carry a code, email addresses, API keys with a vendor's prefix (Anthropic,
   OpenAI, Bankr, Zerion, Privy, Circle), the Open Wallet Standard's agent token
   (Zerion's signing token), 32-byte hex values with or without `0x` (a
@@ -31,9 +31,6 @@ defmodule Techtree.WalletBench.Blank do
   @phrase_length 12
 
   @patterns [
-    # A JPEG's `/9j/` start may be written `\/9j\/` inside JSON.
-    {~r"(?<![A-Za-z0-9+/])(?:iVBORw0KGg|\\?/9j\\?/|R0lGOD|UklGR)(?:[A-Za-z0-9+/=]|\\/|\\[rn]){100,}",
-     "picture"},
     {~r/-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----/s, "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
     {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},
@@ -47,6 +44,13 @@ defmodule Techtree.WalletBench.Blank do
      "64-byte base58 value: a Solana private key or signature"},
     {~r/\[\s*(?:\d{1,3}\s*,\s*){63}\d{1,3}\s*\]/, "Solana private key"}
   ]
+
+  # A picture written out as base64: its start, then at least 100 more of its
+  # characters, read possessively so a picture of any size is matched whole.
+  # Its lines may break as written (`\n`) or escaped inside JSON, once or more
+  # (`\\n`, a `/` as `\\/`), and it may follow such an escape. Padding ends
+  # it; an unpadded picture may take the first word of the line after it.
+  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+]++|\\*/|\\+[rn]|\r?\n)*+=*"
 
   @type known :: {value :: String.t(), label :: String.t()}
 
@@ -126,9 +130,15 @@ defmodule Techtree.WalletBench.Blank do
     end
   end
 
-  @doc "Blanks every known secret, then every pattern, in `text`."
+  @doc """
+  Blanks every picture, then every known secret, then every pattern, in
+  `text`. Pictures go first, so a known value that happens to sit inside one
+  cannot cut it in two.
+  """
   @spec blank(String.t(), [known()]) :: String.t()
   def blank(text, known) do
+    text = Regex.replace(@picture, text, mark("picture"))
+
     known
     |> Enum.flat_map(fn {value, label} -> Enum.map(forms(value), &{&1, label}) end)
     |> Enum.sort_by(fn {value, _label} -> -byte_size(value) end)
