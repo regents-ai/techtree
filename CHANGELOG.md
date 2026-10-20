@@ -4,6 +4,12 @@
 
 ### Changed
 
+- A shared Techtree link shows a new picture in the Canopy colours, with the
+  Regents cut corners and their Tangerine and Powder Blue marks. Its words and
+  techtree.sh now sit in the left part of the picture, which is all X shows on
+  a phone, and clear of the bottom-left corner, where X writes the site's
+  name. Before, the headline ran past that part and techtree.sh sat at the
+  top right, out of view on a phone.
 - Wallet Bench's recorded files hide any picture shown inside a tested agent's
   own output, as they already hide keys and recovery phrases.
 - Wallet Bench's recorded files hide PGP private keys too.
