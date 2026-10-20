@@ -11,7 +11,8 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   A turn whose runner was lost (the machine restarted) or ended badly is
   `failed` at once, with the end of its log, blanked the same way. A turn
   folder over 20 MB is not brought back: the machine refuses to pack it and the
-  turn fails with that reason. Storing again replaces the same keys with the
+  turn fails with that reason, and the app refuses an archive that unpacks to
+  more (`Techtree.WalletBench.TurnArchive`). Storing again replaces the same keys with the
   same bytes.
   """
 
@@ -19,12 +20,9 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
 
   import Techtree.WalletBench.Attempt.Changes.RecordEvent, only: [put_detail: 2]
 
-  alias Techtree.WalletBench.{Attempt, Blank, Catalog, Evidence, Remote}
+  alias Techtree.WalletBench.{Attempt, Blank, Catalog, Evidence, Remote, TurnArchive}
 
   @wait_seconds 30
-  @max_folder_bytes 20_000_000
-  # The archive is gzip then base64; gzip can grow incompressible bytes a little.
-  @max_encoded_bytes div(@max_folder_bytes * 4, 3) + 1_000_000
 
   @impl true
   def change(changeset, _opts, _context) do
@@ -82,12 +80,13 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
 
   defp collect(attempt, folder) do
     name = attempt.machine.name
+    max_bytes = TurnArchive.max_folder_bytes()
 
     archive = """
     set -euo pipefail
     size=$(du -sb "/work/turns/$1" | cut -f1)
-    if [ "$size" -gt #{@max_folder_bytes} ]; then
-      echo "The turn's folder holds $size bytes, over the #{div(@max_folder_bytes, 1_000_000)} MB limit." >&2
+    if [ "$size" -gt #{max_bytes} ]; then
+      echo "The turn's folder holds $size bytes, over the #{div(max_bytes, 1_000_000)} MB limit." >&2
       exit 3
     fi
     tar -C "/work/turns/$1" -czf - . | base64 -w0
@@ -95,7 +94,7 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
 
     with {:ok, encoded} <-
            Remote.run(name, ["bash", "-c", archive, "bash", folder], receive_timeout: 180_000),
-         {:ok, files} <- unpack(encoded),
+         {:ok, files} <- TurnArchive.unpack(encoded),
          {:ok, known, secret_files} <- known_secrets(name) do
       blanked = Map.new(files, fn {file, content} -> {file, Blank.blank(content, known)} end)
 
@@ -111,40 +110,6 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
            Remote.json(name, ["sudo", "/.sprite/bin/python3", "/work/bin/machine/secrets.py"]) do
       known = Blank.site_known() ++ Blank.known(nil, secret_files)
       {:ok, known, secret_files}
-    end
-  end
-
-  defp unpack(encoded) when byte_size(encoded) > @max_encoded_bytes,
-    do: {:error, "The turn's archive is #{byte_size(encoded)} bytes, over its limit."}
-
-  # Every file keeps a name that is safe to unpack anywhere (Evidence.file_name?/1),
-  # and no two files share one; a turn whose archive breaks either is not kept.
-  defp unpack(encoded) do
-    with {:ok, archive} <- Base.decode64(encoded),
-         {:ok, entries} <- :erl_tar.extract({:binary, archive}, [:compressed, :memory]),
-         files =
-           Enum.map(entries, fn {name, content} ->
-             {name |> to_string() |> Path.basename(), content}
-           end),
-         :ok <- names_kept(Enum.map(files, &elem(&1, 0))) do
-      {:ok, Map.new(files)}
-    else
-      :error -> {:error, "The turn's archive did not decode."}
-      {:error, reason} when is_binary(reason) -> {:error, reason}
-      {:error, reason} -> {:error, "The turn's archive did not unpack: #{inspect(reason)}"}
-    end
-  end
-
-  defp names_kept(names) do
-    cond do
-      unsafe = Enum.find(names, &(not Evidence.file_name?(&1))) ->
-        {:error, "The turn's archive holds a file whose name can't be kept: #{inspect(unsafe)}."}
-
-      length(Enum.uniq(names)) != length(names) ->
-        {:error, "The turn's archive holds two files with the same name."}
-
-      true ->
-        :ok
     end
   end
 
