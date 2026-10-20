@@ -35,14 +35,18 @@ defmodule Techtree.WalletBench.Blank do
     {~r/-----BEGIN [A-Z ]*PRIVATE KEY[A-Z ]*-----.*?-----END [A-Z ]*PRIVATE KEY[A-Z ]*-----/s,
      "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
-    {~r/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/, "email address"},
+    # An address starts where its characters do, or after an escape, never on
+    # the escape's letter; read possessively, each start is tried once.
+    {~r/(?:(?<=\\[nrt])|(?<![A-Za-z0-9._%+\-\\])|(?<=\\)(?![nrt]))[A-Za-z0-9._%+-]++@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/,
+     "email address"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
      "API key"},
     # The Open Wallet Standard's agent token, which Zerion keeps in its config: it signs without the passphrase.
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))ows_key_[A-Za-z0-9_]{16,}/, "wallet agent token"},
     {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:0x)?[0-9a-fA-F]{64}(?![0-9A-Za-z])/,
      "32-byte hex value: a private key or a hash"},
-    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))[1-9A-HJ-NP-Za-km-z]{86,90}(?![0-9A-Za-z])/,
+    # `n`, `r` and `t` are base58 letters too, so an escape's letter is never a start.
+    {~r/(?:(?<=\\[nrt])|(?<![0-9A-Za-z\\])|(?<=\\)(?![nrt]))[1-9A-HJ-NP-Za-km-z]{86,90}(?![0-9A-Za-z])/,
      "64-byte base58 value: a Solana private key or signature"},
     {~r/\[\s*(?:\d{1,3}\s*,\s*){63}\d{1,3}\s*\]/, "Solana private key"}
   ]
@@ -60,8 +64,8 @@ defmodule Techtree.WalletBench.Blank do
 
   # Each escaped `/` or line of a picture is one more step of the match, and
   # the default step limit ends a match silently; ten steps a byte covers any
-  # text, and a text that still reaches the limit raises rather than keep a picture.
-  @picture_steps_per_byte 10
+  # text, and a text that still reaches the limit raises rather than keep a secret.
+  @steps_per_byte 10
 
   @type known :: {value :: String.t(), label :: String.t()}
 
@@ -152,29 +156,29 @@ defmodule Techtree.WalletBench.Blank do
     |> Enum.flat_map(fn {value, label} -> Enum.map(forms(value), &{&1, label}) end)
     |> Enum.sort_by(fn {value, _label} -> -byte_size(value) end)
     |> Enum.reduce(text, fn {value, label}, text -> String.replace(text, value, mark(label)) end)
-    |> blank_pictures()
+    |> blank_all(@picture, "picture")
     |> blank_patterns()
     |> blank_phrases()
   end
 
-  defp blank_pictures(text) do
-    steps = max(10_000_000, @picture_steps_per_byte * byte_size(text))
-    options = [:global, :report_errors, match_limit: steps, capture: :first]
+  defp blank_all(text, regex, label) do
+    steps = max(10_000_000, @steps_per_byte * byte_size(text))
+    options = Regex.opts(regex) ++ [:global, :report_errors, match_limit: steps, capture: :first]
 
-    case :re.run(text, Regex.source(@picture), options) do
+    case :re.run(text, Regex.source(regex), options) do
       :nomatch ->
         text
 
-      {:match, pictures} ->
+      {:match, found} ->
         {kept, from} =
-          Enum.reduce(pictures, {[], 0}, fn [{at, length}], {kept, from} ->
-            {[kept, binary_part(text, from, at - from), mark("picture")], at + length}
+          Enum.reduce(found, {[], 0}, fn [{at, length}], {kept, from} ->
+            {[kept, binary_part(text, from, at - from), mark(label)], at + length}
           end)
 
         IO.iodata_to_binary([kept, binary_part(text, from, byte_size(text) - from)])
 
       {:error, reason} ->
-        raise "Blanking pictures stopped (#{inspect(reason)}), so this text is not kept."
+        raise "Blanking stopped at the #{label} rule (#{inspect(reason)}), so this text is not kept."
     end
   end
 
@@ -203,9 +207,7 @@ defmodule Techtree.WalletBench.Blank do
   end
 
   defp blank_patterns(text) do
-    Enum.reduce(@patterns, text, fn {pattern, label}, text ->
-      Regex.replace(pattern, text, mark(label))
-    end)
+    Enum.reduce(@patterns, text, fn {pattern, label}, text -> blank_all(text, pattern, label) end)
   end
 
   # A run of recovery-phrase words, in any case: consecutive list words

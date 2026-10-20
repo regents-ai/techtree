@@ -112,6 +112,36 @@ defmodule Techtree.WalletBench.BlankTest do
     end
   end
 
+  # `n`, `r` and `t` are letters an email address or a base58 key may start
+  # with; the escape's letter stays, so the JSON stays readable.
+  test "a secret right after an escaped line break leaves the JSON whole" do
+    solana = String.duplicate("4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi", 2)
+
+    for {secret, mark} <- [
+          {"someone@example.com", "[redacted: email address]"},
+          {solana, "[redacted: 64-byte base58 value: a Solana private key or signature]"}
+        ],
+        joiner <- ["\n", "\r\n", "\t"],
+        depth <- [1, 2] do
+      inner = "line" <> joiner <> secret
+      text = if depth == 1, do: inner, else: Jason.encode!(inner)
+
+      assert {:ok, %{"o" => blanked}} =
+               Jason.decode(Blank.blank(Jason.encode!(%{"o" => text}), []))
+
+      blanked = if depth == 1, do: blanked, else: Jason.decode!(blanked)
+      assert blanked == "line" <> joiner <> mark
+    end
+  end
+
+  # A long run of an address's characters is read once, not once for each of
+  # its characters: a large output is blanked in moments.
+  @tag timeout: 10_000
+  test "a megabyte of letters before an email address is blanked in moments" do
+    text = String.duplicate("ab-", 350_000) <> " someone@example.com"
+    assert String.ends_with?(Blank.blank(text, []), " [redacted: email address]")
+  end
+
   # A picture a harness read is written into its output as base64; a screenshot
   # of a recovery phrase would otherwise be published inside the transcript
   # (reviews of 20 Oct, after pictures stopped being recorded as files).
