@@ -4,10 +4,12 @@
 #
 # The build context is `git archive` of HEAD's platform/ folder, with HEAD's
 # blog/ and skills/ folders as blog_content/ and skills_content/ beside it, the
-# same folders deploy_site.sh sends. Nothing uncommitted, ignored or outside this repository enters the
-# image. The build reuses no cached layers, and the Dockerfile fetches every
-# dependency at the version the lockfiles pin; the shared libraries'
-# repositories are public, so the build takes no credentials.
+# same folders deploy_site.sh sends. Nothing uncommitted, ignored or
+# outside this repository enters the image. The build reuses no cached layers,
+# and the Dockerfile fetches every dependency at the version the lockfiles pin;
+# the shared libraries' repositories are public. Like the deploy, the build
+# keeps the live image's served files, so it pulls that image from Fly's
+# registry, the one sign-in it needs.
 #
 # The smoke check starts the image, in the staging role, against a throwaway
 # PostgreSQL 17 named as the staging database on its own Docker network, and
@@ -58,13 +60,24 @@ fail() {
   exit 1
 }
 
-echo "==> Building $image from commit $commit"
+# Like the deploy (platform/scripts/deploy_site.sh), the build keeps the live
+# image's served files, so it pulls that image from Fly's registry; Docker must
+# be signed in to it (`flyctl auth docker`).
+previous="$(flyctl image show --app techtree-sh --json | jq -er 'map("\(.Registry)/\(.Repository)@\(.Digest)") | unique | .[]')"
+if [[ "$previous" != registry.fly.io/techtree-sh@sha256:* || "$previous" == *$'\n'* ]]; then
+  echo "Refusing to release: the machines don't run one readable image, so its files can't be kept:" >&2
+  echo "$previous" >&2
+  exit 1
+fi
+
+echo "==> Building $image from commit $commit over the live image $previous"
 git archive --format=tar "$commit:platform" | tar -x -C "$context"
 git archive --format=tar --prefix=blog_content/ "$commit:blog" | tar -x -C "$context"
 git archive --format=tar --prefix=skills_content/ "$commit:skills" | tar -x -C "$context"
 docker build --no-cache \
   --label "org.opencontainers.image.revision=$commit" \
   --build-arg "TECHTREE_SOURCE_REVISION=$commit" \
+  --build-arg "PREVIOUS_IMAGE=$previous" \
   --tag "$image" "$context"
 digest="$(docker image inspect --format '{{.Id}}' "$image")"
 
