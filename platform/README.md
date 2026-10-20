@@ -278,6 +278,15 @@ mix precommit   # warnings-as-errors, unused locks, Hex audit, format, Credo, So
                 # compile-time links, Ash codegen, TypeScript typecheck, tests
 ```
 
+`mix setup` and `mix test` prepare the local database with
+`mix techtree.setup_local_auth`, which takes the staging bootstrap's own steps in
+production's order (`Techtree.Release.prepare_database!/2`): the shared
+`regent_names.platform_human_users` table this repository reads but does not own,
+every shared change this site carries, then Techtree's own migrations. Running it
+again changes nothing. It refuses any database that is not on `127.0.0.1` (or
+`::1`) and named with `_dev` or `_test` at the end; test databases are named
+`techtree<MIX_TEST_PARTITION>_test`.
+
 `mix phx.server` needs `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY`; without them the
 local server refuses to start, because nobody could sign in. Other tasks run without them.
 
@@ -303,7 +312,8 @@ identities and ENS projections. It references the existing shared human-account
 table; it does not replace the shared identity, Credits, Agents or Points schemas.
 
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database
-connection when the local server does not use the Phoenix defaults. If your
+connection when the local server does not use the defaults (`postgres`, `postgres`,
+`127.0.0.1`). If your
 server has no `postgres` role, set `PGUSER` to your own role, for example
 `PGUSER=$USER mix precommit` or `PGUSER=$USER make check-platform` from the
 monorepo root.
@@ -417,6 +427,14 @@ carries, then every migration here. It runs only when
 `TECHTREE_DEPLOYMENT_ROLE` is exactly `staging`, refuses a database that already
 has state, and is what the release smoke check runs first. It never runs in
 production.
+
+`bin/pending-migrations` runs `Techtree.Release.pending_migrations()` with the
+same login. It prints what the database and the release disagree about: the
+migrations the release carries that the database has not applied (`pending:`),
+applied versions whose file the release does not carry (`applied-without-file:`)
+and shared changes their own ledgers do not hold (`shared-pending:`), or `none`.
+It applies and creates nothing. `test/techtree/release_test.exs` runs every one
+of these commands against throwaway databases.
 
 ## Checking a change
 

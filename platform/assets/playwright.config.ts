@@ -1,11 +1,11 @@
 import {defineConfig, devices} from "@playwright/test"
 
 // The browser tests start their own Techtree in the test environment, on its own
-// database (techtree_test<partition>) and port, and stop it afterwards. They read
+// database (techtree<partition>_test) and port, and stop it afterwards. They read
 // pages the way a visitor does; nothing here reaches the live site. Two copies run
 // side by side when each sets its own TECHTREE_BROWSER_COPY and TECHTREE_BROWSER_PORT.
 // The database each run drops is always named for the browser tests
-// (techtree_testbrowser<copy>), so a run never drops another test database. The
+// (techtreebrowser<copy>_test), so a run never drops another test database. The
 // copy goes into the shell command below, so it may hold only lowercase letters,
 // digits and underscores; anything else is refused before any command runs.
 const copy = process.env.TECHTREE_BROWSER_COPY ?? ""
@@ -37,7 +37,7 @@ export default defineConfig({
     // stand in for the change under test.
     command: [
       // A fresh database each run, so no run depends on what an earlier one left.
-      `${server} mix do ash_postgres.drop --quiet + ash_postgres.create --quiet + techtree.setup_local_auth + ash.setup --quiet`,
+      `${server} mix do ash_postgres.drop --quiet + ash_postgres.create --quiet + techtree.setup_local_auth`,
       `${server} mix do phx.digest.clean --all + assets.deploy`,
       `${server} PORT=${port} mix phx.server`,
     ].join(" && "),

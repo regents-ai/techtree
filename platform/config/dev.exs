@@ -5,7 +5,7 @@ config :ash, policies: [show_policy_breakdowns?: true]
 config :techtree, Techtree.Repo,
   username: System.get_env("PGUSER", "postgres"),
   password: System.get_env("PGPASSWORD", "postgres"),
-  hostname: System.get_env("PGHOST", "localhost"),
+  hostname: System.get_env("PGHOST", "127.0.0.1"),
   # Overridable so a throwaway database can be pointed at without editing this
   # file: the staged publication rehearsal runs the real server against one, and
   # must not touch the database somebody is developing in.

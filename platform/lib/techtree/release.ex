@@ -45,16 +45,11 @@ defmodule Techtree.Release do
   """
   @spec migrate() :: :ok
   def migrate do
-    load_app()
-
-    for repo <- repos() do
-      {:ok, _result, _apps} =
-        Ecto.Migrator.with_repo(repo, fn repo ->
-          require_imported_history!(repo)
-          require_signed_access_schema!(repo)
-          Ecto.Migrator.run(repo, :up, all: true, prefix: repo.default_prefix())
-        end)
-    end
+    with_release_repo([], fn repo ->
+      require_imported_history!(repo)
+      require_signed_access_schema!(repo)
+      migrate!(repo, migrations_path())
+    end)
 
     :ok
   end
@@ -69,14 +64,12 @@ defmodule Techtree.Release do
   the founder's own named go; the site whose release first carries it runs this
   from the new image before that deployment, because only that image carries
   the change's file. Each library's ledger takes a migration lock, so two sites
-  running it at once apply each change once.
+  running it at once apply each change once. Its options are the bootstrap's.
   """
-  @spec migrate_shared() :: :ok
-  def migrate_shared do
-    load_app()
-
-    {:ok, applied, _apps} =
-      Ecto.Migrator.with_repo(Techtree.Repo, fn repo ->
+  @spec migrate_shared(keyword()) :: :ok
+  def migrate_shared(opts \\ []) when is_list(opts) do
+    applied =
+      with_release_repo(opts, fn repo ->
         unapplied = unapplied_shared_migrations(repo)
         if unapplied != [], do: apply_shared(repo)
         unapplied
@@ -111,13 +104,127 @@ defmodule Techtree.Release do
 
   defp unapplied_shared_migrations(repo) do
     for {app, schema, _migrator} <- carried_shared(),
-        {:down, version, _name} <-
-          Ecto.Migrator.migrations(repo, [Application.app_dir(app, "priv/repo/migrations")],
-            prefix: schema,
-            skip_table_creation: true,
-            migration_lock: false
-          ),
+        version <-
+          unapplied_versions(repo, schema, Application.app_dir(app, "priv/repo/migrations")),
         do: "#{schema} #{version}"
+  end
+
+  # A read only: with its table creation skipped and no migration lock the
+  # migrator just selects the schema's ledger. A library whose ledger does not
+  # exist yet has had none of its changes applied.
+  defp unapplied_versions(repo, schema, path) do
+    if table_exists?(repo, schema, "schema_migrations") do
+      for {:down, version, _name} <-
+            Ecto.Migrator.migrations(repo, [path],
+              prefix: schema,
+              skip_table_creation: true,
+              migration_lock: false
+            ),
+          do: version
+    else
+      Enum.sort(carried_versions(path))
+    end
+  end
+
+  @doc """
+  Prepares an empty staging database for the first deployment: creates a
+  staging-only copy of the tables this repository reads but does not own
+  (`regent_names.platform_human_users`), in the local fixture's shape, applies
+  every shared change this release carries, as `migrate_shared/0` does in
+  production, then runs every migration of this repository
+  (`prepare_database!/2`). It refuses a database that already carries migration
+  state or the regent_names schema and repairs nothing: recovery from a
+  half-finished bootstrap is to destroy and recreate the staging database.
+
+  The deployed launcher passes no options, so it reads only the database the
+  release configuration resolves. The options (`:getenv`, `:config`,
+  `:migrations_path`) aim it at a disposable database under test.
+  """
+  @spec bootstrap_staging(keyword()) :: :ok
+  def bootstrap_staging(opts \\ []) when is_list(opts) do
+    getenv = Keyword.get(opts, :getenv, &System.get_env/1)
+
+    # Read before anything opens a connection, so no configuration mistake can
+    # point this command at a database outside staging.
+    if getenv.("TECHTREE_DEPLOYMENT_ROLE") != "staging",
+      do: raise("bootstrap-staging requires TECHTREE_DEPLOYMENT_ROLE to be exactly staging")
+
+    with_release_repo(opts, fn repo ->
+      refuse_existing_state!(repo)
+      prepare_database!(repo, migrations_directory(opts))
+    end)
+
+    :ok
+  end
+
+  @doc false
+  # Staging's first deployment and every local database
+  # (`Techtree.LocalDatabaseFixture`) are prepared the same way, in production's
+  # order: the tables this repository reads but does not own (the fixture is the
+  # only definition of their shape), every shared change this release carries,
+  # then this site's own migrations.
+  def prepare_database!(repo, path \\ migrations_path()) do
+    Techtree.LocalDatabaseFixture.create_shared_tables!()
+    apply_shared(repo)
+    migrate!(repo, path)
+  end
+
+  @doc """
+  Prints what a deployed database and the release disagree about: the migrations
+  the release carries that the database has not applied (`pending:`), the
+  versions the database has applied whose file the release does not carry
+  (`applied-without-file:`), and the shared changes the release carries that
+  their own ledgers do not hold (`shared-pending:`, each as schema and version;
+  a deployment is refused while one is listed, and `migrate_shared/0` applies
+  them), or `none`.
+  It applies nothing, creates nothing, and takes no migration lock. Its options
+  are the bootstrap's.
+  """
+  @spec pending_migrations(keyword()) :: :ok
+  def pending_migrations(opts \\ []) when is_list(opts) do
+    {pending, applied_without_file, shared} =
+      with_release_repo(opts, fn repo ->
+        {pending, applied_without_file} = disagreements(repo, migrations_directory(opts))
+        {pending, applied_without_file, unapplied_shared_migrations(repo)}
+      end)
+
+    if pending == [] and applied_without_file == [] and shared == [], do: IO.puts("none")
+    if pending != [], do: IO.puts("pending: #{Enum.join(pending, " ")}")
+
+    if applied_without_file != [],
+      do: IO.puts("applied-without-file: #{Enum.join(applied_without_file, " ")}")
+
+    if shared != [], do: IO.puts("shared-pending: #{Enum.join(shared, ", ")}")
+    :ok
+  end
+
+  defp disagreements(repo, path) do
+    prefix = repo.default_prefix()
+
+    unless table_exists?(repo, prefix, migration_source(repo)),
+      do: raise("no schema_migrations table: run bootstrap-staging first")
+
+    migrations =
+      Ecto.Migrator.migrations(repo, [path],
+        prefix: prefix,
+        skip_table_creation: true,
+        migration_lock: false
+      )
+
+    carried = carried_versions(path)
+
+    {for({:down, version, _name} <- migrations, do: version),
+     for({:up, version, _name} <- migrations, version not in carried, do: version)}
+  end
+
+  # Ecto names an applied version with no file after a placeholder marker. The
+  # set of versions the release actually carries answers the same question
+  # without depending on that marker's text.
+  defp carried_versions(path) do
+    for file <- Path.wildcard(Path.join(path, "*.exs")),
+        {version, "_" <> _name} <- [file |> Path.basename() |> Integer.parse()],
+        into: MapSet.new(),
+        do: version
   end
 
   defp apply_shared(repo), do: Enum.each(carried_shared(), fn {_, _, m} -> m.up(repo) end)
@@ -128,44 +235,15 @@ defmodule Techtree.Release do
     for {app, _schema, _migrator} = shared <- @shared, app in carried, do: shared
   end
 
-  @doc """
-  Prepares an empty staging database for the first deployment: creates a
-  staging-only copy of the tables this repository reads but does not own
-  (`regent_names.platform_human_users`), in the test suite's shape, applies
-  every shared change this release carries, as `migrate_shared/0` does in
-  production, then runs every migration of this repository. It refuses a
-  database that already carries migration state or the regent_names schema and
-  repairs nothing: recovery from a half-finished bootstrap is to destroy and
-  recreate the staging database.
-  """
-  @spec bootstrap_staging() :: :ok
-  def bootstrap_staging do
-    # Read before anything opens a connection, so no configuration mistake can
-    # point this command at a database outside staging.
-    if System.get_env("TECHTREE_DEPLOYMENT_ROLE") != "staging",
-      do: raise("bootstrap-staging requires TECHTREE_DEPLOYMENT_ROLE to be exactly staging")
-
-    load_app()
-
-    for repo <- repos() do
-      {:ok, _result, _apps} =
-        Ecto.Migrator.with_repo(repo, fn repo ->
-          refuse_existing_state!(repo)
-          # The fixture is the only definition of these tables' shape in the repository.
-          Techtree.LocalDatabaseFixture.create_shared_tables!()
-          apply_shared(repo)
-          Ecto.Migrator.run(repo, :up, all: true, prefix: repo.default_prefix())
-        end)
-    end
-
-    :ok
-  end
+  defp migrate!(repo, path),
+    do: Ecto.Migrator.run(repo, path, :up, all: true, prefix: repo.default_prefix())
 
   @doc """
   Import and activate the immutable catalog snapshot for a full source revision.
   """
   @spec import_catalog(String.t()) :: :ok
-  def import_catalog(revision), do: with_repo(fn -> import_catalog!(revision) end)
+  def import_catalog(revision),
+    do: with_release_repo([], fn _repo -> import_catalog!(revision) end)
 
   defp import_catalog!(revision) do
     path =
@@ -190,7 +268,7 @@ defmodule Techtree.Release do
   """
   @spec publish_bootstrap(String.t(), String.t() | nil) :: :ok
   def publish_bootstrap(digest, channel \\ nil),
-    do: with_repo(fn -> publish_bootstrap!(digest, channel) end)
+    do: with_release_repo([], fn _repo -> publish_bootstrap!(digest, channel) end)
 
   defp publish_bootstrap!(digest, channel) do
     case Publication.publish(digest, channel: channel) do
@@ -215,7 +293,7 @@ defmodule Techtree.Release do
   """
   @spec list_bootstrap_releases(String.t() | nil) :: :ok
   def list_bootstrap_releases(channel \\ nil),
-    do: with_repo(fn -> list_bootstrap_releases!(channel) end)
+    do: with_release_repo([], fn _repo -> list_bootstrap_releases!(channel) end)
 
   defp list_bootstrap_releases!(channel) do
     [channel: channel]
@@ -250,10 +328,6 @@ defmodule Techtree.Release do
   defp marker(%{active: true}), do: "*"
   defp marker(%{active: false}), do: " "
 
-  defp repos do
-    Application.fetch_env!(@app, :ecto_repos)
-  end
-
   defp require_imported_history!(repo) do
     if repo.default_prefix() != "public" do
       migrations =
@@ -275,7 +349,7 @@ defmodule Techtree.Release do
 
   defp refuse_existing_state!(repo) do
     prefix = repo.default_prefix()
-    source = repo.config()[:migration_source] || "schema_migrations"
+    source = migration_source(repo)
 
     if table_exists?(repo, prefix, source) do
       raise "#{prefix}.#{source} already exists: destroy and recreate the staging database"
@@ -296,15 +370,26 @@ defmodule Techtree.Release do
     exists?
   end
 
-  # A one-off command starts the database connection and nothing else, so it
-  # never serves pages or runs queued jobs beside the deployed site.
-  defp with_repo(fun) do
-    load_app()
-    {:ok, result, _apps} = Ecto.Migrator.with_repo(Techtree.Repo, fn _repo -> fun.() end)
+  defp migration_source(repo), do: repo.config()[:migration_source] || "schema_migrations"
+
+  # A one-off command loads the app and starts only its database connection, so
+  # it never serves pages or runs queued jobs beside the deployed site. It
+  # connects on the login the release configuration resolved (bin/migrate and the
+  # other migration launchers select the release login) unless `:config` names
+  # another, for as long as `fun` runs; returns what `fun` returns.
+  defp with_release_repo(opts, fun) do
+    :ok = Application.ensure_loaded(@app)
+
+    config =
+      Keyword.get_lazy(opts, :config, fn -> Application.get_env(@app, Techtree.Repo, []) end)
+
+    Application.put_env(@app, Techtree.Repo, config)
+    {:ok, result, _started} = Ecto.Migrator.with_repo(Techtree.Repo, fun)
     result
   end
 
-  defp load_app do
-    Application.load(@app)
-  end
+  defp migrations_directory(opts),
+    do: Keyword.get_lazy(opts, :migrations_path, &migrations_path/0)
+
+  defp migrations_path, do: Application.app_dir(@app, "priv/repo/migrations")
 end

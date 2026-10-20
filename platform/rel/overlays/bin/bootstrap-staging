@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
-cd -P -- "$(dirname -- "$0")"
-TECHTREE_RELEASE_COMMAND=migrate exec ./techtree eval 'Techtree.Release.bootstrap_staging()'
+
+TECHTREE_RELEASE_COMMAND=migrate exec "$(dirname "$0")/techtree" eval 'Techtree.Release.bootstrap_staging()'

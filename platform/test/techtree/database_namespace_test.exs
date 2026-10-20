@@ -8,7 +8,7 @@ defmodule Techtree.DatabaseNamespaceTest do
   alias Techtree.Repo
 
   setup do
-    unless Repo.config()[:database] == "techtree_test" <> System.get_env("MIX_TEST_PARTITION", "") do
+    unless Repo.config()[:database] == "techtree#{System.get_env("MIX_TEST_PARTITION")}_test" do
       raise "Namespace tests require the prepared disposable database"
     end
 

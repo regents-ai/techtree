@@ -10,8 +10,8 @@ config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 config :techtree, Techtree.Repo,
   username: System.get_env("PGUSER", "postgres"),
   password: System.get_env("PGPASSWORD", "postgres"),
-  hostname: System.get_env("PGHOST", "localhost"),
-  database: "techtree_test#{System.get_env("MIX_TEST_PARTITION")}",
+  hostname: System.get_env("PGHOST", "127.0.0.1"),
+  database: "techtree#{System.get_env("MIX_TEST_PARTITION")}_test",
   pool: Ecto.Adapters.SQL.Sandbox,
   # Keep parallel worktrees within the local PostgreSQL connection budget.
   pool_size: 8
