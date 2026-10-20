@@ -1285,7 +1285,7 @@ defmodule Techtree.Network.Bundle do
   defp file_content(path, bytes) do
     case Jason.decode(bytes) do
       {:ok, document} ->
-        content_finding(path, sift(document))
+        content_finding(path, document |> unsigned() |> sift())
 
       _other ->
         {:error,
@@ -1297,6 +1297,18 @@ defmodule Techtree.Network.Bundle do
          )}
     end
   end
+
+  # A signed document's signature is 64 bytes the bundle's key made, written as
+  # base64, and checks 8 and 9 have verified it. Base64 spells `/tmp/` or
+  # `/var/` by chance, so the signature itself is not read as text here;
+  # everything else in the document is.
+  defp unsigned(%{"signature" => %{"signature" => _signature}} = document) do
+    if Enum.sort(Map.keys(document)) == Enum.sort(@envelope_keys),
+      do: Map.update!(document, "signature", &Map.delete(&1, "signature")),
+      else: document
+  end
+
+  defp unsigned(document), do: document
 
   defp content_finding(_path, :ok), do: :ok
   defp content_finding(path, {:error, finding}), do: {:error, refuse_content(path, finding)}

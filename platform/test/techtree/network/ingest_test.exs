@@ -490,6 +490,24 @@ defmodule Techtree.Network.IngestTest do
       assert Network.list_publication_entries!() == []
     end
 
+    # Found by searching seeds: under this key the signature on
+    # comparison-execution.json spells `/tmp/`. Base64 does that by chance about
+    # once in 40,000 bundles, and such a bundle used to be refused as naming a
+    # location on the participant's machine (the 16 Oct test failure).
+    test "17. a signature that happens to spell a path is not read as one" do
+      keys =
+        :crypto.generate_key(:eddsa, :ed25519, :crypto.hash(:sha256, "techtree-fixture-81521"))
+
+      files = NetworkFixture.resign(NetworkFixture.files(), keys: keys)
+
+      assert files["comparison-execution.json"]
+             |> Jason.decode!()
+             |> get_in(["signature", "signature"])
+             |> String.contains?("/tmp/")
+
+      assert {:ok, _entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
+    end
+
     test "18. a declared digest that is not the bundle's own is refused" do
       wrong = "sha256:" <> String.duplicate("e", 64)
 
