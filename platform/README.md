@@ -390,10 +390,15 @@ deploy it asks for the previous release's site script again and fails unless it
 still answers. `test/scripts/deploy_site_test.exs` runs the script through each
 of these with stand-ins for `flyctl` and `curl`.
 
-## Shared profile migrations
+## Shared database changes
 
-The Regents release owner alone runs `RegentIdentity.Migrator.up(Repo)` on the
-identified shared destination, before enabling profiles on consumers.
+A deploy never applies a change to the shared Identity, Agents, Credits or Points
+database; it refuses to start while one its pinned libraries carry is missing.
+`bin/migrate-shared` runs `Techtree.Release.migrate_shared()` with the migration
+login, applies them and prints each one, or `none`. Every site carries this same
+command; the site whose release first carries a change runs it once from the new
+image, on a one-off machine, before that image's deploy, and only on the
+founder's own named go for each change.
 
 ### Separate migration credentials
 
@@ -407,11 +412,11 @@ before selecting the shared product namespace.
 
 `bin/bootstrap-staging` runs `Techtree.Release.bootstrap_staging()` with the
 same login. It prepares an empty staging database for `bin/migrate`: the tables
-this repository reads but does not own, every migration here, then the shared
-agent, Credits, Points and identity tables. It runs only when
+this repository reads but does not own, every shared change this release
+carries, then every migration here. It runs only when
 `TECHTREE_DEPLOYMENT_ROLE` is exactly `staging`, refuses a database that already
 has state, and is what the release smoke check runs first. It never runs in
-production, where Regents owns those tables.
+production.
 
 ## Checking a change
 

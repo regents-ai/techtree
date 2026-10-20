@@ -41,7 +41,8 @@ config :regent_identity, repo: Techtree.Repo, ash_domains: [RegentIdentity]
 
 # Agents pair with a person's Regent account once, on any Regent site, and
 # check in here with the same pairing (`TechtreeWeb.Router` mounts the two
-# requests). Regents migrates the shared schema; this site never does.
+# requests). `bin/migrate-shared` applies the shared schema's changes; a
+# deployment never does.
 config :regent_agents,
   repo: Techtree.Repo,
   pubsub: Techtree.PubSub,

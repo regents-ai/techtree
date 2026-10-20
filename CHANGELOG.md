@@ -10,6 +10,12 @@
   a phone, and clear of the bottom-left corner, where X writes the site's
   name. Before, the headline ran past that part and techtree.sh sat at the
   top right, out of view on a phone.
+- `bin/migrate-shared` applies the shared Identity, Agents, Credits and Points
+  database changes this release carries, with the same code as every Regent
+  site (Sean, 19 Oct 2026: every site works the same). A deployment still never
+  applies them, and its check now also stops while a shared Identity change is
+  missing. The staging bootstrap applies the shared changes before Techtree's
+  own migrations, as production does.
 - Wallet Bench's recorded files hide any picture shown inside a tested agent's
   own output, as they already hide keys and recovery phrases.
 - Wallet Bench's recorded files hide PGP private keys too.
