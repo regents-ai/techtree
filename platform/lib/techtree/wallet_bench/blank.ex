@@ -48,9 +48,10 @@ defmodule Techtree.WalletBench.Blank do
   # A picture written out as base64: its start, then at least 100 more of its
   # characters, read possessively so a picture of any size is matched whole.
   # Its lines may break as written (`\n`) or escaped inside JSON, once or more
-  # (`\\n`, a `/` as `\\/`), and it may follow such an escape. Padding ends
-  # it; an unpadded picture may take the first word of the line after it.
-  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+]++|\\*/|\\+[rn]|\r?\n)*+=*"
+  # (`\\n`, a `/` as `\\/`), and it may follow such an escape. It takes a
+  # line after a break only when that whole line is base64, so the line after
+  # a picture is never cut short, and padding ends it.
+  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|\\*/9j\\*/|R0lGOD|UklGR)(?=(?:[A-Za-z0-9+/]|\\+/|\\+[rn]|\r?\n){100})(?:[A-Za-z0-9+]++|\\*/|(?:(?:\\+[rn])++|[\r\n]++)(?=(?:[A-Za-z0-9+]++|\\*/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
 
   @type known :: {value :: String.t(), label :: String.t()}
 

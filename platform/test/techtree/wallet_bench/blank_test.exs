@@ -102,7 +102,7 @@ defmodule Techtree.WalletBench.BlankTest do
       text =
         case escape do
           :none ->
-            before <> written <> " kept"
+            before <> written <> "\nkept as written"
 
           escape ->
             Jason.encode!(%{"data" => before <> written, "note" => "kept"}, escape: escape)
@@ -111,7 +111,7 @@ defmodule Techtree.WalletBench.BlankTest do
       blanked = Blank.blank(text, [])
 
       assert blanked =~ "[redacted: picture]"
-      assert blanked =~ "kept"
+      assert blanked =~ if(escape == :none, do: "\nkept as written", else: "kept")
       refute_any_of(blanked, String.replace(picture, "/", ""))
       if escape != :none, do: assert({:ok, _} = Jason.decode(blanked))
     end
@@ -131,5 +131,17 @@ defmodule Techtree.WalletBench.BlankTest do
 
     assert Blank.blank(~s({"out": "#{picture}\\n#{@address} sent"}), []) ==
              ~s({"out": "[redacted: picture]\\n#{@address} sent"})
+  end
+
+  # The line after an unpadded picture can start with letters a picture uses;
+  # a key there is blanked whole, not cut short by the picture's match.
+  test "a key on the line after an unpadded picture is blanked whole" do
+    picture = Base.encode64(hd(@starts) <> :binary.copy(<<9>>, 103))
+    refute String.ends_with?(picture, "=")
+    key = "sk-ant-api03-" <> String.duplicate("Q", 40)
+
+    blanked = Blank.blank(~s({"out": "#{picture}\\n#{key}"}), Blank.known(key, []))
+
+    assert blanked == ~s({"out": "[redacted: picture]\\n[redacted: API key]"})
   end
 end
