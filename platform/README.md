@@ -379,8 +379,8 @@ rolls over. The script reads the live image (passed to the build as
 `mix techtree.keep_previous_assets` then copies, in the build, exactly the files
 the previous release's `cache_manifest.json` lists, one release back, never
 replacing a file of the new release. `make release` builds over the live image
-the same way, so Docker on the releasing machine must be signed in to Fly's
-registry (`flyctl auth docker`).
+the same way, signing Docker in to Fly's registry first
+(`flyctl auth docker`).
 
 The script refuses to deploy, saying why, when the tree is not clean or not
 pushed, when the live image can't be read or the machines run different

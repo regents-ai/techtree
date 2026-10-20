@@ -9,7 +9,7 @@
 # and the Dockerfile fetches every dependency at the version the lockfiles pin;
 # the shared libraries' repositories are public. Like the deploy, the build
 # keeps the live image's served files, so it pulls that image from Fly's
-# registry, the one sign-in it needs.
+# registry, signing Docker in to it first.
 #
 # The smoke check starts the image, in the staging role, against a throwaway
 # PostgreSQL 17 named as the staging database on its own Docker network, and
@@ -61,8 +61,8 @@ fail() {
 }
 
 # Like the deploy (platform/scripts/deploy_site.sh), the build keeps the live
-# image's served files, so it pulls that image from Fly's registry; Docker must
-# be signed in to it (`flyctl auth docker`).
+# image's served files, so it pulls that image from Fly's registry. Fly's
+# registry sign-in expires, so Docker is signed in to it again each time.
 if ! previous="$(flyctl image show --app techtree-sh --json | jq -er 'map("\(.Registry)/\(.Repository)@\(.Digest)") | unique | .[]')"; then
   echo "Refusing to release: the live image can't be read, so its files can't be kept." >&2
   exit 1
@@ -72,6 +72,7 @@ if [[ "$previous" != registry.fly.io/techtree-sh@sha256:* || "$previous" == *$'\
   echo "$previous" >&2
   exit 1
 fi
+flyctl auth docker >/dev/null
 
 echo "==> Building $image from commit $commit over the live image $previous"
 git archive --format=tar "$commit:platform" | tar -x -C "$context"
