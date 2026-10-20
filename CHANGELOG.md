@@ -17,7 +17,8 @@
   place on your own machine when it named none.
 - Browsers asking for /favicon.ico get Techtree's icon.
 - Wallet Bench's recorded files also hide BMP, TIFF, AVIF, HEIC and SVG
-  pictures and PDFs shown inside a tested agent's output.
+  pictures and PDFs shown inside a tested agent's output, in either base64
+  alphabet.
 
 ## Website (2026-10-19)
 
