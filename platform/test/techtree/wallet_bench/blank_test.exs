@@ -70,7 +70,7 @@ defmodule Techtree.WalletBench.BlankTest do
 
   # An agent may retype a phrase in its own layout (security assessment of
   # 19 Oct, finding 5).
-  test "a recovery phrase retyped in capitals or joined by -, | or / is blanked" do
+  test "a recovery phrase retyped in capitals or joined by other marks is blanked" do
     words = String.split(@phrase)
 
     for written <- [
@@ -78,10 +78,37 @@ defmodule Techtree.WalletBench.BlankTest do
           String.upcase(@phrase),
           Enum.join(words, "-"),
           Enum.join(words, " | "),
-          Enum.join(words, "/")
+          Enum.join(words, "/"),
+          Enum.join(words, "_"),
+          Enum.join(words, "."),
+          Enum.join(words, "; "),
+          Enum.join(words, "+"),
+          Enum.join(words, "\u00A0")
         ] do
       assert Blank.blank("phrase: #{written} done", []) ==
-               "phrase: [redacted: recovery phrase] done"
+               "phrase: [redacted: recovery phrase] done",
+             written
+    end
+
+    numbered =
+      words |> Enum.with_index(1) |> Enum.map_join(" ", fn {word, n} -> "#{n}-#{word}" end)
+
+    assert Blank.blank("phrase: #{numbered} done", []) ==
+             "phrase: 1-[redacted: recovery phrase] done"
+  end
+
+  # Tool results are often JSON written inside JSON, so a line break between
+  # two words reaches the record as `\\n`, or as `\r\n` from Windows.
+  test "a recovery phrase in a JSON string, escaped once or twice, is blanked" do
+    words = String.split(@phrase)
+
+    for joiner <- ["\n", "\r\n"], depth <- [1, 2] do
+      inner = Enum.join(words, joiner)
+      text = if depth == 1, do: inner, else: Jason.encode!(inner)
+      blanked = Blank.blank(Jason.encode!(%{"t" => text}), [])
+
+      assert blanked =~ "[redacted: recovery phrase]", inspect({joiner, depth})
+      refute blanked =~ "winner", inspect({joiner, depth})
     end
   end
 
