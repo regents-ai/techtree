@@ -122,6 +122,8 @@ defmodule Techtree.MixProject do
       {:castore, "~> 1.0"},
       # A wallet test's full results are sent as a zip written as it is sent.
       {:zstream, "~> 0.6.7"},
+      # Each published Result's share picture is drawn with it.
+      {:vix, "== 0.42.0"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
       {:phoenix, "~> 1.8.4"},

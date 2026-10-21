@@ -41,10 +41,10 @@
       canonical={canonical_url(assigns)}
       site_name="Techtree"
       site_type="app"
-      image={url(~p"/images/techtree-share.png")}
+      image={share_image(assigns).url}
       image_width={1200}
       image_height={630}
-      image_alt="Techtree: upgrade a Skill, Harness, or Env."
+      image_alt={share_image(assigns).alt}
       markdown={TechtreeWeb.Plugs.PageMarkdown.markdown?(@conn)}
       agent_guide={~p"/llms.txt"}
       sitemap={~p"/sitemap.xml"}

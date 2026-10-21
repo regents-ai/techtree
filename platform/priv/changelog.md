@@ -101,6 +101,9 @@
 
 ### Changed
 
+- A link to a Result shared on X or elsewhere now shows that Result's own
+  picture: its Climb, its verdict, how many tasks it ran on, and how many got
+  better, stayed the same and got worse. A withdrawn Result's picture says so.
 - The home page now makes one promise: improve a Skill and prove it worked. It
   shows the newest Result under the headline, with its verdict, and one Start
   button. Wallet Bench sits further down the page.

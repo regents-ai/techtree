@@ -57,6 +57,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   alias TechtreeWeb.Providers
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.ResultAssessment
+  alias TechtreeWeb.ResultShareCard
 
   @impl true
   def mount(%{"bundle_digest" => digest}, _session, socket) do
@@ -563,6 +564,7 @@ defmodule TechtreeWeb.RunsLive.Show do
 
     %{
       page_title: "#{campaign_name} · Published Result",
+      share_image: %{url: ResultShareCard.image_url(entry), alt: ResultShareCard.alt(entry)},
       entry: entry,
       campaign_name: campaign_name,
       skill_name: skill_name(entry, climb),

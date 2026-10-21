@@ -97,8 +97,9 @@ defmodule TechtreeWeb.Endpoint do
 
   # One budget per caller, shared by the health check, the browser's visit
   # reports, every `/api` path, answered or not, except publishing, which `TechtreeWeb.PublicationRate`
-  # counts on its own, and the Wallet Bench's scores and downloads, each of
-  # which reads the whole table or a stored file. Every answer says what is
+  # counts on its own, the Wallet Bench's scores and downloads, each of
+  # which reads the whole table or a stored file, and each Result's share
+  # picture, which is drawn for every request. Every answer says what is
   # left of it; past it the answer is 429 with Retry-After. Pages are never
   # counted, and counting never waits.
   plug :limit_rate
@@ -147,6 +148,9 @@ defmodule TechtreeWeb.Endpoint do
         RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
       ["wallet-bench", _id, "results.zip"] ->
+        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+      ["results", _digest, "share.png"] ->
         RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
       ["api" | _] ->

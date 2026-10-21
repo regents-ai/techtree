@@ -157,6 +157,16 @@ defmodule TechtreeWeb.Layouts do
   defp share_title(title) when title in [nil, ""], do: "Techtree"
   defp share_title(title), do: title <> " · Techtree"
 
+  # A published Result's page shows its own picture (`TechtreeWeb.ResultShareCard`);
+  # every other page shows the site's.
+  defp share_image(%{share_image: image}), do: image
+
+  defp share_image(_assigns),
+    do: %{
+      url: url(~p"/images/techtree-share.png"),
+      alt: "Techtree: upgrade a Skill, Harness, or Env."
+    }
+
   # Who Techtree is, for a reader that speaks schema.org. There is no postal
   # address: none has been published. `Regent.AgentMetadata.head` encodes it.
   defp structured_data do

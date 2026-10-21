@@ -81,6 +81,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /repo2rlenv",
              "get /results",
              "get /results/:bundle_digest",
+             "get /results/:bundle_digest/share.png",
              "get /robots.txt",
              "get /sitemap.xml",
              "get /skill.md",
