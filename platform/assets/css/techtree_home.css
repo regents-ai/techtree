@@ -21,12 +21,19 @@
   letter-spacing: -.035em;
   text-wrap: balance;
 }
-/* The headline's turning last words: every phrase in one cell sized to the
-   longest, clipped so one rises out of sight as the next rises in. Only the shown
-   one is visible; without the script that is the first. */
-.hero-outcome { display: grid; justify-items: start; overflow: clip; }
-.hero-outcome__phrase { grid-area: 1 / 1; }
-.hero-outcome__phrase:not([data-shown]) { opacity: 0; }
+.hero--landing .hero__lede {
+  max-width: 40ch;
+  margin-top: var(--space-3);
+  font-size: clamp(1rem, 1.3vw, 1.25rem);
+  line-height: 1.5;
+  color: var(--color-fg);
+}
+/* The newest Result: the proof under the promise. */
+.hero--landing .hero-result { width: 100%; min-height: 0; gap: var(--space-2); margin-top: var(--space-4); }
+.hero-result__eyebrow { display: block; margin-bottom: var(--space-1); font: .6875rem var(--font-family-mono); text-transform: uppercase; letter-spacing: .08em; }
+.hero-result__outcome { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-2); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.hero-result .hero-product__destination { margin-top: 0; }
+.hero--landing .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
 .hero--landing .hero__mechanism {
   margin-top: var(--space-3);
   font-family: var(--font-family-ui);
@@ -40,10 +47,7 @@
   height: auto;
   mask-image: linear-gradient(to right, transparent 28%, rgb(0 0 0 / .25) 48%, #000 68%);
 }
-.hero--landing .hero__products { width: 100%; margin-top: var(--space-4); }
 .hero-product--skill { --hero-product-fill: var(--tt-card-skill); --hero-product-ink: var(--tt-card-skill-ink); }
-.hero-product--harness { --hero-product-fill: var(--tt-card-harness); --hero-product-ink: var(--tt-card-harness-ink); }
-.hero-product--env { --hero-product-fill: var(--tt-card-env); --hero-product-ink: var(--tt-card-env-ink); }
 .hero-product__name {
   display: block;
   font-family: var(--font-family-title);
@@ -89,7 +93,6 @@
 .tools-list__links { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
 
 @media (max-width: 47.99rem) {
-  .hero--landing .hero__products { grid-template-columns: minmax(0, 1fr); }
   .hero--landing .hero-product { min-height: 0; flex-direction: column; align-items: stretch; }
   .hero--landing .hero-product__destination { margin-top: var(--space-2); }
   .tools-list__item { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }

@@ -30,8 +30,8 @@ defmodule TechtreeWeb.RunsLive.Show do
   owns it or that its files are the Skill that ran; the Skill's fingerprint is.
 
   Scores are rounded to three decimal places, under the name the Campaign
-  gives its score. A Campaign states no unit or range for it, so the page
-  never turns a mean into a percentage.
+  gives its score, and the page says how a task is scored in the words the
+  Climb's own page uses. It never turns a mean into a percentage.
 
   The page's title, which a browser tab and a shared link show on their own,
   is the Climb's name, never the publisher's name for the Skill.
@@ -133,7 +133,8 @@ defmodule TechtreeWeb.RunsLive.Show do
         <p class="assessment__reason">{ResultAssessment.reason(@assessment)}</p>
         <p id="run-outcome" class="assessment__outcome">
           <strong>{ResultAssessment.mean_change(@assessment)}</strong>
-          · {@assessment.wins} better, {@assessment.ties} same, {@assessment.losses} worse.
+          · {@assessment.wins} better, {@assessment.ties} same, {@assessment.losses} worse
+          · {ResultAssessment.runs_words(@runs)}.
         </p>
         <p class="assessment__means">
           Without the Skill {ResultAssessment.mean(@assessment, :baseline)} · With the Skill {ResultAssessment.mean(
@@ -142,7 +143,8 @@ defmodule TechtreeWeb.RunsLive.Show do
           )}
         </p>
         <p id="run-score-scale" class="assessment__means">
-          Each is the mean task score over the tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
+          Each is the mean task score, rounded to three decimal places.
+          <span :if={@scoring}>{@scoring}</span>
         </p>
         <ul class="assessment__tasks">
           <li :for={outcome <- [:better, :worse, :same]} id={"tasks-#{outcome}"}>
@@ -307,9 +309,9 @@ defmodule TechtreeWeb.RunsLive.Show do
           This site is not serving a release you can install right now, so there are no
           commands to show.
         </p>
-        <p :if={@rerun == :climb_retired} class="section-note">
-          The release this site serves now no longer includes this Result's Climb, so it
-          cannot run this comparison again.
+        <p :if={@rerun == :earlier_version} id="run-earlier-version" class="section-note">
+          This Result was made on an earlier version of this Climb, which Techtree no longer
+          runs. <a href={~p"/climbs/#{@slug}"}>Run the current version</a> to make a new Result.
         </p>
 
         <div :if={@limits}>
@@ -578,8 +580,18 @@ defmodule TechtreeWeb.RunsLive.Show do
       rerun: rerun(current_climb, trial, entry.bundle_digest),
       rerun_of: rerun_of(entry),
       reruns: Query.reruns(entry),
+      runs: Query.runs_behind(entry),
+      scoring: scoring(climb),
       slug: climb.projection["slug"]
     }
+  end
+
+  # How the Climb scores a task, in the words its own page uses.
+  defp scoring(climb) do
+    case ClimbCopy.for_reference(climb.reference) do
+      %{scoring: scoring} -> scoring
+      nil -> nil
+    end
   end
 
   # The limits the Result's own Campaign set, per try and over the whole run.
@@ -619,7 +631,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   end
 
   # The commands and limits only exist when the release served now installs
-  # and still carries this Result's Climb; a retired Climb cannot be run by it.
+  # and still carries this Result's Climb; an earlier version cannot be run by it.
   # A Climb it carries runs the Result's own Campaign, read with this release's
   # reading of it.
   # Patchbay keys one discussion to each Result's bundle digest and creates it
@@ -638,7 +650,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         }
 
       {%{installable?: true, install_argv: [_ | _]}, nil} ->
-        :climb_retired
+        :earlier_version
 
       _not_installable ->
         :no_release

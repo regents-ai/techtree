@@ -81,7 +81,7 @@ defmodule Techtree.Network.PublicationMetadataTest do
 
     projection =
       entry
-      |> Projection.entry(TechtreeWeb.Endpoint.url())
+      |> Projection.entry(1, TechtreeWeb.Endpoint.url())
       |> Jason.decode!()
 
     assert projection["campaign_name"] == "Techtree Hello World"

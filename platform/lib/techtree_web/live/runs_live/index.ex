@@ -20,9 +20,13 @@ defmodule TechtreeWeb.RunsLive.Index do
   why there is nothing on this page to moderate.
 
   Scores are rounded to three decimal places and otherwise shown as recorded.
-  A Campaign names its score and the rule that decides between the two runs,
-  and states no unit or range, so no mean is turned into a percentage and no
-  bar pretends to know where the scale ends.
+  Each Climb's page says how its tasks are scored, so no mean is turned into a
+  percentage here and no bar pretends to know where the scale ends.
+
+  Filters narrow the log and never hide any of it by default. Each one offers
+  every value the filters before it leave, plus "All", and an address that
+  chooses nothing shows every Result. The page says how many Results match out
+  of how many there are.
 
   The page repeats nothing typed into its address. An address it cannot read
   says so; one naming a selection with no Results names only the parts this
@@ -59,10 +63,11 @@ defmodule TechtreeWeb.RunsLive.Index do
   alias Techtree.Network.AgentVersions
   alias Techtree.Network.Query
   alias Techtree.Network.ResultFilters
-  alias TechtreeWeb.ClimbCopy
+  alias Techtree.Network.Verdict
   alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.Outage
   alias TechtreeWeb.ResultAssessment
+  alias TechtreeWeb.ResultNames
 
   @impl true
   def mount(_params, _session, socket) do
@@ -89,22 +94,25 @@ defmodule TechtreeWeb.RunsLive.Index do
   defp show_selection(socket, families, params, options) do
     with {:ok, selection} <- AgentVersions.select(families, params),
          {:ok, filters} <- ResultFilters.select(selection, params) do
-      page = Query.page(page_options(options, selection, filters))
+      chosen = chosen(selection, filters)
+      page = Query.page(Keyword.merge(options, query_options(chosen)))
       climb = chosen_climb(filters.challenge)
 
-      socket
-      |> assign(
+      assign(socket,
         families: families,
         selection: selection,
         filters: filters,
+        chosen: chosen,
         page_limit: Map.get(params, "limit"),
         entries: page.entries,
+        runs: page.runs,
         next_before_sequence: page.next_before_sequence,
+        matching: Query.count(query_options(chosen)),
+        total: Query.count(),
         climb_slug: climb && climb.projection["slug"],
         empty: empty(page.entries, families, Map.has_key?(params, "before_sequence")),
         asked_for: []
       )
-      |> pin_selection(selection, filters, params)
     else
       :error -> show_empty(socket, families, :no_match, asked_for(families, params))
     end
@@ -115,48 +123,45 @@ defmodule TechtreeWeb.RunsLive.Index do
       families: families,
       selection: nil,
       filters: ResultFilters.empty(),
+      chosen: [],
       page_limit: nil,
       entries: [],
+      runs: %{},
       next_before_sequence: nil,
+      matching: 0,
+      total: if(empty == :database_down, do: 0, else: Query.count()),
       climb_slug: nil,
       empty: empty,
       asked_for: asked_for
     )
   end
 
-  defp page_options(options, nil, _filters), do: options
-
-  defp page_options(options, selection, filters) do
-    Keyword.merge(options,
-      agent: selection.family.id,
-      agent_version: selection.version,
+  # The coordinates the address chose, in the order each one narrows the next.
+  defp chosen(selection, filters) do
+    [
+      agent: selection && selection.family.id,
+      agent_version: selection && selection.version,
       model: filters.model,
       challenge: filters.challenge,
-      provider: filters.route && Route.provider!(filters.route)
-    )
+      route: filters.route
+    ]
   end
 
-  # Resolve "latest" once, then retain that exact version through reloads
-  # and reconnects even when a newer runtime is subsequently submitted.
-  defp pin_selection(socket, nil, _filters, _params), do: socket
+  defp query_options(chosen) do
+    chosen
+    |> Keyword.take([:agent, :agent_version, :model, :challenge])
+    |> Keyword.put(:provider, chosen[:route] && Route.provider!(chosen[:route]))
+  end
 
-  defp pin_selection(socket, selection, filters, params) do
-    if connected?(socket) &&
-         Enum.any?(~w(agent agent_version model challenge), &(!Map.has_key?(params, &1))) do
-      push_patch(socket,
-        to:
-          AgentVersions.url(selection.family.id, selection.version,
-            model: filters.model,
-            challenge: filters.challenge,
-            route: filters.route,
-            before_sequence: Map.get(params, "before_sequence"),
-            limit: Map.get(params, "limit")
-          ),
-        replace: true
-      )
-    else
-      socket
-    end
+  # Choosing one coordinate keeps those before it and clears those after it,
+  # which the new choice may no longer leave.
+  @order [:agent, :agent_version, :model, :challenge, :route]
+
+  defp choose(chosen, key, value) do
+    chosen
+    |> Keyword.take(Enum.take_while(@order, &(&1 != key)))
+    |> Keyword.put(key, value)
+    |> AgentVersions.url()
   end
 
   @impl true
@@ -181,18 +186,23 @@ defmodule TechtreeWeb.RunsLive.Index do
         </section>
 
         <section
-          :if={@empty != :database_down}
+          :if={@total > 0}
           class="results-filters"
           aria-label="Filter published Results"
         >
           <div class="results-filter-row">
             <h2 class="results-filter-label"><span>01</span> Harness</h2>
             <div id="agent-version-browser" phx-hook="AgentVersions" aria-label="Agent versions">
-              <p :if={@families == []} class="quiet small">No submitted harnesses yet</p>
               <nav class="agent-versions__families" aria-label="Agent families">
                 <.link
+                  patch={choose(@chosen, :agent, nil)}
+                  aria-current={if is_nil(@selection), do: "page"}
+                >
+                  All harnesses
+                </.link>
+                <.link
                   :for={family <- @families}
-                  patch={AgentVersions.url(family.id, hd(family.versions))}
+                  patch={choose(@chosen, :agent, family.id)}
                   aria-current={if @selection && @selection.family.id == family.id, do: "page"}
                 >
                   {family.label}
@@ -202,13 +212,19 @@ defmodule TechtreeWeb.RunsLive.Index do
                 <.link
                   :if={@selection.newer}
                   id="agent-version-newer"
-                  patch={AgentVersions.url(@selection.family.id, @selection.newer)}
+                  patch={choose(@chosen, :agent_version, @selection.newer)}
                   aria-label="Newer agent version"
                 >← Newer</.link>
                 <nav class="agent-versions__list" aria-label="Submitted versions">
                   <.link
+                    patch={choose(@chosen, :agent_version, nil)}
+                    aria-current={if is_nil(@selection.version), do: "page"}
+                  >
+                    All versions
+                  </.link>
+                  <.link
                     :for={version <- @selection.family.versions}
-                    patch={AgentVersions.url(@selection.family.id, version)}
+                    patch={choose(@chosen, :agent_version, version)}
                     aria-current={if version == @selection.version, do: "page"}
                   >
                     {version}<span :if={version == @selection.latest}> · Latest submitted</span>
@@ -217,7 +233,7 @@ defmodule TechtreeWeb.RunsLive.Index do
                 <.link
                   :if={@selection.older}
                   id="agent-version-older"
-                  patch={AgentVersions.url(@selection.family.id, @selection.older)}
+                  patch={choose(@chosen, :agent_version, @selection.older)}
                   aria-label="Older agent version"
                 >Older →</.link>
               </div>
@@ -236,39 +252,42 @@ defmodule TechtreeWeb.RunsLive.Index do
             <h2 class="results-filter-label"><span>02</span> Model</h2>
             <nav class="results-filter-choices" aria-label="Submitted models">
               <.link
+                :if={@filters.models != []}
+                class="result-choice"
+                patch={choose(@chosen, :model, nil)}
+                aria-current={if is_nil(@filters.model), do: "page"}
+              >All models</.link>
+              <.link
                 :for={model <- @filters.models}
                 class="result-choice"
-                patch={AgentVersions.url(@selection.family.id, @selection.version, model: model)}
+                patch={choose(@chosen, :model, model)}
                 aria-current={if model == @filters.model, do: "page"}
               >{model}</.link>
-              <p :if={@filters.models == []} class="quiet small">Choose a submitted harness first</p>
             </nav>
           </div>
           <div class="results-filter-row">
             <h2 class="results-filter-label"><span>03</span> Challenge</h2>
             <nav class="results-filter-choices" aria-label="Submitted challenges">
               <.link
+                :if={@filters.challenges != []}
+                class="result-choice"
+                patch={choose(@chosen, :challenge, nil)}
+                aria-current={if is_nil(@filters.challenge), do: "page"}
+              >All challenges</.link>
+              <.link
                 :for={challenge <- @filters.challenges}
                 class="result-choice"
                 title={challenge.campaign_spec_digest}
-                patch={
-                  AgentVersions.url(@selection.family.id, @selection.version,
-                    model: @filters.model,
-                    challenge: challenge.campaign_spec_digest
-                  )
-                }
+                patch={choose(@chosen, :challenge, challenge.campaign_spec_digest)}
                 aria-current={if challenge.campaign_spec_digest == @filters.challenge, do: "page"}
               >
-                {campaign_name(challenge)}
+                {ResultNames.campaign(challenge)}
                 <span class="result-choice__digest">{String.slice(
                   challenge.campaign_spec_digest,
                   7,
                   8
                 )}</span>
               </.link>
-              <p :if={@filters.challenges == []} class="quiet small">
-                Choose a submitted model first
-              </p>
             </nav>
             <a
               :if={@climb_slug}
@@ -286,24 +305,21 @@ defmodule TechtreeWeb.RunsLive.Index do
               <.link
                 :if={@filters.routes != []}
                 class="result-choice"
-                patch={route_url(@selection, @filters, nil)}
+                patch={choose(@chosen, :route, nil)}
                 aria-current={if is_nil(@filters.route), do: "page"}
-              >Every route</.link>
+              >All routes</.link>
               <.link
                 :for={route <- @filters.routes}
                 class="result-choice"
-                patch={route_url(@selection, @filters, route)}
+                patch={choose(@chosen, :route, route)}
                 aria-current={if route == @filters.route, do: "page"}
               >{ModelAccess.label!(route)}</.link>
-              <p :if={@filters.routes == []} class="quiet small">
-                Choose a submitted challenge first
-              </p>
             </nav>
           </div>
         </section>
 
-        <p :if={@selection} id="agent-version-summary" class="results-context" aria-live="polite">
-          {@selection.family.label} {@selection.version} · {@filters.model}
+        <p :if={@entries != []} id="results-count" class="results-context" aria-live="polite">
+          Showing {@matching} of {@total} {results_word(@total)}
           <span>Participant-attested · Integrity-checked · Not independently reproduced</span>
         </p>
 
@@ -333,12 +349,14 @@ defmodule TechtreeWeb.RunsLive.Index do
         </p>
 
         <p :if={@empty == :no_earlier} id="results-no-earlier" class="runs-index__empty empty-state">
-          There are no earlier Results for {selection_words(@selection, @filters)}.
-          <.link patch={results_url(@selection, @filters, @page_limit)}>Back to the newest page</.link>
+          {no_earlier_words(@selection, @filters)}
+          <.link patch={AgentVersions.url(@chosen ++ [limit: @page_limit])}>
+            Back to the newest page
+          </.link>
         </p>
 
         <p :if={@entries != []} id="results-score-scale" class="section-note small quiet">
-          Scores are each run's mean task score over its tasks, rounded to three decimal places. This Climb does not say what unit or range the score uses.
+          Scores are each run's mean task score over its tasks, rounded to three decimal places. Each Climb's page says how its tasks are scored.
         </p>
 
         <div
@@ -360,6 +378,7 @@ defmodule TechtreeWeb.RunsLive.Index do
                 <th scope="col" class="results-ledger__numeric">Candidate</th>
                 <th scope="col" class="results-ledger__numeric">Δ Score</th>
                 <th scope="col">Tasks <span class="quiet">↑ / = / ↓</span></th>
+                <th scope="col">Verdict</th>
                 <th scope="col">Ran on</th>
                 <th scope="col">Published</th>
                 <th scope="col">Evidence</th>
@@ -372,7 +391,7 @@ defmodule TechtreeWeb.RunsLive.Index do
                 class={["results-ledger__row", entry.withdrawn_at && "is-withdrawn"]}
               >
                 <th scope="row" class="results-ledger__skill">
-                  <a href={entry_url(entry)}>{skill_name(entry)}</a>
+                  <a href={entry_url(entry)}>{ResultNames.skill(entry)}</a>
                   <small>
                     vs baseline
                     <a
@@ -381,12 +400,13 @@ defmodule TechtreeWeb.RunsLive.Index do
                       href={github_url(entry)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={"GitHub link the publisher gave for #{skill_name(entry)}, not checked"}
+                      aria-label={"GitHub link the publisher gave for #{ResultNames.skill(entry)}, not checked"}
                     >· GitHub ↗</a>
                   </small>
                   <small :if={publisher_words(entry)} id={"run-publisher-#{entry.log_sequence}"}>
                     {publisher_words(entry)}
                   </small>
+                  <small class="results-ledger__coordinates">{ResultNames.coordinates(entry)}</small>
                 </th>
                 <td :for={branch <- [:baseline_mean, :candidate_mean]} class="results-ledger__numeric">
                   {ResultAssessment.reward(Map.fetch!(entry, branch))}
@@ -399,6 +419,12 @@ defmodule TechtreeWeb.RunsLive.Index do
                     {entry.wins} / {entry.ties} / {entry.losses}
                   </span>
                 </td>
+                <td class="results-ledger__verdict">
+                  <span class={["verdict", "verdict--#{verdict(entry)}"]}>
+                    {ResultAssessment.label(verdict(entry))}
+                  </span>
+                  <small>{ResultAssessment.runs_words(Map.fetch!(@runs, entry.bundle_digest))}</small>
+                </td>
                 <td class="results-ledger__route">{ModelAccess.ran_on!(entry.subject_provider)}</td>
                 <td class="results-ledger__date">
                   <time datetime={DateTime.to_iso8601(entry.accepted_at)}>
@@ -406,7 +432,10 @@ defmodule TechtreeWeb.RunsLive.Index do
                   </time>
                 </td>
                 <td class="results-ledger__evidence">
-                  <a href={entry_url(entry)} aria-label={"Inspect evidence for #{skill_name(entry)}"}>Inspect →</a>
+                  <a
+                    href={entry_url(entry)}
+                    aria-label={"Inspect evidence for #{ResultNames.skill(entry)}"}
+                  >Inspect →</a>
                   <small :if={entry.withdrawn_at} title={withdrawn_words(entry.withdrawn_at)}>Withdrawn</small>
                 </td>
               </tr>
@@ -417,7 +446,11 @@ defmodule TechtreeWeb.RunsLive.Index do
         <p :if={@next_before_sequence} class="runs-index__pagination">
           <.link
             class="text-link"
-            patch={results_url(@selection, @filters, @page_limit, @next_before_sequence)}
+            patch={
+              AgentVersions.url(
+                @chosen ++ [limit: @page_limit, before_sequence: @next_before_sequence]
+              )
+            }
           >
             Earlier Results <span aria-hidden="true">→</span>
           </.link>
@@ -440,20 +473,6 @@ defmodule TechtreeWeb.RunsLive.Index do
   # address a reader could not compare against the one they hold.
   defp entry_url(entry), do: "/results/" <> entry.bundle_digest
 
-  defp campaign_name(entry) do
-    copy = legacy_copy(entry)
-
-    present(Map.get(entry, :campaign_name)) || Map.get(copy, :campaign_title) ||
-      entry.climb_reference
-  end
-
-  defp skill_name(entry) do
-    copy = legacy_copy(entry)
-
-    present(Map.get(entry, :skill_name)) || Map.get(copy, :candidate_skill_label) ||
-      "the candidate Skill"
-  end
-
   defp github_url(entry) do
     case Map.get(entry, :skill_github_url) do
       "https://github.com/" <> _ = url -> url
@@ -464,7 +483,7 @@ defmodule TechtreeWeb.RunsLive.Index do
   # The name and the link travel beside the signed bundle, not inside it, so
   # the row says whose word they are.
   defp publisher_words(entry) do
-    case {present(Map.get(entry, :skill_name)), github_url(entry)} do
+    case {Map.get(entry, :skill_name), github_url(entry)} do
       {nil, nil} -> nil
       {_name, nil} -> "Name given by the publisher; not checked"
       {nil, _url} -> "Link given by the publisher; not checked"
@@ -514,6 +533,9 @@ defmodule TechtreeWeb.RunsLive.Index do
       nil ->
         "that harness"
 
+      family when is_nil(version) ->
+        family.label
+
       family ->
         if version in family.versions,
           do: "#{family.label} #{version}",
@@ -541,42 +563,39 @@ defmodule TechtreeWeb.RunsLive.Index do
   defp no_match_words(asked_for),
     do: "No published Results match this selection: " <> Enum.join(asked_for, " · ")
 
-  defp selection_words(selection, filters) do
-    challenge =
-      Enum.find(filters.challenges, &(&1.campaign_spec_digest == filters.challenge))
-
-    "#{selection.family.label} #{selection.version} · #{filters.model} · " <>
-      campaign_name(challenge) <> route_suffix(filters.route)
+  defp no_earlier_words(selection, filters) do
+    case chosen_words(selection, filters) do
+      [] -> "There are no earlier Results."
+      words -> "There are no earlier Results for " <> Enum.join(words, " · ") <> "."
+    end
   end
 
-  defp route_suffix(nil), do: ""
-  defp route_suffix(route), do: " · on your " <> ModelAccess.name!(route)
-
-  defp route_url(selection, filters, route),
-    do:
-      AgentVersions.url(selection.family.id, selection.version,
-        model: filters.model,
-        challenge: filters.challenge,
-        route: route
-      )
-
-  defp legacy_copy(entry), do: ClimbCopy.for_reference(entry.climb_reference) || %{}
-
-  defp present(value) when is_binary(value) do
-    if String.trim(value) == "", do: nil, else: value
+  defp chosen_words(selection, filters) do
+    [
+      harness_choice(selection),
+      filters.model,
+      challenge_choice(filters),
+      filters.route && "on your " <> ModelAccess.name!(filters.route)
+    ]
+    |> Enum.reject(&is_nil/1)
   end
 
-  defp present(_value), do: nil
+  defp harness_choice(nil), do: nil
+  defp harness_choice(%{family: family, version: nil}), do: family.label
+  defp harness_choice(%{family: family, version: version}), do: "#{family.label} #{version}"
 
-  defp results_url(selection, filters, limit, sequence \\ nil),
-    do:
-      AgentVersions.url(selection.family.id, selection.version,
-        model: filters.model,
-        challenge: filters.challenge,
-        route: filters.route,
-        limit: limit,
-        before_sequence: sequence
-      )
+  defp challenge_choice(%{challenge: nil}), do: nil
+
+  defp challenge_choice(filters) do
+    filters.challenges
+    |> Enum.find(&(&1.campaign_spec_digest == filters.challenge))
+    |> ResultNames.campaign()
+  end
+
+  defp verdict(entry), do: Verdict.of(entry.assessment)
+
+  defp results_word(1), do: "Result"
+  defp results_word(_count), do: "Results"
 
   defp task_words(entry) do
     "#{entry.wins} better, #{entry.ties} same, #{entry.losses} worse"

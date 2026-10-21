@@ -26,6 +26,8 @@ defmodule Techtree.Network.Projection do
 
   alias Techtree.Canonical
   alias Techtree.Network.PublicationEntry
+  alias Techtree.Network.Query
+  alias Techtree.Network.Verdict
 
   @list_schema_version "techtree.publication-log.v1alpha1"
   @entry_schema_version "techtree.publication-entry.v1alpha1"
@@ -33,26 +35,23 @@ defmodule Techtree.Network.Projection do
   @doc """
   One page of the log, as the bytes `GET /api/v1/publications` returns.
   """
-  @spec log(
-          %{entries: [PublicationEntry.t()], next_before_sequence: pos_integer() | nil},
-          String.t()
-        ) ::
-          binary()
-  def log(%{entries: entries, next_before_sequence: next}, origin) do
+  @spec log(Query.page(), String.t()) :: binary()
+  def log(%{entries: entries, next_before_sequence: next, runs: runs}, origin) do
     Canonical.encode!(%{
       "schema_version" => @list_schema_version,
-      "entries" => Enum.map(entries, &summary(&1, origin)),
+      "entries" => Enum.map(entries, &summary(&1, Map.fetch!(runs, &1.bundle_digest), origin)),
       "next_before_sequence" => next
     })
   end
 
   @doc """
-  One entry, as the bytes `GET /api/v1/publications/:bundle_digest` returns.
+  One entry, as the bytes `GET /api/v1/publications/:bundle_digest` returns,
+  with how many runs stand behind it.
   """
-  @spec entry(PublicationEntry.t(), String.t()) :: binary()
-  def entry(%PublicationEntry{} = entry, origin) do
+  @spec entry(PublicationEntry.t(), pos_integer(), String.t()) :: binary()
+  def entry(%PublicationEntry{} = entry, runs, origin) do
     entry
-    |> summary(origin)
+    |> summary(runs, origin)
     |> Map.merge(%{
       "schema_version" => @entry_schema_version,
       "task_deltas" => entry.task_deltas,
@@ -89,7 +88,7 @@ defmodule Techtree.Network.Projection do
     }
   end
 
-  defp summary(%PublicationEntry{} = entry, origin) do
+  defp summary(%PublicationEntry{} = entry, runs, origin) do
     %{
       "log_sequence" => entry.log_sequence,
       "bundle_digest" => entry.bundle_digest,
@@ -123,7 +122,9 @@ defmodule Techtree.Network.Projection do
         "wins" => entry.wins,
         "losses" => entry.losses,
         "ties" => entry.ties,
-        "task_count" => entry.task_count
+        "task_count" => entry.task_count,
+        "verdict" => entry.assessment |> Verdict.of() |> Atom.to_string(),
+        "runs" => runs
       },
       "statuses" => entry.statuses,
       "decision" => entry.decision,

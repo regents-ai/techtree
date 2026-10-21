@@ -52,6 +52,10 @@ defmodule Techtree.Network do
         action: :reruns_of,
         args: [:bundle_digest]
 
+      define :list_standing_reruns_of_publication_entries,
+        action: :standing_reruns_of_any,
+        args: [:bundle_digests]
+
       define :get_publication_entry_by_run,
         action: :get_by_run,
         args: [:participant_key_id, :run_id]

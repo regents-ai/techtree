@@ -3,9 +3,6 @@
   <head>
     <meta name="agent-request-origin" content={TechtreeWeb.Endpoint.url()} />
     <meta charset="utf-8" />
-    <link rel="alternate" type="text/plain" title="Agent guide" href={~p"/llms.txt"} />
-    <%!-- The lens agent-readiness readers take: a product people use. --%>
-    <meta name="is-agentic-site-type" content="agent tool platform" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <meta :if={assigns[:session_refused]} name="session-refused" content="true" />
@@ -33,27 +30,26 @@
       media="(prefers-color-scheme: dark)"
       content="#0D1611"
     />
-    <meta
-      name="description"
-      content={page_description(assigns)}
-    />
     <.live_title default="Techtree" suffix=" · Techtree">
       {assigns[:page_title]}
     </.live_title>
-    <link rel="canonical" href={canonical_url(assigns)} />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Techtree" />
-    <meta property="og:title" content={share_title(assigns[:page_title])} />
-    <meta property="og:description" content={page_description(assigns)} />
-    <meta property="og:url" content={canonical_url(assigns)} />
-    <meta property="og:image" content={url(~p"/images/techtree-share.png")} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Techtree: upgrade a Skill, Harness, or Env." />
-    <meta name="twitter:card" content="summary_large_image" />
-    <script :if={request_path(assigns) == "/"} type="application/ld+json">
-      <%= structured_data() %>
-    </script>
+    <%!-- site_type "app": the lens agent-readiness readers take, a product people use. --%>
+    <Regent.AgentMetadata.head
+      title={share_title(assigns[:page_title])}
+      description={page_description(assigns)}
+      canonical={canonical_url(assigns)}
+      site_name="Techtree"
+      site_type="app"
+      image={url(~p"/images/techtree-share.png")}
+      image_width={1200}
+      image_height={630}
+      image_alt="Techtree: upgrade a Skill, Harness, or Env."
+      markdown={TechtreeWeb.Plugs.PageMarkdown.markdown?(@conn)}
+      agent_guide={~p"/llms.txt"}
+      sitemap={~p"/sitemap.xml"}
+      service_description={~p"/openapi.json"}
+      structured_data={structured_data()}
+    />
     <link rel="icon" type="image/svg+xml" href={~p"/favicon.svg"} />
     <link rel="icon" type="image/png" sizes="32x32" href={~p"/favicon-32.png"} />
     <link rel="apple-touch-icon" href={~p"/apple-touch-icon.png"} />

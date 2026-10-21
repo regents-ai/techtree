@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.SitemapController do
   @moduledoc """
   Every public page a search engine should index: the fixed pages (with the
-  motion lab while the showcase is public), each blog post, each Climb in the
+  motion lab while the showcase is public), the blog and each of its posts once
+  there is one, each Climb in the
   active release, and each published Result that has not been withdrawn.
 
   Each entry says when it last changed: the fixed pages and the blog change
@@ -18,7 +19,7 @@ defmodule TechtreeWeb.SitemapController do
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.Showcase
 
-  @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /blog /about /contact /privacy /terms)
+  @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /about /contact /privacy /terms)
 
   # document/1 escapes every URL; the remaining values are ISO dates and fixed XML.
   # sobelow_skip ["XSS.SendResp"]
@@ -33,7 +34,7 @@ defmodule TechtreeWeb.SitemapController do
     released_at = PublicDocuments.released_at()
 
     Enum.map(fixed(), &{origin <> &1, released_at}) ++
-      Enum.map(Blog.all(), &{origin <> "/blog/" <> &1.slug, released_at}) ++
+      blog(Blog.all(), origin, released_at) ++
       Enum.map(
         Catalog.Query.list_climbs(),
         &{origin <> "/climbs/" <> &1.projection["slug"], &1.updated_at}
@@ -43,6 +44,14 @@ defmodule TechtreeWeb.SitemapController do
 
   # The motion lab is listed only while the showcase is public.
   defp fixed, do: if(Showcase.public?(), do: @fixed ++ ["/animations"], else: @fixed)
+
+  defp blog([], _origin, _released_at), do: []
+
+  defp blog(posts, origin, released_at),
+    do: [
+      {origin <> "/blog", released_at}
+      | Enum.map(posts, &{origin <> "/blog/" <> &1.slug, released_at})
+    ]
 
   defp standing_results(before) do
     %{entries: entries, next_before_sequence: next} =

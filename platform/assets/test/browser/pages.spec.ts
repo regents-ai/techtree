@@ -5,7 +5,7 @@ import {layoutProblems, watchErrors} from "./support/visitor"
 // live connection joins where it has one, nothing errors, nothing scrolls
 // sideways and every press target is big enough to hit.
 const pages = ["/", "/start", "/docs", "/results", "/wallet-bench", "/verify", "/changelog",
-  "/blog", "/examples/tdd", "/repo2rlenv", "/account", "/about", "/privacy", "/terms"]
+  "/examples/tdd", "/repo2rlenv", "/account", "/about", "/privacy", "/terms"]
 
 for (const width of [1280, 390, 320]) {
   test.describe(`${width} wide`, () => {

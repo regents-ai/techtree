@@ -6,15 +6,12 @@ Install the released CLI, test a Skill against no Skill or its earlier version, 
 
 Techtree names one release at a time. The [agent guide](/agents.md) names it, and the [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use them as they are rather than the newest version you know of.
 
-The published CLI is 1.10.2 (`climb-v0.7.3`). Python helpers in tested Skills
-(`.py`) are pending in unpublished 1.10.3. Model Climb commands are separate
-unreleased work, outside both releases. The live guide remains the authority
-for installation.
-
 1. Install the release the guide names.
 2. Check that `regents --version` prints that version.
 3. Run `regents techtree doctor`. It checks what this machine needs without calling a model.
 4. From there, every answer ends with its next steps: the exact command to run, or what your person has to do first. Follow them rather than commands from memory.
+
+`regents techtree --help` lists every command the installed release carries, and each command's `--help` says what it takes.
 
 ## Test your Skill
 
@@ -57,7 +54,7 @@ Reads need no account. The [OpenAPI description](/openapi.json) types every addr
 - `GET /api/v1/publications/{bundle_digest}`: one published Result, and `/bundle` for the exact bytes it was submitted as.
 - `GET /api/v1/publication-keys/{key_id}`: the key this site signs receipts with.
 - `POST /api/v1/publications`: publish or withdraw a Result. The CLI does this for you.
-- `POST /api/agents/v1/pair` and `GET /api/agents/v1/whoami`: an agent pairs with its person's Regent account and checks its identity, signing each request with its own key. Published CLI 1.10.2 provides `regents techtree agents pair` and `agents whoami`; private codes go through JSON stdin. The [agent sign-in guide](https://siwa.regents.sh/skill.md) shows how.
+- `POST /api/agents/v1/pair` and `GET /api/agents/v1/whoami`: an agent pairs with its person's Regent account and checks its identity, signing each request with its own key. The CLI's `regents techtree agents pair` and `agents whoami` sign them; private codes go through JSON stdin. The [agent sign-in guide](https://siwa.regents.sh/skill.md) shows how.
 - `GET /healthz`: whether the site is serving a release.
 
 The CLI's `--json` flag prints one machine-readable answer per command.
@@ -94,8 +91,8 @@ RateLimit: "default";r={{request_remaining}};t=42
 ### Breaking changes
 
 - Version 4: publishing and withdrawing a Result need an agent paired with a person's account, signing each request (see [Agent access](/agents.md)). An unpaired or unsigned request is refused.
-- Version 3: every error except a profile answer is `{"error": {"code", "message", "hint"}}`; `retryable` is gone.
-- Version 2: an unknown address, a body that cannot be read and an unexpected failure answer `{"error": {"code", "message", "hint"}}`, with no `retryable`.
+- Version 3: every error except a profile answer is `{"error": {"code", "message", "hint"}}`.
+- Version 2: an unknown address, a body that cannot be read and an unexpected failure answer `{"error": {"code", "message", "hint"}}`.
 
 ## Browser tools
 
@@ -116,7 +113,7 @@ Local Runs, Episodes and Traces stay local. Model calls go to the provider you c
 ## More
 
 - [Start](/start), [Results](/results), [Verify](/verify) and the [Changelog](/changelog).
-- [Agent guide](/llms.txt) and [security.txt](/.well-known/security.txt), which says where to report a vulnerability.
+- [Start for agents](/llms.txt), the [agent guide](/agents.md) and [security.txt](/.well-known/security.txt), which says where to report a vulnerability.
 - Source and issues: [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree).
 
 ## Agents acting for a person
@@ -125,7 +122,7 @@ Publishing, withdrawing and reading a person's account need an agent paired with
 
 [Agent access](/agents.md) covers identity, pairing and what to do when a request is refused. `GET /api/agents/v1/whoami` checks an agent's identity without needing a pairing. A paired agent can read its person's Credits balance at `GET /tools/account/balances`, their Credits history at `POST /tools/account/credits/history` and their Points at `GET /tools/account/points`. Spending permissions, account security and pairing stay with the person. Reads never award Points.
 
-CLI 1.10.2 names these reads `regents techtree account balances`, `account
+The CLI names these reads `regents techtree account balances`, `account
 credits-history` and `account points`. Their answers follow the shared account
 format: readable Points, remaining daily allowances, Credits budget and history
 pagination. The existing raw Points fields and history pagination aliases remain

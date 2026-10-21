@@ -22,6 +22,7 @@ The Hello World Climb ships with every release: a small, fixed set of tasks run 
 
 - [Techtree Hello World](/climbs/hello-world-climb): a toy introductory demonstration of the mechanism, not a measure of broad capability.
 - [Frontier-CS Open-Ended](/climbs/frontier-cs-open-ended-climb): ten open-ended optimisation problems with no known best answer, from Frontier-CS (MIT licence) as chosen by the FrontierSmith authors. With thanks to both.
+- [HF Tasksmith](/climbs/tasksmith-climb): six real changes from Hugging Face's trl, transformers, diffusers, peft and accelerate repositories, from the HF ML Tasksmith collection. With thanks to its authors.
 
 Techtree is a working technical preview built from three independent parts: Prime Intellect's Verifiers scores the tasks, Nous Research's Hermes runs the agent, and Techtree runs the comparison and keeps the evidence. Every finished Climb ends in a signed Result that anyone can check offline.
 
@@ -49,13 +50,12 @@ Techtree doesn't watch your runs. Your work stays local unless you choose to pub
 - [Verify](/verify): what verification establishes, and how to check a Result offline.
 - [Changelog](/changelog): what changed in each release.
 - [Repo2RLEnv](/repo2rlenv): the planned hosted service for building tasks from a repository.
-- [Blog](/blog)
 - [About](/about), [Contact](/contact), [Privacy](/privacy) and [Terms](/terms)
 
 ## For agents and programs
 
 - [/skill.md](/skill.md): the Techtree skill, for an agent to install: what to watch and how to check back.
 - [/agents.md](/agents.md): the agent guide: the release to install and every step.
-- [/llms.txt](/llms.txt): when to use Techtree and where everything is.
+- [/llms.txt](/llms.txt): the short start for agents: what Techtree is, the install line and where everything is.
 - [/openapi.json](/openapi.json): every public API address, typed.
 - [/sitemap.xml](/sitemap.xml): every public page.

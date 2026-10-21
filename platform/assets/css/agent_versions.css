@@ -7,7 +7,7 @@
 #agent-version-browser a[aria-current="page"] { background: var(--color-accent); color: var(--color-fg-on-accent); border-color: var(--color-accent); }
 #agent-version-browser a:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
 #agent-version-browser a span { margin-left: .3em; font-size: .8em; }
-#agent-version-summary { margin-top: .8rem; color: var(--color-fg-muted); font-size: .875rem; }
+#results-count { margin-top: .8rem; color: var(--color-fg-muted); font-size: .875rem; }
 @media (max-width: 40rem) {
   .agent-versions__carousel { flex-wrap: wrap; }
   .agent-versions__list { order: -1; flex-basis: 100%; }

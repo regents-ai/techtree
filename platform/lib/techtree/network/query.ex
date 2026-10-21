@@ -35,10 +35,16 @@ defmodule Techtree.Network.Query do
   alias Techtree.Network.AgentVersions
   alias Techtree.Network.PublicationEntry
 
+  @agent_error "agent is a nonempty harness name, and agent_version is a nonempty version of it sent with agent"
+
   @typedoc """
   One page of the log, and where the next one starts.
   """
-  @type page :: %{entries: [PublicationEntry.t()], next_before_sequence: pos_integer() | nil}
+  @type page :: %{
+          entries: [PublicationEntry.t()],
+          next_before_sequence: pos_integer() | nil,
+          runs: %{String.t() => pos_integer()}
+        }
 
   @doc """
   One page of the log, newest arrival first.
@@ -73,8 +79,61 @@ defmodule Techtree.Network.Query do
         entries |> List.last() |> Map.fetch!(:log_sequence)
       end
 
-    %{entries: entries, next_before_sequence: next}
+    %{entries: entries, next_before_sequence: next, runs: runs(entries)}
   end
+
+  @doc """
+  The newest entry still standing, or nil when every one is withdrawn or none
+  has arrived.
+  """
+  @spec newest_standing() :: PublicationEntry.t() | nil
+  def newest_standing do
+    PublicationEntry
+    |> Ash.Query.for_read(:list_log, %{})
+    |> Ash.Query.filter(is_nil(withdrawn_at))
+    |> Ash.Query.limit(1)
+    |> Ash.read_one!()
+  end
+
+  @doc """
+  How many entries the log holds for the coordinates given, withdrawn or not.
+  A coordinate left out is every value of it.
+  """
+  @spec count(keyword()) :: non_neg_integer()
+  def count(options \\ []) do
+    PublicationEntry
+    |> Ash.Query.for_read(
+      :list_log,
+      Map.new(Keyword.take(options, [:agent, :agent_version, :model, :challenge, :provider]))
+    )
+    |> Ash.count!()
+  end
+
+  @doc """
+  How many runs stand behind each entry, by bundle digest: the entry's own run
+  and every rerun of it still standing.
+  """
+  @spec runs([PublicationEntry.t()]) :: %{String.t() => pos_integer()}
+  def runs([]), do: %{}
+
+  def runs(entries) do
+    digests = Enum.map(entries, & &1.bundle_digest)
+
+    reruns =
+      digests
+      |> Network.list_standing_reruns_of_publication_entries!()
+      |> Enum.frequencies_by(& &1.assessment.rerun_of)
+
+    Map.new(digests, &{&1, 1 + Map.get(reruns, &1, 0)})
+  end
+
+  @doc """
+  How many runs stand behind one entry: its own and every rerun of it still
+  standing.
+  """
+  @spec runs_behind(PublicationEntry.t()) :: pos_integer()
+  def runs_behind(%PublicationEntry{bundle_digest: digest} = entry),
+    do: [entry] |> runs() |> Map.fetch!(digest)
 
   @doc "Submitted agent versions, discovered independently of result pagination."
   def agent_families do
@@ -221,19 +280,20 @@ defmodule Techtree.Network.Query do
       {nil, nil} ->
         {:ok, []}
 
-      {agent, version}
-      when is_binary(agent) and is_binary(version) and byte_size(agent) in 1..128 and
-             byte_size(version) in 1..128 ->
-        if String.trim(agent) != "" and String.trim(version) != "" do
-          {:ok, [agent: agent, agent_version: version]}
-        else
-          {:error, "agent and agent_version must both be nonempty version coordinates"}
-        end
+      {agent, nil} ->
+        if version_coordinate?(agent),
+          do: {:ok, [agent: agent]},
+          else: {:error, @agent_error}
 
-      _ ->
-        {:error, "agent and agent_version must both be nonempty version coordinates"}
+      {agent, version} ->
+        if version_coordinate?(agent) and version_coordinate?(version),
+          do: {:ok, [agent: agent, agent_version: version]},
+          else: {:error, @agent_error}
     end
   end
+
+  defp version_coordinate?(value),
+    do: is_binary(value) and byte_size(value) in 1..128 and String.trim(value) != ""
 
   defp coordinate(nil, _name), do: {:ok, nil}
 

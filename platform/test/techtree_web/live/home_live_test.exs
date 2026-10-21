@@ -9,6 +9,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
+  alias Techtree.NetworkFixture
   alias TechtreeWeb.HomeLive
 
   describe "with a release published" do
@@ -18,44 +19,24 @@ defmodule TechtreeWeb.HomeLiveTest do
       :ok
     end
 
-    test "the hero says what this is, in the words it was decided in", %{conn: conn} do
+    test "the hero makes one promise and offers one Start button", %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(
-               live,
-               "#hero-title .offscreen",
-               "Improve any agent's Harness / Environment / Skills to use less tokens, " <>
-                 "perform evals stronger or create better traces"
-             )
-
-      for phrase <- ["use less tokens", "perform evals stronger", "create better traces"] do
-        assert has_element?(
-                 live,
-                 ~s|#hero-outcome[phx-hook="HeroOutcome"] .hero-outcome__phrase|,
-                 phrase
-               )
-      end
-
-      assert has_element?(live, ".hero-outcome__phrase[data-shown]", "use less tokens")
-
+      assert has_element?(live, "#hero-title", "Improve a Skill. Prove it worked.")
+      assert text =~ "Run the same tasks with and without your Skill."
       assert has_element?(live, ".hero__mechanism", "Built on Prime Intellect & NVIDIA Nemotron")
-      assert has_element?(live, ~s|.hero__products[aria-labelledby="hero-title"]|)
+      assert has_element?(live, ~s|.hero__actions a.rg-button--primary[href="/start"]|, "Start")
 
-      for {href, name} <- [
-            {"/start#skill", "Skill"},
-            {"/wallet-bench", "Harness"},
-            {"/repo2rlenv", "Env"}
-          ] do
-        assert has_element?(
-                 live,
-                 ~s|.hero__products a.hero-product[href="#{href}"] .hero-product__name|,
-                 name
-               )
-      end
+      assert [_one] =
+               html
+               |> LazyHTML.from_fragment()
+               |> LazyHTML.query(".hero .rg-button--primary")
+               |> Enum.to_list()
 
+      refute has_element?(live, ~s|.hero a[href="/repo2rlenv"]|)
+      refute has_element?(live, "#hero-outcome")
       assert has_element?(live, "section.hero")
-      refute has_element?(live, "section.hero[data-hero-stage]")
       refute text =~ "Controlled agent evaluations"
     end
 
@@ -74,13 +55,15 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert css =~ ~s|@import "./techtree_home.css"|
     end
 
-    test "the hero points to AgentWalletBench below it", %{conn: conn} do
-      {:ok, live, _html} = live(conn, ~p"/")
+    test "the hero points to how a Skill is tested, with the wallet tests further down",
+         %{conn: conn} do
+      {:ok, live, html} = live(conn, ~p"/")
 
-      assert has_element?(
-               live,
-               ~s|a.hero__more[href="#wallet-bench"] svg|
-             )
+      assert has_element?(live, ~s|a.hero__more[href="#skill-test"] svg|)
+
+      {skill_test, _length} = :binary.match(html, ~s|id="skill-test"|)
+      {wallet_bench, _length} = :binary.match(html, ~s|id="wallet-bench"|)
+      assert skill_test < wallet_bench
     end
 
     test "the page keeps release and proof teaching on their own routes",
@@ -140,7 +123,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, "#copy-home-agent-line.rg-button--primary", "Copy")
+      assert has_element?(live, "#copy-home-agent-line", "Copy")
 
       assert live
              |> element(~s|#skill-test a[href="/examples/tdd"]|, "See a real comparison")
@@ -174,7 +157,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert has_element?(live, ".home-section.trust")
     end
 
-    test "the hero gives an agent the copyable setup instruction instead of a Result",
+    test "with nothing published, the hero gives an agent the instruction and no Result",
          %{conn: conn} do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
@@ -216,11 +199,40 @@ defmodule TechtreeWeb.HomeLiveTest do
     end
   end
 
+  describe "with a Result published" do
+    setup do
+      CatalogFixture.use_bundle(CatalogFixture.root())
+      Importer.import!(CatalogFixture.root())
+      files = NetworkFixture.resign(NetworkFixture.scored(), keys: NetworkFixture.key_pair())
+      {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
+      {:ok, entry: entry}
+    end
+
+    test "the newest Result sits under the promise, with how sure it is", %{
+      conn: conn,
+      entry: entry
+    } do
+      {:ok, live, _html} = live(conn, ~p"/")
+
+      card = ~s|#hero-newest-result[href="/results/#{entry.bundle_digest}"]|
+      verdict = entry.assessment |> Techtree.Network.Verdict.of() |> Atom.to_string()
+
+      assert has_element?(live, card, "Hello World Skill vs baseline")
+      assert has_element?(live, "#{card} .verdict--#{verdict}")
+
+      assert has_element?(
+               live,
+               card,
+               "#{entry.wins} better · #{entry.ties} same · #{entry.losses} worse · 1 run"
+             )
+    end
+  end
+
   test "the landing page needs no catalog to render", %{conn: conn} do
     {:ok, _live, html} = live(conn, ~p"/")
     text = visible_text(html)
 
-    assert text =~ "Harness / Environment / Skills to use less tokens, perform evals stronger"
+    assert text =~ "Improve a Skill. Prove it worked."
     refute text =~ "Evidence graph"
     assert text =~ HomeLive.agent_line()
     refute html =~ "copy-home-cli"

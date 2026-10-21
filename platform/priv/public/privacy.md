@@ -8,7 +8,14 @@ Comparisons, test tasks and runs happen on your own computer, and Techtree doesn
 
 ## Reading the site
 
-Reading any page or public address needs no account and no sign-in. The site runs no analytics and no advertising trackers. Its pages may load scripts only from Techtree itself, and may connect only to Techtree and to GitHub's public API.
+Reading any page or public address needs no account and no sign-in. The site runs no analytics and no advertising trackers. Its own scripts come only from Techtree.
+
+Signing in, and staying signed in, also connects your browser to these services, each under its own privacy policy:
+
+- Privy, which runs sign-in and the wallets linked to your account.
+- Cloudflare, which checks that a person is signing in.
+- WalletConnect and Coinbase Wallet, when you connect a wallet through them.
+- The ENS metadata service, for the picture of an ENS name shown with your wallet.
 
 ## Cookies
 
@@ -17,7 +24,7 @@ Reading any page or public address needs no account and no sign-in. The site run
 
 ## The GitHub star count
 
-To show the star count beside "Star", your browser asks GitHub's public API for the Techtree repository's details when a page opens, and again every two minutes while it stays open. That request goes from your browser straight to GitHub, under GitHub's own privacy policy. Your browser keeps the count for the tab so it can show it straight away; it is never sent to Techtree.
+Techtree reads the star count beside "Star" from GitHub itself and sends it with the page. Your browser never contacts GitHub for it.
 
 ## Publishing a Result is optional
 

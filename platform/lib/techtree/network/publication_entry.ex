@@ -201,6 +201,16 @@ defmodule Techtree.Network.PublicationEntry do
               )
     end
 
+    read :standing_reruns_of_any do
+      description "The Results still standing that rerun any of several published Results."
+
+      argument :bundle_digests, {:array, :string}, allow_nil?: false
+
+      filter expr(assessment[:rerun_of] in ^arg(:bundle_digests) and is_nil(withdrawn_at))
+
+      prepare build(select: [:assessment])
+    end
+
     read :get_by_run do
       description "One entry, by the participant and run it belongs to."
       get? true

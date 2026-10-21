@@ -3,10 +3,11 @@ defmodule TechtreeWeb.ResultAssessment do
   How one published Result reads on its page: the verdict in words, the tasks
   by name and score, and the Skill change as values a reader can compare.
 
-  Nothing here decides anything. The reason for the verdict comes from the
-  Result's stored `Techtree.Network.Assessment`, which
-  `Techtree.Network.Result` worked out from the Result's own task scores and
-  its Campaign's rule when the Result was published. This module only puts it
+  Nothing here decides anything. The verdict comes from
+  `Techtree.Network.Verdict`, which reads the Result's stored
+  `Techtree.Network.Assessment`: the reason `Techtree.Network.Result` worked
+  out from the Result's own task scores and its Campaign's rule when the Result
+  was published, and the tasks that went each way. This module only puts it
   into words.
 
   Tasks are named by their place in the Campaign's committed order and their
@@ -17,13 +18,14 @@ defmodule TechtreeWeb.ResultAssessment do
   value. A value that is zero reads as zero, one too small to show at three
   places says so rather than rounding to zero, and nothing reads as "-0".
 
-  A Campaign names its score and the rule that decides between the two runs,
-  and states no unit or range, so a mean that happens to fall between 0 and 1
-  is not taken for a share and is never turned into a percentage.
+  Each Climb's page says how its tasks are scored. Here a mean that happens to
+  fall between 0 and 1 is not taken for a share and is never turned into a
+  percentage.
   """
 
   alias Techtree.Network.Assessment
   alias Techtree.Network.Assessment.SkillChange
+  alias Techtree.Network.Verdict
 
   @type outcome :: :better | :worse | :same
 
@@ -38,64 +40,94 @@ defmodule TechtreeWeb.ResultAssessment do
         }
 
   @doc """
-  The verdict the reason comes to. Only a change that cleared the Campaign's
-  rule is an improvement, and only a fall by at least its minimum is a
-  regression.
+  The verdict, as `Techtree.Network.Verdict` works it out.
   """
-  @spec verdict(Assessment.t()) :: :improved | :regressed | :not_enough_evidence
-  def verdict(%Assessment{reason: :cleared_rule}), do: :improved
-  def verdict(%Assessment{reason: :fell_past_rule}), do: :regressed
-  def verdict(%Assessment{}), do: :not_enough_evidence
+  @spec verdict(Assessment.t()) :: Verdict.t()
+  def verdict(assessment), do: Verdict.of(assessment)
 
   @doc """
   The verdict as the page's heading says it.
   """
   @spec verdict_label(Assessment.t()) :: String.t()
-  def verdict_label(assessment) do
-    case verdict(assessment) do
-      :improved -> "Improved"
-      :regressed -> "Regressed"
-      :not_enough_evidence -> "Not enough evidence"
-    end
-  end
+  def verdict_label(assessment), do: assessment |> verdict() |> label()
 
   @doc """
-  Why the verdict is what it is, in one or two sentences, naming the smallest
-  change the Climb's rule accepts where that is the reason.
+  A verdict in words, wherever a page names one.
+  """
+  @spec label(Verdict.t()) :: String.t()
+  def label(:improved), do: "Improved"
+  def label(:regressed), do: "Regressed"
+  def label(:too_close_to_call), do: "Too close to call"
+  def label(:no_difference), do: "No difference"
+  def label(:no_rule), do: "No rule to decide by"
+
+  @doc """
+  Why the verdict is what it is, in one or two sentences.
   """
   @spec reason(Assessment.t()) :: String.t()
-  def reason(%Assessment{reason: :cleared_rule}) do
-    "With the Skill, the agent scored higher, and the result clears the rule this Climb set " <>
-      "before either run."
+  def reason(assessment), do: reason(verdict(assessment), assessment)
+
+  defp reason(:improved, _assessment) do
+    "With the Skill, the agent scored higher, the change clears the rule this Climb set " <>
+      "before either run, and the tasks that changed went the same way too often to be chance."
   end
 
-  def reason(%Assessment{reason: :fell_past_rule, minimum: minimum}) do
-    if Decimal.eq?(minimum, 0) do
-      "With the Skill, the agent scored lower overall."
-    else
-      "With the Skill, the agent scored lower overall, by at least the change of " <>
-        plain(minimum) <> " this Climb asks of an improvement."
-    end
+  defp reason(:regressed, _assessment) do
+    "With the Skill, the agent scored lower, and the tasks that changed went the same way " <>
+      "too often to be chance."
   end
 
-  def reason(%Assessment{reason: :rose_short_of_rule, minimum: minimum}) do
+  defp reason(:too_close_to_call, %Assessment{reason: :cleared_rule, wins: wins, losses: losses})
+       when wins <= losses do
+    "With the Skill, the agent scored higher overall, but #{wins} #{tasks_word(wins)} " <>
+      "got better and #{losses} got worse."
+  end
+
+  defp reason(:too_close_to_call, %Assessment{reason: :fell_past_rule, wins: wins, losses: losses})
+       when losses <= wins do
+    "With the Skill, the agent scored lower overall, but #{wins} #{tasks_word(wins)} " <>
+      "got better and #{losses} got worse."
+  end
+
+  defp reason(:too_close_to_call, %Assessment{reason: reason} = assessment)
+       when reason in [:cleared_rule, :fell_past_rule] do
+    direction = if reason == :cleared_rule, do: "higher", else: "lower"
+
+    "With the Skill, the agent scored #{direction}, but #{moved_words(assessment)}, " <>
+      "which one run could show by chance."
+  end
+
+  defp reason(:too_close_to_call, %Assessment{reason: :rose_short_of_rule, minimum: minimum}) do
     "With the Skill, the agent scored higher, but by less than the change of " <>
       plain(minimum) <> " this Climb set before either run."
   end
 
-  def reason(%Assessment{reason: :unchanged}) do
+  defp reason(:too_close_to_call, %Assessment{reason: :fell_short_of_rule, minimum: minimum}) do
+    "With the Skill, the agent scored lower, but by less than the change of " <>
+      plain(minimum) <> " this Climb set before either run."
+  end
+
+  defp reason(:no_difference, _assessment) do
     "With and without the Skill, the agent scored exactly the same overall."
   end
 
-  def reason(%Assessment{reason: :fell_short_of_rule, minimum: minimum}) do
-    "With the Skill, the agent scored lower, but by less than the change of " <>
-      plain(minimum) <>
-      " this Climb set before either run, so it is not shown to be worse either."
-  end
-
-  def reason(%Assessment{reason: :no_rule}) do
+  defp reason(:no_rule, _assessment) do
     "This Climb set no rule before the runs that could decide between them."
   end
+
+  defp moved_words(%Assessment{wins: wins, losses: losses}) do
+    "only #{wins} #{tasks_word(wins)} got better and #{losses} got worse"
+  end
+
+  defp tasks_word(1), do: "task"
+  defp tasks_word(_count), do: "tasks"
+
+  @doc """
+  How many runs stand behind a Result: its own, and each published rerun of it.
+  """
+  @spec runs_words(pos_integer()) :: String.t()
+  def runs_words(1), do: "1 run"
+  def runs_words(runs), do: "#{runs} runs"
 
   @doc """
   The change in the mean score, as a signed number on the score's own scale.

@@ -61,12 +61,20 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert text =~ "Hermes v2026.9.24"
       assert text =~ "gpt-6-luna"
+      refute has_element?(live, ".results-filter-about")
+
+      {:ok, chosen, _html} =
+        live(
+          conn,
+          "/results?" <>
+            URI.encode_query(agent: "hermes-agent", challenge: entry.campaign_spec_digest)
+        )
 
       for href <- [
             "https://github.com/NousResearch/hermes-agent",
             "/climbs/hello-world-climb"
           ] do
-        assert has_element?(live, ~s|.results-filter-about[href="#{href}"][target="_blank"]|)
+        assert has_element?(chosen, ~s|.results-filter-about[href="#{href}"][target="_blank"]|)
       end
 
       assert has_element?(
@@ -90,6 +98,7 @@ defmodule TechtreeWeb.RunsLiveTest do
             "Candidate",
             "Δ Score",
             "Tasks",
+            "Verdict",
             "Evidence",
             "Published"
           ] do
@@ -284,6 +293,63 @@ defmodule TechtreeWeb.RunsLiveTest do
     end
   end
 
+  describe "the log across harnesses" do
+    setup :publish_a_run
+
+    test "shows every Result until a filter narrows it, and says how many match",
+         %{conn: conn, entry: entry} do
+      other =
+        NetworkFixture.seed_entry(
+          log_sequence: entry.log_sequence + 1,
+          bundle_digest: "sha256:" <> String.duplicate("c", 64),
+          run_id: "run_from_codex",
+          subject_harness: "codex",
+          subject_harness_version: "0.100.0"
+        )
+
+      {:ok, live, html} = live(conn, ~p"/results")
+
+      assert shown(html) == [other.bundle_digest, entry.bundle_digest]
+      assert has_element?(live, "#results-count", "Showing 2 of 2 Results")
+
+      assert has_element?(
+               live,
+               ~s|.agent-versions__families a[aria-current="page"]|,
+               "All harnesses"
+             )
+
+      {:ok, codex, html} = live(conn, "/results?agent=codex")
+
+      assert shown(html) == [other.bundle_digest]
+      assert has_element?(codex, "#results-count", "Showing 1 of 2 Results")
+      assert has_element?(codex, ~s|.agent-versions__list a[aria-current="page"]|, "All versions")
+
+      assert has_element?(
+               codex,
+               ~s|.agent-versions__families a[href="/results"]|,
+               "All harnesses"
+             )
+    end
+
+    test "each row says how sure it is and how many runs it rests on",
+         %{conn: conn, entry: entry} do
+      {:ok, live, _html} = live(conn, ~p"/results")
+
+      verdict = entry.assessment |> Techtree.Network.Verdict.of() |> Atom.to_string()
+
+      assert has_element?(
+               live,
+               "#run-entry-#{entry.log_sequence} .results-ledger__verdict .verdict--#{verdict}"
+             )
+
+      assert has_element?(
+               live,
+               "#run-entry-#{entry.log_sequence} .results-ledger__verdict",
+               "1 run"
+             )
+    end
+  end
+
   describe "one entry's own page" do
     setup :publish_a_run
 
@@ -338,7 +404,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert has_element?(
                live,
                "#run-outcome",
-               "+0.222 · #{entry.wins} better, #{entry.ties} same, #{entry.losses} worse."
+               "+0.222 · #{entry.wins} better, #{entry.ties} same, #{entry.losses} worse · 1 run."
              )
 
       refute has_element?(live, "#run-github")
@@ -541,7 +607,7 @@ defmodule TechtreeWeb.RunsLiveTest do
             "/results?agent[a]=b&agent_version=1",
             "/results?limit=500",
             "/results?before_sequence=0",
-            "/results?agent=hermes-agent"
+            "/results?agent_version=v2026.9.24"
           ] do
         {:ok, live, _html} = live(conn, address)
 

@@ -7,11 +7,9 @@ one controlled comparison: the same configured agent, the same tasks, and one
 changed Skill. Prime Intellect’s Verifiers evaluates both sides; Techtree
 packages the results into a signed bundle that others can check offline.
 
-The goal is a public forum where people and agents publish Skills, evals, and
-environments, reproduce each other’s results, fork useful work, collaborate,
-and earn USDC for accepted contributions. That forum and its payment flows
-are planned; the working entry point today is testing one of your own Skills,
-with the Hello World Climb as the quick look.
+The working entry point today is testing one of your own Skills, with the
+Hello World Climb as the quick look. Published Results are public to read, and
+anyone can check a Result's bundle on their own computer.
 
 [Start](https://techtree.sh/start) · [Results](https://techtree.sh/results) ·
 [Docs](https://techtree.sh/docs) · [Agent guide](https://techtree.sh/agents.md) ·
@@ -23,8 +21,10 @@ with the Hello World Climb as the quick look.
 
 ## What you can use today
 
-The active release record is **climb-v0.7.3**, using published **regents-cli
-1.10.2**. It includes Hello World, Frontier-CS Open-Ended and Tasksmith Climbs.
+The served release is the one the
+[bootstrap contract](https://techtree.sh/api/v1/bootstrap) names; the release
+table below lists every record. The current Climbs are Hello World, Frontier-CS
+Open-Ended and HF Tasksmith.
 Techtree's commands come from
 [regents-cli](https://github.com/regents-ai/regents-cli) as `regents techtree …`.
 Its main feature, from 0.3.0, is creating an environment from a Skill. Techtree
@@ -38,9 +38,8 @@ inspect-skill` through `regents techtree forge export`, from [regents-cli](https
 [bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
 for installable CLI and plugin coordinates.
 
-CLI 1.10.4 includes signed identity, pairing, account reads and private Model
-Climb report reads. Points earning and money tests remain off. The shared account
-update in this checkout still needs browser acceptance and release approval.
+The served release also signs an agent's identity, pairs it with its person's
+account and reads that account. Points earning and money tests remain off.
 
 Before it, 0.2.1 brought the Hello World Climb and a first trial of building
 repair tasks from a repository. That trial is no longer offered.
@@ -53,11 +52,10 @@ repair tasks from a repository. That trial is no longer offered.
 | Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Start](https://techtree.sh/start), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
 | Structured machine responses (`--json`) for agents and scripts | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) |
 | Create an environment from a Skill: inspect, plan, build, accept, run, verify, export | Experimental | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree forge inspect-skill` through `regents techtree forge export`) |
-| Read-only browser tools for agents (WebMCP): the Start guide, the Climbs and the Results | Available now | [`platform/`](platform/) |
+| Browser tools for agents (WebMCP), listed at [/capabilities](https://techtree.sh/capabilities): public reads of the Start guide, the Climbs and the Results; signed identity and account reads; and `techtree_publication`, which publishes or withdraws a signed Result | Available now | [`platform/`](platform/) |
 | An MCP connector for other agents | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
 | NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
-| Public collaboration, forks, agent messages, and USDC bounties | Planned | — |
 
 The active start guide controls exact installation coordinates. Historical
 release documents can still name the old plugin repository or the `techtree`
@@ -203,7 +201,7 @@ harness runtime, trajectory format, or trainer.
 | [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental |
 | [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs, so other agents can be evaluated. | Planned |
 | [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional and observe-only. | Planned |
-| Techtree | Frozen comparisons, evidence reconciliation, signed results, publication, and later collaboration and payment records. | — |
+| Techtree | Frozen comparisons, evidence reconciliation, signed results and publication. | — |
 
 ```text
 Techtree Campaign
@@ -228,46 +226,13 @@ machine; hosted execution is planned.
 | Stage | User outcome |
 | --- | --- |
 | **0.3.0 — create an environment from a Skill** (released) | Inspect a supported Skill without running it; review and approve a plan; build and check tasks offline; accept a frozen collection; run one agent on it without any comparison; verify it and export a private copy for someone else. Comparing Skills on the collection stays optional. |
-| **Later** (planned) | An MCP connector for other agents, hosted environment building and execution, private hosting, NeMo Fabric and Relay, public collaboration, and USDC bounties. |
+| **Later** (planned) | An MCP connector for other agents, hosted environment building and execution, private hosting, and NeMo Fabric and Relay. |
 
 The [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
 [task set](docs/plan/v0.3.0-task-set.md) are the current product and delivery
 documents. Earlier plans and handoffs (for example
 [`docs/plan/v0.2.md`](docs/plan/v0.2.md) and [HANDOFF.md](HANDOFF.md)) are kept
 as historical records and say so at the top.
-
-<details>
-<summary>Collaboration, competition, and USDC</summary>
-
-An agent should be able to discover a suitable Climb, inspect its rules, fork a
-public artifact with attribution, discuss a result, run locally, and explicitly
-submit its evidence. Collaboration should preserve parentage and disclose what
-information participants shared. Messages and artifacts are untrusted content,
-not instructions that can authorize execution or spending.
-
-Competition needs a common comparison contract. A global score mixing unrelated
-models and benchmarks would be misleading. The first public surface should
-show evidence and reproducibility; any ranking must identify the common rules
-and membership it compares.
-
-Planned Market records keep acceptance and payment separate:
-
-```text
-Bounty → Submission → Acceptance decision → Payout intent → Payment receipt
-               └── references an immutable result
-```
-
-USDC payment is an economic event, not scientific validation. Payee control,
-network, asset, limits, signers, and reconciliation must be explicit. x402 may
-support paid artifact access; it is not the mechanism that judges a bounty.
-Reuse, redistribution, and training rights must be stated separately.
-
-Later environment producers may accept authorized failures, traces or data as
-well as Skills and repositories. Private sources and executable artifacts need
-their own access and isolation boundary. GEPA is a possible managed candidate
-producer, not a prerequisite for any release.
-
-</details>
 
 ## Privacy
 

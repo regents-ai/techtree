@@ -10,8 +10,7 @@ defmodule TechtreeWeb.ContentSecurityPolicy do
 
   Stricter than the template's baseline, because nothing here needs more: no
   style attributes in markup (the headline reveal clips each word with a class),
-  and no form submits anywhere. The one origin added is GitHub's API, which the
-  masthead reads for the repository's star count.
+  and no form submits anywhere.
   """
 
   # The development code reloader runs in a frame from this site.
@@ -25,7 +24,7 @@ defmodule TechtreeWeb.ContentSecurityPolicy do
     {"style-src", ["'self'"]},
     {"img-src", ["'self'", "data:"]},
     {"font-src", ["'self'"]},
-    {"connect-src", ["'self'", "https://api.github.com"]},
+    {"connect-src", ["'self'"]},
     {"frame-src", @own_frames},
     {"base-uri", ["'none'"]},
     {"form-action", ["'none'"]},

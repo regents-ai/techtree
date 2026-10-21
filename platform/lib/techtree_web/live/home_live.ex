@@ -1,38 +1,40 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
-  Who Techtree is for and the three things it builds or upgrades (a Skill, a
-  harness, an environment), then AgentWalletBench, what each tool is for, how
-  testing a Skill works, a quick look at the Hello World Climb, every published
-  Climb, what works today, and one copyable instruction for an agent.
+  One promise and the newest Result that keeps it, one Start button and one
+  copyable instruction for an agent. Then how testing a Skill works, a quick
+  look at the Hello World Climb, every published Climb, AgentWalletBench, what
+  each tool is for, and what works today.
   """
 
   use TechtreeWeb, :live_view
 
   alias Techtree.Catalog.Query
+  alias Techtree.Network.Query, as: Results
+  alias Techtree.Network.Verdict
   alias Techtree.WalletBench.Catalog, as: WalletCatalog
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.Outage
   alias TechtreeWeb.ReleaseInfo
-
-  # What the headline says an improvement is for, turned one after another by the
-  # HeroOutcome hook; screen readers hear all three at once.
-  @outcomes ["use less tokens", "perform evals stronger", "create better traces"]
+  alias TechtreeWeb.ResultAssessment
+  alias TechtreeWeb.ResultNames
 
   @impl true
   def mount(_params, _session, socket) do
-    {release, climbs, catalog} =
-      case Outage.read(fn -> {ReleaseInfo.current(), Query.list_climbs()} end) do
-        {:ok, {release, climbs}} -> {release, climbs, :read}
-        :database_down -> {nil, [], :unreadable}
+    {release, climbs, newest, catalog} =
+      case Outage.read(fn ->
+             {ReleaseInfo.current(), Query.list_climbs(), Results.newest_standing()}
+           end) do
+        {:ok, {release, climbs, newest}} -> {release, climbs, newest, :read}
+        :database_down -> {nil, [], nil, :unreadable}
       end
 
     campaign = release && Enum.find(climbs, &(&1.reference == release.introductory_reference))
 
     {:ok,
      assign(socket,
-       page_title: "Build or upgrade a Skill, Harness or Env",
+       page_title: "Improve a Skill. Prove it worked.",
        agent_line: agent_line(),
        campaign: campaign,
        campaign_copy: campaign && ClimbCopy.for_reference(campaign.reference),
@@ -45,7 +47,8 @@ defmodule TechtreeWeb.HomeLive do
        wallet_tools: names(WalletCatalog.wallet_ids(), &WalletCatalog.wallet!/1),
        release: release,
        catalog: catalog,
-       outcomes: @outcomes
+       newest: newest,
+       newest_runs: newest && Results.runs_behind(newest)
      )}
   end
 
@@ -70,74 +73,136 @@ defmodule TechtreeWeb.HomeLive do
           </div>
 
           <div class="hero__copy">
-            <h1 id="hero-title" class="hero-title">
-              <span class="offscreen">
-                Improve any agent's Harness / Environment / Skills to {either(@outcomes)}
-              </span>
-              <span aria-hidden="true">
-                Improve any agent's Harness&nbsp;/ Environment&nbsp;/ Skills to
-                <span
-                  id="hero-outcome"
-                  class="hero-outcome"
-                  phx-hook="HeroOutcome"
-                  phx-update="ignore"
-                >
-                  <span
-                    :for={{outcome, index} <- Enum.with_index(@outcomes)}
-                    class="hero-outcome__phrase"
-                    data-shown={index == 0}
-                  >
-                    {outcome}
-                  </span>
-                </span>
-              </span>
-            </h1>
+            <h1 id="hero-title" class="hero-title">Improve a Skill. Prove it worked.</h1>
+            <p class="hero__lede">
+              Run the same tasks with and without your Skill. See what improved, what regressed,
+              and keep a report anyone can check.
+            </p>
+            <.newest_result :if={@newest} entry={@newest} runs={@newest_runs} />
+            <div class="hero__actions">
+              <.link navigate={~p"/start"} class="rg-button rg-button--primary">Start</.link>
+              <.link navigate={~p"/results"} class="text-link">
+                See every Result <span aria-hidden="true">→</span>
+              </.link>
+            </div>
             <p class="hero__mechanism">Built on Prime Intellect &amp; NVIDIA Nemotron</p>
-            <nav class="hero__products" aria-labelledby="hero-title">
-              <.link navigate={~p"/start#skill"} class="hero-product hero-product--skill">
-                <span>
-                  <strong class="hero-product__name">Skill</strong>
-                  <span class="hero-product__line">
-                    Make practice tasks from a Skill and see whether a change helped.
-                  </span>
-                </span>
-                <span class="hero-product__destination">
-                  Test a Skill <span aria-hidden="true">→</span>
-                </span>
-              </.link>
-              <.link navigate={~p"/wallet-bench"} class="hero-product hero-product--harness">
-                <span>
-                  <strong class="hero-product__name">Harness</strong>
-                  <span class="hero-product__line">
-                    See how a coding agent handles real setup work, starting with wallets.
-                  </span>
-                </span>
-                <span class="hero-product__destination">
-                  Wallet tests <span aria-hidden="true">→</span>
-                </span>
-              </.link>
-              <.link navigate={~p"/repo2rlenv"} class="hero-product hero-product--env">
-                <span>
-                  <strong class="hero-product__name">Env</strong>
-                  <span class="hero-product__line">
-                    Turn real code into places where agents can practice.
-                  </span>
-                </span>
-                <span class="hero-product__destination">
-                  Repo2RLEnv <span aria-hidden="true">→</span>
-                </span>
-              </.link>
-            </nav>
             <.installer release={@release} catalog={@catalog} agent_line={@agent_line} />
           </div>
         </div>
 
-        <a class="hero__more" href="#wallet-bench" aria-label="About AgentWalletBench">
+        <a class="hero__more" href="#skill-test" aria-label="How a Skill is tested">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m6 5 6 6 6-6" />
             <path d="m6 12 6 6 6-6" />
           </svg>
         </a>
+      </section>
+
+      <section id="skill-test" class="home-section service-intro" aria-labelledby="skill-test-title">
+        <Regent.Structure.section_bar>
+          <p class="rg-section-bar__label">Test your Skill</p>
+          <.capability_status capability={:skill_test} />
+        </Regent.Structure.section_bar>
+        <div class="service-intro__body">
+          <div>
+            <h2 id="skill-test-title">Only the Skill changes.</h2>
+            <p>
+              Techtree makes practice tasks from what your Skill teaches. Your agent then works
+              the same tasks twice: once without the Skill, or with its earlier version, and once
+              with it. The model, the tools and the limits stay the same, so any difference comes
+              from the Skill.
+            </p>
+            <p>
+              Some tasks are held out from anyone improving the Skill. Their result is the one
+              to trust when you ask “should I keep this change?”, because no revision could have
+              studied them.
+            </p>
+            <div class="service-intro__actions">
+              <.link navigate={~p"/start#skill"} class="rg-button rg-button--secondary">
+                Test your Skill
+              </.link>
+              <.link navigate={~p"/examples/tdd"} class="text-link">
+                See a real comparison <span aria-hidden="true">→</span>
+              </.link>
+            </div>
+          </div>
+          <ol class="service-flow" aria-label="How a Skill is tested">
+            <li>
+              <span>01 / Tasks</span><strong>Made from your Skill</strong><small>You review the plan and keep the tasks that work</small>
+            </li>
+            <li>
+              <span>02 / Compare</span><strong>Run twice</strong><small>Without the Skill or its earlier version, then with it</small>
+            </li>
+            <li>
+              <span>03 / Decide</span><strong>Held-out tasks</strong><small>Improved, regressed, mixed or no difference</small>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="quick-look" class="home-section featured" aria-labelledby="featured-title">
+        <div>
+          <p class="eyebrow">A quick look</p>
+          <h2 id="featured-title">See how a comparison runs.</h2>
+          <p>
+            The Hello World Climb ships with every release: a small, fixed set of tasks run once
+            without a starter Skill and once with it. It shows how a run is approved, what it
+            records and what a Result looks like. Its toy tasks say nothing about your own Skill.
+          </p>
+          <p :if={@campaign}>
+            It is
+            <strong>{@campaign.title}</strong><span :if={@campaign_copy}>, {@campaign_copy.introduction}</span>.
+          </p>
+        </div>
+        <dl :if={@campaign} class="featured__facts">
+          <div>
+            <dt>Tasks</dt>
+            <dd>{CampaignFacts.membership_words(@campaign_facts.membership) || "Not published"}</dd>
+          </div>
+          <div>
+            <dt>Harness</dt>
+            <dd>
+              {@campaign.projection["subject_harness"]}
+              {@campaign.projection["subject_harness_version"]}
+            </dd>
+          </div>
+          <div>
+            <dt>Checked</dt>
+            <dd>{CampaignFacts.validation_words(@campaign_facts.validation) || "Not published"}</dd>
+          </div>
+        </dl>
+        <p class="featured__links">
+          <.link navigate={~p"/start#example"} class="text-link">
+            Try the example <span aria-hidden="true">→</span>
+          </.link>
+          <a :if={@campaign} class="text-link" href={~p"/climbs/#{@campaign.projection["slug"]}"}>
+            Inspect the Climb <span aria-hidden="true">→</span>
+          </a>
+          <a class="text-link" href={~p"/results"}>
+            Published Results <span aria-hidden="true">→</span>
+          </a>
+        </p>
+      </section>
+
+      <section
+        :if={@climbs != [] or @catalog == :unreadable}
+        id="climbs"
+        class="home-section"
+        aria-labelledby="climbs-title"
+      >
+        <Regent.Structure.section_bar class="section-heading rg-support-band">
+          <h2 id="climbs-title" class="rg-section-bar__label">Published Climbs</h2>
+        </Regent.Structure.section_bar>
+        <p :if={@catalog == :unreadable} class="empty-state" role="status">
+          The Climbs can't be shown right now. Try again in a minute.<br />
+          <.link navigate={~p"/docs"}>Read the guide meanwhile</.link>
+        </p>
+        <ul :if={@climbs != []} class="climb-list">
+          <li :for={{climb, copy} <- @climbs} class="climb-list__item">
+            <a class="text-link" href={~p"/climbs/#{climb.projection["slug"]}"}>{climb.title}</a>
+            <p :if={copy}>{copy.scope}</p>
+          </li>
+        </ul>
       </section>
 
       <section id="wallet-bench" class="home-section featured" aria-labelledby="wallet-bench-title">
@@ -319,113 +384,6 @@ defmodule TechtreeWeb.HomeLive do
         </ul>
       </section>
 
-      <section id="skill-test" class="home-section service-intro" aria-labelledby="skill-test-title">
-        <Regent.Structure.section_bar>
-          <p class="rg-section-bar__label">Test your Skill</p>
-          <.capability_status capability={:skill_test} />
-        </Regent.Structure.section_bar>
-        <div class="service-intro__body">
-          <div>
-            <h2 id="skill-test-title">Only the Skill changes.</h2>
-            <p>
-              Techtree makes practice tasks from what your Skill teaches. Your agent then works
-              the same tasks twice: once without the Skill, or with its earlier version, and once
-              with it. The model, the tools and the limits stay the same, so any difference comes
-              from the Skill.
-            </p>
-            <p>
-              Some tasks are held out from anyone improving the Skill. Their result is the one
-              to trust when you ask “should I keep this change?”, because no revision could have
-              studied them.
-            </p>
-            <div class="service-intro__actions">
-              <.link navigate={~p"/start#skill"} class="rg-button rg-button--secondary">
-                Test your Skill
-              </.link>
-              <.link navigate={~p"/examples/tdd"} class="text-link">
-                See a real comparison <span aria-hidden="true">→</span>
-              </.link>
-            </div>
-          </div>
-          <ol class="service-flow" aria-label="How a Skill is tested">
-            <li>
-              <span>01 / Tasks</span><strong>Made from your Skill</strong><small>You review the plan and keep the tasks that work</small>
-            </li>
-            <li>
-              <span>02 / Compare</span><strong>Run twice</strong><small>Without the Skill or its earlier version, then with it</small>
-            </li>
-            <li>
-              <span>03 / Decide</span><strong>Held-out tasks</strong><small>Improved, regressed, mixed or no difference</small>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <section id="quick-look" class="home-section featured" aria-labelledby="featured-title">
-        <div>
-          <p class="eyebrow">A quick look</p>
-          <h2 id="featured-title">See how a comparison runs.</h2>
-          <p>
-            The Hello World Climb ships with every release: a small, fixed set of tasks run once
-            without a starter Skill and once with it. It shows how a run is approved, what it
-            records and what a Result looks like. Its toy tasks say nothing about your own Skill.
-          </p>
-          <p :if={@campaign}>
-            It is
-            <strong>{@campaign.title}</strong><span :if={@campaign_copy}>, {@campaign_copy.introduction}</span>.
-          </p>
-        </div>
-        <dl :if={@campaign} class="featured__facts">
-          <div>
-            <dt>Tasks</dt>
-            <dd>{CampaignFacts.membership_words(@campaign_facts.membership) || "Not published"}</dd>
-          </div>
-          <div>
-            <dt>Harness</dt>
-            <dd>
-              {@campaign.projection["subject_harness"]}
-              {@campaign.projection["subject_harness_version"]}
-            </dd>
-          </div>
-          <div>
-            <dt>Checked</dt>
-            <dd>{CampaignFacts.validation_words(@campaign_facts.validation) || "Not published"}</dd>
-          </div>
-        </dl>
-        <p class="featured__links">
-          <.link navigate={~p"/start#example"} class="text-link">
-            Try the example <span aria-hidden="true">→</span>
-          </.link>
-          <a :if={@campaign} class="text-link" href={~p"/climbs/#{@campaign.projection["slug"]}"}>
-            Inspect the Climb <span aria-hidden="true">→</span>
-          </a>
-          <a class="text-link" href={~p"/results"}>
-            Published Results <span aria-hidden="true">→</span>
-          </a>
-        </p>
-      </section>
-
-      <section
-        :if={@climbs != [] or @catalog == :unreadable}
-        id="climbs"
-        class="home-section"
-        aria-labelledby="climbs-title"
-      >
-        <Regent.Structure.section_bar class="section-heading rg-support-band">
-          <h2 id="climbs-title" class="rg-section-bar__label">Published Climbs</h2>
-        </Regent.Structure.section_bar>
-        <p :if={@catalog == :unreadable} class="empty-state" role="status">
-          The Climbs can't be shown right now. Try again in a minute.<br />
-          <.link navigate={~p"/docs"}>Read the guide meanwhile</.link>
-        </p>
-        <ul :if={@climbs != []} class="climb-list">
-          <li :for={{climb, copy} <- @climbs} class="climb-list__item">
-            <a class="text-link" href={~p"/climbs/#{climb.projection["slug"]}"}>{climb.title}</a>
-            <p :if={copy}>{copy.scope}</p>
-          </li>
-        </ul>
-      </section>
-
       <section id="capabilities" class="home-section" aria-labelledby="capabilities-title">
         <Regent.Structure.section_bar class="section-heading rg-support-band">
           <h2 id="capabilities-title" class="rg-section-bar__label">What works today</h2>
@@ -495,7 +453,6 @@ defmodule TechtreeWeb.HomeLive do
         id="copy-home-agent-line"
         label="Paste into your agent’s chat"
         text={@agent_line}
-        copy_variant="primary"
       />
 
       <details class="installer__manual">
@@ -527,7 +484,36 @@ defmodule TechtreeWeb.HomeLive do
     """
   end
 
-  # "a, b or c", as the headline reads to someone who hears it.
-  defp either(outcomes),
-    do: Enum.join(Enum.drop(outcomes, -1), ", ") <> " or " <> List.last(outcomes)
+  attr :entry, :map, required: true
+  attr :runs, :integer, required: true
+
+  # The newest Result still standing, as the proof under the promise.
+  defp newest_result(assigns) do
+    assigns = assign(assigns, :verdict, Verdict.of(assigns.entry.assessment))
+
+    ~H"""
+    <.link
+      navigate={"/results/" <> @entry.bundle_digest}
+      id="hero-newest-result"
+      class="hero-product hero-product--skill hero-result"
+    >
+      <span>
+        <span class="hero-result__eyebrow">Newest Result</span>
+        <strong class="hero-product__name">{ResultNames.skill(@entry)} vs baseline</strong>
+        <span class="hero-product__line">{ResultNames.coordinates(@entry)}</span>
+      </span>
+      <span class="hero-result__outcome">
+        <strong class={["verdict", "verdict--#{@verdict}"]}>{ResultAssessment.label(@verdict)}</strong>
+        <span>
+          {@entry.wins} better · {@entry.ties} same · {@entry.losses} worse · {ResultAssessment.runs_words(
+            @runs
+          )}
+        </span>
+      </span>
+      <span class="hero-product__destination">
+        See the evidence <span aria-hidden="true">→</span>
+      </span>
+    </.link>
+    """
+  end
 end

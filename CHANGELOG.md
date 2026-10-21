@@ -1,15 +1,36 @@
 # Changelog
 
+## Website (2026-10-21)
+
+### Changed
+
+- The home page now makes one promise: improve a Skill and prove it worked. It
+  shows the newest Result under the headline, with its verdict, and one Start
+  button. Wallet Bench sits further down the page.
+- Every Result now says Improved, Regressed or Too close to call, how many of
+  its tasks got better, stayed the same and got worse, and how many runs back
+  it. A higher score where most tasks got worse is never called Improved. The
+  API gives the same verdict and run count.
+- The Results page lists every Result by default and says how many it is
+  showing out of the total. Each filter starts at All, and choosing a harness,
+  version, model, challenge or route narrows the list from there.
+- A Result made on an earlier version of its Climb says so, as its Climb's page
+  does.
+- Every public page also answers in Markdown for agents that ask for it, and
+  says so in its page head.
+- The short start at /llms.txt is now a short page: what Techtree is, the exact
+  install line, how to check it worked, and what you pay. The agent guide at
+  /agents.md holds the rest and no longer repeats the Skill file.
+- The install line and version in the agent documents always match the
+  release Techtree is serving.
+- The home page lists all three Climbs.
+- The motion lab and the empty blog are no longer part of the public site.
+- The Privacy page names every service your browser connects to when you sign in.
+
 ## Website (2026-10-20)
 
 ### Changed
 
-- A shared Techtree link shows a new picture in the Canopy colours, with the
-  Regents cut corners and their Tangerine and Powder Blue marks. Its words and
-  techtree.sh now sit in the left part of the picture, which is all X shows on
-  a phone, and clear of the bottom-left corner, where X writes the site's
-  name. Before, the headline ran past that part and techtree.sh sat at the
-  top right, out of view on a phone.
 - Wallet Bench's recorded files hide any picture shown inside a tested agent's
   own output, as they already hide keys and recovery phrases.
 - Wallet Bench's recorded files hide PGP private keys too.
@@ -27,6 +48,12 @@
   alphabet and with indented lines.
 - A hidden email address or key at the start of a line no longer breaks the
   recorded file it sits in, and long outputs are checked for secrets quickly.
+- A shared Techtree link shows a new picture in the Canopy colours, with the
+  Regents cut corners and their Tangerine and Powder Blue marks. Its words and
+  techtree.sh now sit in the left part of the picture, which is all X shows on
+  a phone, and clear of the bottom-left corner, where X writes the site's
+  name. Before, the headline ran past that part and techtree.sh sat at the
+  top right, out of view on a phone.
 
 ## Website (2026-10-19)
 

@@ -7,6 +7,8 @@ defmodule Techtree.Network.AgentVersions do
   labels are preserved verbatim; an upload is not evidence of release precedence.
   """
 
+  @coordinates [:agent, :agent_version, :model, :challenge, :route, :before_sequence, :limit]
+
   def families(entries) do
     entries
     |> Enum.group_by(& &1.subject_harness)
@@ -22,52 +24,64 @@ defmodule Techtree.Network.AgentVersions do
     |> Enum.sort_by(fn family -> {family.id != "hermes-agent", family.label, family.id} end)
   end
 
-  def select([], params) do
-    if Map.has_key?(params, "agent") or Map.has_key?(params, "agent_version"),
-      do: :error,
-      else: {:ok, nil}
-  end
+  @doc """
+  The harness and version an address chooses, if it chooses any.
 
+  Neither chosen is every harness, and a harness alone is every version of it.
+  A version without its harness, or either one with no Results, is `:error`.
+  """
   def select(families, params) do
-    id = Map.get(params, "agent", hd(families).id)
-
-    with %{versions: versions} = family <- Enum.find(families, &(&1.id == id)),
-         version when is_binary(version) <- Map.get(params, "agent_version", hd(versions)),
-         true <- version in versions do
-      index = Enum.find_index(versions, &(&1 == version))
-
-      {:ok,
-       %{
-         family: family,
-         version: version,
-         latest: hd(versions),
-         newer: if(index > 0, do: Enum.at(versions, index - 1)),
-         older: Enum.at(versions, index + 1)
-       }}
-    else
-      _ -> :error
+    case {Map.get(params, "agent"), Map.get(params, "agent_version")} do
+      {nil, nil} -> {:ok, nil}
+      {nil, _version} -> :error
+      {id, version} -> families |> Enum.find(&(&1.id == id)) |> version_of(version)
     end
   end
 
-  def url(agent, version, options \\ []) do
-    params = [{"agent", agent}, {"agent_version", version}]
+  defp version_of(nil, _version), do: :error
 
-    params =
-      Enum.reduce([:model, :challenge, :route, :before_sequence, :limit], params, fn key,
-                                                                                     params ->
-        case Keyword.get(options, key) do
-          nil -> params
-          value -> params ++ [{to_string(key), to_string(value)}]
-        end
-      end)
+  defp version_of(family, nil),
+    do:
+      {:ok, %{family: family, version: nil, latest: hd(family.versions), newer: nil, older: nil}}
 
-    "/results?" <> URI.encode_query(params)
+  defp version_of(%{versions: versions} = family, version) do
+    case Enum.find_index(versions, &(&1 == version)) do
+      nil ->
+        :error
+
+      index ->
+        {:ok,
+         %{
+           family: family,
+           version: version,
+           latest: hd(versions),
+           newer: if(index > 0, do: Enum.at(versions, index - 1)),
+           older: Enum.at(versions, index + 1)
+         }}
+    end
   end
 
-  defp label("hermes-agent"), do: "Hermes"
-  defp label("prime-agent"), do: "Prime Agent"
-  defp label("codex"), do: "Codex"
-  defp label(id), do: id
+  @doc """
+  The address of the Results page for the coordinates given. A coordinate left
+  out, or given as nil, is every value of it.
+  """
+  def url(coordinates) do
+    params =
+      for key <- @coordinates,
+          value = coordinates[key],
+          do: {Atom.to_string(key), to_string(value)}
+
+    case params do
+      [] -> "/results"
+      params -> "/results?" <> URI.encode_query(params)
+    end
+  end
+
+  @doc "A harness's name as a reader reads it."
+  def label("hermes-agent"), do: "Hermes"
+  def label("prime-agent"), do: "Prime Agent"
+  def label("codex"), do: "Codex"
+  def label(id), do: id
 
   defp newer?(left, right) do
     a = left.subject_harness_version

@@ -1,9 +1,9 @@
 defmodule TechtreeWeb.AgentsController do
   @moduledoc """
   The agent guide at `/agents.md`: the installation facts, written for the
-  agent rather than the reader, then how a paired agent signs its requests, then
-  the Techtree skill's own sections (`TechtreeWeb.SkillController`), word for
-  word.
+  agent rather than the reader, then how a paired agent signs its requests, and
+  links to the rest. `/llms.txt` is the short start that points here; the
+  Techtree skill (`/skill.md`) and the Docs are linked, never repeated.
 
   An agent that lands here should be able to answer three questions without
   guessing: what this is, which exact command installs it, and what happens to
@@ -18,20 +18,17 @@ defmodule TechtreeWeb.AgentsController do
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ModelAccess
+  alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.ReleaseInfo
-  alias TechtreeWeb.SkillController
 
   @access """
   ## Agent access
 
   Local experiments and offline proof verification stay available without
-  pairing. Public catalog, result and key reads need no sign-in.
-
-  Install the published regents-cli 1.10.4 for the signed account commands.
-  Its ordinary installation includes SOCKS proxy support:
+  pairing. Public catalog, result and key reads need no sign-in. The release
+  installed above carries the signed account commands:
 
   ```sh
-  uv tool install regents-cli==1.10.4
   regents auth login --site techtree
   regents techtree agents whoami --json
   regents techtree account balances --json
@@ -57,9 +54,14 @@ defmodule TechtreeWeb.AgentsController do
   side panel, which gives them a pairing code. Redeem it with signed POST /api/agents/v1/pair using code, name and
   harness through private JSON stdin to `regents techtree agents pair --json`.
   Keep the code out of command arguments, shell history and project files.
-  Codes are private, expire and work once. One owner may pair at most
-  100 active agents across Regent sites. Revocation stops protected work;
-  re-pairing creates a new episode and restores no previous spending grant.
+  Codes are private, expire and work once. One pairing works on every Regent
+  site, and one owner may pair at most 100 active agents across them.
+  Revocation stops protected work; re-pairing creates a new episode and
+  restores no previous spending grant. `GET /api/agents/v1/whoami` only reads;
+  `GET /api/agents/v1/me` records a check-in and returns the paired account's
+  names and verified wallet fields, and grants no wallet authority. The
+  [agent sign-in guide](https://siwa.regents.sh/skill.md) covers the client,
+  your key and each step.
 
   Signed account reads require a current pairing and the owner's existing
   canonical account. `account_balances`, `credits_history` and `points_balance`
@@ -68,7 +70,9 @@ defmodule TechtreeWeb.AgentsController do
   manages grants, pairing controls and account security. Credits permission
   grants no access to wallet funds. Techtree does not activate Points or award
   Points for reads. Points and Credits answers carry a `note` when earning
-  Points or approving agent spending is off on this site.
+  Points or approving agent spending is off on this site. An invalid
+  Credits-history cursor returns `invalid_cursor` (422): read the first page
+  without `after`, then use its `pagination.next_cursor` unchanged.
 
   Hosted publication and withdrawal additionally require the participant's
   independent signed proof. The SIWA identity does not replace that key. Both use
@@ -91,7 +95,6 @@ defmodule TechtreeWeb.AgentsController do
   versions and any assistance. Follow the returned recovery hint. Never publish
   credentials, pairing codes, private records or fake evaluation results as a
   repair report.
-
   """
 
   def show(conn, _params) do
@@ -145,11 +148,13 @@ defmodule TechtreeWeb.AgentsController do
     command to run next, or what the person has to do first. Follow those; the
     commands below show the shape of each step.
 
-    Published CLI 1.10.2 carries `.md`, `.txt`, `.json`, `.yaml` and `.yml`
-    Skill files. Python helpers (`.py`) are pending in 1.10.3; a local source
-    change is not a published release. Model Climb commands are also separate
-    unreleased work and are not included in 1.10.2 or the pending 1.10.3 release.
-    Follow this page's exact install command until its release changes.
+    `regents techtree --help` lists every command this release carries, and
+    each command's `--help` says what it takes. Follow this page's exact install
+    command until its release changes.
+
+    ## Payment
+
+    #{PublicDocuments.payment()}
 
     ## Make the tasks
 
@@ -215,7 +220,17 @@ defmodule TechtreeWeb.AgentsController do
     runs send the Skill's files and the tasks to the model provider the person
     chose, on their own sign-in, and only after they approve the review that
     says so. Everything else stays in Techtree's folder on their computer until
-    they share it. No Techtree account exists.
+    they share it. Testing a Skill needs no Techtree account; publishing a
+    Result needs you paired with your person's account, below.
+
+    ## In a browser, or on the person's computer
+
+    In a browser, or as an agent with only web access, you can read and explain
+    Climbs, published Results and what a run would need, with the browser tools
+    or the public API. Paired with the person's account, you can also publish or
+    withdraw a Result with `techtree_publication`, once it has been run and
+    signed on their computer. Installing, preparing a Skill, running and
+    comparing happen on the person's computer, through the CLI.
 
     #{@access}
     ## Wallet Bench
@@ -224,9 +239,20 @@ defmodule TechtreeWeb.AgentsController do
     https://techtree.sh/wallet-bench.md: each pair's newest judged result, then
     every test with a result, each linked to its evidence.
 
-    Documentation: https://techtree.sh/docs
+    ## Related Regent products
 
-    #{String.trim_trailing(SkillController.shared_sections())}
+    - [Regents](https://regents.sh/llms.txt): agent identity, operations, staking and redemption.
+    - [Autolaunch](https://autolaunch.sh/llms.txt): token auctions, launch operations and market reads on Base.
+    - [Patchbay](https://patchbay.help/llms.txt): reports about agent tools and bounded browser-tool repairs.
+
+    Each product owns its authorization and tool contract. Cross-product links
+    are discovery, not shared permissions.
+
+    ## Read next
+
+    - [Techtree skill](https://techtree.sh/skill.md): what to watch on Techtree and how to check back on a schedule. Install it with `npx skills add regents-ai/techtree --skill techtree`.
+    - [Docs](https://techtree.sh/docs): the public API, errors, rate limits, versioning, and every browser tool.
+    - [Tool manifest](https://techtree.sh/capabilities): the browser tools as JSON.
     """
   end
 

@@ -177,13 +177,15 @@ defmodule TechtreeWeb.OpenAPI do
             %{
               "name" => "agent",
               "in" => "query",
-              "description" => "Only Results from this agent harness. Sent with `agent_version`.",
+              "description" =>
+                "Only Results from this agent harness, every version of it unless `agent_version` is sent too.",
               "schema" => %{"type" => "string", "minLength" => 1, "maxLength" => 128}
             },
             %{
               "name" => "agent_version",
               "in" => "query",
-              "description" => "Only Results from this harness version. Sent with `agent`.",
+              "description" =>
+                "Only Results from this version of the harness `agent` names. Needs `agent`.",
               "schema" => %{"type" => "string", "minLength" => 1, "maxLength" => 128}
             },
             %{
@@ -843,16 +845,53 @@ defmodule TechtreeWeb.OpenAPI do
               "wins",
               "losses",
               "ties",
-              "task_count"
+              "task_count",
+              "verdict",
+              "runs"
             ],
             "properties" => %{
               "baseline_mean" => %{"type" => "number"},
               "candidate_mean" => %{"type" => "number"},
               "absolute_delta" => %{"type" => "number"},
-              "wins" => %{"type" => "integer", "minimum" => 0},
-              "losses" => %{"type" => "integer", "minimum" => 0},
-              "ties" => %{"type" => "integer", "minimum" => 0},
-              "task_count" => %{"type" => "integer", "minimum" => 0}
+              "wins" => %{
+                "type" => "integer",
+                "minimum" => 0,
+                "description" => "Tasks that got better with the Skill."
+              },
+              "losses" => %{
+                "type" => "integer",
+                "minimum" => 0,
+                "description" => "Tasks that got worse with the Skill."
+              },
+              "ties" => %{
+                "type" => "integer",
+                "minimum" => 0,
+                "description" => "Tasks that scored the same with and without the Skill."
+              },
+              "task_count" => %{"type" => "integer", "minimum" => 0},
+              "verdict" => %{
+                "type" => "string",
+                "enum" => [
+                  "improved",
+                  "regressed",
+                  "too_close_to_call",
+                  "no_difference",
+                  "no_rule"
+                ],
+                "description" =>
+                  "improved and regressed need both: the change clears the Climb's rule, and " <>
+                    "the tasks that changed went one way too often to be chance (an exact " <>
+                    "two-sided sign test over the tasks that got better or worse, at 0.05). " <>
+                    "Any other change is too_close_to_call. no_difference means both runs " <>
+                    "scored exactly the same; no_rule means the Climb set no rule to decide by."
+              },
+              "runs" => %{
+                "type" => "integer",
+                "minimum" => 1,
+                "description" =>
+                  "Runs behind this comparison: this Result's own run and every published " <>
+                    "rerun of it that is not withdrawn."
+              }
             }
           },
           "statuses" => %{"type" => "object"},

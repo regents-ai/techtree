@@ -1,16 +1,18 @@
 defmodule TechtreeWeb.PublicPagesController do
   @moduledoc """
   About, Contact, Privacy and Terms as pages, and the files agents and crawlers
-  read first: the agent guide at `/llms.txt`, the OpenAPI description, the tool
-  manifest, `robots.txt`, `security.txt` and the API catalog. All of them come
-  from `TechtreeWeb.PublicDocuments`, `TechtreeWeb.OpenAPI` and
-  `Techtree.Capabilities`, none reads the database, and the pages' Markdown is
-  answered before the router.
+  read first: the short start for agents at `/llms.txt`, the OpenAPI
+  description, the tool manifest, `robots.txt`, `security.txt` and the API
+  catalog. All of them come from `TechtreeWeb.PublicDocuments`,
+  `TechtreeWeb.OpenAPI` and `Techtree.Capabilities`; only `/llms.txt` reads the
+  database, for the install line of the release being served. The pages'
+  Markdown is answered before the router.
   """
 
   use TechtreeWeb, :controller
 
   alias TechtreeWeb.PublicDocuments
+  alias TechtreeWeb.ReleaseInfo
 
   def show(conn, _params) do
     page = PublicDocuments.page(conn.request_path)
@@ -18,7 +20,7 @@ defmodule TechtreeWeb.PublicPagesController do
   end
 
   def llms(conn, _params) do
-    body = PublicDocuments.llms()
+    body = PublicDocuments.llms(ReleaseInfo.current())
     conn |> cached(body) |> put_resp_content_type("text/plain") |> send_resp(200, body)
   end
 

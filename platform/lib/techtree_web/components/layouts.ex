@@ -148,61 +148,55 @@ defmodule TechtreeWeb.Layouts do
   defp share_title(title), do: title <> " · Techtree"
 
   # Who Techtree is, for a reader that speaks schema.org. There is no postal
-  # address: none has been published. Built from constants and the site's own
-  # address, and encoded HTML-safe, so it is inserted as it is.
-  # sobelow_skip ["XSS.Raw"]
+  # address: none has been published. `Regent.AgentMetadata.head` encodes it.
   defp structured_data do
     url = TechtreeWeb.Endpoint.url()
     organization = "https://regents.sh/#organization"
 
-    Jason.encode!(
-      %{
-        "@context" => "https://schema.org",
-        "@graph" => [
-          %{
-            "@type" => "WebSite",
-            "@id" => url <> "/#website",
-            "name" => "Techtree",
-            "url" => url,
-            "publisher" => %{"@id" => organization}
-          },
-          %{
-            "@type" => "Organization",
-            "@id" => organization,
-            "name" => "Regents Labs",
-            "url" => "https://regents.sh",
-            "logo" => "https://regents.sh/mark.png",
-            "sameAs" => ["https://github.com/regents-ai"],
-            "contactPoint" => %{
-              "@type" => "ContactPoint",
-              "email" => "build@regents.sh",
-              "contactType" => "customer support"
-            }
-          },
-          %{
-            "@type" => "SoftwareApplication",
-            "@id" => url <> "/#application",
-            "name" => "Techtree",
-            "url" => url,
-            "description" => description_for_path("/"),
-            "applicationCategory" => "DeveloperApplication",
-            "operatingSystem" => "macOS, Linux",
-            "license" => "https://opensource.org/licenses/MIT",
-            "offers" => %{"@type" => "Offer", "price" => "0", "priceCurrency" => "USD"},
-            "publisher" => %{"@id" => organization}
-          },
-          %{
-            "@type" => "SoftwareSourceCode",
-            "name" => "Techtree",
-            "codeRepository" => @repository_url,
-            "license" => "https://opensource.org/licenses/MIT",
-            "targetProduct" => %{"@id" => url <> "/#application"}
+    %{
+      "@context" => "https://schema.org",
+      "@graph" => [
+        %{
+          "@type" => "WebSite",
+          "@id" => url <> "/#website",
+          "name" => "Techtree",
+          "url" => url,
+          "publisher" => %{"@id" => organization}
+        },
+        %{
+          "@type" => "Organization",
+          "@id" => organization,
+          "name" => "Regents Labs",
+          "url" => "https://regents.sh",
+          "logo" => "https://regents.sh/mark.png",
+          "sameAs" => ["https://github.com/regents-ai"],
+          "contactPoint" => %{
+            "@type" => "ContactPoint",
+            "email" => "build@regents.sh",
+            "contactType" => "customer support"
           }
-        ]
-      },
-      escape: :html_safe
-    )
-    |> Phoenix.HTML.raw()
+        },
+        %{
+          "@type" => "SoftwareApplication",
+          "@id" => url <> "/#application",
+          "name" => "Techtree",
+          "url" => url,
+          "description" => description_for_path("/"),
+          "applicationCategory" => "DeveloperApplication",
+          "operatingSystem" => "macOS, Linux",
+          "license" => "https://opensource.org/licenses/MIT",
+          "offers" => %{"@type" => "Offer", "price" => "0", "priceCurrency" => "USD"},
+          "publisher" => %{"@id" => organization}
+        },
+        %{
+          "@type" => "SoftwareSourceCode",
+          "name" => "Techtree",
+          "codeRepository" => @repository_url,
+          "license" => "https://opensource.org/licenses/MIT",
+          "targetProduct" => %{"@id" => url <> "/#application"}
+        }
+      ]
+    }
   end
 
   defp page_description(assigns) do
@@ -297,7 +291,7 @@ defmodule TechtreeWeb.Layouts do
             <div id="footer-agent-guide" class="rg-tip-body regent-footer__guide-body" popover>
               <p>Give your agent one of these.</p>
               <a href={~p"/agents.md"}>What agents can do here</a>
-              <a href={~p"/llms.txt"}>The whole site in brief</a>
+              <a href={~p"/llms.txt"}>A short start</a>
             </div>
           </span>
           <a href={~p"/contact"}>Contact</a>

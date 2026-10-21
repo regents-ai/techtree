@@ -9,9 +9,10 @@ defmodule TechtreeWeb.Router do
   @theme_cookie "techtree_theme"
   @aside_cookie "techtree_aside"
 
-  # Pages are HTML here. The home page, About, Contact, Privacy, Terms and the
-  # Changelog also answer `Accept: text/markdown`, from
-  # `TechtreeWeb.PublicDocuments`, before the router. `/skill.md` and
+  # Pages are HTML here, and every public page also answers
+  # `Accept: text/markdown`: the database-free ones from
+  # `TechtreeWeb.PublicDocuments`, before the router, and the rest in
+  # `:public_page` (`TechtreeWeb.Plugs.PageMarkdown`). `/skill.md` and
   # `/agents.md` are Markdown whichever is asked for.
   pipeline :html_only do
     plug :accepts, ["html"]
@@ -19,6 +20,11 @@ defmodule TechtreeWeb.Router do
 
   pipeline :readable do
     plug :accepts, ["html", "md"]
+  end
+
+  pipeline :public_page do
+    plug :accepts, ["html", "md"]
+    plug TechtreeWeb.Plugs.PageMarkdown
   end
 
   pipeline :browser do
@@ -111,7 +117,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:html_only, :browser, :visitor_browser]
+    pipe_through [:public_page, :browser, :visitor_browser]
 
     live "/", HomeLive
     get "/about", PublicPagesController, :show

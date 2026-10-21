@@ -205,7 +205,7 @@
     {
       "name": "agent_whoami",
       "title": "Check my agent identity and pairing",
-      "description": "Verify your own SIWA identity and current pairing before private work. Requires a fresh per-request SIWA proof, but no pairing. Reads your identity and effective access only; awards no Points and manages no grants. If effective_access.paired is false, ask the owner to sign in on this site and pair you with Pair New Agent in the side panel, then redeem the code they paste you through the existing SIWA pairing flow. First prepare agent_whoami with empty input and sign its exact request with your existing signer. Available in regents-cli 1.10.2; native signed browser execution remains unverified.",
+      "description": "Verify your own SIWA identity and current pairing before private work. Requires a fresh per-request SIWA proof, but no pairing. Reads your identity and effective access only; awards no Points and manages no grants. If effective_access.paired is false, ask the owner to sign in on this site and pair you with Pair New Agent in the side panel, then redeem the code they paste you through the existing SIWA pairing flow. First prepare agent_whoami with empty input and sign its exact request with your existing signer. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified.",
       "input_schema": {
         "type": "object",
         "additionalProperties": false,
@@ -251,8 +251,7 @@
         "http": "GET /api/agents/v1/whoami",
         "cli": {
           "command": "agents whoami",
-          "release_status": "published",
-          "verified_version": "1.10.2"
+          "release_status": "published"
         }
       },
       "operation_input_schema": {
@@ -266,7 +265,7 @@
     {
       "name": "account_balances",
       "title": "Read account Credits and agent budget",
-      "description": "Read the shared user Credits balance and this active pairing\u2019s spending grant. Reading does not enable spending. Prepare and sign this request with your existing SIWA signer. Available in regents-cli 1.10.2; native signed browser execution remains unverified. The answer notes when approving new spending grants is off; that flag does not revoke existing grants.",
+      "description": "Read the shared user Credits balance and this active pairing\u2019s spending grant. Reading does not enable spending. Prepare and sign this request with your existing SIWA signer. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. The answer notes when approving new spending grants is off; that flag does not revoke existing grants.",
       "input_schema": {
         "type": "object",
         "additionalProperties": false,
@@ -312,8 +311,7 @@
         "http": "GET /tools/account/balances",
         "cli": {
           "command": "account balances",
-          "release_status": "published",
-          "verified_version": "1.10.2"
+          "release_status": "published"
         }
       },
       "operation_input_schema": {
@@ -327,7 +325,7 @@
     {
       "name": "credits_history",
       "title": "Read Credits history",
-      "description": "Read a private page of Credits history. The optional after cursor continues the previous page. Prepare and sign this request with your existing SIWA signer. Available in regents-cli 1.10.2; native signed browser execution remains unverified.",
+      "description": "Read a private page of Credits history. The optional after cursor continues the previous page. Prepare and sign this request with your existing SIWA signer. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified.",
       "input_schema": {
         "type": "object",
         "additionalProperties": false,
@@ -379,8 +377,7 @@
         "http": "POST /tools/account/credits/history",
         "cli": {
           "command": "account credits-history",
-          "release_status": "published",
-          "verified_version": "1.10.2"
+          "release_status": "published"
         }
       },
       "operation_input_schema": {
@@ -400,7 +397,7 @@
     {
       "name": "points_balance",
       "title": "Read account Points",
-      "description": "Read shared user Points and remaining allowances. Reading awards no Points. Prepare and sign this request with your existing SIWA signer. Available in regents-cli 1.10.2; native signed browser execution remains unverified. Earning Points is off; the answer says so in note.",
+      "description": "Read shared user Points and remaining allowances. Reading awards no Points. Prepare and sign this request with your existing SIWA signer. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. Earning Points is off; the answer says so in note.",
       "input_schema": {
         "type": "object",
         "additionalProperties": false,
@@ -446,8 +443,7 @@
         "http": "GET /tools/account/points",
         "cli": {
           "command": "account points",
-          "release_status": "published",
-          "verified_version": "1.10.2"
+          "release_status": "published"
         }
       },
       "operation_input_schema": {

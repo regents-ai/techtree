@@ -162,7 +162,7 @@ defmodule TechtreeWeb.PublicationController do
   defp show_valid_digest(conn, digest) do
     case Query.get_entry(digest) do
       {:ok, entry} ->
-        bytes = Projection.entry(entry, origin())
+        bytes = Projection.entry(entry, Query.runs_behind(entry), origin())
 
         ExactResponse.send_exact(
           conn,

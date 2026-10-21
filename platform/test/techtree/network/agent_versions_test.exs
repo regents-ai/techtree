@@ -16,7 +16,10 @@ defmodule Techtree.Network.AgentVersionsTest do
     assert [hermes, codex] = families
     assert hermes.versions == ["0.21.0", "0.21.0-rc.1", "0.9.0"]
     assert codex.versions == ["0.100.0", "0.99.0"]
-    assert {:ok, %{version: "0.21.0"}} = AgentVersions.select(families, %{})
+    assert {:ok, nil} = AgentVersions.select(families, %{})
+
+    assert {:ok, %{version: nil, latest: "0.21.0"}} =
+             AgentVersions.select(families, %{"agent" => "hermes-agent"})
 
     page = Query.page(agent: "hermes-agent", agent_version: "0.9.0", limit: 2)
     assert Enum.map(page.entries, & &1.log_sequence) == [30, 29]
@@ -38,7 +41,7 @@ defmodule Techtree.Network.AgentVersionsTest do
     seed(3, "codex", "build/alpha+sha")
     assert [%{versions: ["build/beta+sha", "build/alpha+sha"]}] = Query.agent_families()
 
-    url = AgentVersions.url("codex", "build/alpha+sha", before_sequence: 9)
+    url = AgentVersions.url(agent: "codex", agent_version: "build/alpha+sha", before_sequence: 9)
 
     assert URI.decode_query(URI.parse(url).query) == %{
              "agent" => "codex",
@@ -47,9 +50,13 @@ defmodule Techtree.Network.AgentVersionsTest do
            }
   end
 
-  test "HTTP selection rejects scalar coercions and half-specified coordinates" do
+  test "HTTP selection takes a harness alone, and never a version without its harness" do
+    assert {:ok, options} = Query.read_page_options(%{"agent" => "hermes-agent"})
+    assert options[:agent] == "hermes-agent"
+    refute Keyword.has_key?(options, :agent_version)
+
     for params <- [
-          %{"agent" => "hermes-agent"},
+          %{"agent_version" => "0.21.0"},
           %{"agent" => [], "agent_version" => "0.21.0"},
           %{"agent" => "hermes-agent", "agent_version" => false}
         ] do
