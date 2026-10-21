@@ -234,6 +234,10 @@ config :techtree, :session_options,
 # beside the other sites' local servers without taking the one port they share.
 config :techtree, :metrics_listener, ip: {127, 0, 0, 1}, port: 0
 
+# The engine's own measurements (memory, run queues, process counts), taken every
+# 10 seconds by telemetry_poller's default poller and exported as `vm.*` metrics.
+config :telemetry_poller, :default, period: 10_000
+
 # Configure esbuild (the version is required). Code split out with a dynamic
 # import, such as the homepage crown, is its own chunk, loaded only on demand.
 config :esbuild,

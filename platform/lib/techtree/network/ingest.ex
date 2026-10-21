@@ -428,6 +428,7 @@ defmodule Techtree.Network.Ingest do
 
     case appended do
       {:ok, entry} ->
+        :telemetry.execute([:techtree, :results, :published], %{count: 1}, %{})
         {:ok, entry, :recorded}
 
       {:error, refusal} ->

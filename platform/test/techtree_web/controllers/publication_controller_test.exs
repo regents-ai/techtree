@@ -722,45 +722,18 @@ defmodule TechtreeWeb.PublicationControllerTest do
       refute logged =~ String.downcase(@address)
     end
 
-    # What a telemetry reporter would actually export is a metric's measurement
-    # and the tags that metric declares, so that is what is checked rather than
-    # the raw metadata: a request's own headers are on the `conn` an event
-    # carries whether anybody wants them or not, and the question worth asking
-    # is whether any of that becomes a dimension this build reports. A metric
+    # A request's own headers are on the `conn` every event carries, so what
+    # matters is whether any of that reaches what this build exports. A metric
     # that grew a tag drawn from the request would fail this.
     test "is in no dimension of any metric this build reports", %{conn: conn} do
-      metrics = TechtreeWeb.Telemetry.metrics()
-      collector = self()
-
-      handlers =
-        metrics
-        |> Enum.map(& &1.event_name)
-        |> Enum.uniq()
-        |> Enum.map(fn event ->
-          id = {__MODULE__, event, make_ref()}
-
-          :telemetry.attach(
-            id,
-            event,
-            fn name, measurements, metadata, _config ->
-              send(collector, {:reported, name, measurements, metadata})
-            end,
-            nil
-          )
-
-          id
-        end)
-
-      on_exit(fn -> Enum.each(handlers, &:telemetry.detach/1) end)
-
       conn
       |> put_req_header("x-techtree-contributor-address", @address)
       |> publish(NetworkFixture.submission())
 
-      exported = exported_dimensions(metrics)
+      exported = TechtreeWeb.Telemetry.scrape()
 
-      # A test that reported nothing would pass for the wrong reason.
-      refute exported == ""
+      # A test that exported nothing would pass for the wrong reason.
+      assert exported =~ ~r/^techtree_results_published_total [1-9]/m
 
       refute exported =~ @address
       refute exported =~ String.downcase(@address)
@@ -909,25 +882,6 @@ defmodule TechtreeWeb.PublicationControllerTest do
              |> from_own_address()
              |> publish(NetworkFixture.submission())
              |> Map.fetch!(:status) == 201
-    end
-  end
-
-  # Everything the reporters attached to these metrics would put on the wire:
-  # each metric's measurement, and the values of the tags it declares.
-  defp exported_dimensions(metrics) do
-    receive do
-      {:reported, name, measurements, metadata} ->
-        dimensions =
-          metrics
-          |> Enum.filter(&(&1.event_name == name))
-          |> Enum.map(fn metric ->
-            {Map.get(measurements, metric.measurement),
-             metadata |> metric.tag_values.() |> Map.take(metric.tags)}
-          end)
-
-        inspect(dimensions) <> exported_dimensions(metrics)
-    after
-      0 -> ""
     end
   end
 

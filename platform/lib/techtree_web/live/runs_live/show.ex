@@ -63,6 +63,11 @@ defmodule TechtreeWeb.RunsLive.Show do
   def mount(%{"bundle_digest" => digest}, _session, socket) do
     case Query.get_entry(digest) do
       {:ok, entry} ->
+        # Once per page a browser opens: the first, unconnected render is the
+        # same page again, and a crawler that runs no script never connects.
+        if connected?(socket),
+          do: :telemetry.execute([:techtree, :results, :read], %{count: 1}, %{})
+
         {:ok, assign(socket, assigns_for(entry))}
 
       :error ->
