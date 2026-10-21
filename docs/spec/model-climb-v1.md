@@ -317,7 +317,7 @@ They match 248 modules, none missing and none unexpected. Text-only SFT resolves
 - Serving: `vllm serve` on the base revision with `--enable-lora`, `--max-lora-rank` equal to the recipe's rank, `--lora-modules` naming the adapter differently from the base model, and structured output through `response_format` `json_schema` (`guided_json` no longer exists).
 - vLLM packs `in_proj_qkv` with `in_proj_z`, and `in_proj_b` with `in_proj_a`. The test proves the trained adapter loads into those packed layers and changes the output.
 - Verifiers runs with `--no-push`; its default uploads results to Prime Intellect.
-- The trainer sends nothing anywhere: the recipe sets `dashboard = false`, and admission fails unless the resolved `heartbeat`, `monitors.prime` and `monitors.wandb` are all null. Metrics go only to a local `metrics.jsonl`.
+- The trainer sends nothing anywhere and serves nothing: the recipe sets `dashboard = false`, and admission fails unless the resolved `heartbeat`, `control`, `monitors.prime` and `monitors.wandb` are all null. `control` is prime-rl's run-control API, which listens on a port when set. Metrics go only to a local `metrics.jsonl`.
 
 ### 7.4 The test
 
