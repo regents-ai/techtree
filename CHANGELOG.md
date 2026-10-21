@@ -26,6 +26,8 @@
 - The home page lists all three Climbs.
 - The motion lab and the empty blog are no longer part of the public site.
 - The Privacy page names every service your browser connects to when you sign in.
+- On a wide screen, the Results filter names sit beside their choices instead of
+  under them.
 
 ## Website (2026-10-20)
 
