@@ -1,12 +1,5 @@
 # Changelog
 
-## 2026-10-19 — Template development check and build improvements
-
-Adopt ash-template's change runner with all configured platform suites, independent
-ExUnit parts, bounded local runs and owned cleanup. Cache stable build dependencies
-before application files. Full integration/protected checks remain available. This
-records local implementation; verification and release state are in the rollout report.
-
 ## Website (2026-10-20)
 
 ### Changed

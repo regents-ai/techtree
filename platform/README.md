@@ -412,6 +412,7 @@ agent, Credits, Points and identity tables. It runs only when
 `TECHTREE_DEPLOYMENT_ROLE` is exactly `staging`, refuses a database that already
 has state, and is what the release smoke check runs first. It never runs in
 production, where Regents owns those tables.
+
 ## Checking a change
 
 From the repository root, `make check-change` compares the working tree with the
