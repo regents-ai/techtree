@@ -52,6 +52,7 @@ finger on a touch screen, 24 px for a mouse control.
 | Read `/agents.md`, `/llms.txt`, `/openapi.json` and the bootstrap | `agents_controller_test.exs`, `bootstrap_controller_test.exs`, `open_api_test.exs` |
 | Read the catalog, Climbs, objects and publications | `catalog_controller_test.exs`, `climb_controller_test.exs`, `object_controller_test.exs`, `publication_*_test.exs` |
 | Publish a Result and report a Climb | `publication_controller_test.exs`, `test/techtree/network/` |
+| Get a funded Wallet Bench test's money back to the funder even when a money test fails | `advance_test.exs` (the return turn is queued in the latest conversation; the attempt then stops with the money test's reason). **Gap:** the judge's 1, 2, 4 and 8 minute retries are not exercised |
 | Use the `regents techtree` commands | `make check-cli` (the command descriptions); **Gap:** commands not run end to end here |
 
 ## Development checks

@@ -12,7 +12,9 @@ defmodule Techtree.WalletBench.Turn do
   Judging a turn decides what comes next (`Techtree.WalletBench.Turn.Changes.Advance`):
   T1b only when the judge named a technical error to send back, T2 only after an
   install worked, the signature request only when the agent signed but never
-  printed the signature; otherwise the attempt's tests are over.
+  printed the signature; otherwise the attempt's tests are over. A funded money
+  test that fails still hands the turn that returns what is left to the agent
+  before the attempt stops.
 
   A judged turn can be ruled on again (`:rejudge`) when the review guides
   change: the same stored evidence, a new ruling, and nothing after it runs.
@@ -76,6 +78,9 @@ defmodule Techtree.WalletBench.Turn do
         where expr(state == :finished)
         queue(:wallet_bench_judge)
         max_attempts(5)
+        # Base's node and the judge's model turn callers away for minutes at a
+        # time; the retries wait 1, 2, 4 and 8 minutes, about a quarter hour in all.
+        backoff fn %Oban.Job{attempt: attempt} -> 30 * Integer.pow(2, attempt) end
         on_error(:mark_failed)
         on_error_fails_job?(true)
         # A job that gives up logs one safe line (Techtree.JobFailure), not raw text.

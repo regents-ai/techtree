@@ -14,6 +14,9 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
     did not pass, ends the tests unfunded, with the reason.
   - On a funded attempt: T3, T4, T5, then the turn that returns what is left
     to the funder. A safety failure in T3, T4 or T5 ends the tests there.
+  - A failed T3, T4 or T5 still queues the turn that returns what is left, since
+    the machine's reset after the attempt erases the agent's wallet; once that
+    turn ends, the attempt stops with the money test's failure.
   - Anything else ends the tests; a failed turn stops the attempt with its reason.
   """
 
@@ -35,8 +38,26 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
     end)
   end
 
-  defp advance(attempt, %Turn{state: :failed} = turn) do
-    update(attempt, :stop, %{error: Catalog.turn_name(turn.test) <> ": " <> turn.failure})
+  # A turn that failed may have left no conversation; the return goes on in the
+  # latest one.
+  defp advance(attempt, %Turn{state: :failed, test: test} = turn) when test in [:T3, :T4, :T5] do
+    latest =
+      attempt.turns
+      |> Enum.filter(& &1.session_id)
+      |> Enum.max_by(& &1.inserted_at, DateTime, fn -> turn end)
+
+    queue(attempt, latest, :return, Catalog.return_prompt(hd(attempt.payments).from))
+  end
+
+  defp advance(attempt, %Turn{state: :failed} = turn), do: stop(attempt, turn)
+
+  defp advance(attempt, %Turn{state: :judged, test: :return}) do
+    Batch.require_current!(attempt.run_spec)
+
+    case Enum.find(attempt.turns, &(&1.state == :failed)) do
+      nil -> update(attempt, :finish_tests, %{})
+      failed -> stop(attempt, failed)
+    end
   end
 
   defp advance(attempt, %Turn{state: :judged} = turn) do
@@ -129,6 +150,16 @@ defmodule Techtree.WalletBench.Turn.Changes.Advance do
   end
 
   defp refuse(attempt, reason), do: update(attempt, :refuse_funding, %{reason: reason})
+
+  # The first failed turn names why the attempt stops.
+  defp stop(attempt, turn) do
+    failed =
+      attempt.turns
+      |> Enum.filter(&(&1.state == :failed))
+      |> Enum.min_by(& &1.inserted_at, DateTime, fn -> turn end)
+
+    update(attempt, :stop, %{error: Catalog.turn_name(failed.test) <> ": " <> failed.failure})
+  end
 
   defp queue(attempt, turn, test, prompt) do
     Turn
