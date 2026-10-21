@@ -4,6 +4,8 @@ Improve a Skill. Prove it worked.
 
 Run the same tasks with and without your Skill. See what improved, what regressed, and keep a report anyone can check.
 
+Techtree's Climb evaluator uses [Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) and supports signed, independently checkable result bundles.
+
 ## Test your Skill (experimental)
 
 Techtree makes practice tasks from what your Skill teaches. Your agent then works the same tasks twice: once without the Skill, or with its earlier version, and once with it. The model, the tools and the limits stay the same, so any difference comes from the Skill.
@@ -24,7 +26,7 @@ The Hello World Climb ships with every release: a small, fixed set of tasks run 
 - [Frontier-CS Open-Ended](/climbs/frontier-cs-open-ended-climb): ten open-ended optimisation problems with no known best answer, from Frontier-CS (MIT licence) as chosen by the FrontierSmith authors. With thanks to both.
 - [HF Tasksmith](/climbs/tasksmith-climb): six real changes from Hugging Face's trl, transformers, diffusers, peft and accelerate repositories, from the HF ML Tasksmith collection. With thanks to its authors.
 
-Techtree is a working technical preview built from three independent parts: Prime Intellect's Verifiers scores the tasks, Nous Research's Hermes runs the agent, and Techtree runs the comparison and keeps the evidence. Every finished Climb ends in a signed Result that anyone can check offline.
+Techtree is a working technical preview built from three independent parts: Prime Intellect's Verifiers scores each Climb's tasks, Nous Research's Hermes runs the agent, and Techtree runs the comparison and keeps the evidence. Every finished Climb ends in a signed Result that anyone can check offline.
 
 ## When to use it
 

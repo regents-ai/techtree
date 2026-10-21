@@ -32,7 +32,7 @@ Published Results are listed in the order they arrived. Techtree doesn't rank th
 
 ### Built from independent parts
 
-[Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) scores the tasks, [Nous Research's Hermes](https://github.com/NousResearch/hermes-agent) runs the agent, and Techtree runs the comparison and keeps the evidence.
+[Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) scores each Climb's tasks, [Nous Research's Hermes](https://github.com/NousResearch/hermes-agent) runs the agent, and Techtree runs the comparison and keeps the evidence.
 
 ### Free and open
 
@@ -95,7 +95,7 @@ Nothing. You pay your model provider for the model your agent uses.
 
 ### Which agent does Techtree run?
 
-Nous Research's Hermes runs the agent, and Prime Intellect's Verifiers scores the tasks.
+Nous Research's Hermes runs the agent, and Prime Intellect's Verifiers scores each Climb's tasks.
 
 ### Is Techtree finished?
 

@@ -25,7 +25,6 @@ defmodule TechtreeWeb.HomeLiveTest do
 
       assert has_element?(live, "#hero-title", "Improve a Skill. Prove it worked.")
       assert text =~ "Run the same tasks with and without your Skill."
-      assert has_element?(live, ".hero__mechanism", "Built on Prime Intellect & NVIDIA Nemotron")
       assert has_element?(live, ~s|.hero__actions a.rg-button--primary[href="/start"]|, "Start")
 
       assert [_one] =

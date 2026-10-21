@@ -85,7 +85,11 @@ defmodule TechtreeWeb.HomeLive do
                 See every Result <span aria-hidden="true">→</span>
               </.link>
             </div>
-            <p class="hero__mechanism">Built on Prime Intellect &amp; NVIDIA Nemotron</p>
+            <p class="hero__mechanism">
+              Techtree’s Climb evaluator uses
+              <a href="https://github.com/PrimeIntellect-ai/verifiers">Prime Intellect’s Verifiers</a>
+              and supports signed, independently checkable result bundles.
+            </p>
             <.installer release={@release} catalog={@catalog} agent_line={@agent_line} />
           </div>
         </div>
@@ -393,7 +397,7 @@ defmodule TechtreeWeb.HomeLive do
             <p>
               Techtree is a working technical preview built from three independent parts:
               <a href="https://github.com/PrimeIntellect-ai/verifiers">Prime Intellect’s Verifiers</a>
-              scores the tasks,
+              scores each Climb’s tasks,
               <a href="https://github.com/NousResearch/hermes-agent">Nous Research’s Hermes</a>
               runs the agent, and Techtree runs the comparison and keeps the evidence.
             </p>

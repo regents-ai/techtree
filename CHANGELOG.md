@@ -28,6 +28,8 @@
 - The Privacy page names every service your browser connects to when you sign in.
 - On a wide screen, the Results filter names sit beside their choices instead of
   under them.
+- The home page says exactly what Prime Intellect's Verifiers does: it scores
+  each Climb's tasks, and every Result is a signed record anyone can check.
 
 ## Website (2026-10-20)
 
