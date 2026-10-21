@@ -72,9 +72,10 @@ defmodule TechtreeWeb.Layouts do
                 type="button"
                 class="masthead__menu-button"
                 popovertarget="site-pages"
+                aria-label="Menu"
                 aria-current={pages_section(@current_path)}
               >
-                Menu <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg>
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" /></svg>
               </button>
               <span id="site-pages" class="masthead__menu-list" popover>
                 <a
@@ -83,6 +84,14 @@ defmodule TechtreeWeb.Layouts do
                   aria-current={current_section(@current_path, path)}
                 >
                   {label}
+                </a>
+                <a
+                  class="masthead__menu-github"
+                  href={@repository_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
                 </a>
               </span>
             </span>

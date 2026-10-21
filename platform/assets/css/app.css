@@ -120,9 +120,9 @@ code { font-size: .9em; }
 }
 .masthead__name { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 2.75rem; white-space: nowrap; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
 .masthead__mark { width: 1.5rem; flex: 0 0 auto; }
-/* Under 375 wide the theme switch and Sign in leave room for the mark alone; the
-   link is still named "Techtree home". */
-@media (max-width: 23.43rem) { .masthead__wordmark { display: none; } }
+/* Under 480 wide the Menu, theme switch and Sign in leave room for the mark alone;
+   the link is still named "Techtree home". */
+@media (max-width: 29.99rem) { .masthead__wordmark { display: none; } }
 .masthead__nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: .875rem; min-width: 0; }
 .masthead__selector { display: flex; flex-wrap: wrap; min-width: 0; }
 .masthead__selector a {
@@ -133,11 +133,11 @@ code { font-size: .9em; }
 .masthead__selector a[aria-current="page"] { border-bottom: 3px solid currentColor; font-weight: 600; background: var(--color-surface); }
 .masthead__menu { position: relative; display: inline-flex; }
 .masthead__menu-button {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  min-height: 2.75rem; padding: var(--space-1) var(--space-2); margin: 0 -1px -1px 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 2.75rem; min-height: 2.75rem; padding: 0; margin: 0 -1px -1px 0;
   border: 1px solid var(--hairline-strong); background: none; color: inherit; font: inherit; cursor: pointer;
 }
-.masthead__menu-button svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.masthead__menu-button svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .masthead__menu-button[aria-current="page"] { border-bottom: 3px solid currentColor; font-weight: 600; background: var(--color-surface); }
 /* The page list is a popover the Menu button opens and closes; it sits under the
    header, against the right edge. */
@@ -153,7 +153,7 @@ code { font-size: .9em; }
 .masthead__menu-list a:hover { background: var(--color-surface); }
 /* Wide screens: the pages in a row, no Menu button. */
 @media (min-width: 64rem) {
-  .masthead__menu-button { display: none; }
+  .masthead__menu-button, .masthead__selector .masthead__menu-github { display: none; }
   .masthead__menu-list { position: static; inset: auto; overflow: visible; display: flex; flex-direction: row; min-width: 0; border: 0; background: none; }
   .masthead__selector .masthead__menu-list a { border: 1px solid var(--hairline-strong); margin: 0 -1px -1px 0; }
   .masthead__selector .masthead__menu-list a + a { border-top: 1px solid var(--hairline-strong); }
@@ -457,7 +457,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   /* Narrow screens: one row of the name, Menu, GitHub, the theme switch and the account. */
   .masthead__inner { min-height: 4rem; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: var(--space-1); }
   .masthead__nav { gap: var(--space-1); }
-  .masthead__github-label, .masthead__github-count { display: none; }
+  .masthead__github { display: none; }
   .setup-page__plans { grid-template-columns: minmax(0, 1fr); }
   .docs-layout { grid-template-columns: minmax(0, 1fr); }
   .docs-nav { grid-column: 1; grid-row: auto; padding: var(--space-3) 0 0; border-top: 1px solid var(--hairline); }
