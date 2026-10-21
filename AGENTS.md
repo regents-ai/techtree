@@ -61,3 +61,6 @@ Preserve dated history and avoid cosmetic findings. Do not inflate severity or
 claim that no findings proves complete coverage. This is read-only review: never
 sign, pay, activate earnings, publish or deploy to test an instruction.
 <!-- END REGENT ROLLOUT REVIEW -->
+
+`make check-change` uses the shared ash-template change runner; `platform/README.md`
+explains its scope, isolation and full-check fallback. It grants no release authority.

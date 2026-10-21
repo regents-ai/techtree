@@ -174,24 +174,8 @@ defmodule Techtree.MixProject do
       ],
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
-      precommit: [
-        "compile --warnings-as-errors",
-        "deps.unlock --check-unused",
-        "cmd mix hex.audit",
-        "format --check-formatted",
-        "credo --strict",
-        "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
-        # The reviewed account adoption adds five Ash resource/domain edges and
-        # two session/header edges to the previous 19. Keep this floor bounded.
-        "xref graph --label compile-connected --fail-above 26",
-        "ash.codegen --check",
-        "usage_rules.sync --check",
-        "cmd --cd assets npm run typecheck",
-        "test",
-        # The main pages in headless Chromium at desktop and phone widths, against a
-        # server the browser tests start on their own database (assets/test/browser).
-        "cmd --cd assets npm run test:browser"
-      ],
+      precommit: precommit_checks(),
+      "check.static": Enum.reject(precommit_checks(), &slow_check?/1),
       "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
       "assets.build": [
         "compile",
@@ -207,6 +191,40 @@ defmodule Techtree.MixProject do
         "esbuild techtree --minify",
         "phx.digest"
       ]
+    ]
+  end
+
+  # The fast loop keeps the same static gates; only suites run by the change
+  # runner and the network advisory audit remain in the full loop.
+  defp slow_check?(check) do
+    check in [
+      "cmd mix hex.audit",
+      "test",
+      "test --warnings-as-errors",
+      "cmd npm test",
+      "cmd npm run test:browser",
+      "cmd --cd assets npm run test:browser"
+    ]
+  end
+
+  defp precommit_checks do
+    [
+      "compile --warnings-as-errors",
+      "deps.unlock --check-unused",
+      "cmd mix hex.audit",
+      "format --check-formatted",
+      "credo --strict",
+      "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
+      # The reviewed account adoption adds five Ash resource/domain edges and
+      # two session/header edges to the previous 19. Keep this floor bounded.
+      "xref graph --label compile-connected --fail-above 26",
+      "ash.codegen --check",
+      "usage_rules.sync --check",
+      "cmd --cd assets npm run typecheck",
+      "test",
+      # The main pages in headless Chromium at desktop and phone widths, against a
+      # server the browser tests start on their own database (assets/test/browser).
+      "cmd --cd assets npm run test:browser"
     ]
   end
 end

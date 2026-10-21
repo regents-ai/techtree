@@ -53,3 +53,11 @@ finger on a touch screen, 24 px for a mouse control.
 | Read the catalog, Climbs, objects and publications | `catalog_controller_test.exs`, `climb_controller_test.exs`, `object_controller_test.exs`, `publication_*_test.exs` |
 | Publish a Result and report a Climb | `publication_controller_test.exs`, `test/techtree/network/` |
 | Use the `regents techtree` commands | `make check-cli` (the command descriptions); **Gap:** commands not run end to end here |
+
+## Development checks
+
+The shared runner is proved by `scripts/tests/test_check_change.py`: changed and new
+files select checks, every ExUnit file runs once, failures stop the run, and owned
+processes and databases are cleaned up. `make check-change` runs all configured
+platform suites; shared/build/dependency changes select `make check`. The browser
+gaps above still apply.

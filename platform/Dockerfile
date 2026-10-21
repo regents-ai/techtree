@@ -30,12 +30,6 @@ FROM ${PREVIOUS_IMAGE} AS previous
 
 FROM ${BUILDER_IMAGE} AS builder
 
-ARG TECHTREE_SOURCE_REVISION
-RUN case "$TECHTREE_SOURCE_REVISION" in \
-      [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;; \
-      *) echo "TECHTREE_SOURCE_REVISION must be the clean 40-character git revision" >&2; exit 1 ;; \
-    esac
-
 # git is needed by Hex for any git-sourced dependency; build-essential for the
 # native compilation picosat_elixir does. Node and npm, copied from the node
 # image, fetch the browser packages the site's bundles are built from.
@@ -55,22 +49,8 @@ RUN mix local.hex --force && mix local.rebar --force
 
 ENV MIX_ENV="prod"
 
-# Dependencies first, and only the production ones, so that editing application
-# code does not re-fetch or re-compile them. The shared Regent libraries are
-# fetched from GitHub at the commits mix.lock pins.
-COPY mix.exs mix.lock ./
-RUN mix deps.get --only $MIX_ENV
-
-RUN mkdir config
-COPY config/config.exs config/${MIX_ENV}.exs config/
-RUN mix deps.compile
-
-COPY priv priv
-COPY lib lib
-COPY blog_content /blog
-COPY skills_content /skills
-COPY assets assets
-
+# Stable npm dependencies precede Mix dependencies and application files.
+COPY assets/package.json assets/package-lock.json assets/
 # The browser dependency the hero canvas is drawn with, at the exact versions
 # the lockfile pins. It is bundled into the site's own JavaScript below, so the
 # served page still fetches nothing from anywhere but this site. Install scripts
@@ -78,6 +58,28 @@ COPY assets assets
 # outside a browser, which nothing here does. The TypeScript checker is a
 # development tool for the gate, so it is left out.
 RUN npm --prefix assets ci --omit=dev --ignore-scripts
+
+# Dependencies first, and only the production ones, so that editing application
+# code does not re-fetch or re-compile them. The shared Regent libraries are
+# fetched from GitHub at the commits mix.lock pins.
+COPY mix.exs mix.lock ./
+RUN mix deps.get --only $MIX_ENV --check-locked
+
+RUN mkdir config
+COPY config/config.exs config/${MIX_ENV}.exs config/
+RUN mix deps.compile
+
+ARG TECHTREE_SOURCE_REVISION
+RUN case "$TECHTREE_SOURCE_REVISION" in \
+      [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;; \
+      *) echo "TECHTREE_SOURCE_REVISION must be the clean 40-character git revision" >&2; exit 1 ;; \
+    esac
+
+COPY priv priv
+COPY lib lib
+COPY blog_content /blog
+COPY skills_content /skills
+COPY assets assets
 
 # Bundles and minifies the two asset files, then writes the digested copies and
 # the cache manifest the endpoint serves them from.
@@ -99,10 +101,6 @@ RUN mix techtree.keep_previous_assets /previous/lib _build/${MIX_ENV}/rel/techtr
 
 FROM ${RUNNER_IMAGE}
 
-ARG TECHTREE_SOURCE_REVISION
-ENV TECHTREE_SOURCE_REVISION=$TECHTREE_SOURCE_REVISION
-LABEL org.opencontainers.image.revision=$TECHTREE_SOURCE_REVISION
-
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates \
   && apt-get clean \
@@ -118,6 +116,10 @@ WORKDIR /app
 RUN chown nobody /app
 
 ENV MIX_ENV="prod"
+
+ARG TECHTREE_SOURCE_REVISION
+ENV TECHTREE_SOURCE_REVISION=$TECHTREE_SOURCE_REVISION
+LABEL org.opencontainers.image.revision=$TECHTREE_SOURCE_REVISION
 
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/techtree ./
 

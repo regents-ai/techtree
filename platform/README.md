@@ -412,3 +412,42 @@ agent, Credits, Points and identity tables. It runs only when
 `TECHTREE_DEPLOYMENT_ROLE` is exactly `staging`, refuses a database that already
 has state, and is what the release smoke check runs first. It never runs in
 production, where Regents owns those tables.
+## Checking a change
+
+From the repository root, `make check-change` compares the working tree with the
+common ancestor of `BASE` (default `origin/main`) and includes new files. Use
+`python3 scripts/check-change.py --plan` to see its selection, or `--platform` to
+explicitly exercise the complete platform check path.
+
+For platform changes it keeps the static gates, splits **every** ExUnit test across
+two independent local test databases, runs the full JavaScript suite and the site's
+configured headless Chromium walk. Server pages and CSS run the whole walk; they
+cannot be selected safely through JavaScript imports. Unknown paths, dependency,
+shared-library, migration and build changes use the existing `make check` instead.
+Documentation-only output is not runtime or release evidence. `make check` remains
+the full integration/protected-change gate, including its network advisory check.
+Additional chain, device, showcase or security browser configurations still apply
+when the changed behavior needs them; the default walk does not include every configuration.
+
+Install the locked Mix and npm dependencies using this site's setup instructions
+first. The runner installs esbuild only if missing. `--jobs 1` runs tests serially;
+`--jobs 4` permits four parts when capacity allows. The default is two, with the
+site's established connection pool sizes. No `--stale`, retries or skipped failures.
+It admits two runner invocations at once, one per checkout, and refuses to start
+below 50 GiB free. Other heavy commands share the same two-run workspace budget.
+Failed shard logs and private failure records stay in `platform/_build/check-change/`;
+the ordinary `mix test --failed` is marked for a complete rerun after a failed or
+interrupted shard run. Passing shard scratch is removed. Browser worker counts stay
+with each site’s existing configuration. Only owned processes and throwaway test
+databases are cleaned up, including on
+failure or interruption. A cleanup failure fails the command.
+
+Shared adoption records the template revision, dependency pins, migration owner
+and order, compatible consumer state, and checks actually run. Keep one integrating
+owner and one current candidate per repository. Pushes and releases require the
+applicable authority from workspace AGENTS.md; a passing check grants none.
+
+The Dockerfile installs/copies stable npm dependencies before application files and
+compiles Mix dependencies using compile-time configuration only. Runtime config
+joins the app layer. Lockfile and compile-time config changes still invalidate the
+appropriate cache. A cold rebuild remains available for reproducibility checks.

@@ -2,7 +2,7 @@
 
 .PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli release readiness browser
 
-check: check-plugin check-platform check-required-fixes check-cli check-contracts
+check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-contracts
 
 check-plugin:
 	$(MAKE) -C plugin check
@@ -50,3 +50,12 @@ release:
 # looks for against it, and stops it. Needs the local development database.
 readiness:
 	scripts/readiness.sh
+
+# The template change loop; BASE=<ref> selects the comparison.
+.PHONY: check-change
+check-change:
+	python3 scripts/check-change.py
+
+.PHONY: check-change-runner
+check-change-runner:
+	python3 -m unittest discover -s scripts/tests -p 'test_check_change.py'
