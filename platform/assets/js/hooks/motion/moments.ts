@@ -20,17 +20,19 @@ import {deny} from "./press"
 import type {Hook} from "../../hook_composition"
 
 // How a list moves when the server adds, reorders or drops its items: `bounce`
-// for lists and `pop` for notes that come and go. Each is built fresh per
-// change because a stagger remembers the items it measured.
+// for lists and `pop` for notes that come and go. A new item only fades in
+// where it lands: a slide or a scale in its entrance stays written on it as
+// `translate: none` once it settles. Each is built fresh per change because a
+// stagger remembers the items it measured.
 export const LAYOUTS: Record<string, () => LayoutAnimationParams> = {
   bounce: () => ({
     ease: spring({bounce: 0.35, duration: 420}),
-    enterFrom: {opacity: 0, transform: "translateY(-12px)"},
+    enterFrom: {opacity: 0},
     leaveTo: {opacity: 0, transform: "scale(.9)", ease: "in(3)", duration: BASE},
   }),
   pop: () => ({
     ease: spring({bounce: 0.45, duration: 360}),
-    enterFrom: {opacity: 0, transform: "scale(.6)"},
+    enterFrom: {opacity: 0},
     leaveTo: {opacity: 0, transform: "scale(.8)", ease: "in(3)", duration: BASE},
   }),
 }

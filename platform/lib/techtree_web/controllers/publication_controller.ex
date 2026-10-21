@@ -368,7 +368,7 @@ defmodule TechtreeWeb.PublicationController do
   defp hint(_status),
     do:
       "Correct what the message names and send it again; " <>
-        "#{url(~p"/docs")}#publish shows how to publish and withdraw a Result."
+        "#{url(~p"/docs/publish")} shows how to publish and withdraw a Result."
 
   defp find_a_run, do: "Use a fingerprint listed at #{url(~p"/api/v1/publications")}."
 

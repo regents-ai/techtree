@@ -100,9 +100,9 @@ defmodule TechtreeWeb.OutagePagesTest do
 
     refute has_element?(start, ".setup-unavailable h2", "no version of Techtree")
 
-    {:ok, docs, _html} = quietly(fn -> live(conn, ~p"/docs") end)
-    assert has_element?(docs, "#install [role=status]", "install steps can't be shown")
-    refute has_element?(docs, "#install p", "no version of Techtree")
+    {:ok, docs, _html} = quietly(fn -> live(conn, ~p"/docs/install") end)
+    assert has_element?(docs, ".doc-section [role=status]", "install steps can't be shown")
+    refute has_element?(docs, ".doc-section p", "no version of Techtree")
   end
 
   test "Results says it can't show Results and hides the filters", %{conn: conn} do

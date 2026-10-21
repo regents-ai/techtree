@@ -11,8 +11,10 @@ defmodule TechtreeWeb.PublicDocuments do
   (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line. About,
   Contact, Privacy and Terms show the same words as pages, so the two never say
   different things; the other pages' own designs are their LiveViews, and their
-  Markdown is the same facts in words. The Docs page shows its reference
-  sections from the Markdown itself (`docs_section/1`). `/llms.txt` is the short
+  Markdown is the same facts in words. Each Docs guide is
+  `priv/public/docs/<slug>.md`, answered at `/docs/<slug>`; the guides without
+  commands to copy show these words as their page (`guide/1`), and `/docs` lists
+  them all (`TechtreeWeb.DocsGuides`). `/llms.txt` is the short
   start for agents, with the served release's install line filled in.
   `robots.txt`, `security.txt` and the API catalog are built here too. Only
   `/llms.txt` reads the database, for that release.
@@ -21,7 +23,8 @@ defmodule TechtreeWeb.PublicDocuments do
   alias TechtreeWeb.ReleaseInfo
 
   @directory Application.app_dir(:techtree, "priv/public")
-  @names ~w(home docs about contact privacy terms verify repo2rlenv llms)
+  @guides Enum.map(TechtreeWeb.DocsGuides.slugs(), &("docs/" <> &1))
+  @names ~w(home about contact privacy terms verify repo2rlenv llms) ++ @guides
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
   @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
   @external_resource @changelog_file
@@ -39,6 +42,7 @@ defmodule TechtreeWeb.PublicDocuments do
   @sources @names
            |> Map.new(&{&1, File.read!(Path.join(@directory, &1 <> ".md"))})
            |> Map.put("changelog", File.read!(@changelog_file))
+           |> Map.put("docs", TechtreeWeb.DocsGuides.index_markdown())
            |> Map.new(fn {name, source} ->
              {name,
               Enum.reduce(@fills, source, fn {key, fill}, text ->
@@ -58,6 +62,7 @@ defmodule TechtreeWeb.PublicDocuments do
            "/repo2rlenv" => "repo2rlenv",
            "/changelog" => "changelog"
          })
+         |> Map.merge(Map.new(@guides, &{"/" <> &1, &1}))
 
   @trailer "\n---\n\nEvery Techtree page answers as Markdown when asked with " <>
              "`Accept: text/markdown`. Public API: [/openapi.json](/openapi.json). " <>
@@ -70,16 +75,6 @@ defmodule TechtreeWeb.PublicDocuments do
   # The public documents change only with a release, so the release time is when
   # each last changed. security.txt expires a year after it.
   @released_at DateTime.utc_now() |> DateTime.truncate(:second)
-
-  # The Docs page's reference sections, as HTML, by their `##` heading.
-  @docs_sections @sources["docs"]
-                 |> String.split("\n## ")
-                 |> tl()
-                 |> Map.new(fn section ->
-                   [heading, body] = String.split(section, "\n", parts: 2)
-                   {body_html, _contents} = RegentBlog.markdown(body)
-                   {heading, body_html}
-                 end)
 
   @doc "The public document at `path` as `%{markdown: text}`, or nil for every other address."
   @spec document(String.t()) :: %{markdown: String.t()} | nil
@@ -145,9 +140,16 @@ defmodule TechtreeWeb.PublicDocuments do
       do: %{title: unquote(title), lede: unquote(lede), body_html: unquote(body_html)}
   end
 
-  @doc "One `##` section of the Docs Markdown, below its heading, as HTML."
-  @spec docs_section(String.t()) :: String.t()
-  def docs_section(heading), do: Map.fetch!(@docs_sections, heading)
+  @doc "A Docs guide's heading, first line and the rest as HTML."
+  @spec guide(String.t()) :: %{title: String.t(), lede: String.t(), body_html: String.t()}
+  for name <- @guides do
+    ["# " <> title, lede, body] = String.split(@sources[name], "\n\n", parts: 3)
+    {body_html, _contents} = RegentBlog.markdown(body)
+    "docs/" <> slug = name
+
+    def guide(unquote(slug)),
+      do: %{title: unquote(title), lede: unquote(lede), body_html: unquote(body_html)}
+  end
 
   @doc "When the public documents last changed: the time this release was built."
   @spec released_at() :: DateTime.t()

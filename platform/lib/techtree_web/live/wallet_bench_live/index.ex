@@ -3,7 +3,8 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   Which agent can use which wallet tool, as a score grid for each test: a row
   per agent with its middle time and mean score, a column per wallet tool, and
   in each box the pair's newest result scored out of 10 from the judge's checks
-  (`TechtreeWeb.WalletBenchCopy.score/1`).
+  (`TechtreeWeb.WalletBenchCopy.score/1`). Only wallet tools with a result get a
+  column; the others are listed under the grid with why.
   A box opens that result in a window, with the full results to download. The
   list view shows every attempt, newest first; attempts with no result stay
   hidden until "Show all". The extra notes by version follow either view.
@@ -20,7 +21,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   alias TechtreeWeb.Outage
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
-  import TechtreeWeb.WalletBenchLive.Turn, only: [turn: 1]
+  import TechtreeWeb.WalletBenchLive.Turn, only: [turn: 1, verdict: 1]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -86,7 +87,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         else: Enum.filter(assigns.attempts, &Copy.settled_or_running?/1)
 
     assign(socket,
-      grid: Copy.grid(assigns.attempts, assigns.test),
+      grid: assigns.attempts |> Copy.grid(assigns.test) |> Copy.with_results(),
       listed: listed,
       hidden: length(assigns.attempts) - length(listed),
       result: result(assigns.attempts, assigns.result_id)
@@ -181,7 +182,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             <span class="wallet-bench__soon">Money <span>Coming soon</span></span>
           </nav>
           <p class="wallet-bench__lede">
-            {question(@test)} Each box scores the pair's newest result out of 10 from the judge's nine checks; open one to see them.
+            {question(@test)} Each box scores the pair's newest result out of 10 from the judge's checks.
           </p>
 
           <div
@@ -231,9 +232,14 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           </div>
           <p class="wallet-bench__key quiet">
             <span aria-hidden="true">—</span>
-            not tested yet. N/A: the wallet tool can't run on the bench.
-            A red box is a safety failure.
+            not tested yet. A red box is a safety failure. Open a box to see why it isn't a 10.
           </p>
+          <details :if={@grid.set_aside != []} class="wallet-bench__set-aside">
+            <summary>Wallet tools with no results ({length(@grid.set_aside)})</summary>
+            <ul>
+              <li :for={{name, reason} <- @grid.set_aside}><strong>{name}</strong>: {reason}</li>
+            </ul>
+          </details>
         </section>
 
         <section :if={@view == :list and @attempts != []} aria-labelledby="every-test">
@@ -247,10 +253,10 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <div
             class="wallet-bench__frame"
             role="region"
-            aria-label="Wallet tests, scroll horizontally for all columns"
+            aria-label="Wallet tests"
             tabindex="0"
           >
-            <table class="results-ledger">
+            <table class="results-ledger results-ledger--cards">
               <thead>
                 <tr>
                   <th scope="col">Agent and wallet</th>
@@ -266,16 +272,20 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
                   <th scope="row">
                     <.link navigate={~p"/wallet-bench/#{attempt.id}"}>{Copy.pair(attempt)}</.link>
                   </th>
-                  <td class="results-ledger__date">
+                  <td class="results-ledger__date" data-label="Started">
                     {Calendar.strftime(attempt.inserted_at, "%d %b %Y %H:%M")} UTC
                   </td>
-                  <td>{Copy.status(attempt.state)}</td>
-                  <td>{attempt.turns |> Copy.install_result() |> Copy.outcome()}</td>
-                  <td>
+                  <td data-label="Status">{Copy.status(attempt.state)}</td>
+                  <td data-label="Install">
+                    {attempt.turns |> Copy.install_result() |> Copy.outcome()}
+                  </td>
+                  <td data-label="Wallet">
                     {attempt.turns |> Copy.wallet_result() |> Copy.outcome()}
                     <span :if={Copy.earlier_question?(attempt)} class="quiet">(earlier question)</span>
                   </td>
-                  <td class="results-ledger__numeric">{Copy.dollars(attempt.model_spend_usd)}</td>
+                  <td class="results-ledger__numeric" data-label="Model cost">
+                    {Copy.dollars(attempt.model_spend_usd)}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -290,10 +300,10 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <div
             class="wallet-bench__frame"
             role="region"
-            aria-label="Extra notes, scroll horizontally for all columns"
+            aria-label="Extra notes"
             tabindex="0"
           >
-            <table class="results-ledger">
+            <table class="results-ledger results-ledger--cards">
               <thead>
                 <tr>
                   <th scope="col">Agent or wallet</th>
@@ -304,8 +314,8 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
               <tbody>
                 <tr :for={note <- @notes} id={"note-#{note.id}"}>
                   <th scope="row">{Copy.subject(note)}</th>
-                  <td>{note.version}</td>
-                  <td>
+                  <td data-label="Version">{note.version}</td>
+                  <td data-label="Note">
                     {note.text}
                     <.link :if={note.attempt_id} navigate={~p"/wallet-bench/#{note.attempt_id}"}>
                       See the run
@@ -392,14 +402,6 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
 
   defp score(%{cell: :not_run} = assigns), do: ~H"<.missing />"
 
-  defp score(%{cell: {:fixed, reason}} = assigns) do
-    assigns = assign(assigns, reason: reason)
-
-    ~H"""
-    <span class="wallet-bench__na" title={@reason}>N/A<span class="offscreen">: {@reason}</span></span>
-    """
-  end
-
   defp missing(assigns) do
     ~H"""
     <span class="wallet-bench__none" title="Not tested yet">
@@ -432,20 +434,9 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <button type="submit" class="wallet-bench__close" aria-label="Close">×</button>
         </form>
       </header>
-      <p :if={@ruling} class="wallet-bench__window-score">
-        <span class={[
-          "wallet-bench__score",
-          "wallet-bench__score--#{Copy.shade(Copy.score(@ruling))}",
-          @ruling["outcome"] == "FAILED_SAFETY" && "wallet-bench__score--safety"
-        ]}>
-          {Copy.score(@ruling)}
-        </span>
-        <span>
-          {Copy.score(@ruling)} out of 10. {Copy.checks_met(@ruling)} of 9 checks met. {Copy.outcome(
-            @ruling
-          )}.
-          Started {Calendar.strftime(@attempt.inserted_at, "%d %b %Y %H:%M")} UTC.
-        </span>
+      <.verdict :if={@ruling} ruling={@ruling} test={@test} />
+      <p class="quiet small">
+        Started {Calendar.strftime(@attempt.inserted_at, "%d %b %Y %H:%M")} UTC.
       </p>
       <.turn
         :for={turn <- Copy.grid_turns(@attempt.turns, @test)}

@@ -34,7 +34,7 @@ import crownGlassBackWgsl from "./shaders/crown-glass-back"
 import crownGlassFrontWgsl from "./shaders/crown-glass-front"
 import crownLightWgsl from "./shaders/crown-light"
 import presentWgsl from "./shaders/present"
-import {backgroundWgsl} from "../background/shader"
+import {backgroundWgsl} from "./shaders/background"
 
 const BLOOM_LEVELS = 4
 type BloomTargets = readonly [Target, Target, Target, Target]

@@ -36,8 +36,9 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
 
       assert live |> element(score) |> render() =~ ">\n  10.0\n"
 
-      # A wallet tool that can't run on the bench is marked in every row.
-      assert has_element?(live, "td span[title='It cannot run on a server.']", "N/A")
+      # A wallet tool with no result has no column; it is listed under the grid with why.
+      refute has_element?(live, "thead th", "Coinbase Agentic Wallet")
+      assert has_element?(live, ".wallet-bench__set-aside li", "It cannot run on a server.")
 
       live |> element(score) |> render_click()
       assert_patch(live, ~p"/wallet-bench?#{[result: tests.passed.id]}")
@@ -75,7 +76,22 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
         live(conn, ~p"/wallet-bench?#{[test: "install", result: tests.failed.id]}")
 
       assert has_element?(live, "dialog h2", "Hermes Agent × MoonPay")
-      assert has_element?(live, "dialog", "8.2 out of 10. 7 of 9 checks met. Did not work.")
+      assert has_element?(live, "dialog .wallet-bench__verdict", "Install: 8.2 out of 10.")
+      assert has_element?(live, "dialog .wallet-bench__verdict", "7 of 9 checks met.")
+
+      # Every lost point has its reason: the two checks not met, and the missing pass.
+      assert live |> element("dialog .wallet-bench__shortfall") |> render() =~
+               "not a pass, so the point for a clean pass isn"
+    end
+
+    test "a test's page opens with its scores and why each is under 10", %{
+      conn: conn,
+      tests: tests
+    } do
+      {:ok, live, _html} = live(conn, ~p"/wallet-bench/#{tests.failed.id}")
+
+      assert has_element?(live, "header #verdict-install", "Install: 8.2 out of 10.")
+      assert has_element?(live, "header #verdict-install .wallet-bench__shortfall li")
     end
 
     test "the list view shows every test, newest first", %{conn: conn, tests: tests} do

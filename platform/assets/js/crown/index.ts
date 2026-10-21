@@ -1,15 +1,17 @@
 /**
- * The homepage prism renderer, loaded on demand by the `HomePrism` hook.
+ * The homepage crown renderer, loaded on demand by the `Crown` hook.
  *
  * Everything WebGPU lives behind this module so the application entry never carries
- * it. The renderer owns the device, the surface and the scene; the hook owns the
- * canvas box, when a frame is worth drawing, and the fallback the visitor sees until
- * one really lands.
+ * it. The renderer owns the device, the surface and the scene; the island owns the
+ * canvas box, when a frame is worth drawing, and the still picture the visitor sees
+ * until one really lands.
  *
  * Forked from the Vercel vgpu prism background. See THIRD_PARTY_NOTICES.md.
  */
 
 import {init, surface, type Gpu} from "vgpu"
+
+import type {IslandRenderer} from "../canvas_island"
 
 import {
   createScene,
@@ -22,24 +24,18 @@ import {
 } from "./scene"
 import {
   CAMERA_ORBIT_LERP,
-  crownVariant,
   quantizeCrownAim,
   type CrownVariant,
   type Vec2,
 } from "./crown-types"
 
-export interface PrismRenderer {
+export interface CrownRenderer extends IslandRenderer {
+  /** The theme's crown this renderer draws. */
+  readonly variant: CrownVariant
   /** Pointer position inside the hero, both components normalized to [0, 1]. */
   aim(x: number, y: number): void
   /** The pointer left the hero: ease everything back to the composed shot. */
   rest(): void
-  resize(width: number, height: number): void
-  /** Advances the easing one frame, or snaps it home. True when the picture moved. */
-  step(snap: boolean): boolean
-  present(): void
-  /** Resolves once the work submitted so far has finished on the GPU. */
-  settled(): Promise<void>
-  dispose(): void
 }
 
 const CANONICAL_ORBIT: Vec2 = [0, 0]
@@ -73,13 +69,13 @@ async function equip(
   return {canvasSurface, scene}
 }
 
-export async function createPrismRenderer(
+export async function createCrownRenderer(
   canvas: HTMLCanvasElement,
   size: readonly [number, number],
   onDeviceLost: () => void,
-): Promise<PrismRenderer> {
+  variant: CrownVariant,
+): Promise<CrownRenderer> {
   const gpu = await init()
-  const variant = crownVariant(canvas.dataset.crownVariant)
   let disposed = false
   // A device this call created and could not finish equipping is still this call's
   // to release; the caller only ever learns that the renderer did not arrive.
@@ -88,7 +84,7 @@ export async function createPrismRenderer(
     throw error
   })
   // Disposing the renderer destroys the device, which resolves the same promise.
-  void gpu.gpu.lost.then(() => {
+  void gpu.lost.then(() => {
     if (!disposed) onDeviceLost()
   })
 
@@ -98,6 +94,7 @@ export async function createPrismRenderer(
   let lightApplied = CANONICAL_LIGHT_AIM
 
   return {
+    variant,
     aim(x, y) {
       orbitTarget = [clampUnit(x) * 2 - 1, clampUnit(y) * 2 - 1]
       lightTarget = quantizeCrownAim(orbitTarget)
@@ -126,9 +123,8 @@ export async function createPrismRenderer(
     present() {
       presentScene(scene, canvasSurface)
     },
-    async settled() {
-      await gpu.gpu.queue.onSubmittedWorkDone()
-      await gpu.settled()
+    settled() {
+      return gpu.settled()
     },
     dispose() {
       if (disposed) return

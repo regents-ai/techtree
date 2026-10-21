@@ -43,8 +43,12 @@ defmodule TechtreeWeb.HomeLive do
        capabilities: Capabilities.all(),
        tasksmith: climb_with_slug(climbs, "tasksmith-climb"),
        frontier: climb_with_slug(climbs, "frontier-cs-open-ended-climb"),
-       wallet_harnesses: names(WalletCatalog.harness_ids(), &WalletCatalog.harness!/1),
-       wallet_tools: names(WalletCatalog.wallet_ids(), &WalletCatalog.wallet!/1),
+       wallet_harnesses:
+         names(
+           Enum.filter(WalletCatalog.harness_ids(), &(:T2 in WalletCatalog.tests(&1))),
+           &WalletCatalog.harness!/1
+         ),
+       wallet_tools: names(WalletCatalog.tested_wallet_ids(), &WalletCatalog.wallet!/1),
        release: release,
        catalog: catalog,
        newest: newest,
@@ -60,16 +64,18 @@ defmodule TechtreeWeb.HomeLive do
         <div class="hero__stage">
           <div
             id="hero-crown"
-            class="hero__optics"
-            phx-hook="Optics"
-            phx-update="ignore"
-            data-optics-kind="crown"
-            data-optics-source={~p"/assets/js/crown_island.js"}
-            data-optics-module
-            data-optics-pointer="parent"
+            class="hero__crown"
+            phx-hook="Crown"
+            phx-mounted={JS.ignore_attributes(["data-crown-ready"])}
             aria-hidden="true"
           >
-            <canvas id="hero-crown-canvas" class="hero__crown" data-optics-canvas></canvas>
+            <div class="hero__crown-still"></div>
+            <canvas
+              id="hero-crown-canvas"
+              class="hero__crown-canvas"
+              phx-update="ignore"
+              data-crown-canvas
+            ></canvas>
           </div>
 
           <div class="hero__copy">
@@ -164,7 +170,7 @@ defmodule TechtreeWeb.HomeLive do
             <dd>{CampaignFacts.membership_words(@campaign_facts.membership) || "Not published"}</dd>
           </div>
           <div>
-            <dt>Harness</dt>
+            <dt>Agent</dt>
             <dd>
               {@campaign.projection["subject_harness"]}
               {@campaign.projection["subject_harness_version"]}

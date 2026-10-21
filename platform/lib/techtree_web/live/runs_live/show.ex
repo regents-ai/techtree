@@ -20,12 +20,13 @@ defmodule TechtreeWeb.RunsLive.Show do
   another key independent reproduction.
 
   The evidence states three claims apart, the same three a Result's read
-  carries under `claims`: participant-attested, integrity-checked, and not
-  independently reproduced. Rerun notes sit after them as facts of their own.
+  carries under `claims` (participant-attested, integrity-checked, not
+  independently reproduced), in plain words: signed by the publisher, files
+  checked, not rerun by anyone else. Rerun notes sit after them as facts of their own.
 
   The Skill's name and GitHub link are the publisher's word, sent beside the
   signed bundle rather than inside it. Nothing checks them, so wherever the
-  page shows them it says so, and nothing it shows under "Integrity-checked"
+  page shows them it says so, and nothing it shows under "Files checked"
   comes from them. A link to a repository is not a claim that the publisher
   owns it or that its files are the Skill that ran; the Skill's fingerprint is.
 
@@ -221,7 +222,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         <ul class="evidence-badges">
           <li id="badge-attested" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
-              Participant-attested
+              Signed by the publisher
             </Regent.Primitives.status>
             <p>
               The numbers are signed with the publisher's key. Both runs happened on the
@@ -230,7 +231,7 @@ defmodule TechtreeWeb.RunsLive.Show do
           </li>
           <li id="badge-integrity-checked" class="evidence-badge">
             <Regent.Primitives.status tone="success" class="badge">
-              Integrity-checked
+              Files checked
             </Regent.Primitives.status>
             <p>
               This site ran {@entry.verification_checks_run} checks on the Result's files when it accepted it, and every one succeeded. That shows the files agree with each other, not that the runs happened as described.
@@ -239,7 +240,7 @@ defmodule TechtreeWeb.RunsLive.Show do
           </li>
           <li id="badge-not-reproduced" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
-              Not independently reproduced
+              Not rerun by anyone else
             </Regent.Primitives.status>
             <p>
               Nobody independent of the publisher has been shown to get the same numbers. This

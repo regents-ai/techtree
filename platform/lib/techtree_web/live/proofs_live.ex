@@ -96,16 +96,16 @@ defmodule TechtreeWeb.ProofsLive do
                   {index, title, description, href} <- [
                     {"01", "Nothing changed after signing",
                      "Every part of the Result still matches the signature made when the run finished.",
-                     "/docs#proof-bundle"},
+                     "/docs/method"},
                     {"02", "Only the Skill changed",
                      "Both runs used the same tasks in the same order, the same model and the same settings. The Skill is the only difference.",
-                     "/docs#method"},
+                     "/docs/method"},
                     {"03", "The verdict adds up",
                      "Better, worse or no different follows from the task scores, by the rule the Climb set before the run.",
-                     "/docs#proof-bundle"},
+                     "/docs/method"},
                     {"04", "Nothing private is inside",
                      "A Result holds scores, not the agent’s conversations or anything from the computer it ran on.",
-                     "/docs#data-boundary"}
+                     "/docs/data"}
                   ]
                 }
                 class="verify-check"
@@ -166,13 +166,13 @@ defmodule TechtreeWeb.ProofsLive do
         </Regent.Primitives.disclosure>
 
         <p class="small quiet section">
-          For the full method, read the <a href={~p"/docs#method"}>Docs</a>, copyable as
+          For the full method, read the <a href={~p"/docs/method"}>Docs</a>, copyable as
           Markdown to your agent.
         </p>
 
         <p class="small quiet section">
           <a href={~p"/results"}>Browse Results</a>
-          · <a href={~p"/docs#verify"}>How to run the check</a>
+          · <a href={~p"/docs/verify"}>How to run the check</a>
         </p>
       </div>
     </Layouts.page>

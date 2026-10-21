@@ -15,22 +15,22 @@ defmodule TechtreeWeb.PublicMarkdownTest do
   alias TechtreeWeb.ReleaseInfo
 
   @pages [
-    "/",
-    "/about",
-    "/contact",
-    "/privacy",
-    "/terms",
-    "/docs",
-    "/changelog",
-    "/verify",
-    "/repo2rlenv",
-    "/start",
-    "/results",
-    "/results/" <> NetworkFixture.bundle_digest(),
-    "/climbs/hello-world-climb",
-    "/examples/tdd",
-    "/wallet-bench"
-  ]
+           "/",
+           "/about",
+           "/contact",
+           "/privacy",
+           "/terms",
+           "/docs",
+           "/changelog",
+           "/verify",
+           "/repo2rlenv",
+           "/start",
+           "/results",
+           "/results/" <> NetworkFixture.bundle_digest(),
+           "/climbs/hello-world-climb",
+           "/examples/tdd",
+           "/wallet-bench"
+         ] ++ Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
 
   @moduletag :tmp_dir
 

@@ -42,7 +42,7 @@
   line-height: 1.55;
   color: var(--color-fg);
 }
-.hero--landing .hero__optics {
+.hero--landing .hero__crown {
   inset: 0;
   height: auto;
   mask-image: linear-gradient(to right, transparent 28%, rgb(0 0 0 / .25) 48%, #000 68%);
@@ -101,7 +101,7 @@
   .hero--landing .hero__stage { min-height: 0; padding-block: var(--space-4) 0; }
   .hero--landing .hero__copy { width: 100%; order: 1; }
   .hero--landing .hero-title { font-size: min(clamp(2rem, 7.5vw, 3.5rem), 10.8cqi); }
-  .hero--landing .hero__optics {
+  .hero--landing .hero__crown {
     position: relative;
     inset: auto;
     order: 2;

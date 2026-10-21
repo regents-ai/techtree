@@ -13,7 +13,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
   alias Techtree.WalletBench.Catalog
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
-  import TechtreeWeb.WalletBenchLive.Turn, only: [turn: 1]
+  import TechtreeWeb.WalletBenchLive.Turn, only: [turn: 1, verdict: 1]
   alias TechtreeWeb.WalletBenchLive.Turn
 
   @load [:machine, :turns, :payments, :model_spend_usd, :judge_cost_usd]
@@ -44,6 +44,8 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
       attempt: attempt,
       judges: judges(attempt),
       notes: notes(attempt),
+      wallet_version: wallet_version(attempt),
+      verdicts: verdicts(attempt),
       events: WalletBench.list_attempt_events!(attempt.id)
     )
   end
@@ -62,6 +64,12 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
               "%d %b %Y %H:%M"
             )} UTC.
           </p>
+          <.verdict
+            :for={{test, ruling} <- @verdicts}
+            id={"verdict-#{test}"}
+            ruling={ruling}
+            test={test}
+          />
           <p :if={@attempt.failure} class="wallet-bench__failure">{@attempt.failure}</p>
           <p :if={@attempt.funding_refused}>Not funded: {@attempt.funding_refused}</p>
         </header>
@@ -70,7 +78,11 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
           <h2 id="setup">Setup</h2>
           <dl :if={@attempt.machine} class="wallet-bench__facts">
             <dt>Agent</dt>
-            <dd>{@attempt.machine.manifest["harness_version"]}</dd>
+            <dd>
+              {Catalog.harness!(@attempt.harness_id).name} {@attempt.machine.manifest[
+                "harness_version"
+              ]}
+            </dd>
             <dt>Model</dt>
             <dd>
               {@attempt.machine.manifest["model"]}, {@attempt.machine.manifest["reasoning_effort"]} effort
@@ -86,8 +98,8 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             </dd>
             <dt>Wallet tool</dt>
             <dd>{wallet(@attempt).name}, run as <code>{wallet(@attempt).executable}</code></dd>
-            <dt>Version the survey installed</dt>
-            <dd>{wallet(@attempt).survey_version}</dd>
+            <dt :if={@wallet_version}>Wallet tool version</dt>
+            <dd :if={@wallet_version}>{@wallet_version}</dd>
             <dt :if={@judges != []}>Judge</dt>
             <dd :if={@judges != []}>{Enum.join(@judges, ", ")}</dd>
           </dl>
@@ -179,6 +191,14 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
       "v" <> version -> version
       version -> version
     end
+  end
+
+  # Each grid test this attempt has a result for, wallet first, as the grid scores it.
+  defp verdicts(attempt) do
+    for {_name, test} <- Copy.grid_tests(),
+        ruling <- [Copy.result(attempt.turns, test)],
+        ruling != nil,
+        do: {test, ruling}
   end
 
   # The models that ruled on this attempt's turns, as each ruling recorded.

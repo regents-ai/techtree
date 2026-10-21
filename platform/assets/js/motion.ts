@@ -12,6 +12,7 @@
  * Nothing here waits for, stops or repeats a press: a wallet button reaches
  * the wallet the moment it is pressed, and the motion plays alongside.
  */
+import {CTA, mountButtons} from "./hooks/motion/buttons"
 import {splitText} from "animejs"
 import {deny, nope, squish} from "./hooks/motion/press"
 import {CASCADE, GRIDS, HEADLINES, onFirstSight} from "./hooks/motion/reveals"
@@ -20,14 +21,17 @@ import {backdrop, drawer, menu, sheet} from "./hooks/motion/slides"
 
 // A menu's summary is its button; other summaries open disclosures in the
 // page's own flow and stay still. The theme switch turns its own cube, and the
-// lab's presses, named with `data-press`, answer for themselves.
+// lab's presses, named with `data-press`, answer for themselves. The footer's
+// Agent guide reads as one of the links beside it, which never move, so it keeps
+// still too.
 const PRESSABLE =
-  ":is(button, .rg-button, [role='button'], summary:has(~ [data-panel='menu'])):not(.rg-theme-toggle, [data-press])"
+  ":is(button, .rg-button, [role='button'], summary:has(~ [data-panel='menu'])):not(.rg-theme-toggle, .regent-footer__guide, [data-press])"
 
 const live = (el: Element) => el.closest("[data-phx-session]") !== null
 
 export function mountMotion(doc: Document) {
   watchInput(doc)
+  mountButtons(doc)
   doc.addEventListener("click", press)
   doc.addEventListener("toggle", toggle, true)
 
@@ -40,8 +44,10 @@ export function mountMotion(doc: Document) {
   for (const list of main.querySelectorAll<HTMLElement>("[data-cascade]"))
     onFirstSight(list, () => GRIDS.cascade([...list.children].slice(0, CASCADE)))
 
-  // A form the server sent back refused says why, and the reason shakes once.
-  for (const reason of main.querySelectorAll("[role='alert']")) deny(reason)
+  // A page the server sent back refused says why in an alert set straight in
+  // `main`, and the reason shakes once. An alert inside content that is still
+  // settling in stays still.
+  for (const reason of main.querySelectorAll(":scope > [role='alert']")) deny(reason)
 }
 
 // By the time a press reaches the document, the page has already acted on
@@ -55,11 +61,14 @@ export function press(event: MouseEvent) {
   if (control === null || still(control)) return
 
   if (control.getAttribute("aria-disabled") === "true") {
+    if (control.matches(".rg-button")) return
     nope(control)
     return
   }
 
-  squish(control.querySelector("[data-press-label]") ?? control)
+  // Shared CTAs already answered on pointer-down, with a stationary hit area.
+  if (!control.matches(CTA))
+    squish(control.querySelector("[data-press-label]") ?? control)
 
   if (control.getAttribute("aria-expanded") !== "true") return
   const panel = event.target.ownerDocument.getElementById(control.getAttribute("aria-controls") ?? "")
@@ -72,17 +81,25 @@ export function press(event: MouseEvent) {
 
 // A dialog rises as a sheet and a header menu pops open. A page that redraws
 // an open one closes and reopens it within one moment, which reports it as
-// having been open all along, so it does not move again.
+// having been open all along, so it does not move again. Once it rests where it
+// opens, moved or not, it carries `data-settled`, so whatever measures it, such
+// as the browser walk, knows when.
 function toggle(event: Event) {
-  if (!(event instanceof ToggleEvent) || event.oldState !== "closed" || event.newState !== "open") return
+  if (!(event instanceof ToggleEvent) || !(event.target instanceof HTMLElement)) return
   const {target} = event
-  if (!(target instanceof HTMLElement) || !lastInputByPointer() || still(target)) return
+  if (event.newState === "closed") return target.removeAttribute("data-settled")
+  if (event.oldState !== "closed") return
 
-  if (target instanceof HTMLDialogElement) sheet(target)
-  if (target instanceof HTMLDetailsElement) {
-    const panel = target.querySelector(":scope > [data-panel='menu']")
-    if (panel) menu(panel)
-  }
+  const moves = lastInputByPointer() && !still(target)
+  Promise.resolve(moves ? open(target) : undefined).then(() => {
+    if (target.hasAttribute("open")) target.dataset.settled = ""
+  })
+}
+
+function open(target: HTMLElement) {
+  if (target instanceof HTMLDialogElement) return sheet(target)
+  const panel = target instanceof HTMLDetailsElement && target.querySelector(":scope > [data-panel='menu']")
+  if (panel) return menu(panel)
 }
 
 // The words are joined back into plain text once they have risen.

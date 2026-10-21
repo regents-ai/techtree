@@ -38,7 +38,7 @@ defmodule TechtreeWeb.Layouts do
     assigns =
       assign(assigns,
         repository_url: @repository_url,
-        products: products(),
+        pages: pages(),
         github_stars: TechtreeWeb.GithubStars.count()
       )
 
@@ -71,14 +71,14 @@ defmodule TechtreeWeb.Layouts do
               <button
                 type="button"
                 class="masthead__menu-button"
-                aria-haspopup="true"
-                aria-current={products_section(@current_path)}
+                popovertarget="site-pages"
+                aria-current={pages_section(@current_path)}
               >
-                Products <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg>
+                Menu <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" /></svg>
               </button>
-              <span class="masthead__menu-list">
+              <span id="site-pages" class="masthead__menu-list" popover>
                 <a
-                  :for={{label, path} <- @products}
+                  :for={{label, path} <- @pages}
                   href={path}
                   aria-current={current_section(@current_path, path)}
                 >
@@ -86,7 +86,6 @@ defmodule TechtreeWeb.Layouts do
                 </a>
               </span>
             </span>
-            <a href={~p"/docs"} aria-current={current_section(@current_path, "/docs")}>Docs</a>
           </span>
           <a
             class="masthead__github"
@@ -121,18 +120,20 @@ defmodule TechtreeWeb.Layouts do
   defp stars_label({:ok, count}), do: "regents-ai/techtree on GitHub, #{count} stars"
   defp stars_label(:none), do: "Star on GitHub"
 
-  # The header's Products menu, in the order a newcomer meets them.
-  defp products do
+  # The header's pages, in the order a newcomer meets them. Wide screens show them
+  # in a row; narrow ones fold them under one Menu button so the header stays one row.
+  defp pages do
     [
       {"Start", ~p"/start"},
       {"Results", ~p"/results"},
       {"Wallet Bench", ~p"/wallet-bench"},
-      {"Verify", ~p"/verify"}
+      {"Verify", ~p"/verify"},
+      {"Docs", ~p"/docs"}
     ]
   end
 
-  defp products_section(path) do
-    if Enum.any?(products(), fn {_label, root} -> current_section(path, root) end), do: "page"
+  defp pages_section(path) do
+    if Enum.any?(pages(), fn {_label, root} -> current_section(path, root) end), do: "page"
   end
 
   defp current_section(path, root) when is_binary(path) do
@@ -209,7 +210,7 @@ defmodule TechtreeWeb.Layouts do
     do: "Try the example Climb or evaluate your own Skill."
 
   defp description_for_path("/results"),
-    do: "Browse participant-attested Results from controlled Skill comparisons."
+    do: "Browse published Results: the same agent on the same tasks, with and without a Skill."
 
   defp description_for_path("/verify"),
     do:
@@ -220,7 +221,14 @@ defmodule TechtreeWeb.Layouts do
       "Repo2RLEnv will turn a repository’s history into practice tasks for agents. Ask to hear when it opens."
 
   defp description_for_path("/docs"),
-    do: "Install, operate, verify, publish, and integrate Techtree."
+    do: "Install Techtree, test a Skill, check and publish a Result, and connect an agent."
+
+  defp description_for_path("/docs/" <> slug) do
+    case TechtreeWeb.DocsGuides.fetch(slug) do
+      {:ok, guide} -> guide.summary
+      :error -> description_for_path("/")
+    end
+  end
 
   defp description_for_path("/changelog"),
     do: "Techtree release notes: new features, fixes, and the limits of each release."

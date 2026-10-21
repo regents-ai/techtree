@@ -163,7 +163,7 @@ defmodule TechtreeWeb.StartLive do
           <section :if={@setup_commands} class="start-guide__direct" aria-labelledby="setup-direct">
             <h3 id="setup-direct">Or set it up yourself</h3>
             <.command_block id="copy-setup-cli" label="Command line" lines={@setup_commands.cli} />
-            <.link navigate={~p"/docs#test-skill"} class="text-link">
+            <.link navigate={~p"/docs/test-a-skill"} class="text-link">
               Every step, including the comparison →
             </.link>
           </section>
@@ -207,7 +207,7 @@ defmodule TechtreeWeb.StartLive do
             label="Run the example"
             lines={@setup_commands.example}
           />
-          <.link navigate={~p"/docs#first-climb"} class="text-link">
+          <.link navigate={~p"/docs/hello-world"} class="text-link">
             Read the first Climb guide →
           </.link>
         </section>

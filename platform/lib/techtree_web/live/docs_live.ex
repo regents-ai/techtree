@@ -1,9 +1,10 @@
 defmodule TechtreeWeb.DocsLive do
   @moduledoc """
-  The concise operating and integration reference for Techtree.
+  The Docs: `/docs` lists the guides (`TechtreeWeb.DocsGuides`) and each guide
+  has its own page at `/docs/<slug>`.
 
   Commands containing release coordinates are rendered from the active release
-  rather than copied into this page.
+  rather than copied into these pages.
   """
 
   use TechtreeWeb, :live_view
@@ -12,6 +13,7 @@ defmodule TechtreeWeb.DocsLive do
 
   alias Techtree.Catalog.Query
   alias TechtreeWeb.CampaignFacts
+  alias TechtreeWeb.DocsGuides
   alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.Outage
   alias TechtreeWeb.PublicDocuments
@@ -30,7 +32,6 @@ defmodule TechtreeWeb.DocsLive do
 
     {:ok,
      assign(socket,
-       page_title: "Docs",
        release: release,
        install: install,
        instruction: StartLive.instruction(),
@@ -42,474 +43,405 @@ defmodule TechtreeWeb.DocsLive do
   end
 
   @impl true
-  # Both raw sections come from PublicDocuments' compile-time committed Markdown.
+  def handle_params(params, _uri, socket) do
+    case params do
+      %{"slug" => slug} ->
+        case DocsGuides.fetch(slug) do
+          {:ok, guide} ->
+            {:noreply,
+             assign(socket,
+               page_title: guide.title <> " · Docs",
+               guide: guide,
+               text: PublicDocuments.guide(slug),
+               neighbours: DocsGuides.neighbours(slug)
+             )}
+
+          :error ->
+            raise TechtreeWeb.NotFoundError, "there is no Docs guide by that name"
+        end
+
+      %{} ->
+        {:noreply, assign(socket, page_title: "Docs", guide: nil)}
+    end
+  end
+
+  @impl true
+  def render(%{guide: nil} = assigns) do
+    ~H"""
+    <Layouts.page wide>
+      <article class="docs-index" data-markdown-root>
+        <header class="docs-hero">
+          <div class="docs-hero__top">
+            <h1>Docs</h1>
+            <.page_copy />
+          </div>
+          <p class="lede">{DocsGuides.lede()}</p>
+        </header>
+        <section :for={{group, guides} <- DocsGuides.groups()} class="docs-index__group">
+          <h2>{group}</h2>
+          <ul class="docs-index__list">
+            <li :for={guide <- guides}>
+              <.link navigate={~p"/docs/#{guide.slug}"} class="docs-index__link">
+                <span>{guide.title}</span>
+                <small>{guide.summary}</small>
+              </.link>
+            </li>
+          </ul>
+        </section>
+      </article>
+    </Layouts.page>
+    """
+  end
+
+  # A guide's body is committed Markdown rendered at compile time (`PublicDocuments.guide/1`).
   # sobelow_skip ["XSS.Raw"]
   def render(assigns) do
     ~H"""
     <Layouts.page wide>
       <div class="docs-layout">
-        <aside class="docs-nav" aria-label="Documentation sections" data-markdown-skip>
-          <p class="docs-nav__version">
-            Techtree{if @release, do: " " <> ReleaseInfo.label(@release)}
-          </p>
-          <nav>
-            <.docs_group
-              title="Get started"
-              links={[
-                {"Install and check", "#install"},
-                {"Test your Skill", "#test-skill"},
-                {"Compare two versions", "#two-versions"},
-                {"Take a quick look", "#first-climb"},
-                {"Frontier-CS problems", "#frontier-climb"},
-                {"Use Hermes", "#hermes"}
-              ]}
-            />
-            <.docs_group
-              title="Results"
-              links={[
-                {"Verify locally", "#verify"},
-                {"Publish a Result", "#publish"}
-              ]}
-            />
-            <.docs_group
-              title="CLI"
-              links={[
-                {"Machine interface", "#integration"},
-                {"Browser agents", "#browser-tools"},
-                {"Data boundary", "#data-boundary"},
-                {"Troubleshooting", "#troubleshooting"}
-              ]}
-            />
-            <.docs_group
-              title="API"
-              links={[
-                {"Agents for a person", "#agents"},
-                {"Errors", "#errors"},
-                {"Rate limits", "#rate-limits"},
-                {"Versioning", "#versioning"}
-              ]}
-            />
-            <.docs_group
-              title="Method"
-              links={[
-                {"The question", "#method"},
-                {"The proof bundle", "#proof-bundle"},
-                {"The trust boundary", "#trust-boundary"},
-                {"Hello World", "#hello-world"},
-                {"Revising a Skill", "#skill-revision"}
-              ]}
-            />
-            <.docs_group
-              title="Where this goes"
-              links={[
-                {"Beyond the model", "#beyond-model"},
-                {"Execution portability", "#environments"},
-                {"The agent stack", "#agent-stack"},
-                {"Regents and the network", "#regents"}
-              ]}
-            />
-            <.docs_group
-              title="Use it"
-              links={[
-                {"Give this to your agent", "#research-start"}
-              ]}
-            />
-          </nav>
-        </aside>
-
         <article class="docs-content" data-markdown-root>
           <header class="docs-hero">
             <div class="docs-hero__top">
-              <p class="eyebrow">Operator reference</p>
+              <p class="eyebrow">{@guide.group}</p>
               <.page_copy />
             </div>
-            <h1>Operation Guide and Mechanism Docs</h1>
-            <p class="lede">
-              Install the released CLI, test a Skill against no Skill or its earlier version,
-              verify a Result, and publish a Climb Result to the public Results log.
-            </p>
-            <p>
-              For the info on Prime Intellect’s
-              <a href="https://github.com/PrimeIntellect-ai/verifiers"><code>verifiers</code></a>
-              mechanism, go to the section <a href="#method">Method.</a>
-            </p>
+            <h1>{@text.title}</h1>
+            <p class="lede">{raw(lede_html(@text.lede))}</p>
           </header>
-
-          <section id="install" class="doc-section">
-            <h2>Install and check this machine</h2>
-            <%= cond do %>
-              <% @install == :unreadable -> %>
-                <p role="status">
-                  The install steps can't be shown right now. Try again in a minute.
-                </p>
-              <% is_nil(@release) or not @release.installable? -> %>
-                <p>There's no version of Techtree to install yet.</p>
-              <% @release.introductory_reference -> %>
-                <.command_block
-                  id="copy-docs-install"
-                  lines={[
-                    {:command, @release.install_argv},
-                    {:comment, "It should print #{@release.version}:"},
-                    {:command, ["regents", "--version"]},
-                    {:command,
-                     ["regents", "techtree", "doctor", "--climb", @release.introductory_reference]}
-                  ]}
-                  label="Install, check, then run Doctor"
-                />
-                <p class="small quiet">
-                  Doctor checks what this machine needs without calling a model. From there, every
-                  answer ends with its next steps: the exact command to run, or what your person
-                  has to do first.
-                </p>
-              <% true -> %>
-                <p>This release does not name an introductory Climb.</p>
-            <% end %>
-          </section>
-
-          <section id="test-skill" class="doc-section">
-            <h2>Test your Skill</h2>
-            <p>
-              Techtree makes practice tasks from what your Skill teaches, then your agent works
-              them without the Skill and with it. Every step that sends anything to a model prints
-              a review first and waits for your yes. Each command prints the next one.
-            </p>
-            <h3>1. Make the tasks</h3>
-            <.command_block
-              id="copy-docs-skill-tasks"
-              lines={[
-                {:command, ["regents", "techtree", "forge", "inspect-skill", "path/to/your-skill"]},
-                {:command,
-                 [
-                   "regents",
-                   "techtree",
-                   "forge",
-                   "plan",
-                   "SOURCE_ID",
-                   "--provider",
-                   "PROVIDER",
-                   "--model",
-                   "MODEL"
-                 ]},
-                {:comment, "Review, correct, build and accept, one printed step at a time."}
-              ]}
-              label="Make tasks from a Skill"
-            />
-            <p>
-              Accepting the tasks that qualified gives you a collection. Some of its tasks are
-              held out from anyone improving the Skill.
-            </p>
-            <h3>2. Run them both ways, then compare</h3>
-            <.command_block
-              id="copy-docs-skill-compare"
-              lines={[
-                {:command,
-                 [
-                   "regents",
-                   "techtree",
-                   "forge",
-                   "run",
-                   "--arm",
-                   "baseline",
-                   "--collection",
-                   "COLLECTION_ID",
-                   "--provider",
-                   "PROVIDER",
-                   "--model",
-                   "MODEL"
-                 ]},
-                {:command,
-                 [
-                   "regents",
-                   "techtree",
-                   "forge",
-                   "run",
-                   "--arm",
-                   "candidate",
-                   "--collection",
-                   "COLLECTION_ID",
-                   "--provider",
-                   "PROVIDER",
-                   "--model",
-                   "MODEL",
-                   "--skill",
-                   "path/to/your-skill"
-                 ]},
-                {:command,
-                 ["regents", "techtree", "forge", "compare", "BASELINE_RUN_ID", "CANDIDATE_RUN_ID"]}
-              ]}
-              label="Compare without and with the Skill"
-            />
-            <p>
-              Both runs use the same provider and model. The comparison calls no model: it pairs
-              every task across the two runs and says whether the Skill improved, regressed, was
-              mixed or made no difference, overall and on the held-out tasks alone. It writes a
-              report you can open in a browser. The
-              <.link navigate={~p"/examples/tdd"}>tdd example</.link>
-              shows a finished one.
-            </p>
-            <h3>3. Revise once, if you want to</h3>
-            <p>
-              <code>regents techtree uplift context COMPARISON_ID</code>
-              gives what a revision may learn from, never the held-out tasks. Write the revised
-              Skill into a new folder, then run
-              <code>
-                regents techtree uplift prepare --from-run COMPARISON_ID --candidate-skill path/to/revised-skill
-              </code>
-              and the <code>regents techtree uplift start</code>
-              command it prints. The revision is judged on the held-out tasks alone.
-            </p>
-            <h3>Fix a task, or check where things stand</h3>
-            <p>
-              If a built task is wrong, fix a copy of it by hand and record that with <code>regents techtree forge correct-task CONSTRUCTION_ID TASK_NAME DIR</code>.
-              <code>regents techtree forge status ID</code>
-              shows any build, plan, run or comparison.
-              <code>regents techtree forge export COLLECTION_ID --to FOLDER</code>
-              writes a copy of the tasks for someone else to read.
-            </p>
-          </section>
-
-          <section id="two-versions" class="doc-section">
-            <h2>Compare two versions of a Skill</h2>
-            <p>
-              To decide whether a change is worth keeping, give the baseline run the earlier
-              version instead of no Skill. Keep the earlier version in its own folder.
-            </p>
-            <.command_block
-              id="copy-docs-two-versions"
-              argv={[
-                "regents",
-                "techtree",
-                "forge",
-                "run",
-                "--arm",
-                "baseline",
-                "--collection",
-                "COLLECTION_ID",
-                "--provider",
-                "PROVIDER",
-                "--model",
-                "MODEL",
-                "--skill",
-                "path/to/earlier-skill"
-              ]}
-              label="Baseline with the earlier version"
-            />
-            <p>
-              Then run the candidate with the new version and compare the two runs, exactly as
-              above.
-            </p>
-          </section>
-
-          <section id="first-climb" class="doc-section">
-            <h2>Take a quick look with the Hello World Climb</h2>
-            <p>
-              The Hello World Climb is a small, fixed comparison that ships with the release, run
-              with a starter Skill. It shows how a run is approved and what a Result looks like.
-              Its toy tasks say nothing about your own Skill. Preparation prints the exact one-time
-              start command and the most the run may spend before anything runs.
-            </p>
-            <.command_block
-              :if={@release && @release.introductory_reference}
-              id="copy-docs-prepare"
-              lines={
-                [{:command, ["regents", "techtree", "skill", "starter"]}] ++
-                  ModelAccess.prepare_lines(@introductory_routes, [
-                    "regents",
-                    "techtree",
-                    "climb",
-                    "prepare",
-                    @release.introductory_reference,
-                    "--skill",
-                    "path/to/skill"
-                  ])
-              }
-              label="Prepare the Hello World Climb"
-            />
-            <p>
-              Approve and run only the exact <code>regents techtree climb start</code>
-              command printed by
-              preparation. Closing the terminal does not stop a started Run.
-            </p>
-          </section>
-
-          <section id="frontier-climb" class="doc-section">
-            <h2>Improve a Skill on Frontier-CS problems</h2>
-            <p>
-              The Frontier-CS Open-Ended Climb has ten open-ended programming problems from <a href="https://github.com/FrontierCS/Frontier-CS">Frontier-CS</a>, created with <a href="https://github.com/FrontierCS/FrontierSmith">FrontierSmith</a>, where no
-              perfect answer is known. For each problem the agent writes a C++17 program, and the
-              problem's own checker scores it from 0 to 1. Every problem runs once without your
-              Skill and once with it. Start from its starter Skill, or from your own.
-            </p>
-            <.command_block
-              :if={@frontier_routes}
-              id="copy-docs-frontier"
-              lines={
-                [{:command, ["regents", "techtree", "skill", "starter", "--climb", @frontier]}] ++
-                  ModelAccess.prepare_lines(@frontier_routes, [
-                    "regents",
-                    "techtree",
-                    "climb",
-                    "prepare",
-                    @frontier,
-                    "--skill",
-                    "path/to/skill"
-                  ])
-              }
-              label="Prepare the Frontier-CS Open-Ended Climb"
-            />
-          </section>
-
-          <section id="hermes" class="doc-section">
-            <h2>
-              Use <a href="https://github.com/NousResearch/hermes-agent">Hermes</a>
-            </h2>
-            <p>
-              Hermes can run every step itself, like any coding agent. Give it the same
-              instruction:
-            </p>
-            <.prompt_block id="copy-docs-hermes" label="Give this to Hermes" text={@instruction} />
-            <p>
-              Hermes may prepare commands and explain output. Techtree still stops before every
-              model call and waits for your own yes.
-            </p>
-            <p :if={@plugin_commands}>
-              The Techtree plugin for Hermes adds commands for the Hello World Climb and for
-              publishing its Results:
-            </p>
-            <.command_block
-              :if={@plugin_commands}
-              id="copy-docs-hermes-plugin"
-              lines={@plugin_commands}
-              label="Hermes plugin"
-            />
-          </section>
-
-          <section id="verify" class="doc-section">
-            <h2>Verify a Result locally</h2>
-            <p>
-              Verification reads a Result bundle, recomputes its checks, and makes no model call.
-              Give it the run’s ID, the bundle’s folder, or a bundle downloaded from a published
-              Result’s page.
-            </p>
-            <.command_block
-              id="copy-docs-verify"
-              argv={["regents", "techtree", "proof", "verify", "path/to/result-bundle"]}
-              label="Verify locally"
-            />
-            <p><.link navigate={~p"/verify"}>Read exactly what verification establishes.</.link></p>
-          </section>
-
-          <section id="publish" class="doc-section">
-            <h2>Publish a Result</h2>
-            <p>
-              Only Climb runs can be published today. A Skill comparison stays on your computer;
-              <code>regents techtree forge export</code>
-              writes a copy of its tasks to share.
-            </p>
-            <p>
-              Publishing is a separate action performed after a Run finishes. The CLI shows the
-              publication terms and asks before it sends the Result bundle.
-            </p>
-            <.command_block
-              id="copy-docs-publish"
-              argv={["regents", "techtree", "publish", "RUN_ID"]}
-              label="Publish one finished Run"
-            />
-            <p>
-              The server returns a signed publication receipt and repeated publication of the same
-              bundle is idempotent. Published comparisons appear in <.link navigate={~p"/results"}>Results</.link>.
-            </p>
-            <.command_block
-              id="copy-docs-withdraw"
-              argv={["regents", "techtree", "withdraw", "BUNDLE_DIGEST"]}
-              label="Withdraw a published Result"
-            />
-            <p>
-              Withdrawing marks the entry withdrawn and stops offering its bundle. The page keeps
-              its address, and copies anybody already holds are still theirs to check.
-            </p>
-          </section>
-
-          <section id="integration" class="doc-section">
-            <h2>Use the machine interface</h2>
-            <p>
-              Pass <code>--json</code> to CLI commands for one machine-readable envelope on stdout.
-              Machine mode does not prompt; operational messages go to stderr.
-            </p>
-            <.definition_list>
-              <:fact term="Release bootstrap"><code>GET /api/v1/bootstrap</code></:fact>
-              <:fact term="Published Climb catalog"><code>GET /api/v1/catalog</code></:fact>
-              <:fact term="One Climb"><code>GET /api/v1/climbs/:slug</code></:fact>
-              <:fact term="Published Results"><code>GET /api/v1/publications</code></:fact>
-              <:fact term="One published Result"><code>GET /api/v1/publications/:digest</code></:fact>
-              <:fact term="Publication key"><code>GET /api/v1/publication-keys/:key_id</code></:fact>
-            </.definition_list>
-            <p>
-              Protocol payloads retain their schema field names even where the public site uses
-              simpler words.
-            </p>
-          </section>
-
-          <section id="browser-tools" class="doc-section">
-            <h2>Let a browser's agent read Techtree</h2>
-            <div class="docs-prose">{raw(PublicDocuments.docs_section("Browser tools"))}</div>
-          </section>
-
-          <section
-            :for={
-              {id, heading} <- [
-                {"agents", "Agents acting for a person"},
-                {"errors", "Errors"},
-                {"rate-limits", "Rate limits"},
-                {"versioning", "Versioning and deprecation"}
-              ]
-            }
-            id={id}
-            class="doc-section"
-          >
-            <h2>{heading}</h2>
-            <div class="docs-prose">{raw(PublicDocuments.docs_section(heading))}</div>
-          </section>
-
-          <section id="data-boundary" class="doc-section">
-            <h2>Know what leaves the machine</h2>
-            <p>
-              Local Runs, Episodes, and Traces stay local. Model calls go to the provider you
-              chose, or the one the Climb names. Techtree receives a Result bundle only when you
-              explicitly publish it.
-            </p>
-            <p>No Techtree account or browser upload is required.</p>
-          </section>
-
-          <section id="troubleshooting" class="doc-section">
-            <h2>Troubleshoot from the boundary inward</h2>
-            <ol class="docs-numbered-list">
-              <li>Run Doctor for the exact Climb reference.</li>
-              <li>Read the next action and any missing prerequisite it reports.</li>
-              <li>Use <code>regents techtree run status RUN_ID</code> for a started Run.</li>
-              <li>Use <code>regents techtree run logs RUN_ID</code> for execution details.</li>
-              <li>
-                Use <code>regents techtree forge status ID</code>
-                for a Skill test's build, plan, run or
-                comparison.
-              </li>
-              <li>Re-run local verification before attempting publication again.</li>
-            </ol>
-            <p>
-              Source and issue tracking live at <a href="https://github.com/regents-ai/techtree">github.com/regents-ai/techtree</a>.
-            </p>
-            <p>
-              What changed in each release is in the <.link navigate={~p"/changelog"}>changelog</.link>.
-              To turn a repository into practice for agents, see
-              <.link navigate={~p"/repo2rlenv"}>Repo2RLEnv</.link>
-              <.capability_status capability={:hosted_building} />.
-            </p>
-          </section>
-
-          <TechtreeWeb.ResearchContent.sections />
+          <.guide
+            slug={@guide.slug}
+            text={@text}
+            release={@release}
+            install={@install}
+            instruction={@instruction}
+            plugin_commands={@plugin_commands}
+            introductory_routes={@introductory_routes}
+            frontier={@frontier}
+            frontier_routes={@frontier_routes}
+          />
+          <nav class="docs-pager" aria-label="Next and previous guides" data-markdown-skip>
+            <.link :if={elem(@neighbours, 0)} navigate={~p"/docs/#{elem(@neighbours, 0).slug}"}>
+              <small>Previous</small> {elem(@neighbours, 0).title}
+            </.link>
+            <.link
+              :if={elem(@neighbours, 1)}
+              navigate={~p"/docs/#{elem(@neighbours, 1).slug}"}
+              class="docs-pager__next"
+            >
+              <small>Next</small> {elem(@neighbours, 1).title}
+            </.link>
+          </nav>
         </article>
+
+        <aside class="docs-nav" aria-label="All guides" data-markdown-skip>
+          <p class="docs-nav__version">
+            <.link navigate={~p"/docs"}>All guides</.link>
+            <span :if={@release}>· Techtree {ReleaseInfo.label(@release)}</span>
+          </p>
+          <nav>
+            <div :for={{group, guides} <- DocsGuides.groups()} class="docs-nav__group">
+              <p>{group}</p>
+              <.link
+                :for={guide <- guides}
+                navigate={~p"/docs/#{guide.slug}"}
+                aria-current={guide.slug == @guide.slug && "page"}
+              >
+                {guide.title}
+              </.link>
+            </div>
+          </nav>
+        </aside>
       </div>
     </Layouts.page>
+    """
+  end
+
+  # The lede is one Markdown paragraph; links in it stay links.
+  defp lede_html(lede) do
+    {html, _contents} = RegentBlog.markdown(lede)
+    html |> String.trim() |> String.trim_leading("<p>") |> String.trim_trailing("</p>")
+  end
+
+  attr :html, :string, required: true
+
+  # PublicDocuments.guide/1 renders the committed guide Markdown at compile time; no request HTML enters it.
+  # sobelow_skip ["XSS.Raw"]
+  defp prose(assigns) do
+    ~H"""
+    <div class="docs-prose">{raw(@html)}</div>
+    """
+  end
+
+  defp guide(%{slug: "install"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <%= cond do %>
+        <% @install == :unreadable -> %>
+          <p role="status">
+            The install steps can't be shown right now. Try again in a minute.
+          </p>
+        <% is_nil(@release) or not @release.installable? -> %>
+          <p>There's no version of Techtree to install yet.</p>
+        <% @release.introductory_reference -> %>
+          <.command_block
+            id="copy-docs-install"
+            lines={[
+              {:command, @release.install_argv},
+              {:comment, "It should print #{@release.version}:"},
+              {:command, ["regents", "--version"]},
+              {:command,
+               ["regents", "techtree", "doctor", "--climb", @release.introductory_reference]}
+            ]}
+            label="Install, check, then run Doctor"
+          />
+          <p class="small quiet">
+            Doctor checks what this machine needs without calling a model. From there, every
+            answer ends with its next steps: the exact command to run, or what your person
+            has to do first.
+          </p>
+        <% true -> %>
+          <p>This release does not name an introductory Climb.</p>
+      <% end %>
+    </section>
+    """
+  end
+
+  defp guide(%{slug: "test-a-skill"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <h2>1. Make the tasks</h2>
+      <.command_block
+        id="copy-docs-skill-tasks"
+        lines={[
+          {:command, ["regents", "techtree", "forge", "inspect-skill", "path/to/your-skill"]},
+          {:command,
+           [
+             "regents",
+             "techtree",
+             "forge",
+             "plan",
+             "SOURCE_ID",
+             "--provider",
+             "PROVIDER",
+             "--model",
+             "MODEL"
+           ]},
+          {:comment, "Review, correct, build and accept, one printed step at a time."}
+        ]}
+        label="Make tasks from a Skill"
+      />
+      <p>
+        Accepting the tasks that qualified gives you a collection. Some of its tasks are
+        held out from anyone improving the Skill.
+      </p>
+      <h2>2. Run them both ways, then compare</h2>
+      <.command_block
+        id="copy-docs-skill-compare"
+        lines={[
+          {:command,
+           [
+             "regents",
+             "techtree",
+             "forge",
+             "run",
+             "--arm",
+             "baseline",
+             "--collection",
+             "COLLECTION_ID",
+             "--provider",
+             "PROVIDER",
+             "--model",
+             "MODEL"
+           ]},
+          {:command,
+           [
+             "regents",
+             "techtree",
+             "forge",
+             "run",
+             "--arm",
+             "candidate",
+             "--collection",
+             "COLLECTION_ID",
+             "--provider",
+             "PROVIDER",
+             "--model",
+             "MODEL",
+             "--skill",
+             "path/to/your-skill"
+           ]},
+          {:command,
+           ["regents", "techtree", "forge", "compare", "BASELINE_RUN_ID", "CANDIDATE_RUN_ID"]}
+        ]}
+        label="Compare without and with the Skill"
+      />
+      <p>
+        Both runs use the same provider and model. The comparison calls no model: it pairs
+        every task across the two runs and says whether the Skill improved, regressed, was
+        mixed or made no difference, overall and on the held-out tasks alone. It writes a
+        report you can open in a browser. The <.link navigate={~p"/examples/tdd"}>tdd example</.link>
+        shows a finished one.
+      </p>
+      <h2 id="two-versions">Compare two versions of a Skill</h2>
+      <p>
+        To decide whether a change is worth keeping, give the baseline run the earlier
+        version instead of no Skill. Keep the earlier version in its own folder, then run the
+        candidate with the new version and compare the two runs as above.
+      </p>
+      <.command_block
+        id="copy-docs-two-versions"
+        argv={[
+          "regents",
+          "techtree",
+          "forge",
+          "run",
+          "--arm",
+          "baseline",
+          "--collection",
+          "COLLECTION_ID",
+          "--provider",
+          "PROVIDER",
+          "--model",
+          "MODEL",
+          "--skill",
+          "path/to/earlier-skill"
+        ]}
+        label="Baseline with the earlier version"
+      />
+      <h2>3. Revise once, if you want to</h2>
+      <p>
+        <code>regents techtree uplift context COMPARISON_ID</code>
+        gives what a revision may learn from, never the held-out tasks. Write the revised
+        Skill into a new folder, then run
+        <code>
+          regents techtree uplift prepare --from-run COMPARISON_ID --candidate-skill path/to/revised-skill
+        </code>
+        and the <code>regents techtree uplift start</code>
+        command it prints. The revision is judged on the held-out tasks alone.
+      </p>
+      <h2>Fix a task, or check where things stand</h2>
+      <p>
+        If a built task is wrong, fix a copy of it by hand and record that with <code>regents techtree forge correct-task CONSTRUCTION_ID TASK_NAME DIR</code>.
+        <code>regents techtree forge status ID</code>
+        shows any build, plan, run or comparison.
+        <code>regents techtree forge export COLLECTION_ID --to FOLDER</code>
+        writes a copy of the tasks for someone else to read.
+      </p>
+    </section>
+    """
+  end
+
+  defp guide(%{slug: "hello-world"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <.command_block
+        :if={@release && @release.introductory_reference}
+        id="copy-docs-prepare"
+        lines={
+          [{:command, ["regents", "techtree", "skill", "starter"]}] ++
+            ModelAccess.prepare_lines(@introductory_routes, [
+              "regents",
+              "techtree",
+              "climb",
+              "prepare",
+              @release.introductory_reference,
+              "--skill",
+              "path/to/skill"
+            ])
+        }
+        label="Prepare the Hello World Climb"
+      />
+      <p>
+        Approve and run only the exact <code>regents techtree climb start</code>
+        command printed by preparation. Closing the terminal does not stop a started run.
+      </p>
+      <.prose html={@text.body_html} />
+    </section>
+    """
+  end
+
+  defp guide(%{slug: "frontier-cs"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <p>Start from its starter Skill, or from your own.</p>
+      <.command_block
+        :if={@frontier_routes}
+        id="copy-docs-frontier"
+        lines={
+          [{:command, ["regents", "techtree", "skill", "starter", "--climb", @frontier]}] ++
+            ModelAccess.prepare_lines(@frontier_routes, [
+              "regents",
+              "techtree",
+              "climb",
+              "prepare",
+              @frontier,
+              "--skill",
+              "path/to/skill"
+            ])
+        }
+        label="Prepare the Frontier-CS Open-Ended Climb"
+      />
+    </section>
+    """
+  end
+
+  defp guide(%{slug: "hermes"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <.prompt_block id="copy-docs-hermes" label="Give this to Hermes" text={@instruction} />
+      <p>
+        Hermes may prepare commands and explain output. Techtree still stops before every
+        model call and waits for your own yes.
+      </p>
+      <p :if={@plugin_commands}>
+        The Techtree plugin for Hermes adds commands for the Hello World Climb and for
+        publishing its Results:
+      </p>
+      <.command_block
+        :if={@plugin_commands}
+        id="copy-docs-hermes-plugin"
+        lines={@plugin_commands}
+        label="Hermes plugin"
+      />
+    </section>
+    """
+  end
+
+  defp guide(%{slug: "verify"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <.command_block
+        id="copy-docs-verify"
+        argv={["regents", "techtree", "proof", "verify", "path/to/result-bundle"]}
+        label="Check on this computer"
+      />
+      <.prose html={@text.body_html} />
+      <p><.link navigate={~p"/verify"}>Read exactly what a check establishes.</.link></p>
+    </section>
+    """
+  end
+
+  defp guide(%{slug: "publish"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <.command_block
+        id="copy-docs-publish"
+        argv={["regents", "techtree", "publish", "RUN_ID"]}
+        label="Publish one finished run"
+      />
+      <.command_block
+        id="copy-docs-withdraw"
+        argv={["regents", "techtree", "withdraw", "BUNDLE_DIGEST"]}
+        label="Withdraw a published Result"
+      />
+      <.prose html={@text.body_html} />
+    </section>
+    """
+  end
+
+  defp guide(assigns) do
+    ~H"""
+    <section class="doc-section"><.prose html={@text.body_html} /></section>
     """
   end
 
@@ -537,16 +469,4 @@ defmodule TechtreeWeb.DocsLive do
       |> Query.get_climb_by_reference!()
       |> CampaignFacts.trial!()
       |> Map.fetch!(:routes)
-
-  attr :title, :string, required: true
-  attr :links, :list, required: true
-
-  defp docs_group(assigns) do
-    ~H"""
-    <div class="docs-nav__group">
-      <p>{@title}</p>
-      <a :for={{label, href} <- @links} href={href}>{label}</a>
-    </div>
-    """
-  end
 end

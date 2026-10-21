@@ -68,18 +68,30 @@ const requests: Record<string, Request> = {
       ? {...response, verdict: (response.data as {decision: unknown}).decision}
       : response
   },
+  results_bundle: (input, signal) =>
+    read(`/api/v1/publications/${encodeURIComponent(input.bundle_digest)}/bundle`, "exact", signal),
+  skills_show: (input, signal) =>
+    read(`/api/v1/skills/${encodeURIComponent(input.root_digest)}`, "json", signal),
+  wallet_bench_list: (_input, signal) => read("/wallet-bench.json", "json", signal),
+  wallet_bench_show: (input, signal) =>
+    read(`/wallet-bench/${encodeURIComponent(input.id)}/results.json`, "json", signal),
 }
 
-async function read(path: string, format: "json" | "text", signal: AbortSignal | undefined): Promise<Reply> {
+// "json" answers the parsed JSON, "text" a Markdown document, and "exact" a JSON
+// answer's own bytes as text, unparsed, so a signed bundle keeps every byte.
+async function read(path: string, format: "json" | "text" | "exact", signal: AbortSignal | undefined): Promise<Reply> {
   const response = await fetch(path, {
-    headers: {Accept: format === "json" ? "application/json" : "text/markdown"},
+    headers: {Accept: format === "text" ? "text/markdown" : "application/json"},
     credentials: "omit",
     cache: "no-store",
     redirect: "error",
     signal,
   })
-  const body: unknown = format === "json" ? await response.json() : await response.text()
-  if (response.ok) return {ok: true, status: response.status, data: body}
+  if (response.ok) {
+    const data: unknown = format === "json" ? await response.json() : await response.text()
+    return {ok: true, status: response.status, data}
+  }
+  const body: unknown = format === "text" ? await response.text() : await response.json()
   return {ok: false, status: response.status, error: (body as {error?: unknown}).error ?? {message: body}}
 }
 

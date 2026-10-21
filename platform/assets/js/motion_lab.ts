@@ -340,31 +340,32 @@ const LabSlides: Hook = {
 }
 
 // Lists and notes: the kit's bounce and pop, and the others that were tried.
+// Every new item only fades in where it lands, as the kit's do (moments.ts).
 const LAB_LAYOUTS: Record<string, () => LayoutAnimationParams> = {
   ...LAYOUTS,
   rise: () => ({
     duration: SLOW,
     ease: EASE_OUT,
-    enterFrom: {opacity: 0, transform: "translateY(18px) scale(.96)"},
+    enterFrom: {opacity: 0},
     leaveTo: {opacity: 0, transform: "translateY(-10px) scale(.96)"},
   }),
   side: () => ({
     duration: SLOW,
     ease: EASE_IN_OUT,
-    enterFrom: {opacity: 0, transform: "translateX(64px)"},
+    enterFrom: {opacity: 0},
     leaveTo: {opacity: 0, transform: "translateX(64px)"},
   }),
   glide: () => ({
     duration: 360,
     ease: EASE_IN_OUT,
-    enterFrom: {opacity: 0, transform: "scale(.9)"},
+    enterFrom: {opacity: 0},
     leaveTo: {opacity: 0, transform: "scale(.9)"},
   }),
   ripple: () => ({
     duration: SLOW,
     ease: EASE_IN_OUT,
     delay: stagger(35),
-    enterFrom: {opacity: 0, transform: "translateX(-16px)"},
+    enterFrom: {opacity: 0},
     leaveTo: {opacity: 0, transform: "translateX(16px)"},
   }),
 }

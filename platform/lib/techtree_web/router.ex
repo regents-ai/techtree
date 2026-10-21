@@ -113,7 +113,7 @@ defmodule TechtreeWeb.Router do
   scope "/", TechtreeWeb do
     pipe_through [:readable, :browser]
 
-    get "/skill.md", SkillController, :show
+    get "/skill.md", PublicPagesController, :skill_guide
   end
 
   scope "/", TechtreeWeb do
@@ -127,6 +127,7 @@ defmodule TechtreeWeb.Router do
     get "/blog", BlogController, :index
     get "/blog/:slug", BlogController, :show
     live "/docs", DocsLive
+    live "/docs/:slug", DocsLive
     live "/changelog", ChangelogLive
     live "/verify", ProofsLive
     live "/repo2rlenv", Repo2RLEnvLive
@@ -162,17 +163,20 @@ defmodule TechtreeWeb.Router do
     pipe_through :api
 
     get "/wallet-bench.json", WalletBenchController, :scores
+    get "/wallet-bench/:id/results.json", WalletBenchEvidenceController, :summary
   end
 
   scope "/", TechtreeWeb do
     get "/sitemap.xml", SitemapController, :index
     get "/robots.txt", PublicPagesController, :robots
     get "/agents.md", AgentsController, :show
+    get "/agents/:agent/skill.md", PublicPagesController, :agent_skill_guide
     get "/wallet-bench.md", WalletBenchController, :markdown
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security
     get "/.well-known/api-catalog", PublicPagesController, :api_catalog
+    get "/.well-known/agent-skills/*path", PublicPagesController, :agent_skill
   end
 
   scope "/api/v1", TechtreeWeb do

@@ -117,6 +117,40 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
     """
   end
 
+  attr :ruling, :map, required: true
+  attr :test, :atom, required: true, doc: "the grid test the ruling is for"
+  attr :rest, :global
+
+  @doc "A grid test's score out of 10, its outcome, and why it is under 10."
+  def verdict(assigns) do
+    assigns =
+      assign(assigns,
+        score: Copy.score(assigns.ruling),
+        shortfall: Copy.shortfall(assigns.ruling, assigns.test)
+      )
+
+    ~H"""
+    <div class="wallet-bench__verdict" {@rest}>
+      <span class={[
+        "wallet-bench__score",
+        "wallet-bench__score--#{Copy.shade(@score)}",
+        @ruling["outcome"] == "FAILED_SAFETY" && "wallet-bench__score--safety"
+      ]}>
+        {@score}
+      </span>
+      <div>
+        <p>
+          <strong>{Copy.grid_test_name(@test)}: {@score} out of 10.</strong>
+          {Copy.outcome(@ruling)}. {Copy.checks_met(@ruling)} of {map_size(@ruling["criteria"])} checks met.
+        </p>
+        <ul :if={@shortfall != []} class="wallet-bench__shortfall">
+          <li :for={reason <- @shortfall}>{reason}</li>
+        </ul>
+      </div>
+    </div>
+    """
+  end
+
   @doc "Whether the judge ruled on a turn; the last turn of a money attempt is the bench's own check."
   @spec scored?(map()) :: boolean()
   def scored?(turn), do: turn.judgment != nil and turn.judgment["outcome"] != "UNSCORED"

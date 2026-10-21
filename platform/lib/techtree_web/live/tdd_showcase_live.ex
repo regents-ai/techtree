@@ -212,7 +212,8 @@ defmodule TechtreeWeb.TddShowcaseLive do
         </p>
         <p class="small quiet section-note">
           To test your own change to a Skill, compare its earlier and new versions on tasks built
-          from it. <.link navigate={~p"/docs#two-versions"}>How to compare two versions →</.link>
+          from it.
+          <.link navigate={~p"/docs/test-a-skill#two-versions"}>How to compare two versions →</.link>
         </p>
       </section>
 

@@ -58,8 +58,8 @@ defmodule TechtreeWeb.ProofsLiveTest do
     refute text =~ "arrives in a later release"
     refute text =~ "USDC"
     refute has_element?(live, "#proof-evidence-graph")
-    assert has_element?(live, ~s|a[href="/docs#verify"]|)
-    assert has_element?(live, ~s|a[href="/docs#method"]|, "Docs")
+    assert has_element?(live, ~s|a[href="/docs/verify"]|)
+    assert has_element?(live, ~s|a[href="/docs/method"]|, "Docs")
     assert text =~ "copyable as Markdown to your agent"
   end
 end

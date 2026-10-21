@@ -101,9 +101,14 @@ GET /                           what Techtree Climb is
 GET /start                      the two supported ways to run a Climb
 GET /climbs/:slug               one Climb in full
 GET /verify                     what verification establishes
-GET /docs                       operating and mechanism documentation
+GET /docs                       every guide, grouped
+GET /docs/:slug                 one guide (install, test-a-skill, verify, publish, ...)
 GET /skill.md                   the Techtree skill: what to watch, how to check back
+GET /.well-known/agent-skills/index.json  the skills index, with the skill as a zip
+GET /agents/:agent/skill.md     the skill plus steps for one agent (hermes, codex, ...)
 GET /agents.md                  the agent guide: the exact release and every step
+GET /wallet-bench               Wallet Bench scores; /wallet-bench.json for agents
+GET /wallet-bench/:id           one wallet test; /wallet-bench/:id/results.json its record
 GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
 GET /repo2rlenv                 the planned Repo2RLEnv service
@@ -241,7 +246,11 @@ login and wallet signing still require a separate release smoke test.
 
 Plain documents with high contrast in both light and dark, a print stylesheet,
 and reduced-motion support. Decorative WebGPU visuals are optional; the markup
-and content render without them. The stylesheet is hand-written CSS with no
+and content render without them. The home page crown is a vgpu island: the
+shared `assets/js/canvas_island.ts` (a copy of ash-template's) wraps the
+renderer in `assets/js/crown/`, the server draws a still crown first, and the
+live one takes over once its first frame is drawn. Motion uses Anime.js through
+the shared motion kit in `assets/js/hooks/motion/`. The stylesheet is hand-written CSS with no
 framework or remote fonts, so a page is readable on a phone, in a reader, and
 on paper.
 

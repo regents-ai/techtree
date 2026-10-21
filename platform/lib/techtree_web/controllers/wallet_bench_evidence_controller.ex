@@ -1,6 +1,7 @@
 defmodule TechtreeWeb.WalletBenchEvidenceController do
   @moduledoc """
-  One recorded file of a wallet test, as plain text.
+  One recorded file of a wallet test, as plain text; the whole test as a zip;
+  and the test's record on its own as JSON.
 
   Only a file the turn recorded is served: the turn and file names are looked
   up in the turn's own list, never used as a path, and the bytes read back
@@ -12,6 +13,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
 
   alias Techtree.WalletBench
   alias Techtree.WalletBench.{Catalog, Evidence}
+  alias TechtreeWeb.ExactResponse
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   @load [:machine, :turns, :payments, :model_spend_usd, :judge_cost_usd]
@@ -60,6 +62,29 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       with_download_place(conn, fn -> send_results(conn, attempt) end)
     else
       _missing -> raise TechtreeWeb.NotFoundError, "no wallet test has that number"
+    end
+  end
+
+  @doc """
+  The test's `results.json` on its own, the same record the zip starts with,
+  for an agent that reads the test without downloading its files. A test still
+  running changes, so a caller may keep it for 30 seconds, as the scores.
+  """
+  def summary(conn, %{"id" => id}) do
+    with {:ok, id} <- Ecto.UUID.cast(id),
+         {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
+      conn
+      |> put_resp_header("cache-control", "public, max-age=30")
+      |> json(summary(attempt))
+    else
+      _missing ->
+        ExactResponse.send_error(
+          conn,
+          404,
+          :wallet_test_not_found,
+          "no wallet test has that id",
+          "A test's id is the result in a score's address at #{url(~p"/wallet-bench.json")}."
+        )
     end
   end
 

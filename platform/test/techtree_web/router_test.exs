@@ -38,6 +38,7 @@ defmodule TechtreeWeb.RouterTest do
              "* /api/agents/v1",
              "delete /auth/privy/session",
              "get /",
+             "get /.well-known/agent-skills/*path",
              "get /.well-known/api-catalog",
              "get /.well-known/security.txt",
              "get /about",
@@ -47,6 +48,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /account/points",
              "get /account/wallets",
              "get /agents.md",
+             "get /agents/:agent/skill.md",
              "get /animations",
              "get /api/model-climb/v1/reports",
              "get /api/model-climb/v1/reports/:digest",
@@ -69,6 +71,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /climbs/:slug",
              "get /contact",
              "get /docs",
+             "get /docs/:slug",
              "get /examples/tdd",
              "get /healthz",
              "get /llms.txt",
@@ -90,6 +93,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /wallet-bench.md",
              "get /wallet-bench/:id",
              "get /wallet-bench/:id/evidence/:turn/:file",
+             "get /wallet-bench/:id/results.json",
              "get /wallet-bench/:id/results.zip",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
@@ -101,7 +105,7 @@ defmodule TechtreeWeb.RouterTest do
            ]
   end
 
-  test "no route takes a path parameter other than a digest, a fingerprint, a slug or a wallet bench attempt's id, turn and file" do
+  test "no route takes a path parameter other than a digest, a fingerprint, a slug, an agent's name or a wallet bench attempt's id, turn and file" do
     parameters =
       @routes
       |> Enum.flat_map(&Regex.scan(~r/:([a-z_]+)/, &1.path, capture: :all_but_first))
@@ -110,7 +114,17 @@ defmodule TechtreeWeb.RouterTest do
       |> Enum.sort()
 
     assert parameters ==
-             ["bundle_digest", "digest", "file", "id", "key_id", "root_digest", "slug", "turn"]
+             [
+               "agent",
+               "bundle_digest",
+               "digest",
+               "file",
+               "id",
+               "key_id",
+               "root_digest",
+               "slug",
+               "turn"
+             ]
   end
 
   test "no artifact, proof, bundle, or login route exists", %{conn: conn} do

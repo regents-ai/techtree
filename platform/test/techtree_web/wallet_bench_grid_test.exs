@@ -82,4 +82,34 @@ defmodule TechtreeWeb.WalletBenchGridTest do
       assert Copy.shade(score) >= Copy.shade(max(score - 1, 0))
     end
   end
+
+  property "a score under 10 always says why, and a 10 has nothing to explain" do
+    check all(
+            values <- list_of(member_of(~w(true false open)), length: 9),
+            outcome <- member_of(~w(PASS PASS* FAILED_TECHNICAL BLOCKED_AUTH FAILED_SAFETY)),
+            test <- member_of([:install, :wallet])
+          ) do
+      criteria =
+        values |> Enum.with_index(1) |> Map.new(fn {v, i} -> {"C#{i}", %{"value" => v}} end)
+
+      ruling = %{"criteria" => criteria, "outcome" => outcome, "plain_file" => "keys.txt"}
+
+      assert Copy.shortfall(ruling, test) == [] == (Copy.score(ruling) == 10.0)
+    end
+  end
+
+  test "the page's grid keeps only wallet tools with a result and names the rest", %{
+    attempts: attempts
+  } do
+    grid = Copy.grid(attempts, :wallet)
+    shown = Copy.with_results(grid)
+
+    assert Enum.map(shown.wallets, & &1.name) == ["Bankr"]
+    assert Enum.all?(shown.rows, &(length(&1.cells) == 1))
+    assert length(shown.set_aside) == length(grid.wallets) - 1
+
+    for wallet <- grid.wallets, wallet.fixed do
+      assert {wallet.name, wallet.fixed.reason} in shown.set_aside
+    end
+  end
 end

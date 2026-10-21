@@ -13,16 +13,6 @@ declare module "phoenix_live_view" {
   }
 }
 
-// The renderer the homepage crown's own bundle registers on window, and the
-// shape of what it draws with. See optics/crown/index.ts.
-type OpticsRenderer = import("./optics/crown/index").PrismRenderer
-
-type OpticsRendererFactory = (
-  canvas: HTMLCanvasElement,
-  size: readonly [number, number],
-  onDeviceLost: () => void,
-) => Promise<OpticsRenderer>
-
 // The WebMCP draft's document.modelContext. Browsers without it have no such
 // property; public_tools.ts checks `"modelContext" in document` before use.
 type ModelContextTool = {
@@ -44,10 +34,9 @@ interface Document {
 }
 
 interface DocumentEventMap {
-  "techtree:themechange": CustomEvent<{theme: string; crownVariant: string}>
+  "techtree:themechange": CustomEvent<{theme: "light" | "dark"}>
 }
 
 interface Window {
   liveSocket: import("phoenix_live_view").LiveSocket
-  TechtreeOptics?: Record<string, OpticsRendererFactory>
 }

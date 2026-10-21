@@ -2,7 +2,7 @@
 
 ## VGPU crown renderer
 
-The 13-cube crown under `assets/js/optics/crown/` is adapted from the public
+The 13-cube crown under `assets/js/crown/` is adapted from the public
 VGPU homepage prism and from the Regents crown adaptation of that renderer.
 
 - Project: `vercel-labs/vgpu`

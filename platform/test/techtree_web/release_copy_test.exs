@@ -33,24 +33,24 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   alias Techtree.NetworkFixture
 
   @pages [
-    "/",
-    "/docs",
-    "/verify",
-    "/start",
-    "/climbs/hello-world-climb",
-    "/results",
-    "/results/" <> Techtree.NetworkFixture.bundle_digest(),
-    "/examples/tdd"
-  ]
+           "/",
+           "/docs",
+           "/verify",
+           "/start",
+           "/climbs/hello-world-climb",
+           "/results",
+           "/results/" <> Techtree.NetworkFixture.bundle_digest(),
+           "/examples/tdd"
+         ] ++ Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
 
   @pages_without_catalog [
-    "/",
-    "/docs",
-    "/verify",
-    "/start",
-    "/results",
-    "/examples/tdd"
-  ]
+                           "/",
+                           "/docs",
+                           "/verify",
+                           "/start",
+                           "/results",
+                           "/examples/tdd"
+                         ] ++ Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
 
   # A claim that the machine keeps everything, which the remote model calls a
   # trial makes contradict unless the same passage says so.

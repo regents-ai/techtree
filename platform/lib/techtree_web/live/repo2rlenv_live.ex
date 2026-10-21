@@ -59,8 +59,8 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
             <div>
               <dt>Prime Intellect · verifiers</dt>
               <dd>
-                The evaluation engine. It will run the tasks and compute their canonical rewards,
-                giving each comparison a consistent scoring contract.
+                The scoring engine. It will run the tasks and score them by the same rules
+                every time, so every comparison is scored the same way.
               </dd>
             </div>
             <div>

@@ -61,7 +61,11 @@ defmodule TechtreeWeb.AgentsController do
   `GET /api/agents/v1/me` records a check-in and returns the paired account's
   names and verified wallet fields, and grants no wallet authority. The
   [agent sign-in guide](https://siwa.regents.sh/skill.md) covers the client,
-  your key and each step.
+  your key and each step. Each agent's own skill, the Techtree skill with what
+  that agent needs beyond these steps, is at
+  https://techtree.sh/agents/AGENT/skill.md, such as
+  https://techtree.sh/agents/hermes/skill.md or
+  https://techtree.sh/agents/claude-code/skill.md.
 
   Signed account reads require a current pairing and the owner's existing
   canonical account. `account_balances`, `credits_history` and `points_balance`
@@ -226,8 +230,8 @@ defmodule TechtreeWeb.AgentsController do
     ## In a browser, or on the person's computer
 
     In a browser, or as an agent with only web access, you can read and explain
-    Climbs, published Results and what a run would need, with the browser tools
-    or the public API. Paired with the person's account, you can also publish or
+    Climbs, published Results with their bundles and Skills, the Wallet Bench
+    and what a run would need, with the browser tools or the public API. Paired with the person's account, you can also publish or
     withdraw a Result with `techtree_publication`, once it has been run and
     signed on their computer. Installing, preparing a Skill, running and
     comparing happen on the person's computer, through the CLI.

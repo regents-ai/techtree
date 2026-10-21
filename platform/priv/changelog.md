@@ -30,6 +30,25 @@
   under them.
 - The home page says exactly what Prime Intellect's Verifiers does: it scores
   each Climb's tasks, and every Result is a signed record anyone can check.
+- Docs is now one page per guide, with a list of every guide, a side menu and
+  Previous and Next links. Each guide also answers in Markdown.
+- Wallet Bench shows only the wallet tools that have results, and lists the
+  others below the table. Every score under 10 says what cost it points, and
+  each test's page opens with its verdict. A test names the agent with its
+  version and the wallet tool's version.
+- On a phone, the Results and Wallet Bench tables become cards, and the header
+  fits on one row with a Menu button.
+- Plainer words across Results: Agent instead of harness, Change instead of a
+  symbol, and "Signed by the publisher · Files checked · Not rerun by anyone
+  else" for what a Result's record shows.
+- On Results, rows slide into place when you change a filter.
+- The home page crown appears as a still picture first and comes alive once
+  your browser has drawn it.
+- Agents can find the Techtree skill at /.well-known/agent-skills/index.json,
+  and each agent the side panel offers has its own skill at
+  /agents/<agent>/skill.md.
+- A browser's agent can now download a Result's bundle, read the Skill it
+  measured, and read the Wallet Bench scores and each test behind them.
 
 ## Website (2026-10-20)
 

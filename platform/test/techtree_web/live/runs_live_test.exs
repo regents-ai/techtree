@@ -96,7 +96,7 @@ defmodule TechtreeWeb.RunsLiveTest do
             "Skill comparison",
             "Baseline",
             "Candidate",
-            "Δ Score",
+            "Change",
             "Tasks",
             "Verdict",
             "Evidence",
@@ -140,7 +140,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, _live, html} = live(conn, ~p"/results")
       text = visible_text(html)
 
-      assert text =~ "Participant-attested · Integrity-checked · Not independently reproduced"
+      assert text =~ "Signed by the publisher · Files checked · Not rerun by anyone else"
       refute text =~ entry.participant_key_id
     end
 
@@ -149,8 +149,8 @@ defmodule TechtreeWeb.RunsLiveTest do
       text = visible_text(html)
 
       assert text =~ "Published Results, newest first."
-      assert text =~ "Participant-attested"
-      assert text =~ "Not independently reproduced"
+      assert text =~ "Signed by the publisher"
+      assert text =~ "Not rerun by anyone else"
       assert text =~ "Newest submissions first, not ranked by score."
       assert has_element?(live, ~s|a[href="/verify"]|, "How verification works")
 
@@ -476,10 +476,10 @@ defmodule TechtreeWeb.RunsLiveTest do
                  "Result's files when it accepted it, and every one succeeded."
              )
 
-      assert has_element?(live, "#badge-attested", "Participant-attested")
+      assert has_element?(live, "#badge-attested", "Signed by the publisher")
 
       # Nothing on this site can show independent reproduction, so every Result says so.
-      assert has_element?(live, "#badge-not-reproduced", "Not independently reproduced")
+      assert has_element?(live, "#badge-not-reproduced", "Not rerun by anyone else")
       assert has_element?(live, "#badge-no-rerun", "No reruns yet")
 
       # Patchbay keys the Result's one discussion to its bundle digest, exactly.

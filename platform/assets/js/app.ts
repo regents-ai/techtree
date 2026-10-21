@@ -20,7 +20,7 @@ import {LiveSocket} from "phoenix_live_view"
 
 import {mountPageCopyButton, type CopyHook} from "./copy_feedback"
 import {installCopyButtons} from "./copy_buttons"
-import {Optics, type OpticsHook} from "./optics_controller"
+import {crownHook} from "./hooks/crown"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionCount, MotionRefusal} from "./hooks/motion/moments"
@@ -38,9 +38,9 @@ installCopyButtons()
 const THEME_COOKIE = "techtree_theme"
 const THEME_MAX_AGE = 60 * 60 * 24 * 365
 const THEMES = {
-  light: {crownVariant: "2", browserColor: "#F3F5EF"},
-  dark: {crownVariant: "4", browserColor: "#0D1611"},
-}
+  light: {crownVariant: 2, browserColor: "#F3F5EF"},
+  dark: {crownVariant: 4, browserColor: "#0D1611"},
+} as const
 type Theme = keyof typeof THEMES
 const lightDevice = window.matchMedia("(prefers-color-scheme: light)")
 
@@ -56,14 +56,6 @@ function chosenTheme(): Theme | undefined {
 
 const showingTheme = (): Theme => chosenTheme() ?? (lightDevice.matches ? "light" : "dark")
 
-function syncCrownTheme(theme: Theme) {
-  const variant = THEMES[theme].crownVariant
-
-  document.querySelectorAll<HTMLElement>('[data-optics-kind="crown"] [data-optics-canvas]').forEach(canvas => {
-    canvas.dataset.crownVariant = variant
-  })
-}
-
 // Live navigation keeps the document, so each page restates its theme: the
 // visitor's choice, or none so the device decides.
 function syncTheme() {
@@ -76,10 +68,8 @@ function syncTheme() {
     meta.content = THEMES[chosen ?? (meta.media.includes("light") ? "light" : "dark")].browserColor
   })
 
-  const theme = showingTheme()
-  syncCrownTheme(theme)
   document.dispatchEvent(new CustomEvent("techtree:themechange", {
-    detail: {theme, crownVariant: THEMES[theme].crownVariant},
+    detail: {theme: showingTheme()},
   }))
 }
 
@@ -114,15 +104,7 @@ const walletHooks = document.getElementById("account-shell")
   ? {OnchainSteps: (await import("./hooks/onchain_steps")).OnchainSteps} : {}
 
 const Hooks: Record<string, object> = {
-  Optics: {
-    ...Optics,
-    mounted(this: OpticsHook) {
-      // A connected render can restore server attributes after initial theme sync.
-      // Resolve them before the existing controller creates its first renderer.
-      syncCrownTheme(showingTheme())
-      Optics.mounted.call(this)
-    },
-  },
+  Crown: crownHook(() => THEMES[showingTheme()].crownVariant),
   MotionList,
   ...labHooks,
 }

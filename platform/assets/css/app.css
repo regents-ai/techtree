@@ -139,17 +139,26 @@ code { font-size: .9em; }
 }
 .masthead__menu-button svg { width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .masthead__menu-button[aria-current="page"] { border-bottom: 3px solid currentColor; font-weight: 600; background: var(--color-surface); }
+/* The page list is a popover the Menu button opens and closes; it sits under the
+   header, against the right edge. */
 .masthead__menu-list {
-  position: absolute; top: 100%; left: 0; z-index: 30; min-width: 12rem;
-  display: none; flex-direction: column;
+  inset: 4rem var(--space-2) auto auto; margin: 0; padding: 0; min-width: 12rem;
+  flex-direction: column; color: inherit;
   border: 1px solid var(--hairline-strong); background: var(--color-surface-elevated);
 }
-.masthead__menu:hover > .masthead__menu-list,
-.masthead__menu:focus-within > .masthead__menu-list { display: flex; }
+.masthead__menu-list:popover-open { display: flex; }
 .masthead__selector .masthead__menu-list a { justify-content: flex-start; border: 0; margin: 0; }
 .masthead__selector .masthead__menu-list a + a { border-top: 1px solid var(--hairline); }
 .masthead__selector .masthead__menu-list a[aria-current="page"] { border-bottom: 0; box-shadow: inset 3px 0 0 currentColor; }
 .masthead__menu-list a:hover { background: var(--color-surface); }
+/* Wide screens: the pages in a row, no Menu button. */
+@media (min-width: 64rem) {
+  .masthead__menu-button { display: none; }
+  .masthead__menu-list { position: static; inset: auto; overflow: visible; display: flex; flex-direction: row; min-width: 0; border: 0; background: none; }
+  .masthead__selector .masthead__menu-list a { border: 1px solid var(--hairline-strong); margin: 0 -1px -1px 0; }
+  .masthead__selector .masthead__menu-list a + a { border-top: 1px solid var(--hairline-strong); }
+  .masthead__selector .masthead__menu-list a[aria-current="page"] { border-bottom: 3px solid currentColor; box-shadow: none; }
+}
 .masthead__github {
   display: inline-flex; align-items: center; gap: var(--space-1);
   min-height: 2.75rem; padding: var(--space-1) var(--space-2);
@@ -231,24 +240,23 @@ code { font-size: .9em; }
   display: grid; align-content: space-between; gap: var(--space-6);
   padding: var(--space-6) var(--rg-panel-padding);
 }
-.hero__optics {
+.hero__crown {
   position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  overflow: hidden; opacity: 0;
+  overflow: hidden;
   mask-image: linear-gradient(to right, transparent 28%, #000 58%);
-  transition: opacity 150ms var(--ease-out);
 }
-.hero__optics[data-optics-ready="true"] { opacity: 1; }
-/* Where the crown cannot be drawn (no WebGPU, or drawing failed) it is a still
-   picture of the same scene. */
-.hero__optics[data-optics-failed="true"] {
-  opacity: 1;
-  background: url("/images/crown-still-dark.jpg") 85% 50% / cover no-repeat;
-}
-html[data-theme="light"] .hero__optics[data-optics-failed="true"] { background-image: url("/images/crown-still-light.jpg"); }
+.hero__crown-canvas, .hero__crown-still { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+/* A still picture of the same scene is the crown until a live one has really
+   been drawn (`data-crown-ready`), and stays wherever one cannot be. The live
+   crown fades in over it before the picture steps aside. */
+.hero__crown-still { background: url("/images/crown-still-dark.jpg") 85% 50% / cover no-repeat; }
+html[data-theme="light"] .hero__crown-still { background-image: url("/images/crown-still-light.jpg"); }
 @media (prefers-color-scheme: light) {
-  html:not([data-theme]) .hero__optics[data-optics-failed="true"] { background-image: url("/images/crown-still-light.jpg"); }
+  html:not([data-theme]) .hero__crown-still { background-image: url("/images/crown-still-light.jpg"); }
 }
-.hero__crown { display: block; width: 100%; height: 100%; }
+.hero__crown-canvas { opacity: 0; transition: opacity 150ms var(--ease-out); }
+.hero__crown[data-crown-ready="true"] .hero__crown-canvas { opacity: 1; }
+.hero__crown[data-crown-ready="true"] .hero__crown-still { visibility: hidden; transition: visibility 0s 150ms; }
 .hero__copy { width: min(48%, 36rem); padding-block: var(--space-2); background: var(--color-bg); }
 .hero-title { font-size: clamp(3rem, 6vw, 5.5rem); letter-spacing: -.035em; }
 .hero__subtitle { max-width: 25ch; font-size: clamp(1.125rem, 2vw, 1.5rem); line-height: 1.4; text-wrap: balance; }
@@ -303,12 +311,24 @@ html[data-theme="light"] .hero__optics[data-optics-failed="true"] { background-i
 
 /* Docs keep their own optional rail; all in-document links remain available. */
 .docs-layout { display: grid; grid-template-columns: var(--rg-rail-width) minmax(0, 1fr); gap: var(--rg-track-gap); align-items: start; }
-.docs-nav { min-width: 0; padding-right: var(--space-2); }
+.docs-nav { grid-column: 1; grid-row: 1; min-width: 0; padding-right: var(--space-2); }
+.docs-nav__group a[aria-current="page"] { color: var(--color-fg); font-weight: 600; text-decoration: underline; text-underline-offset: .25em; }
 .docs-nav__version { padding-bottom: var(--space-2); border-bottom: 1px solid var(--hairline); font-size: .8125rem; }
 .docs-nav__group { margin-top: var(--space-3); }
 .docs-nav__group > p { font-size: 1rem; }
 .docs-nav__group a { display: flex; align-items: center; min-height: 2.75rem; padding: var(--space-1) 0; font-size: .8125rem; }
-.docs-content { width: 100%; padding-left: var(--rg-panel-padding); border-left: 1px solid var(--rg-page-rule); }
+.docs-content { grid-column: 2; width: 100%; padding-left: var(--rg-panel-padding); border-left: 1px solid var(--rg-page-rule); }
+/* The guide list at /docs and the next and previous links under each guide. */
+.docs-index__group + .docs-index__group { margin-top: var(--space-5); }
+.docs-index__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--space-2); margin-top: var(--space-2); }
+.docs-index__link { display: grid; gap: var(--space-1); height: 100%; padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); text-decoration: none; }
+.docs-index__link span { font-weight: 600; }
+.docs-index__link small { color: var(--color-fg-muted); font-size: .875rem; }
+.docs-index__link:hover span, .docs-index__link:focus-visible span { text-decoration: underline; text-underline-offset: .25em; }
+.docs-pager { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-6); padding-top: var(--space-3); border-top: 1px solid var(--hairline); }
+.docs-pager a { display: grid; gap: calc(var(--space-1) / 2); min-height: 2.75rem; }
+.docs-pager small { color: var(--color-fg-muted); font-size: .75rem; }
+.docs-pager__next { margin-left: auto; text-align: right; }
 .docs-hero { padding-bottom: var(--space-6); }
 .docs-hero h1 { margin-top: var(--space-3); }
 .docs-hero__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
@@ -434,15 +454,15 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 .error-page__name { min-height: 2.75rem; display: inline-flex; align-items: center; justify-self: start; }
 
 @media (max-width: 63.99rem) {
-  .masthead__inner { grid-template-columns: minmax(0, 1fr) auto auto; }
-  .masthead__nav { grid-row: 2; grid-column: 1 / -1; }
-  .theme-toggle { grid-row: 1; grid-column: 2; }
-  .masthead__account { grid-column: 3; }
+  /* Narrow screens: one row of the name, Menu, GitHub, the theme switch and the account. */
+  .masthead__inner { min-height: 4rem; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: var(--space-1); }
+  .masthead__nav { gap: var(--space-1); }
+  .masthead__github-label, .masthead__github-count { display: none; }
   .setup-page__plans { grid-template-columns: minmax(0, 1fr); }
   .docs-layout { grid-template-columns: minmax(0, 1fr); }
-  .docs-nav { padding: 0 0 var(--space-3); border-bottom: 1px solid var(--hairline); }
+  .docs-nav { grid-column: 1; grid-row: auto; padding: var(--space-3) 0 0; border-top: 1px solid var(--hairline); }
   .docs-nav nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
-  .docs-content { padding-left: 0; border-left: 0; }
+  .docs-content { grid-column: 1; padding-left: 0; border-left: 0; }
 }
 @media (max-width: 47.99rem) {
   .page { padding-block: var(--space-4); }
@@ -450,22 +470,20 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .home-section { padding-block: var(--space-5); }
   .hero__stage { min-height: 0; padding-block: var(--space-4); gap: var(--space-3); }
   .hero__copy { width: 100%; padding: 0; }
-  .hero__optics { inset: auto 0 6rem; height: 18rem; mask-image: linear-gradient(transparent, #000 25%, #000 80%, transparent); }
+  .hero__crown { inset: auto 0 6rem; height: 18rem; mask-image: linear-gradient(transparent, #000 25%, #000 80%, transparent); }
   .home-setup { grid-template-columns: minmax(0, 1fr); }
   .featured, .offline-verify, .capabilities, .climb-list__item { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 36rem) {
   .hero-product { min-height: 5rem; padding: var(--space-2); flex-direction: row; align-items: center; gap: var(--space-2); }
   .hero-product__destination { margin-top: 0; }
-  .hero__optics { bottom: 15rem; height: 17rem; }
+  .hero__crown { bottom: 15rem; height: 17rem; }
   .facts, .climb-contract__facts > div, .featured__facts > div { grid-template-columns: minmax(0, 1fr); }
   .facts__term { padding-bottom: 0; border-bottom: 0; }
   .facts__value { padding-top: var(--space-1); }
   .docs-nav nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 24rem) {
-  .masthead__selector { width: 100%; }
-  .masthead__selector a { flex: 1 1 30%; padding-inline: calc(var(--space-1) / 2); }
   .docs-nav nav { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -473,7 +491,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 }
 @media (forced-colors: active) {
   .hero-product { background: Canvas; color: LinkText; border-color: LinkText; }
-  .hero__optics { display: none; }
+  .hero__crown { display: none; }
   body { background: Canvas; color: CanvasText; }
   :root[data-brand]:is([data-theme], :not([data-theme])) {
     --color-fg: CanvasText; --color-fg-muted: CanvasText; --hairline: CanvasText;
@@ -484,7 +502,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
   .runs-table__withdrawn { border-color: CanvasText; }
 }
 @media print {
-  .hero__optics { display: none; }
+  .hero__crown { display: none; }
   .hero__stage { min-height: 0; }
   .masthead__nav, .theme-toggle, .skip-link, .pagecopy, .command__copy, .docs-nav { display: none; }
   .rg-frame { width: 100%; margin: 0; }

@@ -191,7 +191,7 @@ defmodule TechtreeWeb.RunsLive.Index do
           aria-label="Filter published Results"
         >
           <div class="results-filter-row">
-            <h2 class="results-filter-label"><span>01</span> Harness</h2>
+            <h2 class="results-filter-label"><span>01</span> Agent</h2>
             <div id="agent-version-browser" phx-hook="AgentVersions" aria-label="Agent versions">
               <nav class="agent-versions__families" aria-label="Agent families">
                 <.link
@@ -320,7 +320,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p :if={@entries != []} id="results-count" class="results-context" aria-live="polite">
           Showing {@matching} of {@total} {results_word(@total)}
-          <span>Participant-attested · Integrity-checked · Not independently reproduced</span>
+          <span>Signed by the publisher · Files checked · Not rerun by anyone else</span>
         </p>
 
         <p :if={@empty == :log} class="runs-index__empty empty-state">
@@ -363,20 +363,20 @@ defmodule TechtreeWeb.RunsLive.Index do
           :if={@entries != []}
           class="runs-index__table-frame"
           role="region"
-          aria-label="Published Results table, scroll horizontally for all columns"
+          aria-label="Published Results"
           tabindex="0"
         >
-          <table class="results-ledger">
+          <table class="results-ledger results-ledger--cards">
             <caption>
-              Published Results, newest first. Scores are rounded to three decimal places. Δ is
-              candidate minus baseline, not a rank.
+              Published Results, newest first. Scores are rounded to three decimal places. Change
+              is the candidate's score minus the baseline's, not a rank.
             </caption>
             <thead>
               <tr>
                 <th scope="col">Skill comparison</th>
                 <th scope="col" class="results-ledger__numeric">Baseline</th>
                 <th scope="col" class="results-ledger__numeric">Candidate</th>
-                <th scope="col" class="results-ledger__numeric">Δ Score</th>
+                <th scope="col" class="results-ledger__numeric">Change</th>
                 <th scope="col">Tasks <span class="quiet">↑ / = / ↓</span></th>
                 <th scope="col">Verdict</th>
                 <th scope="col">Ran on</th>
@@ -384,11 +384,19 @@ defmodule TechtreeWeb.RunsLive.Index do
                 <th scope="col">Evidence</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody
+              id="results-rows"
+              phx-hook="MotionList"
+              data-layout-id="results-rows"
+              data-children="[data-result-row]"
+              data-variant={TechtreeWeb.Motion.standard("list")}
+            >
               <tr
                 :for={entry <- @entries}
                 id={"run-entry-#{entry.log_sequence}"}
                 class={["results-ledger__row", entry.withdrawn_at && "is-withdrawn"]}
+                data-result-row
+                data-layout-id={"run-entry-#{entry.log_sequence}"}
               >
                 <th scope="row" class="results-ledger__skill">
                   <a href={entry_url(entry)}>{ResultNames.skill(entry)}</a>
@@ -408,30 +416,36 @@ defmodule TechtreeWeb.RunsLive.Index do
                   </small>
                   <small class="results-ledger__coordinates">{ResultNames.coordinates(entry)}</small>
                 </th>
-                <td :for={branch <- [:baseline_mean, :candidate_mean]} class="results-ledger__numeric">
+                <td
+                  :for={{branch, label} <- [baseline_mean: "Baseline", candidate_mean: "Candidate"]}
+                  class="results-ledger__numeric"
+                  data-label={label}
+                >
                   {ResultAssessment.reward(Map.fetch!(entry, branch))}
                 </td>
-                <td class="results-ledger__numeric results-ledger__delta">
+                <td class="results-ledger__numeric results-ledger__delta" data-label="Change">
                   <strong>{ResultAssessment.change(entry.absolute_delta)}</strong>
                 </td>
-                <td class="results-ledger__tasks">
+                <td class="results-ledger__tasks" data-label="Tasks ↑ / = / ↓">
                   <span aria-label={task_words(entry)} title={task_words(entry)}>
                     {entry.wins} / {entry.ties} / {entry.losses}
                   </span>
                 </td>
-                <td class="results-ledger__verdict">
+                <td class="results-ledger__verdict" data-label="Verdict">
                   <span class={["verdict", "verdict--#{verdict(entry)}"]}>
                     {ResultAssessment.label(verdict(entry))}
                   </span>
                   <small>{ResultAssessment.runs_words(Map.fetch!(@runs, entry.bundle_digest))}</small>
                 </td>
-                <td class="results-ledger__route">{ModelAccess.ran_on!(entry.subject_provider)}</td>
-                <td class="results-ledger__date">
+                <td class="results-ledger__route" data-label="Ran on">
+                  {ModelAccess.ran_on!(entry.subject_provider)}
+                </td>
+                <td class="results-ledger__date" data-label="Published">
                   <time datetime={DateTime.to_iso8601(entry.accepted_at)}>
                     {arrived(entry.accepted_at)}
                   </time>
                 </td>
-                <td class="results-ledger__evidence">
+                <td class="results-ledger__evidence" data-label="Evidence">
                   <a
                     href={entry_url(entry)}
                     aria-label={"Inspect evidence for #{ResultNames.skill(entry)}"}
