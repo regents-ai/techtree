@@ -1,5 +1,13 @@
 # Changelog
 
+## Website (2026-10-22)
+
+### Fixed
+
+- Every connection the site makes to another service now trusts Mozilla's
+  current list of certificate authorities. Certificates from the eMudhra
+  authorities whose keys were compromised on 20 October are refused.
+
 ## Website (2026-10-21)
 
 ### Changed

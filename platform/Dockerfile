@@ -101,8 +101,10 @@ RUN mix techtree.keep_previous_assets /previous/lib _build/${MIX_ENV}/rel/techtr
 
 FROM ${RUNNER_IMAGE}
 
+# Outbound TLS needs no CA bundle from the image: the release trusts castore's
+# list (`Techtree.Application`).
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates \
+  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
