@@ -7,6 +7,8 @@
 - Every connection the site makes to another service now trusts Mozilla's
   current list of certificate authorities. Certificates from the eMudhra
   authorities whose keys were compromised on 20 October are refused.
+- Updated a library the home page crown is drawn with to include its three
+  security fixes.
 
 ## Website (2026-10-21)
 
