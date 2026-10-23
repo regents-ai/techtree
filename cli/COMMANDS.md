@@ -6,11 +6,11 @@ run a local engine, check signed proofs and write files, which a plain request d
 cannot say. `commands.json` describes the plain site requests: public Result reads and the signed
 account, pairing and report commands. It complements the native commands. The regents-cli chief builds each native command from its section here.
 
-## Published versus served (21 October 2026)
+## Published versus served (23 October 2026)
 
-PyPI publishes regents-cli **1.10.15**. It includes the native Climb/forge/proof/publication
+PyPI publishes regents-cli **1.10.16**. It includes the native Climb/forge/proof/publication
 commands, `.py` Skill files, and every command in `commands.json`. Techtree's release record
-`climb-v0.7.16` installs regents-cli 1.10.15. Private pairing codes are JSON stdin, never
+`climb-v0.7.17` installs regents-cli 1.10.16. Private pairing codes are JSON stdin, never
 command arguments. Account reads do
 not enable Points earning or spending. Do not alter frozen release records to imply
 publication.
