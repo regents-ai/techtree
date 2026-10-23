@@ -11,6 +11,10 @@
 - Opening or downloading a Wallet Bench test's recorded files while their
   storage is slow now shows a page asking you to try again in a minute,
   instead of an error.
+- The Pair New Agent box no longer breaks the side panel when the page
+  reconnects before you pick an agent. Each agent now keeps its own pairing
+  code, so choosing another agent and coming back shows the same code until it
+  expires.
 
 ## Website (2026-10-22)
 

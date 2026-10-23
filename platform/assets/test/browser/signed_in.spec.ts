@@ -94,3 +94,44 @@ test("on a phone, Buy Credits opens and everything in it fits a finger", async (
   expect(outside).toEqual([])
   await context.close()
 })
+
+// A reconnecting page sends the pairing form back with no agent picked, and a
+// submit can come before a choice. Neither may crash the side panel (Sentinel,
+// 23 Oct 2026, from Patchbay's error mail; ash-template 13379ab). Each agent then
+// keeps its own code until it expires.
+test("the pairing form with nothing chosen leaves the box as it is", async ({context, page}) => {
+  await signIn(context)
+  const errors = watchErrors(page)
+  const crashes: string[] = []
+  page.on("websocket", socket =>
+    socket.on("framereceived", frame => {
+      if (String(frame.payload).includes('"phx_error"')) crashes.push(String(frame.payload).slice(0, 120))
+    }),
+  )
+  await page.goto("/docs", {waitUntil: "networkidle"})
+  await page.locator("#account-chip").click()
+  const form = page.locator("form#shell-pairing-box")
+  const message = page.locator("#shell-pairing-box pre")
+  await expect(form.getByRole("radio", {checked: true})).toHaveCount(0)
+
+  await form.getByRole("radio").first().dispatchEvent("input")
+  await form.evaluate(element => (element as HTMLFormElement).requestSubmit())
+
+  // The box still answers: choosing an agent shows its code, and coming back to it
+  // shows the same code.
+  const choose = async (agent: string) => {
+    const radio = form.getByRole("radio", {name: agent, exact: true})
+    await radio.locator("xpath=ancestor::label").click()
+    await expect(radio).toBeChecked()
+  }
+  await choose("Dots")
+  await expect(message).toContainText(/Pairing code:\s*\S{12,}/)
+  expect(crashes).toEqual([])
+
+  const first = await message.innerText()
+  await choose("Hermes")
+  await expect(message).not.toHaveText(first)
+  await choose("Dots")
+  await expect(message).toHaveText(first)
+  expect(errors).toEqual([])
+})
