@@ -152,6 +152,36 @@ function createSignInRequest({
   }
 }
 
+type ConnectWalletRequestOptions = {
+  isCurrent: () => boolean
+  signedOut: () => boolean
+  authenticated: () => boolean
+  providerLogout: () => Promise<void>
+  openConnect: () => Promise<void>
+}
+
+// Connecting a wallet ends a Disconnect, and a Privy session the browser still
+// remembers would then sign whoever used it before back in. On a signed-out page
+// that session is logged out before the connect window opens; if it cannot be,
+// the window never opens and the Disconnect stands. Signed in, the session is
+// the visitor's own and stays.
+export function createConnectWalletRequest({
+  isCurrent,
+  signedOut,
+  authenticated,
+  providerLogout,
+  openConnect,
+}: ConnectWalletRequestOptions): () => Promise<void> {
+  return async () => {
+    requireCurrent(isCurrent)
+    if (signedOut() && authenticated()) {
+      await providerLogout()
+      requireCurrent(isCurrent)
+    }
+    await openConnect()
+  }
+}
+
 type IdentityOutcome = Pick<IdentityState, "action" | "provider">
 
 type IdentityRequestHandlerOptions = {
@@ -478,6 +508,9 @@ function createProviderSessionReconciler({
   }
 }
 
+const showsSignIn = () =>
+  document.querySelector("#account-control [data-account-target='sign-in']") !== null
+
 const showsSignedInAccount = () =>
   document.querySelector("#account-control [data-account-target='profile']") !== null
 
@@ -714,8 +747,7 @@ function AccountBridge({oauthReturn, mode, providerState, publishRequestHandler,
           }
         },
         localSessionNeeded: () =>
-          (!signOutOnly || signOutOnlyState.current === "terminal") &&
-          document.querySelector("#account-control [data-account-target='sign-in']") !== null,
+          (!signOutOnly || signOutOnlyState.current === "terminal") && showsSignIn(),
         reload: () => window.location.reload(),
       }),
     [signOutOnly, lifetime],
@@ -1024,13 +1056,22 @@ function AccountBridge({oauthReturn, mode, providerState, publishRequestHandler,
   // Privy's connect window, for a wallet this tab does not have yet or for a
   // choice between wallets. Its own success callback above says the visitor
   // came back with one, so there is nothing to read from this answer.
-  const connectSelectedWallet = React.useCallback(async () => {
-    requireCurrent(() => !lifetime.aborted)
-    connectEpoch.current = walletWorkEpoch()
-    await Promise.resolve(
-      connectWallet({walletChainType: "ethereum-only", description: "Connect the wallet you want to use here."}),
-    )
-  }, [connectWallet, lifetime])
+  const connectSelectedWallet = React.useMemo(
+    () =>
+      createConnectWalletRequest({
+        isCurrent: () => !lifetime.aborted,
+        signedOut: showsSignIn,
+        authenticated: () => provider.current.authenticated,
+        providerLogout: () => provider.current.logout(),
+        openConnect: async () => {
+          connectEpoch.current = walletWorkEpoch()
+          await Promise.resolve(
+            connectWallet({walletChainType: "ethereum-only", description: "Connect the wallet you want to use here."}),
+          )
+        },
+      }),
+    [connectWallet, lifetime],
+  )
 
   const markSignOutTerminal = React.useCallback(() => {
     signOutOnlyState.current = "terminal"

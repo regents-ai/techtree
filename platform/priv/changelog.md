@@ -1,5 +1,14 @@
 # Changelog
 
+## Website (2026-10-23)
+
+### Fixed
+
+- On a shared computer, connecting a wallet after signing out can no longer
+  sign the previous person back in. If the earlier sign-out didn't fully
+  finish, it is finished first; if that fails, the wallet window doesn't open
+  and you stay signed out.
+
 ## Website (2026-10-22)
 
 ### Fixed
