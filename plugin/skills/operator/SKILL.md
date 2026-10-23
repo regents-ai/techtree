@@ -14,7 +14,7 @@ Your job is to run that honestly and explain it plainly.
 
 ## What this release is
 
-This plugin's release record pins regents-cli 1.10.15. Install the exact version
+This plugin's release record pins regents-cli 1.10.16. Install the exact version
 at https://techtree.sh/agents.md. A Skill may carry Python helper files (`.py`),
 and a paired owner can read their Model Climb reports. Running a Model Climb is
 separate unreleased work; do not offer it.

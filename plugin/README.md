@@ -56,7 +56,7 @@ Paste this into Hermes:
   and offline proof verification. Everything a comparison measures and records
   happens there, on the participant's own machine. It is installed with
   the exact command at https://techtree.sh/agents.md; the current published
-  release is `uv tool install --python 3.12 regents-cli==1.10.15`. A Skill may
+  release is `uv tool install --python 3.12 regents-cli==1.10.16`. A Skill may
   carry Python helper files (`.py`), and a paired owner can read their Model Climb
   reports; running a Model Climb is separate unreleased work. The plugin's release
   record remains the compatibility authority.
@@ -391,7 +391,7 @@ not the plugin's to delete:
 ## Release status
 
 This directory carries the release contract in `release-core.json`, release
-`climb-v0.7.16`, with host Hermes 0.21.3 as its minimum. It names the
+`climb-v0.7.17`, with host Hermes 0.21.3 as its minimum. It names the
 starter Skill for each Climb, so the installed plugin can prepare Techtree Hello
 World and run its comparison. Earlier records required Hermes 0.20.1, and each record's own
 minimum applies to the plugin commit it installs.
