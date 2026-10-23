@@ -27,15 +27,21 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
          {:ok, attempt} <- WalletBench.get_attempt(id, load: [:turns]),
          %{evidence: %{^file => _recorded}} = turn <-
            Enum.find(attempt.turns, &(Catalog.turn_name(&1.test) == turn_name)) do
-      with_download_place(conn, fn ->
-        {:ok, body} = Evidence.recorded(turn, file)
+      with_download_place(conn, fn -> send_recorded(conn, turn, file) end)
+    else
+      _missing -> raise TechtreeWeb.NotFoundError, "no recorded file has that name"
+    end
+  end
 
+  defp send_recorded(conn, turn, file) do
+    case Evidence.recorded(turn, file) do
+      {:ok, body} ->
         conn
         |> put_resp_content_type("text/plain")
         |> send_resp(200, body)
-      end)
-    else
-      _missing -> raise TechtreeWeb.NotFoundError, "no recorded file has that name"
+
+      {:error, reason} ->
+        unread(conn, reason)
     end
   end
 
@@ -49,7 +55,8 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
 
   Before anything is sent, every file is read through once and its size and
   sha256 checked against the turn's record, so a stored file that changed gets
-  the error page, not a broken download. The zip then reads the files one at a
+  the error page, not a broken download, and a store too slow to answer gets
+  the page asking to try again. The zip then reads the files one at a
   time, checking each again, so a download holds one file in memory at most;
   a file that changes between the two reads ends the connection before any of
   its bytes go out. At most #{@downloads} downloads, zips and single files
@@ -105,6 +112,12 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     end
   end
 
+  # A store that did not answer, or answered that it couldn't, may answer in a
+  # minute; a file that came back but no longer matches its record never will.
+  defp unread(conn, %Req.TransportError{}), do: busy(conn)
+  defp unread(conn, {:evidence, status}) when status == 429 or status >= 500, do: busy(conn)
+  defp unread(_conn, reason), do: raise(TechtreeWeb.ResultsUnreadableError, inspect(reason))
+
   defp busy(conn) do
     conn
     |> put_resp_header("retry-after", "30")
@@ -120,11 +133,17 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
           file <- Enum.sort(Map.keys(turn.evidence || %{})),
           do: {turn, file}
 
-    for {turn, file} <- files do
-      with {:error, reason} <- Evidence.check(turn, file),
-           do: raise(TechtreeWeb.ResultsUnreadableError, inspect(reason))
+    case Enum.find_value(files, &unchecked/1) do
+      nil -> send_zip(conn, attempt, files)
+      {:error, reason} -> unread(conn, reason)
     end
+  end
 
+  defp unchecked({turn, file}) do
+    with :ok <- Evidence.check(turn, file), do: nil
+  end
+
+  defp send_zip(conn, attempt, files) do
     folder = "wallet-test-#{String.slice(attempt.id, 0, 8)}"
     mtime = attempt.inserted_at
 

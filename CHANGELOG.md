@@ -8,6 +8,9 @@
   sign the previous person back in. If the earlier sign-out didn't fully
   finish, it is finished first; if that fails, the wallet window doesn't open
   and you stay signed out.
+- Opening or downloading a Wallet Bench test's recorded files while their
+  storage is slow now shows a page asking you to try again in a minute,
+  instead of an error.
 
 ## Website (2026-10-22)
 

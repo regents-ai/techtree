@@ -150,6 +150,20 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
       for holder <- holders, do: send(holder, :done)
     end
 
+    # A store too slow to answer crashed the single file (Sentinel, 23 Oct): the
+    # visitor is asked to try again, and the download place is given back.
+    test "when the store does not answer in time, #{what} asks the visitor to try again", %{
+      conn: conn,
+      tests: tests
+    } do
+      Req.Test.stub(Evidence, &Req.Test.transport_error(&1, :timeout))
+
+      conn = get(conn, "/wallet-bench/#{tests.passed.id}/#{unquote(path)}")
+      assert html_response(conn, 503) =~ "Try again in a minute."
+      assert get_resp_header(conn, "retry-after") == ["30"]
+      assert Registry.count_match(TechtreeWeb.ResultsDownloads, :download, :_) == 0
+    end
+
     test "#{what} gives its download place back when it ends", %{
       conn: conn,
       tests: tests,
