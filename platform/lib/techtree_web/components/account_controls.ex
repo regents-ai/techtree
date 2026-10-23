@@ -112,7 +112,6 @@ defmodule TechtreeWeb.Components.AccountControls do
   def credits_control(assigns) do
     ~H"""
     <button
-      :if={@credits}
       id="shell-credits-button"
       class="shell-credits"
       type="button"

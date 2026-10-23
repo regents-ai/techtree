@@ -258,7 +258,7 @@ end
             retry = subprocess.run(["mix", "test", "--failed", "--seed", "0"], cwd=platform,
                                    env=dict(os.environ, MIX_ENV="test"), capture_output=True, text=True)
             self.assertNotEqual(retry.returncode, 0, retry.stdout + retry.stderr)
-            self.assertIn("2 tests, 1 failure", retry.stdout)
+            self.assertIn("Result: 1/2 passed", retry.stdout)
 
 
 if __name__ == "__main__":

@@ -4,15 +4,15 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "72ccfea10551436a9b7aaad29d3ec6b5462d423f"
+  @elixir_utils_ref "e600ed34ff9e388511798ffde0999b04cd4ec9e5"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "4472b6fc41ec3d2f0d1802d3b14bc8a8f9f42cb5"
+  @design_system_ref "cbf12f8d69a355ab7bd83769c37f9d15759d4fa3"
 
   def project do
     [
       app: :techtree,
       version: "0.2.0",
-      elixir: "~> 1.15",
+      elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -63,7 +63,9 @@ defmodule Techtree.MixProject do
   defp deps do
     [
       {:regent_ui, git: @design_system, ref: @design_system_ref, sparse: "regent_ui"},
-      {:regent_format, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "format"},
+      # regent_identity and regent_agents name regent_format by path; this pin replaces it.
+      {:regent_format,
+       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "format", override: true},
       {:ens_elixir, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ens"},
       {:regent_blog, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "blog"},
       # regent_identity names regent_privy by a sibling path; this pin replaces it.

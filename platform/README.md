@@ -1,6 +1,6 @@
 # Techtree Platform
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](../LICENSE) [![Elixir ~> 1.15](https://img.shields.io/badge/elixir-~%3E%201.15-lightgrey)](https://elixir-lang.org/) [![Phoenix ~> 1.8.4](https://img.shields.io/badge/phoenix-~%3E%201.8.4-lightgrey)](https://www.phoenixframework.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](../LICENSE) [![Elixir ~> 1.20](https://img.shields.io/badge/elixir-~%3E%201.20-lightgrey)](https://elixir-lang.org/) [![Phoenix ~> 1.8.4](https://img.shields.io/badge/phoenix-~%3E%201.8.4-lightgrey)](https://www.phoenixframework.org/)
 
 ![The Techtree homepage](docs/assets/homepage.png)
 
