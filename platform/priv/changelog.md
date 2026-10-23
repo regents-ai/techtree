@@ -9,6 +9,8 @@
   authorities whose keys were compromised on 20 October are refused.
 - Updated a library the home page crown is drawn with to include its three
   security fixes.
+- Updated the library that signs the site's sign-in cookies so the site's
+  secret key can never appear in an error report.
 
 ## Website (2026-10-21)
 
