@@ -153,5 +153,5 @@ defmodule TechtreeWeb.PairingBox do
 
   # What the person pastes to their agent.
   defp agent_message(code, harness),
-    do: PairingMessage.text(code, "Techtree", TechtreeWeb.Endpoint.url(), harness)
+    do: PairingMessage.text(code, TechtreeWeb.Endpoint.url(), harness)
 end

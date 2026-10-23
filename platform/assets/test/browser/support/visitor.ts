@@ -24,6 +24,11 @@ export function seedWalletBench(): {passed: RecordedTest; failed: RecordedTest; 
   return JSON.parse(inBrowserDatabase("seed_wallet_bench.exs"))
 }
 
+// An agent paired with the signed-in visitor, under a name of its own.
+export function pairAgent(): string {
+  return JSON.parse(inBrowserDatabase("pair_agent.exs")).name
+}
+
 // A fresh signed-in session for one browser context. Each context gets its own:
 // the site ends a session another browser presents after it has moved on.
 export async function signIn(context: BrowserContext): Promise<void> {

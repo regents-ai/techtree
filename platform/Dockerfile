@@ -10,9 +10,9 @@
 # Debian date on the builder and the runner identical: the release is linked
 # against the builder's libraries and runs against the runner's.
 
-ARG ELIXIR_VERSION=1.19.5
-ARG OTP_VERSION=28.3.1
-ARG DEBIAN_VERSION=trixie-20260610
+ARG ELIXIR_VERSION=1.20.4
+ARG OTP_VERSION=29.1.2
+ARG DEBIAN_VERSION=trixie-20261020
 ARG TECHTREE_SOURCE_REVISION
 # The image live when this one is built (platform/scripts/deploy_site.sh and
 # scripts/release.sh name it), whose served files this release keeps while a
@@ -24,7 +24,8 @@ ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}-slim"
 
 # Node and npm come from this digest-pinned image (as ash-template's), so the npm
 # that installs the browser packages is the same npm 11 that writes the lockfile.
-FROM docker.io/library/node@sha256:5aea649bacdc35e8e20571131c4f3547477dfe66e677d45c005af6dbd1edfaa7 AS node
+# node:26.12.0-trixie-slim
+FROM docker.io/library/node@sha256:e556a144463cc8dc53afe8de6d2fa0db5c132fd39ffa232c17641bd40df2bf11 AS node
 
 FROM ${PREVIOUS_IMAGE} AS previous
 

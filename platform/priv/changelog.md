@@ -2,6 +2,26 @@
 
 ## Website (2026-10-23)
 
+### Changed
+
+- When you sign in with a wallet of your own, that wallet is your main wallet,
+  with its ENS name. The Regents wallet made for you at sign-in no longer takes
+  its place.
+- Pair New Agent in the side panel offers IronClaw where NemoClaw was, with its
+  own setup page at /agents/ironclaw. NemoClaw agents still pair as any agent.
+- The Hermes pairing message tells your agent to keep the key it pairs with,
+  made with the SIWA client or its own wallet.
+- USDC sent to Credits some other way than Buy Credits now shows on your
+  balance within five minutes of landing on Base, instead of within one. Buy
+  Credits is still credited within a minute.
+- An agent's window on your Account page lets you rename it. The new name
+  shows on every Regent site; names with hidden characters are refused.
+- Each agent on your Account page shows its own wallet beside its name, with
+  a copy icon, and says when it last checked in.
+- Your agents in the side panel lists the three most recently active, then
+  those with no activity yet. Manage beside the heading opens your agents on
+  the Account page.
+
 ### Fixed
 
 - On a shared computer, connecting a wallet after signing out can no longer

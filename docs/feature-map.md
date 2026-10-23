@@ -41,6 +41,8 @@ finger on a touch screen, 24 px for a mouse control.
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
 | Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens at desktop and phone width, both buttons show, everything in it fits a finger, and the wallet code loads on the account pages and on no other page |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
+| Rename a paired agent from its window on the Account page, at both widths; a name with hidden characters is refused | `signed_in.spec.ts` |
+| See the three most recently active agents in the side panel | `panel_agents_test.exs` (property) |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
 | Approve and Buy Credits on Base | **Gap:** needs a wallet and the chain; not run |
 | Points, Wallets and Connections tabs with real data | **Gap:** read from the shared account service, which tests don't reach |

@@ -42,25 +42,23 @@ defmodule Techtree.ChainClient do
   @doc """
   One JSON-RPC request to the node; one that gets no answer counts in
   `health.chain_request_failures.total` under `scope`, the caller's fixed name.
-  `timeouts` are Req's own options, for a caller that must hear back sooner than
-  five seconds. `Techtree.ChainHead` passes both.
   """
   @impl RegentPoints.ChainClient
   def rpc(
         %{chain_id: chain_id},
         method,
         params,
-        scope \\ "wallet",
-        timeouts \\ [receive_timeout: 5_000]
+        scope \\ "wallet"
       )
-      when is_binary(scope) and is_list(timeouts) do
+      when is_binary(scope) do
     url = :techtree |> Application.fetch_env!(:chain_nodes) |> Map.fetch!(chain_id)
     chain = %{chain_id: chain_id, scope: scope}
 
     case Req.post(
            url,
-           [json: %{jsonrpc: "2.0", id: 1, method: method, params: params}, retry: false] ++
-             timeouts
+           json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
+           retry: false,
+           receive_timeout: 5_000
          ) do
       {:ok, %{status: 200, body: %{"result" => result}}} -> {:ok, result}
       {:ok, %{body: %{"error" => error}}} -> failed(chain, method, {:rpc, error})

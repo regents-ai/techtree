@@ -1,6 +1,6 @@
-import type {Page} from "@playwright/test"
+import type {Locator, Page} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
-import {layoutProblems, signIn, watchErrors} from "./support/visitor"
+import {layoutProblems, pairAgent, signIn, watchErrors} from "./support/visitor"
 
 // Whether any script the page loaded carries the wallet library, whatever file it
 // was bundled into. Every build of it names its own version as "viem@".
@@ -135,3 +135,53 @@ test("the pairing form with nothing chosen leaves the box as it is", async ({con
   await expect(message).toHaveText(first)
   expect(errors).toEqual([])
 })
+
+// An agent's window renames it, as ash-template's does (agents.spec.ts), at desktop
+// and phone widths, each with an agent of its own. A name with a hidden character
+// is refused beside the field and the agent keeps its name; a name with an emoji
+// joined by a zero-width joiner saves, and the window and the list show it.
+for (const width of ["desktop", "phone"] as const) {
+  test(`on a ${width}, an agent's window renames it`, async ({browser}) => {
+    const hasTouch = width === "phone"
+    const context = await browser.newContext(
+      hasTouch ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch} : {},
+    )
+    const outside = await keepOffline(context)
+    await signIn(context)
+    const agent = pairAgent()
+    const renamed = `Ada 👩‍💻 ${width}`
+    const page = await context.newPage()
+    const errors = watchErrors(page)
+    const press = (target: Locator) => (hasTouch ? target.tap() : target.click())
+    await page.goto("/account", {waitUntil: "networkidle"})
+    await press(page.getByRole("button", {name: `See what ${agent} has done`}))
+
+    const agentWindow = page.getByRole("dialog", {name: agent})
+    const name = agentWindow.getByRole("textbox", {name: "Name"})
+    const save = agentWindow.getByRole("button", {name: "Save", exact: true})
+    await expect(name).toHaveValue(agent)
+    if (hasTouch)
+      for (const target of [name, save])
+        expect((await target.boundingBox())?.height).toBeGreaterThanOrEqual(44)
+
+    await name.fill("Ada‮gnp.exe")
+    await press(save)
+    await expect(agentWindow.getByRole("alert")).toHaveText(
+      "That name can’t be used. Use 1 to 80 characters with no hidden characters.",
+    )
+    await expect(name).toHaveAttribute("aria-invalid", "true")
+    await expect(agentWindow).toBeVisible()
+
+    await name.fill(renamed)
+    await press(save)
+    const renamedWindow = page.getByRole("dialog", {name: renamed})
+    await expect(
+      renamedWindow.getByText(`Saved. This agent is now called ${renamed} on every Regent site.`),
+    ).toBeVisible()
+    await expect(renamedWindow.getByRole("alert")).toHaveCount(0)
+    await expect(page.getByRole("button", {name: `See what ${renamed} has done`})).toBeAttached()
+    expect(errors).toEqual([])
+    expect(outside).toEqual([])
+    await context.close()
+  })
+}
