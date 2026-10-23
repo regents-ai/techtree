@@ -63,16 +63,18 @@ RUN npm --prefix assets ci --omit=dev --ignore-scripts
 # GitHub's download redirect sends headers longer than Erlang's HTTP client
 # accepts, so rustler_precompiled cannot fetch prebuilt native code from GitHub.
 # mdex_native uses its maker's mirror (config/config.exs); ex_keccak and
-# ex_secp256k1 publish only on GitHub, so curl fetches the files this build uses
-# into the shared cache first, where rustler_precompiled checks each one against
-# the package's own checksums before using it. The versions follow mix.lock.
-# Remove this when GitHub or rustler_precompiled fixes the limit.
+# ex_secp256k1 publish only on GitHub, so curl fetches the files this build uses,
+# for the machine it runs on (x86_64 on Fly, aarch64 on a Mac), into the shared
+# cache first, where rustler_precompiled checks each one against the package's
+# own checksums before using it. The versions follow mix.lock. Remove this when
+# GitHub or rustler_precompiled fixes the limit.
 ENV RUSTLER_PRECOMPILED_GLOBAL_CACHE_PATH=/root/rustler_precompiled
 RUN mkdir -p /root/rustler_precompiled && cd /root/rustler_precompiled && \
+  target="$(uname -m)-unknown-linux-gnu" && \
   curl --fail --silent --show-error --location --remote-name \
-    https://github.com/exWeb3/ex_keccak/releases/download/v0.7.8/libexkeccak-v0.7.8-nif-2.16-x86_64-unknown-linux-gnu.so.tar.gz && \
+    "https://github.com/exWeb3/ex_keccak/releases/download/v0.7.8/libexkeccak-v0.7.8-nif-2.16-${target}.so.tar.gz" && \
   curl --fail --silent --show-error --location --remote-name \
-    https://github.com/ayrat555/ex_secp256k1/releases/download/v0.8.0/libex_secp256k1-v0.8.0-nif-2.16-x86_64-unknown-linux-gnu.so.tar.gz
+    "https://github.com/ayrat555/ex_secp256k1/releases/download/v0.8.0/libex_secp256k1-v0.8.0-nif-2.16-${target}.so.tar.gz"
 
 # Dependencies first, and only the production ones, so that editing application
 # code does not re-fetch or re-compile them. The shared Regent libraries are
