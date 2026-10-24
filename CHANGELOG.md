@@ -9,6 +9,11 @@
   lists what happened in the test, oldest first, and names any plain file the
   agent left a password or key in.
 
+### Fixed
+
+- When the site restarts, requests in progress get a few seconds to finish
+  and background work stops cleanly, instead of both being cut off at once.
+
 ## Website (2026-10-23)
 
 ### Changed

@@ -10,6 +10,13 @@
 app = "techtree-sh"
 primary_region = "iad"
 
+# Fly stops a machine with SIGINT unless told otherwise, and the VM answers
+# SIGINT by halting at once, cutting open connections and running jobs. SIGTERM
+# shuts it down in order: open connections drain and running jobs finish, well
+# inside the timeout.
+kill_signal = "SIGTERM"
+kill_timeout = "60s"
+
 # The BEAM's memory high-water mark is during the release command and the first
 # seconds of boot, not while serving. Half a gigabyte of swap makes that peak
 # survivable instead of an OOM kill.
