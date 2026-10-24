@@ -234,7 +234,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       judge_cost_usd: turn.judge_cost_usd,
       failure: turn.failure,
       ruling: turn.judgment && ruling(turn),
-      storage_finding: turn.judgment && turn.judgment["plain_file"],
+      storage_finding: storage_finding(turn.judgment),
       version_installed: turn.checks["version"] && Copy.version(turn.checks["version"]),
       base_check: Copy.base(turn.checks["base"]) || Copy.money(turn.checks["money"]),
       files:
@@ -243,6 +243,10 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
         end)
     }
   end
+
+  # The judge writes an empty plain_file when it found none; the record says null.
+  defp storage_finding(%{"plain_file" => file}) when file not in [nil, ""], do: file
+  defp storage_finding(_none), do: nil
 
   defp ruling(%{judgment: judgment} = turn) do
     %{

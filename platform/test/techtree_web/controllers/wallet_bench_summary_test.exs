@@ -50,11 +50,13 @@ defmodule TechtreeWeb.WalletBenchSummaryTest do
     tests: tests
   } do
     attempt = Ash.load!(tests.passed, :turns, authorize?: false)
-    [turn | _] = attempt.turns
+    [turn, clean | _] = attempt.turns
 
     Ash.Seed.update!(turn, %{
       judgment: Map.merge(turn.judgment, %{"outcome" => "PASS*", "plain_file" => "~/.bankr/key"})
     })
+
+    Ash.Seed.update!(clean, %{judgment: Map.put(clean.judgment, "plain_file", "")})
 
     for {step, detail, seconds} <- [
           {"leased", %{}, 0},
@@ -78,9 +80,12 @@ defmodule TechtreeWeb.WalletBenchSummaryTest do
              %{"label" => "Stopped", "failure" => "No machine"}
            ] = body["timeline"]
 
-    assert Enum.find(body["tests"], &(&1["folder"] == Catalog.turn_name(turn.test)))[
-             "storage_finding"
-           ] == "~/.bankr/key"
+    finding = fn turn ->
+      Enum.find(body["tests"], &(&1["folder"] == Catalog.turn_name(turn.test)))["storage_finding"]
+    end
+
+    assert finding.(turn) == "~/.bankr/key"
+    assert finding.(clean) == nil
   end
 
   test "a test still running answers too", %{conn: conn, tests: tests} do
