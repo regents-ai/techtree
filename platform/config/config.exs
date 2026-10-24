@@ -7,11 +7,6 @@
 # General application configuration
 import Config
 
-# Downloads its prebuilt native code from its maker's own mirror, not GitHub:
-# GitHub's download redirect now sends headers longer than Erlang's HTTP client
-# accepts, which stops a fresh build (see platform/Dockerfile).
-config :mdex_native, artifact_source: :cloudflare
-
 # AshPostgres 2.13.0 writes a PostgreSQL 17 upsert as MERGE, which leaves out the
 # Repo's default schema. Upserts stay on INSERT ... ON CONFLICT, which keeps it.
 config :ash_postgres, upsert_with_merge?: false
