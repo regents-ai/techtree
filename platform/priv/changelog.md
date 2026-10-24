@@ -1,5 +1,14 @@
 # Changelog
 
+## Website (2026-10-24)
+
+### Added
+
+- A wallet test's record at /wallet-bench/<id>/results.json, also the first
+  file in its zip, names the agent and wallet tool by the ids the scores use,
+  lists what happened in the test, oldest first, and names any plain file the
+  agent left a password or key in.
+
 ## Website (2026-10-23)
 
 ### Changed

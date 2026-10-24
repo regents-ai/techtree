@@ -232,6 +232,13 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
       block: 1
     })
 
+    Ash.Seed.seed!(Techtree.WalletBench.AttemptEvent, %{
+      attempt_id: tests.passed.id,
+      step: "done",
+      detail: %{"kept_only_here" => "unlisted-event-field"},
+      operator: "unlisted-operator"
+    })
+
     store(files)
     zip = conn |> get(~p"/wallet-bench/#{tests.passed.id}/results.zip") |> response(200)
     {:ok, entries} = :zip.unzip(zip, [:memory])
@@ -244,18 +251,19 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     keys = fn map -> map |> Map.keys() |> Enum.sort() end
 
     assert keys.(results) ==
-             ~w(agent agent_address failure funding judge_cost_usd machine model_cost_usd page started_at status tests wallet_tool)
+             ~w(agent agent_address failure funding harness_id id judge_cost_usd machine model_cost_usd page started_at status tests timeline wallet_id wallet_tool)
 
     assert [install | _] = results["tests"]
 
     assert keys.(install) ==
-             ~w(base_check ended_at failure files folder judge_cost_usd model_cost_usd prompt ruling seconds started_at state test version_installed)
+             ~w(base_check ended_at failure files folder judge_cost_usd model_cost_usd prompt ruling seconds started_at state storage_finding test version_installed)
 
     assert keys.(install["ruling"]) == ~w(checks judged_by outcome reasoning summary)
     assert Enum.all?(install["ruling"]["checks"], &(keys.(&1) == ~w(answer check why)))
     assert Enum.all?(Map.values(install["files"]), &(keys.(&1) == ~w(bytes sha256)))
     assert [funding] = results["funding"]
     assert keys.(funding) == ~w(sent state transaction)
+    assert Enum.all?(results["timeline"], &(keys.(&1) == ~w(at failure label)))
     assert install["version_installed"] == "0.3.45, the release this run asked for."
   end
 

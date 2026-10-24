@@ -155,6 +155,21 @@ stranger, and whether retrying could help:
 The last one is deliberate: bytes that do not match the digest they are filed
 under are never served, under any status.
 
+### A wallet test's record
+
+`/wallet-bench/:id/results.json` is the same record a test's zip starts with,
+and every field in it is named in `TechtreeWeb.WalletBenchEvidenceController`.
+It carries the test's `id`, `harness_id` and `wallet_id` (the ids
+`/wallet-bench.json` uses), its page, agent, wallet tool, status, machine,
+costs, its funding with each transaction, and `timeline`, what happened, oldest
+first, as `{at, label, failure}`. Each step in `tests` has its prompt, times,
+costs, the judge's ruling with every check's answer and reason, `base_check`
+(the bench's own look on Base, and for a money test the wallet's balance and
+that step's USDC transfers), `storage_finding` (the plain file the agent left a
+password or key in, or null), and its files with their size and sha256. A
+file's download is the page, then `/evidence/`, the step's `folder` and the
+file's name. Patchbay's Wallet Bench report reads this record.
+
 ### The installation contract
 
 `/api/v1/bootstrap` publishes the pinned installation path: the minimum host

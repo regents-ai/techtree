@@ -7,6 +7,7 @@ defmodule TechtreeWeb.WalletBenchSummaryTest do
 
   use TechtreeWeb.ConnCase, async: false
 
+  alias Techtree.WalletBench.{AttemptEvent, Catalog}
   alias Techtree.WalletBenchFixture
 
   setup do
@@ -42,6 +43,44 @@ defmodule TechtreeWeb.WalletBenchSummaryTest do
                bytes == byte_size(recorded) and sum == sha256
              end)
     end
+  end
+
+  test "a test's record names its pair, its history oldest first and any plain-file finding", %{
+    conn: conn,
+    tests: tests
+  } do
+    attempt = Ash.load!(tests.passed, :turns, authorize?: false)
+    [turn | _] = attempt.turns
+
+    Ash.Seed.update!(turn, %{
+      judgment: Map.merge(turn.judgment, %{"outcome" => "PASS*", "plain_file" => "~/.bankr/key"})
+    })
+
+    for {step, detail, seconds} <- [
+          {"leased", %{}, 0},
+          {"failed", %{"failure" => "No machine"}, 9}
+        ] do
+      Ash.Seed.seed!(AttemptEvent, %{
+        attempt_id: attempt.id,
+        step: step,
+        detail: detail,
+        inserted_at: DateTime.add(~U[2026-10-14 15:15:00.000000Z], seconds)
+      })
+    end
+
+    body = json_response(get(conn, ~p"/wallet-bench/#{attempt.id}/results.json"), 200)
+
+    assert %{"id" => id, "harness_id" => "H04", "wallet_id" => "W01"} = body
+    assert id == attempt.id
+
+    assert [
+             %{"label" => "Setting up", "failure" => nil},
+             %{"label" => "Stopped", "failure" => "No machine"}
+           ] = body["timeline"]
+
+    assert Enum.find(body["tests"], &(&1["folder"] == Catalog.turn_name(turn.test)))[
+             "storage_finding"
+           ] == "~/.bankr/key"
   end
 
   test "a test still running answers too", %{conn: conn, tests: tests} do

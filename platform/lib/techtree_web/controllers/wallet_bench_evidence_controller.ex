@@ -186,9 +186,13 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   end
 
   # What the test's page shows, field by field: every value is named here, so
-  # nothing else the bench keeps on a test can reach the download.
+  # nothing else the bench keeps on a test can reach the download. The ids are
+  # the ones the scores at /wallet-bench.json name.
   defp summary(attempt) do
     %{
+      id: attempt.id,
+      harness_id: attempt.harness_id,
+      wallet_id: attempt.wallet_id,
       page: url(~p"/wallet-bench/#{attempt.id}"),
       agent: Catalog.harness!(attempt.harness_id).name,
       wallet_tool: Catalog.wallet!(attempt.wallet_id).name,
@@ -202,6 +206,10 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       model_cost_usd: attempt.model_spend_usd,
       judge_cost_usd: attempt.judge_cost_usd,
       tests: Enum.map(attempt.turns, &turn_summary/1),
+      timeline:
+        for event <- WalletBench.list_attempt_events!(attempt.id) do
+          %{at: event.inserted_at, label: Copy.step(event.step), failure: event.detail["failure"]}
+        end,
       funding:
         for payment <- attempt.payments do
           %{
@@ -226,6 +234,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       judge_cost_usd: turn.judge_cost_usd,
       failure: turn.failure,
       ruling: turn.judgment && ruling(turn),
+      storage_finding: turn.judgment && turn.judgment["plain_file"],
       version_installed: turn.checks["version"] && Copy.version(turn.checks["version"]),
       base_check: Copy.base(turn.checks["base"]) || Copy.money(turn.checks["money"]),
       files:
