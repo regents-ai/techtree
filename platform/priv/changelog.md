@@ -20,6 +20,8 @@
   shows why instead.
 - An address with an extra slash, such as /about/ or //about, shows the
   page-not-found message instead of an error.
+- An agent asking Techtree who it is gets its answer again: whether it is
+  paired, and what it may do here, instead of an error.
 
 ### Changed
 
