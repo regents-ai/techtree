@@ -173,7 +173,7 @@ defmodule TechtreeWeb.PublicationControllerTest do
          %{conn: conn} do
       oversized = ~s({"files":{"bundle.json":") <> String.duplicate("a", 3_000_000) <> ~s("}})
 
-      for path <- ["/api/v1/publications/", "/api/v1/publication%73", "/api/v1/nothing"] do
+      for path <- ["/api/v1/publication%73", "/api/v1/nothing"] do
         refused =
           assert_raise Plug.Parsers.RequestTooLargeError, fn ->
             conn

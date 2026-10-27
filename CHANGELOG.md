@@ -15,6 +15,8 @@
 - A Credits Buy pressed before the page caught up no longer opens your wallet
   when the chain already shows too little USDC or no approval. The button
   shows why instead.
+- An address with an extra slash, such as /about/ or //about, shows the
+  page-not-found message instead of an error.
 
 ### Changed
 

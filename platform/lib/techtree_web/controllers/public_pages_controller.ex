@@ -19,9 +19,14 @@ defmodule TechtreeWeb.PublicPagesController do
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.ReleaseInfo
 
+  # The router matches "//about" as "/about"; only the page's own address is that page.
   def show(conn, _params) do
-    page = PublicDocuments.page(conn.request_path)
-    render(conn, :show, page: page, page_title: page.title)
+    if PublicDocuments.document?(conn.request_path) do
+      page = PublicDocuments.page(conn.request_path)
+      render(conn, :show, page: page, page_title: page.title)
+    else
+      raise TechtreeWeb.NotFoundError
+    end
   end
 
   @doc "The Techtree skill at `/skill.md`, the same file the skills index serves."

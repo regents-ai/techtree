@@ -89,6 +89,10 @@ defmodule TechtreeWeb.Endpoint do
     guide: "/llms.txt",
     json_prefixes: ["api", "tools"]
 
+  # After the error format is chosen, so a slash address is answered as any
+  # address that names nothing.
+  plug TechtreeWeb.Plugs.NoTrailingSlash
+
   # One budget per caller, shared by the health check, every `/api` path,
   # answered or not, except publishing, which `TechtreeWeb.PublicationRate`
   # counts on its own, and the Wallet Bench's scores and downloads, each of
