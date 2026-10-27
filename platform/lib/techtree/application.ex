@@ -26,7 +26,7 @@ defmodule Techtree.Application do
            Application.fetch_env!(:techtree, :ash_domains),
            Application.fetch_env!(:techtree, Oban)
          )},
-        RegentAgents.Listener,
+        Techtree.SharedChanges,
         Techtree.Agents.ActivityReading,
         TechtreeWeb.HealthMemory,
         TechtreeWeb.GithubStars,
@@ -35,7 +35,6 @@ defmodule Techtree.Application do
         TechtreeWeb.WalletBenchScores,
         # Each agent's reading for an open side panel, unlinked from the page.
         {Task.Supervisor, name: Techtree.Agents.Reads},
-        RegentCredits.Listener,
         Techtree.RateLimit,
         # Start a worker by calling: Techtree.Worker.start_link(arg)
         # {Techtree.Worker, arg},

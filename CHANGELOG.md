@@ -23,6 +23,9 @@
 - Each paired agent's row shows its whole name and address, with See Actions
   and Unpair beneath. The agent's window names its parts Allowed Agent
   Actions, Spending and Activity, and explains the agent's address.
+- Credits, Points and USDC amounts read the same way on every Regent site:
+  from 1 up, two decimals with thousands grouped, such as 1,250.00; below 1,
+  three significant digits, such as 0.400. Amounts are never rounded up.
 
 ## Website (2026-10-24)
 

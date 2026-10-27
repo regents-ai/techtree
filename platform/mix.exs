@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "e796a9d527b839121145d2515da9f4d5689fe80b"
+  @elixir_utils_ref "78f92d52ea1685f3d5efc4f4c2af0caf7bf1f4a5"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "0c72c964b017678ce6a710309cb8c3de3650c0e9"
 

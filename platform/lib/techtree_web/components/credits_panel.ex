@@ -710,8 +710,5 @@ defmodule TechtreeWeb.CreditsPanel do
   defp usdc(nil), do: "…"
   defp usdc(:unread), do: "unavailable"
 
-  defp usdc(micro) do
-    dollars = micro |> Decimal.new() |> Decimal.div(1_000_000) |> Decimal.round(2, :down)
-    "#{Decimal.to_string(dollars, :normal)} USDC"
-  end
+  defp usdc(micro), do: "#{RegentFormat.token_amount(micro, 6)} USDC"
 end
