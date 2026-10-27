@@ -77,18 +77,21 @@ defmodule TechtreeWeb.CreditsPanel do
   def handle_event("refresh_funds", _params, socket), do: {:noreply, read_funds(socket)}
 
   # A press made before the review caught up with the form: the form is taken
-  # as the page's own, and the reply carries the review for it.
+  # as the page's own, and the reply carries the review for it. A step certain
+  # to fail for the wallet and form as they stand now is not handed over: the
+  # press came while the page still showed another wallet or amount, and the
+  # button now shows why it can't be pressed.
   def handle_event(
         "prepare_and_send",
         %{"form" => %{"amount" => amount}, "step" => name},
         socket
       )
-      when is_binary(amount) do
+      when is_binary(amount) and is_binary(name) do
     socket = socket |> assign(amount: amount) |> sync()
 
-    case socket.assigns.review do
-      %{} = review when is_binary(name) -> {:reply, %{review: review, send: name}, socket}
-      _none -> {:reply, %{}, socket}
+    case {socket.assigns.review, blocked_step(socket.assigns, name)} do
+      {%{} = review, nil} -> {:reply, %{review: review, send: name}, socket}
+      _none_or_blocked -> {:reply, %{}, socket}
     end
   end
 
@@ -597,6 +600,9 @@ defmodule TechtreeWeb.CreditsPanel do
   # Why Buy is certain to fail right now, from the shown wallet's last read at
   # the latest block; nil when it may go through. A figure still being read,
   # unread or past the read allowance is never a reason.
+  defp blocked_step(assigns, "buy"), do: blocked(assigns, dollars(assigns.amount))
+  defp blocked_step(_assigns, _step), do: nil
+
   defp blocked(_assigns, nil), do: nil
 
   defp blocked(%{latest: latest}, dollars) do
