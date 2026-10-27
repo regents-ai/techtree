@@ -20,7 +20,8 @@ finger on a touch screen, 24 px for a mouse control.
 | Choose where to start, and copy the install steps when a release is published | `start_live_test.exs`, `release_copy_test.exs`; `pages.spec.ts` checks the page with no release. **Gap:** no browser check with a release published |
 | Read the docs | `pages.spec.ts`, `docs_live_test.exs` |
 | Browse and filter published Results | `runs_live_test.exs`; `pages.spec.ts` checks the page with no Results. **Gap:** no browser check with Results to filter |
-| Open one Result | `runs_live_test.exs`. **Gap:** no browser check with a published Result |
+| Open one Result | `result.spec.ts` (desktop and phone), `runs_live_test.exs` |
+| Share a Result's link and see its own picture, while every other page shows the site's | `result.spec.ts` (the page names its picture, which answers as a 1200 by 630 PNG, at desktop and phone widths), `result_share_card_controller_test.exs` (a withdrawal moves the picture's address; an unpublished Result has none; drawing it counts against the request budget). **Gap:** the drawn words are checked by eye, and on the Mac the drawing library draws every word in the system typeface, not the site's |
 | See Wallet Bench tests, or why there are none | `pages.spec.ts`, `wallet_bench_live_test.exs` |
 | Read the Wallet Bench score grid for each test, and the list | `wallet_bench.spec.ts` (desktop and phone, contrast in light and dark), `wallet_bench_live_test.exs`, `wallet_bench_grid_test.exs`, `wallet_bench_md_test.exs` |
 | Open a score's result window, download its full results, close it back to the score | `wallet_bench.spec.ts`, `wallet_bench_live_test.exs`, `wallet_bench_results_test.exs` (each file byte for byte; a changed file stops the download) |

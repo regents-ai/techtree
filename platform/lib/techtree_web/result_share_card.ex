@@ -92,15 +92,19 @@ defmodule TechtreeWeb.ResultShareCard do
   defp withdrawn(entry),
     do: if(Query.withdrawn?(entry), do: "Withdrawn by the participant. ", else: "")
 
-  @doc "A Result's picture as PNG bytes, 1200 by 630."
-  @spec png(map()) :: {:ok, binary()} | {:error, term()}
+  @doc """
+  A Result's picture as PNG bytes, 1200 by 630. It is drawn from a few
+  words the site chooses, so only a fault in the drawing library stops it,
+  and that raises.
+  """
+  @spec png(map()) :: binary()
   def png(entry) do
-    with {:ok, words, eyebrow_middle} <- words(entry),
-         {:ok, tile_words} <- tile_words(entry.assessment),
-         {:ok, {canvas, _flags}} <- Operation.svgload_buffer(svg(eyebrow_middle)),
-         {:ok, picture} <- reduce_ok(words ++ tile_words, canvas, &place/2) do
-      Image.write_to_buffer(picture, ".png")
-    end
+    {words, eyebrow_middle} = words(entry)
+    {canvas, _flags} = Operation.svgload_buffer!(svg(eyebrow_middle))
+
+    (words ++ tile_words(entry.assessment))
+    |> Enum.reduce(canvas, &place/2)
+    |> Operation.pngsave_buffer!()
   end
 
   # The site's name, the Climb's name, the verdict and the task count, each
@@ -111,20 +115,17 @@ defmodule TechtreeWeb.ResultShareCard do
     verdict = ResultAssessment.verdict_label(entry.assessment)
     lede = withdrawn(entry) <> "#{tasks(entry.task_count)}, with and without the Skill."
 
-    with {:ok, site} <- layer("TECHTREE.SH", :mono, 17, @muted),
-         {:ok, eyebrow} <- fit(eyebrow, :mono, 17, @muted, @words_w - 24),
-         {:ok, lines} <- wrap(verdict, :pixel, @h1_size, @ink, @words_w),
-         {:ok, lede} <- layer(lede, :regular, 25, @muted, width: @lede_w) do
-      h1_top = @eyebrow_top + Image.height(eyebrow) + @h1_gap
-      lede_top = h1_top + length(lines) * @h1_line + 24
+    site = layer("TECHTREE.SH", :mono, 17, @muted)
+    eyebrow = fit(eyebrow, :mono, 17, @muted, @words_w - 24)
+    lines = wrap(verdict, :pixel, @h1_size, @ink, @words_w)
+    lede = layer(lede, :regular, 25, @muted, width: @lede_w)
 
-      h1 =
-        Enum.with_index(lines, fn line, index -> {line, {@left, h1_top + index * @h1_line}} end)
+    h1_top = @eyebrow_top + Image.height(eyebrow) + @h1_gap
+    lede_top = h1_top + length(lines) * @h1_line + 24
+    h1 = Enum.with_index(lines, fn line, index -> {line, {@left, h1_top + index * @h1_line}} end)
 
-      {:ok,
-       [{site, {156, 73}}, {eyebrow, {@left + 24, @eyebrow_top}}] ++
-         h1 ++ [{lede, {@left, lede_top}}], @eyebrow_top + div(Image.height(eyebrow), 2)}
-    end
+    {[{site, {156, 73}}, {eyebrow, {@left + 24, @eyebrow_top}}] ++
+       h1 ++ [{lede, {@left, lede_top}}], @eyebrow_top + div(Image.height(eyebrow), 2)}
   end
 
   defp tiles(assessment) do
@@ -140,24 +141,18 @@ defmodule TechtreeWeb.ResultShareCard do
     assessment
     |> tiles()
     |> Enum.with_index()
-    |> map_ok(fn {{count, words, count_color, color}, index} ->
-      with {:ok, count} <- layer(count, :pixel, 36, count_color),
-           {:ok, words} <- layer(words, :regular, 20, color) do
-        {top, height} = tile(index)
+    |> Enum.flat_map(fn {{count, words, count_color, color}, index} ->
+      count = layer(count, :pixel, 36, count_color)
+      words = layer(words, :regular, 20, color)
+      {top, height} = tile(index)
 
-        count_top =
-          top + div(height - Image.height(count) - @tile_line_gap - Image.height(words), 2)
+      count_top =
+        top + div(height - Image.height(count) - @tile_line_gap - Image.height(words), 2)
 
-        x = @tiles_x + @tile_pad
+      x = @tiles_x + @tile_pad
 
-        {:ok,
-         [{count, {x, count_top}}, {words, {x, count_top + Image.height(count) + @tile_line_gap}}]}
-      end
+      [{count, {x, count_top}}, {words, {x, count_top + Image.height(count) + @tile_line_gap}}]
     end)
-    |> case do
-      {:ok, parts} -> {:ok, List.flatten(parts)}
-      error -> error
-    end
   end
 
   defp tile(index) do
@@ -223,76 +218,62 @@ defmodule TechtreeWeb.ResultShareCard do
   end
 
   defp place({layer, {x, y}}, picture),
-    do: Operation.composite2(picture, layer, :VIPS_BLEND_MODE_OVER, x: x, y: y)
+    do: Operation.composite2!(picture, layer, :VIPS_BLEND_MODE_OVER, x: x, y: y)
 
-  # The words as lines no wider than `max`, broken between words.
+  # The words as lines no wider than `max`, broken between words: a word
+  # joins the last line while the two still fit, and starts the next line
+  # when they do not.
   defp wrap(words, weight, size, color, max) do
     [first | rest] = String.split(words, " ")
 
-    with {:ok, lines} <- reduce_ok(rest, [first], &add_word(&1, &2, {weight, size, color, max})) do
-      lines |> Enum.reverse() |> map_ok(&layer(&1, weight, size, color))
-    end
-  end
+    rest
+    |> Enum.reduce([first], fn word, [line | done] ->
+      longer = line <> " " <> word
 
-  # The word joins the last line while the two still fit, and starts the next
-  # line when they do not.
-  defp add_word(word, [line | done], {weight, size, color, max}) do
-    longer = line <> " " <> word
-
-    with {:ok, layer} <- layer(longer, weight, size, color) do
-      {:ok, if(Image.width(layer) <= max, do: [longer | done], else: [word, line | done])}
-    end
+      if Image.width(layer(longer, weight, size, color)) <= max,
+        do: [longer | done],
+        else: [word, line | done]
+    end)
+    |> Enum.reverse()
+    |> Enum.map(&layer(&1, weight, size, color))
   end
 
   # The words on one line no wider than `max`, cut short with an ellipsis
-  # where they run over.
+  # where they run over. The first cut keeps the share of the words that fits,
+  # so a long name takes a few drawings, not one for each letter it loses.
   defp fit(words, weight, size, color, max) do
-    with {:ok, layer} <- layer(words, weight, size, color) do
-      if Image.width(layer) <= max,
-        do: {:ok, layer},
-        else: cut(String.graphemes(words), String.length(words) - 1, {weight, size, color, max})
+    layer = layer(words, weight, size, color)
+
+    if Image.width(layer) <= max do
+      layer
+    else
+      graphemes = String.graphemes(words)
+      keep = min(div(length(graphemes) * max, Image.width(layer)), length(graphemes) - 1)
+      cut(graphemes, keep, {weight, size, color, max})
     end
   end
 
   defp cut(graphemes, keep, {weight, size, color, max} = style) do
     shown = (graphemes |> Enum.take(keep) |> Enum.join() |> String.trim_trailing()) <> "…"
+    layer = layer(shown, weight, size, color)
 
-    with {:ok, layer} <- layer(shown, weight, size, color) do
-      if Image.width(layer) <= max or keep <= 1,
-        do: {:ok, layer},
-        else: cut(graphemes, keep - 1, style)
-    end
+    if Image.width(layer) <= max or keep <= 1,
+      do: layer,
+      else: cut(graphemes, keep - 1, style)
   end
-
-  # Each step returns `{:ok, acc}` or an error, which stops the rest.
-  defp reduce_ok(list, acc, fun) do
-    Enum.reduce_while(list, {:ok, acc}, fn item, {:ok, acc} ->
-      case fun.(item, acc) do
-        {:ok, acc} -> {:cont, {:ok, acc}}
-        error -> {:halt, error}
-      end
-    end)
-  end
-
-  defp map_ok(list, fun) do
-    with {:ok, done} <- reduce_ok(list, [], &prepend(fun.(&1), &2)),
-         do: {:ok, Enum.reverse(done)}
-  end
-
-  defp prepend({:ok, item}, done), do: {:ok, [item | done]}
-  defp prepend(error, _done), do: error
 
   # The mono words are spaced 0.14 of their size apart, as on the site.
   defp layer(words, weight, size, color, opts \\ []) do
     {face, file} = font(weight)
     spacing = if weight == :mono, do: ~s| letter_spacing="#{round(size * 0.14 * 1024)}"|, else: ""
 
-    with {:ok, {layer, _flags}} <-
-           Operation.text(
-             ~s|<span foreground="#{color}"#{spacing}>#{escape(words)}</span>|,
-             [font: "#{face} #{size}", fontfile: file, rgba: true, dpi: 72] ++ opts
-           ),
-         do: {:ok, layer}
+    {layer, _flags} =
+      Operation.text!(
+        ~s|<span foreground="#{color}"#{spacing}>#{escape(words)}</span>|,
+        [font: "#{face} #{size}", fontfile: file, rgba: true, dpi: 72] ++ opts
+      )
+
+    layer
   end
 
   defp font(:regular), do: {"Geist", share_file("Geist-Regular.ttf")}

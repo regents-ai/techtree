@@ -1,3 +1,4 @@
+import {fileURLToPath} from "node:url"
 import {defineConfig, devices} from "@playwright/test"
 
 // The browser tests start their own Techtree in the test environment, on its own
@@ -15,6 +16,10 @@ const partition = `browser${copy}`
 const port = Number(process.env.TECHTREE_BROWSER_PORT ?? 4012)
 process.env.TECHTREE_BROWSER_PARTITION = partition
 process.env.TECHTREE_BROWSER_PORT = String(port)
+// The server reads its catalog from a folder of the browser tests' own, never
+// the one shipped in priv; a test that publishes a Result writes the catalog it
+// needs there first, and the fresh database knows no catalog until it does.
+process.env.TECHTREE_CATALOG_ROOT = fileURLToPath(new URL(`../tmp/${partition}-catalog`, import.meta.url))
 const baseURL = `http://127.0.0.1:${port}`
 const server = `MIX_ENV=test MIX_TEST_PARTITION='${partition}' TECHTREE_BROWSER_TEST=1`
 

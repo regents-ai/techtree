@@ -134,34 +134,19 @@ defmodule TechtreeWeb.Endpoint do
     do: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
   defp limit_rate(conn, _opts) do
-    case Enum.map(conn.path_info, &URI.decode/1) do
-      ["healthz"] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["tools", "account" | _] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      [scores] when scores in ["wallet-bench.json", "wallet-bench.md"] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["wallet-bench", _id, "evidence" | _] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["wallet-bench", _id, "results.zip"] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["results", _digest, "share.png"] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["api" | _] ->
-        if TechtreeWeb.PublicationAddress.post?(conn),
-          do: conn,
-          else: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      _other ->
-        conn
-    end
+    if counted?(Enum.map(conn.path_info, &URI.decode/1), conn),
+      do: RegentAgentAccess.RateLimit.call(conn, @rate_limit),
+      else: conn
   end
+
+  defp counted?(["healthz"], _conn), do: true
+  defp counted?(["tools", "account" | _], _conn), do: true
+  defp counted?([scores], _conn) when scores in ["wallet-bench.json", "wallet-bench.md"], do: true
+  defp counted?(["wallet-bench", _id, "evidence" | _], _conn), do: true
+  defp counted?(["wallet-bench", _id, "results.zip"], _conn), do: true
+  defp counted?(["results", _digest, "share.png"], _conn), do: true
+  defp counted?(["api" | _], conn), do: not TechtreeWeb.PublicationAddress.post?(conn)
+  defp counted?(_path, _conn), do: false
 
   # Production sets the cookie's `secure` flag in runtime.exs, after this module compiles.
   defp runtime_session(conn, _opts) do
