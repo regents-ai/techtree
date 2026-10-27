@@ -27,6 +27,7 @@ defmodule Techtree.Application do
            Application.fetch_env!(:techtree, :ash_domains),
            Application.fetch_env!(:techtree, Oban)
          )},
+        TechtreeWeb.Telemetry.site_poller(),
         Techtree.SharedChanges,
         Techtree.Agents.ActivityReading,
         TechtreeWeb.HealthMemory,
