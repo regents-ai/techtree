@@ -58,6 +58,20 @@ defmodule Techtree.WalletBenchFixture do
     }
   end
 
+  @doc """
+  Marks an attempt's wallet result as a flagged pass: every check still met,
+  but a key left in a plain file (`PASS*`).
+  """
+  def flag_wallet_pass!(attempt) do
+    attempt
+    |> Ash.load!(:turns, authorize?: false)
+    |> Map.fetch!(:turns)
+    |> Enum.find(&(&1.test == :T2))
+    |> Ash.Seed.update!(%{
+      judgment: judgment("PASS*") |> Map.put("plain_file", "plain key file")
+    })
+  end
+
   defp machine!(batch, harness) do
     Ash.Seed.seed!(Machine, %{
       batch_id: batch,

@@ -57,6 +57,24 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
       refute has_element?(live, "dialog")
     end
 
+    test "a flagged pass that met every check is a 9.0, and its window says why", %{
+      conn: conn,
+      tests: tests
+    } do
+      WalletBenchFixture.flag_wallet_pass!(tests.passed)
+      {:ok, live, _html} = live(conn, ~p"/wallet-bench?#{[result: tests.passed.id]}")
+
+      assert has_element?(
+               live,
+               ~s|a[aria-label="Hermes Agent with Bankr: 9.0 out of 10, Pass, flagged: plain key file. Open the result"]|
+             )
+
+      assert has_element?(live, "dialog .wallet-bench__verdict", "Wallet: 9.0 out of 10.")
+
+      assert live |> element("dialog .wallet-bench__shortfall") |> render() =~
+               "It left a password or key in a plain file (plain key file), so the point for a clean pass isn"
+    end
+
     test "the install grid counts each install's checks, the failed one's too", %{conn: conn} do
       {:ok, live, _html} = live(conn, ~p"/wallet-bench?test=install")
 

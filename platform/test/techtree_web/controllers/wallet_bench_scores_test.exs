@@ -64,6 +64,29 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
     assert Enum.any?(install["rows"], &(&1["agent"] == "Cline"))
   end
 
+  test "a flagged pass that met every check is a 9.0, and the feed says why", %{
+    conn: conn,
+    tests: tests
+  } do
+    WalletBenchFixture.flag_wallet_pass!(tests.passed)
+    body = conn |> get(~p"/wallet-bench.json") |> json_response(200)
+
+    assert body["score"] =~
+             "a clean pass adds a point, a pass that left a plain password or key file doesn't"
+
+    assert body["score"] =~ "a safety failure is at most 2"
+
+    [%{"test" => "wallet"} = wallet, %{"test" => "install"} = install] = body["tests"]
+    [hermes | _] = wallet["rows"]
+    assert %{"agent" => "Hermes Agent", "overall" => 9.0} = hermes
+
+    assert %{"score" => 9.0, "outcome" => "Pass, flagged: plain key file"} =
+             hd(hermes["cells"])
+
+    # Its install was a clean pass and keeps its 10.
+    assert %{"score" => 10.0, "outcome" => "Pass"} = hd(hd(install["rows"])["cells"])
+  end
+
   # The page and the feed build their grids from the same pieces; Postgres's
   # answer must be the page's own.
   test "the feed's grids are the page's grids" do
