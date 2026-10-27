@@ -126,7 +126,7 @@ defmodule Techtree.MixProject do
       {:vix, "== 0.42.0"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
-      {:phoenix, "~> 1.8.4"},
+      {:phoenix, "~> 1.8.9"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
