@@ -353,6 +353,15 @@ defmodule TechtreeWeb.RunsLiveTest do
   describe "one entry's own page" do
     setup :publish_a_run
 
+    # The first render and the connected page are one visit, counted once.
+    test "counts one read each time a browser opens it", %{conn: conn, entry: entry} do
+      before = results_read()
+
+      {:ok, _live, _html} = live(conn, "/results/#{entry.bundle_digest}")
+
+      assert results_read() == before + 1
+    end
+
     test "shows every task with both sides' rewards and the difference",
          %{conn: conn, entry: entry} do
       {:ok, _live, html} = live(conn, "/results/#{entry.bundle_digest}")
@@ -755,6 +764,13 @@ defmodule TechtreeWeb.RunsLiveTest do
       |> put_in(["payload", "decision"], "rejected")
       |> Jason.encode!()
     end)
+  end
+
+  defp results_read do
+    case Regex.run(~r/^techtree_results_read_total (\d+)$/m, TechtreeWeb.Telemetry.scrape()) do
+      [_line, count] -> String.to_integer(count)
+      nil -> 0
+    end
   end
 
   defp swap_sides(delta) do

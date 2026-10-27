@@ -97,8 +97,9 @@ defmodule TechtreeWeb.Endpoint do
 
   # One budget per caller, shared by the health check, the browser's visit
   # reports, every `/api` path, answered or not, except publishing, which `TechtreeWeb.PublicationRate`
-  # counts on its own, and the Wallet Bench's scores and downloads, each of
-  # which reads the whole table or a stored file. Every answer says what is
+  # counts on its own, the Wallet Bench's scores and downloads, each of
+  # which reads the whole table or a stored file, and each Result's share
+  # picture, which is drawn for every request. Every answer says what is
   # left of it; past it the answer is 429 with Retry-After. Pages are never
   # counted, and counting never waits.
   plug :limit_rate
@@ -133,31 +134,19 @@ defmodule TechtreeWeb.Endpoint do
     do: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
   defp limit_rate(conn, _opts) do
-    case Enum.map(conn.path_info, &URI.decode/1) do
-      ["healthz"] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["tools", "account" | _] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      [scores] when scores in ["wallet-bench.json", "wallet-bench.md"] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["wallet-bench", _id, "evidence" | _] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["wallet-bench", _id, "results.zip"] ->
-        RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      ["api" | _] ->
-        if TechtreeWeb.PublicationAddress.post?(conn),
-          do: conn,
-          else: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
-
-      _other ->
-        conn
-    end
+    if counted?(Enum.map(conn.path_info, &URI.decode/1), conn),
+      do: RegentAgentAccess.RateLimit.call(conn, @rate_limit),
+      else: conn
   end
+
+  defp counted?(["healthz"], _conn), do: true
+  defp counted?(["tools", "account" | _], _conn), do: true
+  defp counted?([scores], _conn) when scores in ["wallet-bench.json", "wallet-bench.md"], do: true
+  defp counted?(["wallet-bench", _id, "evidence" | _], _conn), do: true
+  defp counted?(["wallet-bench", _id, "results.zip"], _conn), do: true
+  defp counted?(["results", _digest, "share.png"], _conn), do: true
+  defp counted?(["api" | _], conn), do: not TechtreeWeb.PublicationAddress.post?(conn)
+  defp counted?(_path, _conn), do: false
 
   # Production sets the cookie's `secure` flag in runtime.exs, after this module compiles.
   defp runtime_session(conn, _opts) do

@@ -25,6 +25,11 @@ export function seedWalletBench(): {passed: RecordedTest; failed: RecordedTest; 
   return JSON.parse(inBrowserDatabase("seed_wallet_bench.exs"))
 }
 
+// One published Result of the fixture catalog's Campaign; returns its fingerprint.
+export function publishResult(): string {
+  return JSON.parse(inBrowserDatabase("publish_result.exs")).digest
+}
+
 // An agent paired with the signed-in visitor, under a name of its own.
 export function pairAgent(): string {
   return JSON.parse(inBrowserDatabase("pair_agent.exs")).name

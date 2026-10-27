@@ -122,9 +122,11 @@ defmodule Techtree.MixProject do
       {:castore, "~> 1.0"},
       # A wallet test's full results are sent as a zip written as it is sent.
       {:zstream, "~> 0.6.7"},
+      # Each published Result's share picture is drawn with it.
+      {:vix, "== 0.42.0"},
       {:picosat_elixir, "~> 0.2"},
       {:igniter, "~> 0.6", only: [:dev, :test]},
-      {:phoenix, "~> 1.8.4"},
+      {:phoenix, "~> 1.8.9"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
       {:postgrex, ">= 0.0.0"},
@@ -135,8 +137,8 @@ defmodule Techtree.MixProject do
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:logger_json, "~> 7.0"},
       {:telemetry_metrics, "~> 1.0"},
-      {:telemetry_metrics_prometheus_core, "~> 1.2"},
-      {:telemetry_poller, "~> 1.0"},
+      {:peep, "~> 5.0"},
+      {:telemetry_poller, "~> 1.3"},
       {:jason, "~> 1.2"},
       {:decimal, "== 3.2.0"},
       {:dns_cluster, "~> 0.3.0"},

@@ -7,6 +7,9 @@
 - The Agent Wallet Bench tests two more agents, Muse Code and Grok Build, on
   the same tests, wallets and model budget as the others. Their rows on the
   scores fill in as their runs finish.
+- A link to a Result shared on X or elsewhere shows that Result's own
+  picture: its Climb, its verdict, how many tasks it ran on, and how many got
+  better, stayed the same and got worse. A withdrawn Result's picture says so.
 
 ### Fixed
 
@@ -17,6 +20,8 @@
   shows why instead.
 - An address with an extra slash, such as /about/ or //about, shows the
   page-not-found message instead of an error.
+- An agent asking Techtree who it is gets its answer again: whether it is
+  paired, and what it may do here, instead of an error.
 
 ### Changed
 

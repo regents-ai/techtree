@@ -39,12 +39,33 @@ config :regent_identity, repo: Techtree.Repo, ash_domains: [RegentIdentity]
 # Agents pair with a person's Regent account once, on any Regent site, and
 # check in here with the same pairing (`TechtreeWeb.Router` mounts the two
 # requests). `bin/migrate-shared` applies the shared schema's changes; a
-# deployment never does.
+# deployment never does. `allowed` is what an agent may do here in each status,
+# as GET /api/agents/v1/whoami tells it: true to the routes and
+# `TechtreeWeb.Plugs.PairedAgent`, so change it with them.
 config :regent_agents,
   repo: Techtree.Repo,
   pubsub: Techtree.PubSub,
   notifications: Techtree.Notifications,
   account: {Techtree.Agents, :account},
+  allowed: %{
+    "not_paired" => [
+      "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",
+      "Check your status here at any time.",
+      "Pair with the code your person makes with Pair New Agent in the side panel."
+    ],
+    "person_not_here" => [
+      "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",
+      "Check your status here at any time.",
+      "Publish Results and keep Model Climb reports once your person has signed in on Techtree."
+    ],
+    "paired" => [
+      "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",
+      "Check your status here at any time, and check in for your person.",
+      "Publish Results for your person.",
+      "Keep your person's Model Climb reports and read them back; each is private to your person.",
+      "Read your person's Credits balance and history, and their Points."
+    ]
+  },
   siwa: [url: "https://siwa.regents.sh", audience: "techtree"],
   ash_domains: [RegentAgents]
 
@@ -233,6 +254,10 @@ config :techtree, :session_options,
 # Metrics listen on loopback, on a port the system picks, so this site runs
 # beside the other sites' local servers without taking the one port they share.
 config :techtree, :metrics_listener, ip: {127, 0, 0, 1}, port: 0
+
+# The engine's own measurements (memory, run queues, process counts), taken every
+# 10 seconds by telemetry_poller's default poller and exported as `vm.*` metrics.
+config :telemetry_poller, :default, period: 10_000
 
 # Configure esbuild (the version is required). Code split out with a dynamic
 # import, such as the homepage crown, is its own chunk, loaded only on demand.
