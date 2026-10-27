@@ -8,7 +8,7 @@ Comparisons, test tasks and runs happen on your own computer, and Techtree doesn
 
 ## Reading the site
 
-Reading any page or public address needs no account and no sign-in. The site runs no analytics and no advertising trackers. Its own scripts come only from Techtree.
+Reading any page or public address needs no account and no sign-in. The site runs no outside analytics and no advertising trackers; it counts its own visits, as the cookies below say. Its own scripts come only from Techtree.
 
 Signing in, and staying signed in, also connects your browser to these services, each under its own privacy policy:
 
@@ -21,8 +21,7 @@ Signing in, and staying signed in, also connects your browser to these services,
 
 - `_techtree_key` is set when a page loads. It holds a random token that protects the page against forged requests, and it lasts until you close your browser. It does not identify you.
 - `techtree_theme` is set only when you press the light and dark switch. It holds `light` or `dark` and lasts a year.
-
-A cookie that ends when your browser closes groups one visit's activity, so we can count where visits come from (for example a search engine, an AI assistant or a social site) and how far they get, such as signing in or pairing an agent. We record only the name of the site that sent you, never the address you came from.
+- `_visit` is set when a page loads. It holds a random code that groups one visit's activity, so we can count where visits come from (for example a search engine, an AI assistant or a social site) and how far they get, such as signing in or pairing an agent. It lasts until you close your browser. We record only the name of the site that sent you, never the address you came from.
 
 ## The GitHub star count
 
