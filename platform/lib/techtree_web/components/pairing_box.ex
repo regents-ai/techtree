@@ -16,6 +16,7 @@ defmodule TechtreeWeb.PairingBox do
 
   alias RegentAgents.{Harness, PairingCode, PairingMessage, Person}
   alias TechtreeWeb.Live.Session
+  alias TechtreeWeb.VisitLog
 
   require Logger
 
@@ -127,6 +128,7 @@ defmodule TechtreeWeb.PairingBox do
     with %PairingCode.Issued{issued_at: issued_at} <- codes[chosen],
          {:ok, agents} <- RegentAgents.list_my_agents(actor: socket.assigns.person),
          %{} = agent <- Enum.find(agents, &(DateTime.compare(&1.paired_at, issued_at) != :lt)) do
+      VisitLog.step("agent_paired", to_string(chosen))
       assign(socket, codes: Map.put(codes, chosen, {:paired, agent}))
     else
       _unchanged -> socket
@@ -137,6 +139,7 @@ defmodule TechtreeWeb.PairingBox do
     code =
       case RegentAgents.issue_pairing_code(actor: socket.assigns.person) do
         {:ok, issued} ->
+          VisitLog.step("pairing_code_shown", to_string(harness))
           issued
 
         {:error, error} ->

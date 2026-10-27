@@ -36,6 +36,8 @@ export default defineConfig({
     // the server sends a compressed copy when there is one, so a stale one would
     // stand in for the change under test.
     command: [
+      // The lines the server writes, which the visit tests read, start empty each run.
+      `mkdir -p tmp && rm -f tmp/${partition}-lines.jsonl`,
       // A fresh database each run, so no run depends on what an earlier one left.
       `${server} mix do ash_postgres.drop --quiet + ash_postgres.create --quiet + techtree.setup_local_auth`,
       `${server} mix do phx.digest.clean --all + assets.deploy`,

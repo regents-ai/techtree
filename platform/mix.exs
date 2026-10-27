@@ -133,6 +133,7 @@ defmodule Techtree.MixProject do
       {:phoenix_live_view, "~> 1.2.11"},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
+      {:logger_json, "~> 7.0"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:telemetry_poller, "~> 1.0"},

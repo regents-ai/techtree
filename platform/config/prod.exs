@@ -30,5 +30,10 @@ config :techtree, :metrics_listener, ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 9091
 # Do not print debug messages in production
 config :logger, level: :info
 
+# The visit lines (TechtreeWeb.VisitLog) say what each request and page did,
+# by route. Phoenix's own request and connection lines would repeat them with
+# each raw path and its parameters, so they are off.
+config :phoenix, :logger, false
+
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.

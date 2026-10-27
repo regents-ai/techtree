@@ -2,14 +2,14 @@
 
 import manifest from "../../priv/tool_manifest.json" with {type: "json"}
 import {signedTools, type SignedOperation, type SignedInput} from "../vendor/regent_agent_access/signed_tools"
+import {report, visitId} from "./visit_log"
 
 function signedTransport() { return signedTools({
   origin: window.location.origin,
   trustedOrigins: [document.querySelector<HTMLMetaElement>('meta[name="agent-request-origin"]')?.content ?? ""],
   audience: manifest.audience,
   proofHeaders: manifest.proof_headers,
-  // The site keeps no visit log, so its calls carry no labels of their own.
-  requestHeaders: () => ({}),
+  requestHeaders: client,
   operations: manifest.tools.map(entry => ({...entry,
     input_schema: "operation_input_schema" in entry ? entry.operation_input_schema : entry.input_schema,
   })) as unknown as SignedOperation[],
@@ -45,45 +45,52 @@ type Reply =
   | {ok: true; status: number; data: unknown; verdict?: unknown}
   | {ok: false; status: number; error: unknown}
 
-type Request = (input: Input, signal: AbortSignal | undefined) => Promise<Reply>
+type Format = "json" | "text" | "exact"
+
+// Each tool reads through its own reader, which names the tool and this visit.
+type Request = (input: Input, read: (path: string, format: Format) => Promise<Reply>) => Promise<Reply>
 
 const requests: Record<string, Request> = {
-  async techtree_start(_input, signal) {
+  async techtree_start(_input, read) {
     const [bootstrap, guide] = await Promise.all([
-      read("/api/v1/bootstrap", "json", signal),
-      read("/agents.md", "text", signal),
+      read("/api/v1/bootstrap", "json"),
+      read("/agents.md", "text"),
     ])
     if (!bootstrap.ok) return bootstrap
     if (!guide.ok) return guide
     return {ok: true, status: 200, data: {bootstrap: bootstrap.data, installation_guide: guide.data}}
   },
-  techtree_climbs: (_input, signal) => read("/api/v1/catalog", "json", signal),
-  techtree_climb: (input, signal) =>
-    read(`/api/v1/climbs/${encodeURIComponent(input.slug)}`, "json", signal),
-  techtree_results: (input, signal) => {
+  techtree_climbs: (_input, read) => read("/api/v1/catalog", "json"),
+  techtree_climb: (input, read) => read(`/api/v1/climbs/${encodeURIComponent(input.slug)}`, "json"),
+  techtree_results: (input, read) => {
     const query = Object.entries(input).map(([key, value]) => [key, String(value)])
-    return read(`/api/v1/publications?${new URLSearchParams(query)}`, "json", signal)
+    return read(`/api/v1/publications?${new URLSearchParams(query)}`, "json")
   },
-  async techtree_result(input, signal) {
-    const response = await read(`/api/v1/publications/${input.bundle_digest}`, "json", signal)
+  async techtree_result(input, read) {
+    const response = await read(`/api/v1/publications/${input.bundle_digest}`, "json")
     return response.ok
       ? {...response, verdict: (response.data as {decision: unknown}).decision}
       : response
   },
-  results_bundle: (input, signal) =>
-    read(`/api/v1/publications/${encodeURIComponent(input.bundle_digest)}/bundle`, "exact", signal),
-  skills_show: (input, signal) =>
-    read(`/api/v1/skills/${encodeURIComponent(input.root_digest)}`, "json", signal),
-  wallet_bench_list: (_input, signal) => read("/wallet-bench.json", "json", signal),
-  wallet_bench_show: (input, signal) =>
-    read(`/wallet-bench/${encodeURIComponent(input.id)}/results.json`, "json", signal),
+  results_bundle: (input, read) =>
+    read(`/api/v1/publications/${encodeURIComponent(input.bundle_digest)}/bundle`, "exact"),
+  skills_show: (input, read) => read(`/api/v1/skills/${encodeURIComponent(input.root_digest)}`, "json"),
+  wallet_bench_list: (_input, read) => read("/wallet-bench.json", "json"),
+  wallet_bench_show: (input, read) => read(`/wallet-bench/${encodeURIComponent(input.id)}/results.json`, "json"),
+}
+
+// Every call names its tool and this visit, so the site's log can put the call
+// beside the rest of the visit (TechtreeWeb.VisitLog). Neither is a credential.
+function client(tool: string): Record<string, string> {
+  const visit = visitId()
+  return {"x-regent-client": `webmcp/${tool}`, ...(visit && {"x-regent-visit": visit})}
 }
 
 // "json" answers the parsed JSON, "text" a Markdown document, and "exact" a JSON
 // answer's own bytes as text, unparsed, so a signed bundle keeps every byte.
-async function read(path: string, format: "json" | "text" | "exact", signal: AbortSignal | undefined): Promise<Reply> {
+async function read(tool: string, path: string, format: Format, signal: AbortSignal | undefined): Promise<Reply> {
   const response = await fetch(path, {
-    headers: {Accept: format === "text" ? "text/markdown" : "application/json"},
+    headers: {Accept: format === "text" ? "text/markdown" : "application/json", ...client(tool)},
     credentials: "omit",
     cache: "no-store",
     redirect: "error",
@@ -172,11 +179,12 @@ const tools: ModelContextTool[] = entries.filter(entry => entry.scope === "site"
     const problem = inputProblem(input, entry.input_schema)
     if (problem) return {ok: false, error: {code: "invalid_input", message: problem}}
     try {
-      return await requests[entry.name](input as Input, signal)
+      return await requests[entry.name](input as Input, (path, format) => read(entry.name, path, format, signal))
     } catch (_error) {
-      return signal?.aborted
-        ? {ok: false, error: {code: "cancelled", message: "The read was cancelled; nothing changed."}}
-        : {ok: false, error: {code: "unreachable", message: "Techtree's public API could not be read. Try again."}}
+      if (signal?.aborted) return {ok: false, error: {code: "cancelled", message: "The read was cancelled; nothing changed."}}
+      // The site never heard it, so the page reports it.
+      report({name: "tool.unsent", where: entry.name, outcome: "unreachable"})
+      return {ok: false, error: {code: "unreachable", message: "Techtree's public API could not be read. Try again."}}
     }
   },
 }))

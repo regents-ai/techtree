@@ -68,6 +68,7 @@ defmodule TechtreeWeb.Router do
     pipe_through [:browser, :account_browser, :account_only]
     get "/auth/csrf", PrivySessionController, :csrf
     post "/auth/privy/failure", PrivySessionController, :failure
+    post "/visit-log", VisitLogController, :create, log: false
     post "/auth/privy/session", PrivySessionController, :create
     get "/auth/session", PrivySessionController, :show
     delete "/auth/privy/session", PrivySessionController, :delete
@@ -119,35 +120,40 @@ defmodule TechtreeWeb.Router do
   scope "/", TechtreeWeb do
     pipe_through [:public_page, :browser, :visitor_browser]
 
-    live "/", HomeLive
-    get "/about", PublicPagesController, :show
-    get "/contact", PublicPagesController, :show
-    get "/privacy", PublicPagesController, :show
-    get "/terms", PublicPagesController, :show
-    get "/blog", BlogController, :index
-    get "/blog/:slug", BlogController, :show
-    live "/docs", DocsLive
-    live "/docs/:slug", DocsLive
-    live "/changelog", ChangelogLive
-    live "/verify", ProofsLive
-    live "/repo2rlenv", Repo2RLEnvLive
-    live "/results", RunsLive.Index
-    live "/results/:bundle_digest", RunsLive.Show
-    live "/examples/tdd", TddShowcaseLive
-    live "/wallet-bench", WalletBenchLive.Index
-    live "/wallet-bench/:id", WalletBenchLive.Show
-    get "/wallet-bench/:id/evidence/:turn/:file", WalletBenchEvidenceController, :show
-    get "/wallet-bench/:id/results.zip", WalletBenchEvidenceController, :results
+    # The page's first render hands its visit to the connected page (TechtreeWeb.VisitLog).
+    live_session :public, session: {TechtreeWeb.Live.Session, :render_context, []} do
+      live "/", HomeLive
+      get "/about", PublicPagesController, :show
+      get "/contact", PublicPagesController, :show
+      get "/privacy", PublicPagesController, :show
+      get "/terms", PublicPagesController, :show
+      get "/blog", BlogController, :index
+      get "/blog/:slug", BlogController, :show
+      live "/docs", DocsLive
+      live "/docs/:slug", DocsLive
+      live "/changelog", ChangelogLive
+      live "/verify", ProofsLive
+      live "/repo2rlenv", Repo2RLEnvLive
+      live "/results", RunsLive.Index
+      live "/results/:bundle_digest", RunsLive.Show
+      live "/examples/tdd", TddShowcaseLive
+      live "/wallet-bench", WalletBenchLive.Index
+      live "/wallet-bench/:id", WalletBenchLive.Show
+      get "/wallet-bench/:id/evidence/:turn/:file", WalletBenchEvidenceController, :show
+      get "/wallet-bench/:id/results.zip", WalletBenchEvidenceController, :results
 
-    # The addresses release documents already point at, unchanged.
-    live "/start", StartLive
-    live "/climbs/:slug", ClimbsLive.Show
+      # The addresses release documents already point at, unchanged.
+      live "/start", StartLive
+      live "/climbs/:slug", ClimbsLive.Show
+    end
   end
 
   scope "/", TechtreeWeb do
     pipe_through [:motion_lab, :html_only, :browser, :visitor_browser]
 
-    live_session :motion_lab, on_mount: [{TechtreeWeb.Showcase, :motion_lab}] do
+    live_session :motion_lab,
+      session: {TechtreeWeb.Live.Session, :render_context, []},
+      on_mount: [{TechtreeWeb.Showcase, :motion_lab}] do
       live "/animations", AnimationsLive, :index
     end
   end

@@ -1,4 +1,5 @@
 import {execFileSync} from "node:child_process"
+import {existsSync, readFileSync} from "node:fs"
 import type {BrowserContext, Locator, Page} from "@playwright/test"
 
 // Runs one of the support scripts in the browser test database and returns the
@@ -38,6 +39,32 @@ export async function signIn(context: BrowserContext): Promise<void> {
   // answered with an empty script; the real one would rightly sign it out.
   await context.route(/\/assets\/js\/privy_bridge/, route =>
     route.fulfill({contentType: "text/javascript", body: ""}))
+}
+
+// One line the test server wrote (config/runtime.exs), in production's shape.
+export type VisitLine = {
+  time: string
+  severity: string
+  message: string
+  metadata: {
+    visit?: string
+    actor?: string
+    surface?: string
+    request_id?: string
+    event?: {name: string; where: string; outcome?: string; ms?: number; client?: string}
+  }
+}
+
+// The event lines the test server wrote for one visit, in the order it wrote them
+// (TechtreeWeb.VisitLog).
+export function visitLines(visit: string): VisitLine[] {
+  const file = `../tmp/${process.env.TECHTREE_BROWSER_PARTITION}-lines.jsonl`
+  if (!existsSync(file)) return []
+  return readFileSync(file, "utf8")
+    .split("\n")
+    .filter(text => text.includes(visit))
+    .map(text => JSON.parse(text) as VisitLine)
+    .filter(line => line.metadata.visit === visit && line.metadata.event)
 }
 
 // Every error a page raised or logged.
