@@ -103,7 +103,7 @@ code { font-size: .9em; }
   overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
 .skip-link {
-  position: fixed; top: 1rem; left: 1rem; z-index: 100;
+  position: fixed; top: 1rem; left: 1rem; z-index: var(--rg-layer-skip);
   padding: 1rem; background: var(--color-surface); color: var(--color-fg);
   transform: translateY(calc(-100% - 2rem));
 }
@@ -111,7 +111,7 @@ code { font-size: .9em; }
 
 /* One continuous frame. All non-rail rows share the same main track. */
 .techtree-frame { min-height: 100vh; display: flex; flex-direction: column; }
-.masthead { position: relative; z-index: 20; border-bottom: 1px solid var(--rg-page-rule); }
+.masthead { position: relative; z-index: var(--rg-layer-header); border-bottom: 1px solid var(--rg-page-rule); }
 .masthead__inner {
   min-height: 6rem; padding: var(--space-2) var(--rg-panel-padding);
   display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto;
@@ -144,7 +144,7 @@ code { font-size: .9em; }
 .masthead__menu-list {
   inset: 4rem var(--space-2) auto auto; margin: 0; padding: 0; min-width: 12rem;
   flex-direction: column; color: inherit;
-  border: 1px solid var(--hairline-strong); background: var(--color-surface-elevated);
+  border: 1px solid var(--hairline-strong); background: var(--color-surface-elevated); box-shadow: var(--rg-layer-tip-shadow);
 }
 .masthead__menu-list:popover-open { display: flex; }
 .masthead__selector .masthead__menu-list a { justify-content: flex-start; border: 0; margin: 0; }
@@ -365,7 +365,7 @@ html[data-theme="light"] .hero__crown-still { background-image: url("/images/cro
 .pagecopy details { position: static; }
 .pagecopy summary { min-width: 2.75rem; min-height: 100%; display: flex; align-items: center; justify-content: center; padding: var(--space-1) var(--space-2); border: 1px solid var(--hairline-strong); cursor: pointer; list-style: none; }
 .pagecopy summary::-webkit-details-marker { display: none; }
-.pagecopy__menu { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: 30; width: 20rem; max-width: calc(100vw - 4rem); border: 1px solid var(--hairline-strong); background: var(--color-surface); padding: var(--space-1); transform-origin: 100% 0; }
+.pagecopy__menu { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: var(--rg-layer-tip); width: 20rem; max-width: calc(100vw - 4rem); border: 1px solid var(--hairline-strong); background: var(--color-surface); box-shadow: var(--rg-layer-tip-shadow); padding: var(--space-1); transform-origin: 100% 0; }
 .pagecopy__item { display: block; width: 100%; text-align: left; font-size: .875rem; }
 .pagecopy__item small { display: block; font-size: .8125rem; font-weight: 400; }
 

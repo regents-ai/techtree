@@ -82,7 +82,7 @@
 .shell-credits-dialog__close {
   position: sticky;
   inset-block-start: calc(-1 * var(--shell-credits-pad-top));
-  z-index: 1;
+  z-index: var(--rg-layer-card);
   display: grid;
   place-items: center;
   width: 2.75rem;

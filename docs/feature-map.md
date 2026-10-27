@@ -38,6 +38,7 @@ finger on a touch screen, 24 px for a mouse control.
 | --- | --- |
 | Open the side panel from their name: Sign out, Manage Account, Techtree account, their agents, Pair New Agent | `signed_in.spec.ts`, `side_panel_live_test.exs` |
 | Use the side panel on a phone without sideways scrolling | `signed_in.spec.ts` |
+| On a phone, see the open Menu over the page and the open side panel over the footer | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
 | Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens at desktop and phone width, both buttons show, everything in it fits a finger, and the wallet code loads on the account pages and on no other page |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
