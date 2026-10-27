@@ -416,13 +416,18 @@ replacing a file of the new release. `make release` builds over the live image
 the same way, signing Docker in to Fly's registry first
 (`flyctl auth docker`).
 
+Every Regent site shares one production database, and a release briefly
+doubles a site's connections, so the build and release run under
+`lockf -k /tmp/regent-shared-db-release.lock`, the lock every site's deploy on
+this machine takes; a deploy waits while another site's release holds it.
+
 The script refuses to deploy, saying why, when the tree is not clean or not
 pushed, when the live image can't be read or the machines run different
 images, or when the live page can't be read or names no site script; the build
 stops when the previous image can't be pulled or holds no manifest. After the
 deploy it asks for the previous release's site script again and fails unless it
 still answers. `test/scripts/deploy_site_test.exs` runs the script through each
-of these with stand-ins for `flyctl` and `curl`.
+of these with stand-ins for `flyctl`, `curl` and `lockf`.
 
 ## Shared database changes
 

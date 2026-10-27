@@ -54,7 +54,12 @@ fi
 rsync -a --delete ../blog/ blog_content/
 rsync -a --delete ../skills/ skills_content/
 
-flyctl deploy \
+# Every site shares one production database, and a release briefly doubles a
+# site's connections, so releases from this machine take turns: the build and
+# release run under one lock that every site's deploy takes, and wait for it.
+lock=/tmp/regent-shared-db-release.lock
+echo "==> Deploying ${source_revision:0:7} to techtree-sh (waits for any other release holding $lock)"
+lockf -k "$lock" flyctl deploy \
   --app techtree-sh \
   --remote-only \
   --ha=false \
