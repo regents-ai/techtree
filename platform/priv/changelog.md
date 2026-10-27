@@ -1,5 +1,18 @@
 # Changelog
 
+## Website (2026-10-27)
+
+### Added
+
+- The Agent Wallet Bench tests two more agents, Muse Code and Grok Build, on
+  the same tests, wallets and model budget as the others. Their rows on the
+  scores fill in as their runs finish.
+
+### Fixed
+
+- The site runs on the latest security releases of its web server and
+  data libraries, which close several reported weaknesses.
+
 ## Website (2026-10-24)
 
 ### Added

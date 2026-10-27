@@ -8,6 +8,8 @@ function signedTransport() { return signedTools({
   trustedOrigins: [document.querySelector<HTMLMetaElement>('meta[name="agent-request-origin"]')?.content ?? ""],
   audience: manifest.audience,
   proofHeaders: manifest.proof_headers,
+  // The site keeps no visit log, so its calls carry no labels of their own.
+  requestHeaders: () => ({}),
   operations: manifest.tools.map(entry => ({...entry,
     input_schema: "operation_input_schema" in entry ? entry.operation_input_schema : entry.input_schema,
   })) as unknown as SignedOperation[],

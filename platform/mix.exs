@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "e600ed34ff9e388511798ffde0999b04cd4ec9e5"
+  @elixir_utils_ref "e796a9d527b839121145d2515da9f4d5689fe80b"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "9c2a817afeb3e65cc053d424032e0e90ec6d0e95"
 
@@ -105,11 +105,16 @@ defmodule Techtree.MixProject do
       {:sobelow, "~> 0.16", only: [:dev, :test], runtime: false},
       # Test too: precommit runs in the test environment and checks the AGENTS.md block.
       {:usage_rules, "~> 1.2.8", only: [:dev, :test], runtime: false},
-      {:ash_phoenix, "~> 2.0"},
-      # 2.13.1 and later write upserts without the Repo's schema, into public.
-      {:ash_postgres, "== 2.13.0"},
-      {:ash, "~> 3.36"},
-      {:ash_oban, "~> 0.10.0"},
+      {:ash_phoenix, "~> 2.3.26"},
+      # ash_postgres main with #910 until a Hex release carries it: upserts use the
+      # repo's prefix, which picks each site's schema on the shared database. It
+      # stands in for the Hex release that ash_money and ash_double_entry ask for.
+      {:ash_postgres,
+       git: "https://github.com/ash-project/ash_postgres.git",
+       ref: "55db7d449aad351d200c5f300fca2a83e0a8734c",
+       override: true},
+      {:ash, "~> 3.37"},
+      {:ash_oban, "~> 0.10.3"},
       {:oban, "~> 2.24"},
       {:nebulex, "~> 3.0"},
       {:nebulex_local, "~> 3.0"},
@@ -134,7 +139,7 @@ defmodule Techtree.MixProject do
       {:jason, "~> 1.2"},
       {:decimal, "== 3.2.0"},
       {:dns_cluster, "~> 0.3.0"},
-      {:bandit, "~> 1.13"}
+      {:bandit, "~> 1.14"}
     ]
   end
 
