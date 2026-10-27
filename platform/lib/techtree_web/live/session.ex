@@ -31,7 +31,8 @@ defmodule TechtreeWeb.Live.Session do
       "render_route" => local_route(conn.request_path, conn.query_string),
       "client_key" => ClientAddress.client_key(conn),
       "visit" => conn.assigns.visit,
-      "arrival" => conn.assigns[:arrival]
+      "arrival" => conn.assigns[:arrival],
+      "gpc" => conn.assigns.gpc
     })
   end
 

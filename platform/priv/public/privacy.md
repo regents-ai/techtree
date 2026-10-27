@@ -21,7 +21,7 @@ Signing in, and staying signed in, also connects your browser to these services,
 
 - `_techtree_key` is set when a page loads. It holds a random token that protects the page against forged requests, and it lasts until you close your browser. It does not identify you.
 - `techtree_theme` is set only when you press the light and dark switch. It holds `light` or `dark` and lasts a year.
-- `_visit` is set when a page loads. It holds a random code that groups one visit's activity, so we can count where visits come from (for example a search engine, an AI assistant or a social site) and how far they get, such as signing in or pairing an agent. It lasts until you close your browser. We record only the name of the site that sent you, never the address you came from.
+- `_visit` is set when a page loads. It holds a random code that groups one visit's activity, so we can count where visits come from (for example a search engine, an AI assistant or a social site) and how far they get, such as signing in or pairing an agent. It lasts until you close your browser. We record only the name of the site that sent you, never the address you came from. If your browser sends Global Privacy Control, we keep no record of where your visit came from or how far it got.
 
 ## The GitHub star count
 

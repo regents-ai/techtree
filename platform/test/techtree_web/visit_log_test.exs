@@ -199,6 +199,24 @@ defmodule TechtreeWeb.VisitLogTest do
     assert from.([], "/") == "direct"
   end
 
+  test "a visit that asks not to be tracked starts with no arrival" do
+    opened = fn headers ->
+      Enum.reduce(headers, conn(:get, "/docs"), fn {name, value}, conn ->
+        put_req_header(conn, name, value)
+      end)
+      |> put_req_header("accept", "text/html")
+      |> put_req_header("referer", "https://chatgpt.com/c/a-private-chat")
+      |> VisitLog.call([])
+    end
+
+    tracked = opened.([])
+    assert {tracked.assigns.arrival, tracked.assigns.gpc} == {"chatgpt", false}
+
+    untracked = opened.([{"sec-gpc", "1"}])
+    assert untracked.assigns.visit =~ @visit
+    assert {untracked.assigns[:arrival], untracked.assigns.gpc} == {nil, true}
+  end
+
   test "a page's own path is written as its route, and a page the site lacks as unmatched" do
     assert [
              {"page.error", "/results/:bundle_digest", "error"},

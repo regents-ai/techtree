@@ -31,6 +31,9 @@
   as signing in or pairing an agent. It keeps only the name of the site that
   sent you, never the address. The Privacy page names the cookie that groups
   one visit and says the site runs no outside analytics.
+- **Asking not to be tracked is respected.** If your browser sends Global
+  Privacy Control, the site keeps no record of where your visit came from or
+  how far it got. The privacy policy says so.
 
 ## Website (2026-10-24)
 

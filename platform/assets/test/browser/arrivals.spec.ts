@@ -47,3 +47,30 @@ for (const width of ["desktop", "phone"] as const) {
     await context.close()
   })
 }
+
+// A browser that sends Global Privacy Control is counted like any other page
+// view, but its visit writes no arrival and no step, on the page or in its reports.
+test("a visit that asks not to be tracked writes no arrival or step", async ({browser}) => {
+  const context = await browser.newContext()
+  const outside = await keepOffline(context)
+  const page = await context.newPage()
+  const errors = watchErrors(page)
+
+  await page.setExtraHTTPHeaders({"Sec-GPC": "1"})
+  await page.goto("/docs", {referer: "https://chatgpt.com/c/a-private-chat"})
+  await expect(page.locator("[data-phx-main].phx-connected")).toBeAttached()
+  const visit = (await context.cookies()).find(cookie => cookie.name === "_visit")!.value
+
+  await expect.poll(() => visitLines(visit).map(told)).toContain("page /docs")
+
+  const reported = page.waitForResponse(response => new URL(response.url()).pathname === "/visit-log")
+  await page.locator("#account-control [data-account-target='sign-in']").click()
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide")))
+  expect((await reported).status()).toBe(204)
+
+  const all = visitLines(visit).map(told)
+  expect(all.filter(line => line.startsWith("arrival") || line.startsWith("step"))).toEqual([])
+  expect(errors).toEqual([])
+  expect(outside).toEqual([])
+  await context.close()
+})

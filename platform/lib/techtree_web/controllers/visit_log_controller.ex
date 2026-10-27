@@ -21,8 +21,7 @@ defmodule TechtreeWeb.VisitLogController do
   def create(conn, params) do
     Logger.metadata(actor: VisitLog.actor(conn.assigns[:current_human_account]))
 
-    for {name, where, outcome} <- lines(params, conn.host),
-        do: VisitLog.record(name, where, outcome)
+    for line <- lines(params, conn.host), do: write(line)
 
     conn |> put_resp_header("cache-control", "no-store") |> send_resp(:no_content, "")
   end
@@ -49,6 +48,9 @@ defmodule TechtreeWeb.VisitLogController do
     do: [{"step", "sign_in_opened", nil}]
 
   defp line(_untrusted, _host), do: []
+
+  defp write({"step", step, nil}), do: VisitLog.step(step)
+  defp write({name, where, outcome}), do: VisitLog.record(name, where, outcome)
 
   defp named(name, where, outcome),
     do: if(Regex.match?(@name, where), do: [{name, where, outcome}], else: [])
