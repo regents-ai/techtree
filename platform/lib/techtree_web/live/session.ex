@@ -29,7 +29,9 @@ defmodule TechtreeWeb.Live.Session do
     |> rendered_topic()
     |> Map.merge(%{
       "render_route" => local_route(conn.request_path, conn.query_string),
-      "client_key" => ClientAddress.client_key(conn)
+      "client_key" => ClientAddress.client_key(conn),
+      "visit" => conn.assigns.visit,
+      "arrival" => conn.assigns[:arrival]
     })
   end
 

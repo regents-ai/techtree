@@ -25,7 +25,10 @@ import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionCount, MotionRefusal} from "./hooks/motion/moments"
 import {installPublicTools} from "./public_tools"
+import {installVisitLog} from "./visit_log"
 
+// First, so an error anywhere below is reported too.
+installVisitLog()
 mountMotion(document)
 installPublicTools()
 installCopyButtons()

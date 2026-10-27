@@ -123,6 +123,19 @@ if config_env() == :dev and Phoenix.Endpoint.server?(:techtree, TechtreeWeb.Endp
   end
 end
 
+# The browser tests' server (assets/playwright.config.ts) writes its lines in
+# production's shape to a file of its own, which assets/test/browser/visits.spec.ts
+# reads to replay a visit.
+if config_env() == :test and System.get_env("TECHTREE_BROWSER_TEST") == "1" do
+  partition = System.get_env("MIX_TEST_PARTITION")
+
+  config :logger, level: :info
+
+  config :logger, :default_handler,
+    config: [file: String.to_charlist(Path.expand("../tmp/#{partition}-lines.jsonl", __DIR__))],
+    formatter: LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
+end
+
 config :techtree,
   deployed_source_revision: System.get_env("TECHTREE_SOURCE_REVISION", "development")
 
@@ -206,6 +219,11 @@ config :techtree,
 
 if config_env() == :prod do
   config :techtree, :session_options, secure: true, http_only: true
+
+  # One JSON object a line, which Fly Sentinel reads, carrying only the visit
+  # fields (TechtreeWeb.VisitLog). Release commands write the same shape.
+  config :logger, :default_handler,
+    formatter: LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
 
   network_signing_key =
     System.get_env("TECHTREE_NETWORK_SIGNING_KEY") ||

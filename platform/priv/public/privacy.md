@@ -22,6 +22,8 @@ Signing in, and staying signed in, also connects your browser to these services,
 - `_techtree_key` is set when a page loads. It holds a random token that protects the page against forged requests, and it lasts until you close your browser. It does not identify you.
 - `techtree_theme` is set only when you press the light and dark switch. It holds `light` or `dark` and lasts a year.
 
+A cookie that ends when your browser closes groups one visit's activity, so we can count where visits come from (for example a search engine, an AI assistant or a social site) and how far they get, such as signing in or pairing an agent. We record only the name of the site that sent you, never the address you came from.
+
 ## The GitHub star count
 
 Techtree reads the star count beside "Star" from GitHub itself and sends it with the page. Your browser never contacts GitHub for it.

@@ -72,6 +72,8 @@ defmodule TechtreeWeb.Endpoint do
   end
 
   plug Plug.RequestId
+  # Which visit, and which kind of caller, each line of this request belongs to.
+  plug TechtreeWeb.VisitLog
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
   # Before the parser, so a caller over the publication limit costs no read.
@@ -93,8 +95,8 @@ defmodule TechtreeWeb.Endpoint do
   # address that names nothing.
   plug TechtreeWeb.Plugs.NoTrailingSlash
 
-  # One budget per caller, shared by the health check, every `/api` path,
-  # answered or not, except publishing, which `TechtreeWeb.PublicationRate`
+  # One budget per caller, shared by the health check, the browser's visit
+  # reports, every `/api` path, answered or not, except publishing, which `TechtreeWeb.PublicationRate`
   # counts on its own, and the Wallet Bench's scores and downloads, each of
   # which reads the whole table or a stored file. Every answer says what is
   # left of it; past it the answer is 429 with Retry-After. Pages are never
@@ -126,6 +128,9 @@ defmodule TechtreeWeb.Endpoint do
                 admit: &Techtree.RateLimit.admit/3,
                 key: &TechtreeWeb.ClientAddress.key/1
               )
+
+  defp limit_rate(%Plug.Conn{method: "POST", path_info: ["visit-log"]} = conn, _opts),
+    do: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
 
   defp limit_rate(conn, _opts) do
     case Enum.map(conn.path_info, &URI.decode/1) do

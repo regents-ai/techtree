@@ -46,6 +46,8 @@ defmodule TechtreeWeb do
     quote do
       use Phoenix.LiveView
 
+      on_mount TechtreeWeb.VisitLog
+
       unquote(html_helpers())
     end
   end

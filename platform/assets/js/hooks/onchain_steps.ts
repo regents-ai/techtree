@@ -1,6 +1,7 @@
 import type {Address, Hash, Hex} from "viem"
 
 import type {Hook} from "../hook_composition"
+import {report} from "../visit_log"
 import {activeEthereumWallet} from "../wallet_actions/connected_wallet"
 import {
   failure,
@@ -82,17 +83,22 @@ export const OnchainSteps: Hook = {
       const form = formInputs(this.el)
       const asks = Object.keys(form).length > 0 && (!this.review || !sameInputs(this.review.inputs, form))
       lost(this.el, false)
+      // The server never heard the press, so it cannot say why; the page does, and
+      // reports it.
+      const unheard = () => {
+        lost(this.el, true)
+        report({name: "press.unsent", where: name, outcome: "lost"})
+      }
 
       if (activeEthereumWallet() && asks) {
         void this.pushEventTo(this.el, "prepare_and_send", {form, step: name})
           .then(async ([result]) => {
-            // The server never heard the press, so it cannot say why; the page does.
-            if (result?.status !== "fulfilled") return lost(this.el, true)
+            if (result?.status !== "fulfilled") return unheard()
             const reply = result.value.reply as {review?: Review; send?: string}
             if (reply.review && reply.send) await press(reply.review, reply.send, push)
             else push("step_failed", {step: name, reason: "step_unknown"})
           })
-          .catch(() => lost(this.el, true))
+          .catch(unheard)
           .finally(release)
       } else {
         void press(this.review, name, push).finally(release)
