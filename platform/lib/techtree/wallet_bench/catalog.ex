@@ -22,6 +22,8 @@ defmodule Techtree.WalletBench.Catalog do
 
   @harnesses Map.new(
                [
+                 %{id: "H01", name: "Muse Code", tests: [:T1a, :T1b, :T2, :T2_signature]},
+                 %{id: "H02", name: "Grok Build", tests: [:T1a, :T1b, :T2, :T2_signature]},
                  %{id: "H04", name: "Hermes Agent", tests: [:T1a, :T1b, :T2, :T2_signature]},
                  %{id: "H05", name: "Claude Code", tests: [:T1a, :T1b, :T2, :T2_signature]},
                  %{id: "H06", name: "Cline", tests: @install_tests},

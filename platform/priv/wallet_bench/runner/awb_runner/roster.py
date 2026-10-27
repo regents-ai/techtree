@@ -1,9 +1,9 @@
-"""The ten agents the bench tests: each one's Harbor adapter and model. Their pinned releases are in harnesses.json.
+"""The twelve agents the bench tests: each one's Harbor adapter and model. Their pinned releases are in harnesses.json.
 
 Every agent talks to claude-opus-5-5 through the machine's translator (LiteLLM on 127.0.0.1:4000), which sends every
 call to Anthropic with adaptive thinking at effort high, counts cost and refuses new calls once the attempt reaches $5.
-Claude Code speaks Anthropic's format; the others speak OpenAI's chat or Responses format, which the translator turns
-into Anthropic's. The agents only hold the machine's local translator token, never the Claude key.
+Claude Code and Grok Build speak Anthropic's format; the others speak OpenAI's chat or Responses format, which the
+translator turns into Anthropic's. Muse Code reaches the translator through the gate (muse_gate.py). The agents only hold the machine's local translator token, never the Claude key.
 """
 import json
 import os
@@ -21,11 +21,14 @@ from .agents import (
     ClaudeCodeAgent,
     ClineAgent,
     DeepSeekHarness,
+    GrokBuildAgent,
     HermesAgent,
     KiloCode,
+    MuseCodeAgent,
     OhMyPi,
     PiAgent,
 )
+from .muse_gate import GATE
 from .prime import PrimeAgent
 
 # Where every adapter keeps the agent's sessions and output on the machine, for the whole attempt.
@@ -45,6 +48,12 @@ class Harness:
 
 
 ROSTER = {
+    "H01": Harness("Muse Code", MuseCodeAgent, "meta/claude-opus-5-5", "muse-code.jsonl", {"base_url": GATE}),
+    "H02": Harness(
+        "Grok Build", GrokBuildAgent, "anthropic/claude-opus-5-5", "grok-build.txt",
+        {"grok_config": {"model": {"claude-opus-5-5": {"base_url": TRANSLATOR}}}},
+        package="@xai-official/grok",
+    ),
     "H04": Harness("Hermes Agent", HermesAgent, "openai/claude-opus-5-5", "hermes.txt"),
     "H05": Harness("Claude Code", ClaudeCodeAgent, "claude-opus-5-5", "claude-code.txt"),
     "H06": Harness("Cline", ClineAgent, "openai-compatible:claude-opus-5-5", "cline.txt", package="cline"),
@@ -90,6 +99,7 @@ def agent(harness_id: str) -> BaseInstalledAgent:
         ANTHROPIC_API_KEY=token,
         ANTHROPIC_BASE_URL=TRANSLATOR.removesuffix("/v1"),
         API_KEY=token,
+        META_API_KEY=token,
     )
     tested = harness.adapter(
         logs_dir=LOGS,
@@ -100,7 +110,7 @@ def agent(harness_id: str) -> BaseInstalledAgent:
     )
     if harness_id == "H04":
         tested.COMMIT = release["source_ref"]
-    if harness_id in ("H05", "H09"):
+    if harness_id in ("H01", "H05", "H09"):
         tested.BINARY_SHA256 = release["archive_sha256"]
     if harness_id == "H16":
         tested.archive_sha256 = release["archive_sha256"]

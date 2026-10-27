@@ -5,6 +5,8 @@ those three are written here, each from the 1 October survey's working recipe (p
 the machine's translator, headless flags) and reusing Harbor's trajectory converter where the agent is a fork of one
 Harbor already reads (Kilo of OpenCode, oh-my-pi of Pi). Hermes and Cline use Harbor's adapters with the survey's
 pinned install and translator sign-in in place of Harbor's latest-release install, and Pi with the survey's settings.
+Grok Build and Muse Code use Harbor's adapters with a pinned install in place of their makers' latest-release
+installers.
 
 An adapter that continues a conversation by its id reads `resume_session_id`, which the runner sets from the
 controller before a later turn.
@@ -19,7 +21,9 @@ from harbor.agents.installed.base import BaseInstalledAgent
 from harbor.agents.capabilities import AgentCapabilities
 from harbor.agents.installed.claude_code import ClaudeCode
 from harbor.agents.installed.cline.cline import ClineCli, ExecInput
+from harbor.agents.installed.grok_build import GrokBuild
 from harbor.agents.installed.hermes import Hermes
+from harbor.agents.installed.muse_code import MuseCode
 from harbor.agents.installed.opencode import OpenCode
 from harbor.agents.installed.pi import Pi
 from harbor.agents.model_connection import ModelConnectionSpec
@@ -35,7 +39,7 @@ from harbor.models.trajectories import (
 )
 from harbor.utils.trajectory_utils import format_trajectory_json
 
-from . import digest
+from . import digest, muse_gate
 
 TRANSLATOR = "http://127.0.0.1:4000/v1"
 MODEL = "claude-opus-5-5"
@@ -140,6 +144,82 @@ class ClineAgent(ClineCli):
         setup, run = super().create_run_agent_commands(instruction)
         signed_in = run.command.replace(" -P openai-compatible -k $API_KEY -m $MODELID", "")
         return [setup, ExecInput(command=signed_in.replace(" --yolo", " --auto-approve true"), env=run.env)]
+
+
+class GrokBuildAgent(GrokBuild):
+    """Grok Build from its npm package at the pinned version, as in the survey, with the package's own install script
+    allowed by name: it copies Grok's native program to ~/.grok/bin. The tested account finds npm's copy first, which
+    is the one npm.py checks. Its model is the translator, in Anthropic's Messages format.
+
+    Grok continues a conversation with `--resume <id>`; its `--session-id` only starts one."""
+
+    capabilities = AgentCapabilities(atif=True, resume=True)
+    _PATH_EXPORT = 'export PATH="$HOME/.local/bin:$PATH"'
+    resume_session_id: str | None = None
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        await self.ensure_system_dependencies(environment, ("curl", "bash", "ca_certificates", "coreutils", "procps"))
+        await self.exec_as_agent(
+            environment,
+            command=(
+                "set -euo pipefail; "
+                'npm install --global --prefix "$HOME/.local" --no-audit --no-fund '
+                f"--allow-scripts=@xai-official/grok @xai-official/grok@{self._version} && "
+                f"{self._PATH_EXPORT} && grok --version"
+            ),
+        )
+
+    async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
+        # Product telemetry and session-trace uploads off, as in the survey.
+        with environment.scoped_exec_env({"GROK_TELEMETRY_ENABLED": "0"}):
+            await super().run(instruction, environment, context)
+
+    async def resume(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
+        self._session_id = self.resume_session_id
+        await super().resume(instruction, environment, context)
+
+    def _build_run_script(self, escaped_instruction: str) -> str:
+        script = super()._build_run_script(escaped_instruction)
+        if self._resume:
+            return script.replace(f"--session-id {self._session_id}", f"--resume {self._session_id}")
+        return script
+
+
+class MuseCodeAgent(MuseCode):
+    """Muse Code, the pinned release's Linux program from Meta's download address, checked against the SHA-256 in
+    that release's manifest. Muse Code reaches the translator through the gate (muse_gate.py), which runs for the
+    length of each turn. It continues a conversation from Harbor's own record of it in the agent's logs."""
+
+    # The pinned release's published SHA-256 (its manifest.json, muse-x86-linux), set from the pin (roster.py).
+    BINARY_SHA256 = ""
+    DOWNLOAD = "https://lookaside.facebook.com/lookaside/muse/download/?channel=muse&version={}&file=muse-x86-linux"
+
+    def parse_version(self, stdout: str) -> str:
+        # "Muse Code 1.4.13 (1.4.13-R6996.1)"
+        return re.search(r"\((\S+)\)", stdout).group(1)
+
+    async def install(self, environment: BaseEnvironment) -> None:
+        await self.exec_as_agent(
+            environment,
+            command=(
+                "set -euo pipefail; "
+                'test "$(uname -m)" = x86_64 && '
+                f"curl --proto '=https' -fsSL {shlex.quote(self.DOWNLOAD.format(self._version))} -o /tmp/muse"
+            ),
+        )
+        await digest.held(self, environment, self.BINARY_SHA256, "/tmp/muse")
+        await self.exec_as_agent(
+            environment,
+            command=(
+                "set -euo pipefail; "
+                "mkdir -p ~/.local/bin && install -m 755 /tmp/muse ~/.local/bin/muse && rm /tmp/muse && "
+                f"{self._PATH_EXPORT} && MUSE_NO_AUTO_UPDATE=1 muse --version"
+            ),
+        )
+
+    async def run(self, instruction: str, environment: BaseEnvironment, context: AgentContext) -> None:
+        with muse_gate.serving(MODEL):
+            await super().run(instruction, environment, context)
 
 
 class KiloCode(OpenCode):

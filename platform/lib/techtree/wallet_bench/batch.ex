@@ -282,7 +282,7 @@ defmodule Techtree.WalletBench.Batch do
     check(Map.keys(pin) -- ~w(version source_ref) == [], "Hermes pin fields")
   end
 
-  defp validate_source!(id, pin) when id in ["H05", "H09", "H16"] do
+  defp validate_source!(id, pin) when id in ["H01", "H05", "H09", "H16"] do
     check(
       is_binary(pin["archive_sha256"]) && Regex.match?(@sha, pin["archive_sha256"]),
       "release archive requires SHA-256"

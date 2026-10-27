@@ -89,6 +89,9 @@ class Machine(BaseEnvironment):
         return min(limits) if limits else None
 
     async def upload_file(self, source_path: Path | str, target_path: str):
+        # The agent's logs are one folder seen from both sides (roster.LOGS), so a file there is already in place.
+        if Path(target_path).exists() and Path(source_path).samefile(target_path):
+            return
         Path(target_path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(source_path, target_path)
 

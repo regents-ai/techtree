@@ -1,4 +1,6 @@
 {
+  "H01": {"version": "1.4.13-R6996.1", "archive_sha256": "51e97f8de0aa175080e6576cbc055510a95dfe0ededf175c7f6b34fc8e3bf524"},
+  "H02": {"version": "1.0.70", "integrity": "sha512-Q2Ncoez//mk1Z9CNhgvp9eAYfZJZmshDAPxs0XAhhGnilH3abGAyTwqOSvqVnsFCUjjzT9TCYZIgAH2A2XL6CQ=="},
   "H04": {"version": "0.21.6", "source_ref": "818c13be1dc4fd28987e1e881a9408224afd4535"},
   "H05": {"version": "2.1.296", "archive_sha256": "24972e3bc859fab2b46ed4c1e51f7d6130f06d3bd550811a114640de3370d0de"},
   "H06": {"version": "3.0.70", "integrity": "sha512-ekeGJ7YdVKL9p//KF0F5nxFXMvgSuhwPxvCUkS+SaBDJJoOUt+HMeJS+J+hkF3ezPekbSvpK1wCPGraZbAEO8A=="},
