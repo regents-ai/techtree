@@ -11,8 +11,14 @@ defmodule Techtree.Agents.Agent do
   answer naming nobody, or someone else, changes nothing. Each answer naming them
   updates how many agent wallets they stand behind.
 
-  The same record as ash-template's `AshTemplate.Agents.Agent`, without the room post
-  and profile Techtree has no page for.
+  The same record as ash-template's `AshTemplate.Agents.Agent`, with Techtree's
+  differences:
+
+  - no room post or profile, and no `get_agent` lookup: Techtree has no page that
+    shows an agent;
+  - no database default for `last_seen_at`. The template's default lets an older
+    release, written before the column, add agents beside a newer one; Techtree's
+    table starts with the column, so `sign_in` always sets it.
   """
 
   use Ash.Resource,
@@ -23,10 +29,6 @@ defmodule Techtree.Agents.Agent do
   postgres do
     table "agents"
     repo Techtree.Repo
-
-    # The database fills it too, so a release that does not know the column can
-    # still add agents while an older and a newer release run side by side.
-    migration_defaults last_seen_at: "fragment(\"now()\")"
 
     check_constraints do
       check_constraint :world_id_human_id, "world_id_whole",

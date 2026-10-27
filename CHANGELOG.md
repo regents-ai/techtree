@@ -28,6 +28,13 @@
 
 ### Changed
 
+- **Clearer answers for agents.** An agent that sends a signed request to
+  publish a Result, keep a Model Climb report or read its person's balances
+  and Points, but isn't paired or whose person hasn't signed in here yet, is
+  told which, and what to do next. An agent unpaired while a request runs
+  gets none of its person's details back. When an agent can't be signed in
+  for a moment, the answer says agent_unavailable; send it again. The
+  Privacy page says what Techtree keeps about an agent's wallet.
 - Each paired agent's row shows its whole name and address, with See Actions
   and Unpair beneath. The agent's window names its parts Allowed Agent
   Actions, Spending and Activity, and explains the agent's address.

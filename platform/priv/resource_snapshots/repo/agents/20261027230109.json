@@ -50,7 +50,7 @@
     },
     {
       "allow_nil?": false,
-      "default": "fragment(\"now()\")",
+      "default": "nil",
       "generated?": false,
       "precision": null,
       "primary_key?": false,
@@ -88,7 +88,7 @@
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "4E184FFED19BCC76DD5D00CE07375119564D84F0FFD06626EDB8DE53077D06FD",
+  "hash": "46487AA2BFF8B4CBC34268ECF930AE314004530ED7945D7D3BCF22EC0DE3B057",
   "identities": [
     {
       "all_tenants?": false,

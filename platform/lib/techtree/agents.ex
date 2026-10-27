@@ -11,7 +11,6 @@ defmodule Techtree.Agents do
     resource Techtree.Agents.Agent do
       define :sign_in_agent, action: :sign_in, args: [:wallet_address]
       define :record_backing, action: :record_backing, args: [:human_id, :agent_count]
-      define :get_agent, action: :read, get_by: [:id]
     end
   end
 end

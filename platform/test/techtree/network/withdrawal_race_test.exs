@@ -18,9 +18,10 @@ defmodule Techtree.Network.WithdrawalRaceTest do
   setup do
     {public, _private} = keys = NetworkFixture.key_pair()
 
-    entry =
+    {entry, agents} =
       Sandbox.unboxed_run(Repo, fn ->
-        NetworkFixture.seed_entry(participant_public_key: Base.encode64(public))
+        {NetworkFixture.seed_entry(participant_public_key: Base.encode64(public)),
+         [NetworkFixture.paired_agent(), NetworkFixture.paired_agent()]}
       end)
 
     on_exit(fn ->
@@ -33,23 +34,32 @@ defmodule Techtree.Network.WithdrawalRaceTest do
         )
 
         Repo.query!("DELETE FROM #{table("network_publication_entries")} WHERE id = $1", [id])
+        Enum.each(agents, &remove_agent/1)
       end)
     end)
 
-    {:ok, entry: entry, keys: keys}
+    {:ok, entry: entry, keys: keys, agents: agents}
   end
 
+  # Each racer's agent record, as `NetworkFixture.paired_agent/0` wrote it. Its
+  # pairing and person rows stay: they sit in tables no test empties.
+  defp remove_agent(agent),
+    do:
+      Repo.query!("DELETE FROM #{table("agents")} WHERE id = $1", [
+        Ecto.UUID.dump!(agent.agent_id)
+      ])
+
   test "two withdrawals at once append one event and answer with one receipt", context do
-    %{entry: entry, keys: keys} = context
+    %{entry: entry, keys: keys, agents: agents} = context
     request = NetworkFixture.withdrawal(entry.bundle_digest, keys)
     parent = self()
 
     racers =
-      for _racer <- 1..2 do
+      for agent <- agents do
         Task.async(fn ->
           Sandbox.unboxed_run(Repo, fn ->
             send(parent, {:ready, self()})
-            receive do: (:go -> NetworkFixture.withdraw(request))
+            receive do: (:go -> NetworkFixture.withdraw(request, agent))
           end)
         end)
       end

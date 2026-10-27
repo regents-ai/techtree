@@ -278,8 +278,10 @@ defmodule TechtreeWeb.OpenAPI do
               |> Map.put("headers", %{"Retry-After" => header_ref("RetryAfter")}),
             "503" =>
               error(
-                "The site cannot sign a new receipt right now, so nothing was recorded; " <>
-                  "the same body can be sent again."
+                "`agent_unavailable` or `siwa_request_failed`: the agent could not be signed " <>
+                  "in right now. `unavailable`: the pairing could not be checked again before " <>
+                  "answering. Otherwise the site cannot sign a new receipt right now. " <>
+                  "The same body can be sent again."
               )
           }
         }
@@ -507,8 +509,10 @@ defmodule TechtreeWeb.OpenAPI do
             "413" => error("The body is larger than 1 MiB."),
             "503" =>
               error(
-                "`agent_unavailable`: the agent could not be signed in right now. " <>
-                  "`unavailable`: the report could not be kept. Try again."
+                "`agent_unavailable` or `siwa_request_failed`: the agent could not be signed " <>
+                  "in right now. `unavailable`: the report could not be kept, or the pairing " <>
+                  "could not be checked again before answering. Try again with the same " <>
+                  "Idempotency-Key."
               )
           }
         },
