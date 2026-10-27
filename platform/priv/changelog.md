@@ -26,6 +26,11 @@
 - Credits, Points and USDC amounts read the same way on every Regent site:
   from 1 up, two decimals with thousands grouped, such as 1,250.00; below 1,
   three significant digits, such as 0.400. Amounts are never rounded up.
+- The site counts its own visits: where each one came from, such as a
+  search engine, an AI assistant or a social site, and how far it got, such
+  as signing in or pairing an agent. It keeps only the name of the site that
+  sent you, never the address. The Privacy page names the cookie that groups
+  one visit and says the site runs no outside analytics.
 
 ## Website (2026-10-24)
 
