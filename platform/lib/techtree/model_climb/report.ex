@@ -34,8 +34,8 @@ defmodule Techtree.ModelClimb.Report do
       upsert_fields []
 
       change set_attribute(:owner_privy_user_id, actor(:privy_user_id))
-      change set_attribute(:pairing_id, actor(:id))
-      change set_attribute(:acting_agent_wallet, actor(:wallet))
+      change set_attribute(:pairing_id, actor(:pairing_id))
+      change set_attribute(:acting_agent_wallet, actor(:wallet_address))
       change set_attribute(:idempotency_key, arg(:idempotency_key))
       change Techtree.ModelClimb.Report.Verify
     end
@@ -53,7 +53,7 @@ defmodule Techtree.ModelClimb.Report do
 
   policies do
     policy action(:submit) do
-      authorize_if actor_present()
+      authorize_if actor_attribute_equals(:pairing, :active)
     end
 
     policy action_type(:read) do

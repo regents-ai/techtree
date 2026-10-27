@@ -1,4 +1,4 @@
-defmodule TechtreeWeb.Plugs.PairedAgentTest do
+defmodule TechtreeWeb.Plugs.AgentWalletTest do
   use TechtreeWeb.ConnCase, async: false
 
   alias Ecto.Adapters.SQL
@@ -19,7 +19,7 @@ defmodule TechtreeWeb.Plugs.PairedAgentTest do
       [owner, wallet]
     )
 
-    NetworkFixture.sign_as(%{wallet: wallet})
+    NetworkFixture.sign_as(%{wallet_address: wallet})
 
     response = conn |> NetworkFixture.signed() |> get(~p"/api/model-climb/v1/reports")
 

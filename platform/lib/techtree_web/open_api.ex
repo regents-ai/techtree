@@ -507,8 +507,8 @@ defmodule TechtreeWeb.OpenAPI do
             "413" => error("The body is larger than 1 MiB."),
             "503" =>
               error(
-                "`pairing_unavailable` or `account_unavailable`: the pairing or account could " <>
-                  "not be checked. `unavailable`: the report could not be kept. Try again."
+                "`agent_unavailable`: the agent could not be signed in right now. " <>
+                  "`unavailable`: the report could not be kept. Try again."
               )
           }
         },

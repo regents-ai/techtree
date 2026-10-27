@@ -46,7 +46,7 @@ config :regent_agents,
   repo: Techtree.Repo,
   pubsub: Techtree.PubSub,
   notifications: Techtree.Notifications,
-  account: {Techtree.Agents, :account},
+  account: {Techtree.Agents.PairedAccount, :account},
   allowed: %{
     "not_paired" => [
       "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",
@@ -120,6 +120,7 @@ config :techtree,
   ecto_repos: [Techtree.Repo],
   ash_domains: [
     Techtree.Accounts,
+    Techtree.Agents,
     Techtree.Points,
     Techtree.Catalog,
     Techtree.Network,

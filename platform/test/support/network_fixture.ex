@@ -24,6 +24,8 @@ defmodule Techtree.NetworkFixture do
   send.
   """
 
+  alias Techtree.Agents
+  alias Techtree.Actors.{Agent, System}
   alias Techtree.Canonical
   alias Techtree.Catalog.Digest
   alias Techtree.Network.Key
@@ -408,8 +410,8 @@ defmodule Techtree.NetworkFixture do
   header, and as a missing proof otherwise. Only the stub's verdict is
   fixture; the pairing and account checks after it are the site's own.
   """
-  @spec sign_as(%{wallet: String.t()}) :: :ok
-  def sign_as(%{wallet: wallet}) do
+  @spec sign_as(%{wallet_address: String.t()}) :: :ok
+  def sign_as(%{wallet_address: wallet}) do
     Req.Test.stub(RegentAgents.Broker, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
 
@@ -452,25 +454,27 @@ defmodule Techtree.NetworkFixture do
   @doc """
   An agent paired with a person's Regent account: the account row and the
   pairing row, written where Regents writes them (`priv/repo/shared_tables.sql`
-  and regent_agents' own schema), returned as the publication routes hand it
-  to the ingest. Both go through the named repository, which is where
-  `RegentAgents.Authority` reads pairings, even while a test runs on a
-  dynamic one.
+  and regent_agents' own schema), returned as the actor
+  `TechtreeWeb.Plugs.AgentWallet` makes of the agent's signed request. Both go
+  through the named repository, which is where `RegentAgents.Authority` reads
+  pairings, even while a test runs on a dynamic one.
   """
-  @spec paired_agent() :: %{id: String.t(), privy_user_id: String.t(), wallet: String.t()}
+  @spec paired_agent() :: %Agent{}
   def paired_agent do
     owner = "did:privy:" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
     wallet = "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
 
-    SQL.query!(
-      Repo,
-      """
-      INSERT INTO regent_names.platform_human_users
-        (privy_user_id, wallet_address, wallet_addresses, created_at, updated_at)
-      VALUES ($1, $2::varchar, ARRAY[$2::varchar], now(), now())
-      """,
-      [owner, wallet]
-    )
+    %{rows: [[account_id]]} =
+      SQL.query!(
+        Repo,
+        """
+        INSERT INTO regent_names.platform_human_users
+          (privy_user_id, wallet_address, wallet_addresses, created_at, updated_at)
+        VALUES ($1, $2::varchar, ARRAY[$2::varchar], now(), now())
+        RETURNING id
+        """,
+        [owner, wallet]
+      )
 
     %{rows: [[id]]} =
       SQL.query!(
@@ -484,7 +488,9 @@ defmodule Techtree.NetworkFixture do
         [owner, wallet]
       )
 
-    %{id: Ecto.UUID.load!(id), privy_user_id: owner, wallet: wallet}
+    {:ok, agent} = Agents.sign_in_agent(wallet, actor: %System{})
+    account = %{id: account_id, display_name: nil, wallet_address: wallet}
+    Agent.paired(agent, account, %{id: Ecto.UUID.load!(id), privy_user_id: owner})
   end
 
   @doc """
