@@ -13,6 +13,12 @@
 - The site runs on the latest security releases of its web server and
   data libraries, which close several reported weaknesses.
 
+### Changed
+
+- Each paired agent's row shows its whole name and address, with See Actions
+  and Unpair beneath. The agent's window names its parts Allowed Agent
+  Actions, Spending and Activity, and explains the agent's address.
+
 ## Website (2026-10-24)
 
 ### Added

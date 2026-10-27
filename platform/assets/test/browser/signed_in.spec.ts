@@ -154,7 +154,7 @@ for (const width of ["desktop", "phone"] as const) {
     const errors = watchErrors(page)
     const press = (target: Locator) => (hasTouch ? target.tap() : target.click())
     await page.goto("/account", {waitUntil: "networkidle"})
-    await press(page.getByRole("button", {name: `See what ${agent} has done`}))
+    await press(page.getByRole("button", {name: `See ${agent}’s actions`}))
 
     const agentWindow = page.getByRole("dialog", {name: agent})
     const name = agentWindow.getByRole("textbox", {name: "Name"})
@@ -179,7 +179,7 @@ for (const width of ["desktop", "phone"] as const) {
       renamedWindow.getByText(`Saved. This agent is now called ${renamed} on every Regent site.`),
     ).toBeVisible()
     await expect(renamedWindow.getByRole("alert")).toHaveCount(0)
-    await expect(page.getByRole("button", {name: `See what ${renamed} has done`})).toBeAttached()
+    await expect(page.getByRole("button", {name: `See ${renamed}’s actions`})).toBeAttached()
     expect(errors).toEqual([])
     expect(outside).toEqual([])
     await context.close()

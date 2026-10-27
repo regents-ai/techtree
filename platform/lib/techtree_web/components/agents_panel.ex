@@ -166,9 +166,9 @@ defmodule TechtreeWeb.AgentsPanel do
             phx-click="open_agent"
             phx-value-id={agent.id}
             phx-target={@myself}
-            aria-label={"See what #{agent.name} has done"}
+            aria-label={"See #{agent.name}’s actions"}
           >
-            See what it has done
+            See Actions
           </P.button>
           <P.button
             type="button"
