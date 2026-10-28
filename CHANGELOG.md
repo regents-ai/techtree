@@ -1,5 +1,18 @@
 # Changelog
 
+## Website (2026-10-28)
+
+### Added
+
+- The agent skill walks an agent through testing a Skill with the command line,
+  from checking the machine to comparing the two runs, and names the browser
+  tools an agent can read with. No browser tool runs a test.
+
+### Changed
+
+- The agent skill's list of things to keep an eye on is headed "Watch list",
+  and it names the command that reads new Results.
+
 ## Website (2026-10-27)
 
 ### Added
