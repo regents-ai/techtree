@@ -328,6 +328,15 @@ own Privy settings and a revocable server session, so every page is served under
 sign-in content policy. Pairing uses that verified account; publication still needs
 its independent proof. Points earning and money tests remain disabled.
 
+An agent signs every request with its wallet, and ash-template's
+`TechtreeWeb.Plugs.AgentWallet` signs it in: its first signed request adds its row
+to `agents` (`Techtree.Agents.Agent`), and it acts as `Techtree.Actors.Agent`,
+itself or paired with its person. The three agent addresses, `POST
+/api/v1/publications`, `/api/model-climb/v1/reports` and `/tools/account`, admit
+only an agent acting as its person; any other agent is refused with
+`agent_not_paired` or `person_not_here`. The pairing is read again just before the
+answer leaves, so an unpairing during a request never sends the person's data.
+
 `ETHEREUM_READ_RPC_URL` optionally enables the template's ENS lookup at sign-in.
 It must be HTTPS and is ignored in tests. No lookup runs when it is absent.
 `TECHTREE_BASE_NODE_URL` and `TECHTREE_ETHEREUM_NODE_URL` optionally name the site's

@@ -100,6 +100,7 @@ defmodule Techtree.Network.Ingest do
   table nothing else in this application may read.
   """
 
+  alias Techtree.Actors.Agent
   alias Techtree.Canonical
   alias Techtree.Catalog.Digest
   alias Techtree.Catalog.Route
@@ -247,8 +248,7 @@ defmodule Techtree.Network.Ingest do
 
   defp actor(options) do
     case Keyword.get(options, :actor) do
-      %{id: id, privy_user_id: owner, wallet: wallet} = actor
-      when is_binary(id) and is_binary(owner) and is_binary(wallet) ->
+      %Agent{pairing: :active} = actor ->
         {:ok, actor}
 
       _other ->
@@ -256,7 +256,7 @@ defmodule Techtree.Network.Ingest do
     end
   end
 
-  defp current_actor(%{id: id, privy_user_id: owner, wallet: wallet}) do
+  defp current_actor(%Agent{pairing_id: id, privy_user_id: owner, wallet_address: wallet}) do
     case RegentAgents.Authority.resolve(Repo, wallet) do
       {:ok, %{id: ^id, privy_user_id: ^owner}} ->
         :ok
@@ -272,7 +272,7 @@ defmodule Techtree.Network.Ingest do
     end
   end
 
-  defp lock_actor!(%{id: id, privy_user_id: owner, wallet: wallet}) do
+  defp lock_actor!(%Agent{pairing_id: id, privy_user_id: owner, wallet_address: wallet}) do
     case RegentAgents.Authority.lock(Repo, id, owner, wallet) do
       {:ok, pairing} ->
         %{

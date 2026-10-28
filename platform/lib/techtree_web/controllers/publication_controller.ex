@@ -252,7 +252,7 @@ defmodule TechtreeWeb.PublicationController do
     PublicationRate.admit(
       conn,
       "publication-agent",
-      {:publication_agent, conn.assigns.publication_actor.wallet},
+      {:publication_agent, conn.assigns.actor.wallet_address},
       Network.agent_rate_limit()
     )
   end
@@ -267,7 +267,7 @@ defmodule TechtreeWeb.PublicationController do
 
   defp record(conn, bytes, loaded) do
     options = [
-      actor: conn.assigns.publication_actor,
+      actor: conn.assigns.actor,
       contributor_address: volunteered(conn),
       skill_name: header(conn, "x-techtree-skill-name"),
       skill_github_url: header(conn, "x-techtree-skill-github-url"),
@@ -296,8 +296,8 @@ defmodule TechtreeWeb.PublicationController do
   defp withdraw(conn, bytes, loaded) do
     withdrawn =
       case loaded do
-        {:ok, key} -> Ingest.withdraw(bytes, key, origin(), actor: conn.assigns.publication_actor)
-        :error -> Ingest.recall_withdrawal(bytes, actor: conn.assigns.publication_actor)
+        {:ok, key} -> Ingest.withdraw(bytes, key, origin(), actor: conn.assigns.actor)
+        :error -> Ingest.recall_withdrawal(bytes, actor: conn.assigns.actor)
       end
 
     case withdrawn do

@@ -12,7 +12,7 @@ defmodule TechtreeWeb.ModelClimbReportController do
   @answer_version "techtree.model-climb.operation.v1alpha1"
 
   def create(conn, params) do
-    actor = conn.assigns.publication_actor
+    actor = conn.assigns.actor
 
     case get_req_header(conn, "idempotency-key") do
       [key] when byte_size(key) in 1..255 ->
@@ -32,13 +32,13 @@ defmodule TechtreeWeb.ModelClimbReportController do
   end
 
   def index(conn, _params) do
-    reports = ModelClimb.list_my_reports!(actor: conn.assigns.publication_actor)
+    reports = ModelClimb.list_my_reports!(actor: conn.assigns.actor)
 
     answer(conn, 200, "model_climb_reports", %{reports: Enum.map(reports, &summary/1)}, [])
   end
 
   def show(conn, %{"digest" => digest}) do
-    case ModelClimb.get_my_report(digest, actor: conn.assigns.publication_actor) do
+    case ModelClimb.get_my_report(digest, actor: conn.assigns.actor) do
       {:ok, %{} = report} ->
         answer(
           conn,

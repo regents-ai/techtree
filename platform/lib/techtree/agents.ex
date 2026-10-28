@@ -1,28 +1,16 @@
 defmodule Techtree.Agents do
   @moduledoc """
-  How an agent's check-in (`GET /api/agents/v1/me`) names the account it is
-  paired with, including its verified wallet fields, or `nil` until the person
-  has signed in on this site once, which the check-in answers with
-  `person_not_here`.
-  This callback runs after the shared signed check-in; it is not a passive
-  identity probe.
+  Agents that sign in with a wallet. Signed in, an agent acts as itself; an active
+  pairing permits the account actions its person allows while retaining the
+  agent's identity. World ID is optional.
   """
 
-  alias Techtree.Accounts
-  alias Techtree.Actors.System
+  use Ash.Domain
 
-  def account(privy_user_id) do
-    case Accounts.get_by_privy_did(privy_user_id, actor: %System{}) do
-      {:ok, %{} = account} ->
-        %{
-          display_name: account.display_name,
-          ens_name: account.ens_name,
-          wallet_address: account.wallet_address,
-          wallet_addresses: account.wallet_addresses || []
-        }
-
-      {:ok, nil} ->
-        nil
+  resources do
+    resource Techtree.Agents.Agent do
+      define :sign_in_agent, action: :sign_in, args: [:wallet_address]
+      define :record_backing, action: :record_backing, args: [:human_id, :agent_count]
     end
   end
 end

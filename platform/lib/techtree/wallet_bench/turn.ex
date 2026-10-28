@@ -50,7 +50,7 @@ defmodule Techtree.WalletBench.Turn do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (Techtree.JobFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -65,7 +65,7 @@ defmodule Techtree.WalletBench.Turn do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (Techtree.JobFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -83,7 +83,7 @@ defmodule Techtree.WalletBench.Turn do
         backoff fn %Oban.Job{attempt: attempt} -> 30 * Integer.pow(2, attempt) end
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (Techtree.JobFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)

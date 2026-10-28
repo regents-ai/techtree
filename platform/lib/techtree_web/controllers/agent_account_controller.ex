@@ -13,7 +13,7 @@ defmodule TechtreeWeb.AgentAccountController do
     case RegentCredits.agent_budget(actor: actor) do
       {:ok, budget} ->
         answer = %{
-          account_id: conn.assigns.publication_actor.human_account_id,
+          account_id: conn.assigns.actor.human_account_id,
           pairing_id: actor.pairing_id,
           credits: RegentCredits.balance(actor.privy_user_id),
           spending_grant: budget
@@ -81,17 +81,7 @@ defmodule TechtreeWeb.AgentAccountController do
   defp cursor_error?(_error), do: false
 
   def points(conn, _params) do
-    paired = conn.assigns.publication_actor
-
-    actor = %{
-      role: :agent,
-      human_account_id: paired.human_account_id,
-      privy_user_id: paired.privy_user_id,
-      wallet_address: paired.wallet,
-      pairing_id: paired.id
-    }
-
-    case RegentPoints.summary(actor: actor) do
+    case RegentPoints.summary(actor: conn.assigns.actor) do
       {:ok, summary} ->
         entries =
           Enum.map(
@@ -147,8 +137,14 @@ defmodule TechtreeWeb.AgentAccountController do
   defp with_note(answer, false, _note), do: answer
 
   defp credit_actor(conn) do
-    actor = conn.assigns.publication_actor
-    RegentCredits.Actor.agent(actor.privy_user_id, actor.wallet, Techtree.site(), actor.id)
+    actor = conn.assigns.actor
+
+    RegentCredits.Actor.agent(
+      actor.privy_user_id,
+      actor.wallet_address,
+      Techtree.site(),
+      actor.pairing_id
+    )
   end
 
   defp unavailable(conn),

@@ -6,6 +6,8 @@ defmodule TechtreeWeb.Router do
 
   use TechtreeWeb, :router
 
+  alias TechtreeWeb.Plugs.AgentWallet
+
   @theme_cookie "techtree_theme"
   @aside_cookie "techtree_aside"
 
@@ -93,8 +95,10 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
+  # A signed agent acts here as the person it is paired with, or not at all.
   pipeline :paired_agent do
-    plug TechtreeWeb.Plugs.PairedAgent
+    plug TechtreeWeb.Plugs.AgentWallet
+    plug :acting_as_person
   end
 
   # The motion lab: public unless the showcase is off (TechtreeWeb.Showcase).
@@ -243,6 +247,14 @@ defmodule TechtreeWeb.Router do
   end
 
   defp put_public_api_headers(conn, _opts), do: TechtreeWeb.ExactResponse.put_api_headers(conn)
+
+  defp acting_as_person(%{assigns: %{actor: %{pairing: :active}}} = conn, _opts), do: conn
+
+  defp acting_as_person(%{assigns: %{actor: actor}} = conn, _opts) do
+    code = AgentWallet.not_person_code(actor)
+    {status, message, hint} = Map.fetch!(AgentWallet.not_person_refusals(), code)
+    conn |> TechtreeWeb.ExactResponse.send_error(status, code, message, hint) |> halt()
+  end
 
   defp put_theme(conn, _opts) do
     assign(conn, :theme, saved_theme(conn.req_cookies[@theme_cookie]))

@@ -24,7 +24,7 @@ defmodule Techtree.DatabaseNamespaceTest do
     Repo.query!("CREATE SCHEMA techtree_app")
 
     for table <-
-          ~w(catalog_releases catalog_entries bootstrap_releases network_publication_entries network_publication_events network_contributor_addresses_by_participant schema_migrations) do
+          ~w(agents catalog_releases catalog_entries bootstrap_releases network_publication_entries network_publication_events network_contributor_addresses_by_participant schema_migrations) do
       Repo.query!("CREATE TABLE techtree_app.#{table} (LIKE public.#{table} INCLUDING ALL)")
     end
 

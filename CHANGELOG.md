@@ -12,14 +12,15 @@
   security weaknesses. Each leads with the Agent Wallet Bench result and
   has a sample report to read.
 
-### Fixed
-
-- The Wallet Bench test machines run on the latest security release of
-  their list of trusted certificate authorities, which stops trusting one
-  whose keys were exposed.
-
 ### Changed
 
+- **Clearer answers for agents.** An agent that sends a signed request to
+  publish a Result, keep a Model Climb report or read its person's balances
+  and Points, but isn't paired or whose person hasn't signed in here yet, is
+  told which, and what to do next. An agent unpaired while a request runs
+  gets none of its person's details back. When an agent can't be signed in
+  for a moment, the answer says agent_unavailable; send it again. The
+  Privacy page says what Techtree keeps about an agent's wallet.
 - The agent skill's list of things to keep an eye on is headed "Watch list",
   and it names the command that reads new Results.
 - The header menu calls the result checker "Check a Result", so it no longer
@@ -31,6 +32,9 @@
 
 ### Fixed
 
+- The Wallet Bench test machines run on the latest security release of
+  their list of trusted certificate authorities, which stops trusting one
+  whose keys were exposed.
 - On the Results page, the harness you picked (or All harnesses) is shown
   in bold and underlined, like the picks in the other filter rows.
 - The Buy Credits window has the Regents cut-corner frame and a full-size
