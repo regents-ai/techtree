@@ -459,30 +459,53 @@ defmodule Techtree.NetworkFixture do
   """
   @spec paired_agent() :: %Agent{}
   def paired_agent do
-    owner = "did:privy:" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower)
-    wallet = "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
+    paired_agent(
+      "did:privy:" <> Base.encode16(:crypto.strong_rand_bytes(8), case: :lower),
+      "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
+    )
+  end
+
+  @doc """
+  `paired_agent/0` for a given person and agent wallet. A person or pairing
+  already written is found again rather than written twice, so a test that
+  must commit its agents outside the sandbox can name fixed ones and leave
+  nothing new behind on later runs.
+  """
+  @spec paired_agent(String.t(), String.t()) :: %Agent{}
+  def paired_agent(owner, wallet) do
+    SQL.query!(
+      Repo,
+      """
+      INSERT INTO regent_names.platform_human_users
+        (privy_user_id, wallet_address, wallet_addresses, created_at, updated_at)
+      VALUES ($1, $2::varchar, ARRAY[$2::varchar], now(), now())
+      ON CONFLICT (privy_user_id) DO NOTHING
+      """,
+      [owner, wallet]
+    )
+
+    SQL.query!(
+      Repo,
+      """
+      INSERT INTO regent_agents.paired_agents
+        (privy_user_id, wallet, name, harness, paired_at, last_contact_at)
+      VALUES ($1, $2, 'Probe', 'hermes', now(), now())
+      ON CONFLICT (wallet) DO NOTHING
+      """,
+      [owner, wallet]
+    )
 
     %{rows: [[account_id]]} =
       SQL.query!(
         Repo,
-        """
-        INSERT INTO regent_names.platform_human_users
-          (privy_user_id, wallet_address, wallet_addresses, created_at, updated_at)
-        VALUES ($1, $2::varchar, ARRAY[$2::varchar], now(), now())
-        RETURNING id
-        """,
-        [owner, wallet]
+        "SELECT id FROM regent_names.platform_human_users WHERE privy_user_id = $1",
+        [owner]
       )
 
     %{rows: [[id]]} =
       SQL.query!(
         Repo,
-        """
-        INSERT INTO regent_agents.paired_agents
-          (privy_user_id, wallet, name, harness, paired_at, last_contact_at)
-        VALUES ($1, $2, 'Probe', 'hermes', now(), now())
-        RETURNING id
-        """,
+        "SELECT id FROM regent_agents.paired_agents WHERE privy_user_id = $1 AND wallet = $2",
         [owner, wallet]
       )
 
