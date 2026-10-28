@@ -142,4 +142,14 @@ It never trusts a digest it did not compute: every digest in the block is comput
 
 - The pipeline export re-saves the tokenizer (`tokenizer.save_pretrained`), which may rewrite `tokenizer_config.json` byte for byte; the distributed writer copies source files unchanged. Whether a pipeline export ever passes the tokenizer rule is to be measured on a real checkpoint before the first run.
 - `config.json` is in no digest. An abliteration that edits it (for example, removing a quantization block) changes the served model without changing `weights_root`.
-- How a run reaches an open-weights model (a local vLLM route beside `prime_key` and `chatgpt_plan`) is the CLI lane's to define.
+
+## 8. The open_weights route
+
+Settled by the regents-cli lane (regents-cli main 5e33684, `docs/model-substitution.md`, "The open_weights route"; `src/regents_cli/techtree/model_server.py`):
+
+1. Each side has its own vLLM server, named by the base address of its OpenAI-compatible API (`http` or `https`, ending in `/v1`, no user, password, query or fragment).
+2. Each side is served under its own `weights.weights_root` as the served model name, so the traces record which weights answered and the sides cannot be swapped unnoticed.
+3. Before a run, `GET <base>/models` must list that name with `max_model_len` equal to the block's `serving.max_model_len`, and `GET <server>/version` must answer `serving.version`; otherwise `model_server_mismatch` (unreachable or key missing: `model_server_unreachable`; bad address: `model_server_url_invalid`, never repeated).
+4. A key comes from `VLLM_API_KEY` and is never written to an answer, input or log.
+5. The addresses belong to the run, not the Campaign or the proof bundle; the bundle holds each side's model block.
+6. dtype, quantization and the bytes loaded stay the operator's statement; an independent rerun checks it.
