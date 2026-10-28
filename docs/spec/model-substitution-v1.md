@@ -28,6 +28,7 @@ For a `model_substitution` Campaign, `agents.subject.model` is exactly:
     "revision": "b968826d9c46dd6066d109eabc6255188de91218",
     "weights_root": "sha256:<64 hex>"
   },
+  "config_digest": "sha256:<64 hex>",
   "tokenizer_digest": "sha256:<64 hex>",
   "chat_template_digest": "sha256:<64 hex>",
   "serving": {
@@ -46,7 +47,7 @@ For a `model_substitution` Campaign, `agents.subject.model` is exactly:
 | `weights.repo` | Non-empty text, or `null` for weights that live only on the operator's machine. |
 | `weights.revision` | A 40-character lowercase commit of `repo`, or `null`. A revision never comes without a repo. The baseline always names both. |
 | `weights.weights_root` | Section 3. |
-| `tokenizer_digest`, `chat_template_digest` | Section 3. Must be the same on both sides. |
+| `config_digest`, `tokenizer_digest`, `chat_template_digest` | Section 3. Must be the same on both sides: a `config.json` that changes the architecture or the context length, or a `generation_config.json` whose sampling defaults vLLM applies, changes more than the weights. |
 | `serving` | `engine` is `vllm`; `version` and `dtype` non-empty text; `quantization` non-empty text or `null`; `max_model_len` a positive integer. Must be the same on both sides. |
 | `derivation` | `null` on the baseline. On the candidate, `null` or the record below. |
 
@@ -72,16 +73,19 @@ One function computes a root over a set of files, and every digest below uses it
 
 **`file_root(directory, names)`**
 
-1. Take the regular files directly in `directory` (not in subfolders) whose names are in `names`. Symbolic links are refused, with one exception: in a Hugging Face cache snapshot folder (`…/models--<org>--<name>/snapshots/<40 hex>`), a link is followed when it resolves, possibly through that repo's `blobs/` folder, to a regular file inside the same cache (the repo's `blobs/` or the cache-wide `hub/blobs/` store current huggingface_hub uses). Any other link is refused. The bytes hashed are the same either way.
+1. Take the regular files directly in `directory` (not in subfolders) whose names are in `names`. Symbolic links are refused, with one exception: in a Hugging Face cache snapshot folder (`<hub>/models--<org>--<name>/snapshots/<40 hex>`), a link is followed along exactly snapshot → `<hub>/models--<org>--<name>/blobs/<name>` → optionally `<hub>/blobs/<xx>/<file>` (huggingface_hub 2.3 links on from the repository's blob into the cache's shared store). Neither blobs folder may itself be a link, and the bytes must have the hash the repository's blob is named by: git's blob SHA-1 for a 40-hex name, SHA-256 for a 64-hex name, so a file changed in place or partly downloaded is refused. Any other link is refused. The bytes hashed are the same either way, so no root changes.
 2. For each, the entry `{"path": <file name>, "digest": "sha256:" + lowercase hex SHA-256 of its exact bytes}`.
 3. Sort the entries by `path`, comparing UTF-8 bytes.
 4. The root is `"sha256:"` + lowercase hex SHA-256 of the RFC 8785 bytes of that list (regents-cli `techtree/canonical.py`, the same encoder as every other Techtree digest).
 
 An empty set is refused.
 
+When `model.safetensors.index.json` is present, the folder's `.safetensors` files must be exactly the ones it lists, or the folder is refused: a missing file is an incomplete download, which would give a root over part of the weights under the repository's name, and an unlisted file is one vLLM never loads, which would count as a weights change. This only refuses; `weights_root` is still over every `.safetensors` file.
+
 | Digest | `names` |
 |---|---|
 | `weights_root` | Every file whose name ends in `.safetensors`. `model.safetensors.index.json`, `config.json` and anything in a subfolder (a `repair_adapter/`, for example) are not weights. |
+| `config_digest` | `config.json` and, when present, `generation_config.json`. |
 | `tokenizer_digest` | Those present of `tokenizer.json`, `tokenizer.model`, `tokenizer_config.json`, `special_tokens_map.json`, `added_tokens.json`, `vocab.json`, `vocab.txt`, `merges.txt`. |
 
 `chat_template_digest` is `"sha256:"` + lowercase hex SHA-256 of the template's bytes: `chat_template.jinja` when the checkpoint has one, otherwise the `chat_template` member of `tokenizer_config.json` (a string as its UTF-8 bytes; a list of named templates as its RFC 8785 bytes). A checkpoint with neither is refused.
@@ -96,7 +100,7 @@ and the root `sha256:4e70f644497973aaaf7a6870ac92f125a87ad4a5017e714291de392629d
 
 ## 4. The comparison the CLI writes
 
-The two runs' `configuration`s are compared leaf by leaf, as `diff_values` in regents-cli `techtree/manifests/compare.py` does for Skill Climbs. Every differing pointer must lie within `/agents/subject/model/weights`, or be `/agents/subject/model/derivation` itself (the baseline's `null` against the candidate's record). The report's `manifest_comparison` lists all of them, in pointer order, with `controlled: true`, no violations and `allowed_differences` as in section 1. Identical weights roots are a violation: the pair measures nothing.
+The two runs' `configuration`s are compared leaf by leaf, as `diff_values` in regents-cli `techtree/manifests/compare.py` does for Skill Climbs. Every differing pointer must lie within `/agents/subject/model/weights`, or be `/agents/subject/model/derivation` itself (the baseline's `null` against the candidate's record). The report's `manifest_comparison` lists all of them, in pointer order, with `controlled: true`, no violations and `allowed_differences` as in section 1. Identical weights roots are a violation: the pair measures nothing. Everything else in the block is the same on both sides: `config_digest`, `tokenizer_digest`, `chat_template_digest` and `serving`.
 
 The comparison status is `controlled`: the weights are pinned exactly, so the warning a hosted model gets for naming no build does not apply.
 
@@ -108,7 +112,7 @@ Beside `skill_change`, Techtree checks a `model_substitution` Result's two runs.
 2. The report's comparison is controlled, has no violations, allows exactly `/agents/subject/model/weights` and lists at least one difference.
 3. Both runs' `agents.subject.model` are open-weights blocks written exactly as section 2.
 4. The baseline's model is the Campaign's, member for member, and names its weights by repo and commit.
-5. Techtree's own leaf-by-leaf comparison of the two configurations finds no difference outside the weights and the derivation record. A Skill, a tokenizer, a chat template, a serving setting, a sampling setting or a limit that differs is refused, whether or not the report admits it.
+5. Techtree's own leaf-by-leaf comparison of the two configurations finds no difference outside the weights and the derivation record. A Skill, a model configuration, a tokenizer, a chat template, a serving setting, a sampling setting or a limit that differs is refused, whether or not the report admits it.
 6. The two weights roots differ.
 7. The baseline carries no derivation record; a candidate record names the candidate's own weights root and the baseline's repo and commit.
 8. The report's list of differences is exactly the one Techtree worked out, so a difference the report leaves out, or one it invents, is refused.
@@ -132,24 +136,23 @@ What passes is the two runs' weights and the derivation record.
 
 - No OBLITERATUS commit, or `obliteratus_git_dirty` is not `false`.
 - No `source_model_revision` (or no `base_model.revision` that is a 40-character commit), so the original cannot be named exactly. A `source_model` that is a local path is accepted only as a Hugging Face cache snapshot (`.../models--<org>--<name>/snapshots/<40 hex>`), which gives the repo and revision; any other path is refused, and no local path is ever written into a block.
-- The checkpoint's tokenizer digest or chat template digest differs from the source snapshot's.
+- The checkpoint's `config.json`, `generation_config.json`, tokenizer or chat template differs from the source snapshot's.
 - `concept.repair_adapter` present with `merged` not `true`: the served weights would not be the hashed ones.
-- A `checkpoint-provenance.json` whose `lineage` holds no `surgery` event, or whose `output_digests` do not include every `.safetensors` file's digest the adapter computed.
+- A `checkpoint-provenance.json` whose `lineage` holds no `surgery` event, or whose `output_digests` do not include every `.safetensors` file's digest the adapter computed. Not built: this file belongs to the distributed writer, which regents-cli does not read (at 43b5d6d only OBLITERATUS's own tests call it, and its records carry no method, method settings or seed), so the rule was dropped with that writer on 28 Oct 2026. A schema 2 checkpoint is refused as not a pipeline export.
 
 It never trusts a digest it did not compute: every digest in the block is computed from the files.
 
 ## 7. Open questions
 
 - The pipeline export re-saves the tokenizer (`tokenizer.save_pretrained`), which may rewrite `tokenizer_config.json` byte for byte; the distributed writer copies source files unchanged. Whether a pipeline export ever passes the tokenizer rule is to be measured on a real checkpoint before the first run.
-- `config.json` is in no digest. An abliteration that edits it (for example, removing a quantization block) changes the served model without changing `weights_root`.
 
 ## 8. The open_weights route
 
-Settled by the regents-cli lane (regents-cli main 5e33684, `docs/model-substitution.md`, "The open_weights route"; `src/regents_cli/techtree/model_server.py`):
+Settled by the regents-cli lane (regents-cli main bfb2300, `docs/model-substitution.md`, "The open_weights route"; `src/regents_cli/techtree/model_server.py`):
 
 1. Each side has its own vLLM server, named by the base address of its OpenAI-compatible API (`http` or `https`, ending in `/v1`, no user, password, query or fragment).
 2. Each side is served under its own `weights.weights_root` as the served model name, so the traces record which weights answered and the sides cannot be swapped unnoticed.
-3. Before a run, `GET <base>/models` must list that name with `max_model_len` equal to the block's `serving.max_model_len`, and `GET <server>/version` must answer `serving.version`; otherwise `model_server_mismatch` (unreachable or key missing: `model_server_unreachable`; bad address: `model_server_url_invalid`, never repeated).
+3. Before a run, `GET <base>/models` must list exactly one model, that name, with `max_model_len` equal to the block's `serving.max_model_len` (a second served name or a LoRA adapter on the same server could answer one side with other weights, so it refuses), and `GET <server>/version` must answer `serving.version`; otherwise `model_server_mismatch` (unreachable or key missing: `model_server_unreachable`; bad address: `model_server_url_invalid`, never repeated).
 4. A key comes from `VLLM_API_KEY` and is never written to an answer, input or log.
 5. The addresses belong to the run, not the Campaign or the proof bundle; the bundle holds each side's model block.
 6. dtype, quantization and the bytes loaded stay the operator's statement; an independent rerun checks it.
@@ -157,5 +160,5 @@ Settled by the regents-cli lane (regents-cli main 5e33684, `docs/model-substitut
 ## 9. Operating notes from the CPU rehearsal (28 Oct 2026)
 
 - Run OBLITERATUS from a git checkout at a clean commit, so its export records the commit and `dirty: false`; an install from git without a `.git` folder records `null`, which the import refuses.
-- OBLITERATUS's pipeline export re-saves the tokenizer under transformers 5 (different bytes, identical behaviour). Before importing, copy the source snapshot's tokenizer files back into the export; the tokenizer rule is unchanged.
+- OBLITERATUS's pipeline export under transformers 5 re-saves the tokenizer and rewrites `config.json` and `generation_config.json` (the same values, reordered): different bytes, identical behaviour. Before importing, copy the source snapshot's `config.json`, `generation_config.json` and tokenizer files into the export (`cp -L`), and remove any tokenizer file the source does not have; the rules are unchanged.
 - Export in the dtype the block serves (`--dtype bfloat16` for a bfloat16 model), so the served weights are the digested ones.
