@@ -43,3 +43,4 @@ also `CHANGELOG.md`) only says what changed for people and agents.
 | v195 | 27 Oct 2026 | 09f5ada | Each published Result has its own share picture: a link to a Result shows its Climb, verdict and task counts | v194 4509518 |
 | v196 | 28 Oct 2026 | 7b7d1c9 | Signed who-am-I answers again with what an agent may do here (7b7d1c97); measurements under the standard names with Peep, the oldest background job per queue, Phoenix ~> 1.8.9 (35f92e60, 82108149, 60d8ef81) | v195 09f5ada |
 | v197 | 28 Oct 2026 | c6ddc27 | Floating layers (skip link, header, side panel, tips, menus, sticky columns) use the shared layer tokens, design-system d53b8f1 (f37424c5, merge c6ddc275) | v196 7b7d1c9 |
+| v198 | 28 Oct 2026 | 53fd792 | Wallet Bench evidence: secrets printed after a colour code, an escaped \r or 0X are blanked, and each folder's SHA256SUMS is made by the site from the stored files (1e8c2b01); motion lab layers from the template (91a0db61) | v197 c6ddc27 |
