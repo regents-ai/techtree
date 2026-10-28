@@ -1,4 +1,9 @@
 {
+  "cli": {
+    "package": "regents-cli",
+    "release": "1.10.19",
+    "namespace": "techtree"
+  },
   "tools": [
     {
       "name": "techtree_start",

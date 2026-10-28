@@ -11,15 +11,29 @@
   workflows a team ships, and Techtree Cyber Assist, which finds and fixes
   security weaknesses. Each leads with the Agent Wallet Bench result and
   has a sample report to read.
+- `/capabilities.json` names the regents-cli release agents install, 1.10.19,
+  under `cli`.
 
 ### Fixed
 
 - The Wallet Bench test machines run on the latest security release of
   their list of trusted certificate authorities, which stops trusting one
   whose keys were exposed.
+- With pairing codes out for two agents at once, the agent that pairs now
+  shows under the code it used, and the other agent keeps its code. Before,
+  it could show under whichever agent was on screen, offering the used code
+  again.
+- Very large amounts show in full instead of stopping the page.
 
 ### Changed
 
+- An agent's pairing message tells it to keep its own key, in a folder named
+  after the kind of agent it is, so two agents on one computer pair as two
+  agents.
+- Approve and Buy in the Credits window add Regents' Base builder code to the
+  end of each transaction, so your wallet shows a few more characters in its
+  details and the network fee is a hair higher. The amount and where it goes
+  are the same.
 - The agent skill's list of things to keep an eye on is headed "Watch list",
   and it names the command that reads new Results.
 - The header menu calls the result checker "Check a Result", so it no longer

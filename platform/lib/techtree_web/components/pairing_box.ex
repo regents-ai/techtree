@@ -122,17 +122,22 @@ defmodule TechtreeWeb.PairingBox do
   defp usable?({:paired, _agent}), do: true
   defp usable?(_missing_or_unavailable), do: false
 
-  # The code on screen gives way to the agent that used it, so a spent code is
-  # never left there to send again.
-  defp after_pairing(%{assigns: %{chosen: chosen, codes: codes}} = socket) do
-    with %PairingCode.Issued{issued_at: issued_at} <- codes[chosen],
-         {:ok, agents} <- RegentAgents.list_my_agents(actor: socket.assigns.person),
-         %{} = agent <- Enum.find(agents, &(DateTime.compare(&1.paired_at, issued_at) != :lt)) do
-      VisitLog.step("agent_paired", to_string(chosen))
-      assign(socket, codes: Map.put(codes, chosen, {:paired, agent}))
+  # Each code on screen gives way to the agent that used it, so a spent code is
+  # never left there to send again, and an agent shows under its own code only.
+  defp after_pairing(%{assigns: %{codes: codes, person: person}} = socket) do
+    held = for {harness, %PairingCode.Issued{code: code}} <- codes, into: %{}, do: {code, harness}
+
+    with true <- held != %{},
+         {:ok, paired} <- RegentAgents.agents_paired_with(Map.keys(held), actor: person) do
+      assign(socket, codes: Enum.reduce(paired, codes, &paired(&1, &2, held)))
     else
       _unchanged -> socket
     end
+  end
+
+  defp paired({code, agent}, codes, held) do
+    VisitLog.step("agent_paired", to_string(held[code]))
+    Map.put(codes, held[code], {:paired, agent})
   end
 
   defp issue(socket, harness) do
