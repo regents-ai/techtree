@@ -189,6 +189,9 @@ config :techtree, Techtree.Network,
 # Publishing has its own budget above and is not counted here.
 config :techtree, :request_rate_limit, limit: 120, window_seconds: 60
 
+# The build /capabilities.json names. Only a deployed image has one (config/runtime.exs).
+config :techtree, :build, %{commit: nil, release: nil}
+
 # The release artifacts this build publishes beside the bundle. Today that is
 # the starter Skill: one `SKILL.md`, served at the digest of its exact bytes.
 config :techtree, Techtree.Release, starter_skill_root: {:priv, "release"}

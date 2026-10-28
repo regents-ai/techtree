@@ -256,7 +256,7 @@ defmodule TechtreeWeb.AgentsController do
 
     - [Techtree skill](https://techtree.sh/skill.md): what to watch on Techtree and how to check back on a schedule. Install it with `npx skills add regents-ai/techtree --skill techtree`.
     - [Docs](https://techtree.sh/docs): the public API, errors, rate limits, versioning, and every browser tool.
-    - [Tool manifest](https://techtree.sh/capabilities): the browser tools as JSON.
+    - [Tool manifest](https://techtree.sh/capabilities.json): the browser tools as JSON.
     """
   end
 

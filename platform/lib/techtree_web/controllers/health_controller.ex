@@ -1,58 +1,43 @@
 defmodule TechtreeWeb.HealthController do
   @moduledoc """
-  Whether this application is serving a catalog, and which one.
+  Whether this machine is serving a catalog: `/healthz` in plain text for the
+  host's health check, `ok` or `503 unavailable`.
 
-  Healthy means there is an active, completed release: the process being up is
-  not the same as the site having something true to publish, and a checker that
-  cannot tell those apart is worth nothing. Without one, the answer is `503`.
+  Serving means there is an active, completed catalog release: the process being
+  up is not the same as the site having something true to publish. Which
+  release and which commit are served is read elsewhere: the release at
+  `/api/v1/bootstrap`, the commit at `/capabilities.json`.
 
-  The answer names the release channel, the import status, the catalog digest,
-  and the revision the catalog was generated from. It names no database, no
-  host, no path, and no environment variable.
-
-  When the database stops answering, the answer says so (`database_unreachable`)
-  rather than that no release is active. For 45 seconds after the last healthy
-  answer it still answers healthy, with `database: "unreachable"`, so a brief
-  blip doesn't fail the check (`TechtreeWeb.HealthMemory`); after that it is 503.
+  For 45 seconds after the last `ok`, a check that meets a database that stops
+  answering still answers `ok`, so a brief blip doesn't fail the check
+  (`TechtreeWeb.HealthMemory`); after that it is 503.
   """
 
   use TechtreeWeb, :controller
 
-  alias Techtree.BuildInfo
-  alias Techtree.Catalog
   alias Techtree.Catalog.Query
   alias TechtreeWeb.{HealthMemory, Outage}
 
-  @doc """
-  Report whether a catalog release is being served.
-  """
   def show(conn, _params) do
-    summary = Map.put(summary(), :deployed_source_revision, BuildInfo.source_revision())
+    {status, body} = if serving?(), do: {:ok, "ok"}, else: {:service_unavailable, "unavailable"}
 
     conn
     |> put_resp_header("cache-control", "no-store")
-    |> put_status(status(summary))
-    |> json(summary)
+    |> put_resp_content_type("text/plain")
+    |> send_resp(status, body)
   end
 
-  defp summary do
-    case Outage.read(&Query.health_summary/0) do
-      {:ok, %{status: :ok} = summary} -> HealthMemory.remember(summary)
-      {:ok, summary} -> summary
-      :database_down -> HealthMemory.last_healthy() |> unreachable()
+  defp serving? do
+    case Outage.read(&Query.active_catalog_release/0) do
+      {:ok, {:ok, _release}} ->
+        HealthMemory.remember()
+        true
+
+      {:ok, {:error, _no_release}} ->
+        false
+
+      :database_down ->
+        HealthMemory.recent?()
     end
   end
-
-  defp unreachable(nil),
-    do: %{
-      status: :unavailable,
-      channel: Catalog.channel(),
-      catalog_import_status: :unknown,
-      reason: :database_unreachable
-    }
-
-  defp unreachable(last_healthy), do: Map.put(last_healthy, :database, "unreachable")
-
-  defp status(%{status: :ok}), do: 200
-  defp status(_summary), do: 503
 end

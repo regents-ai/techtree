@@ -8,7 +8,6 @@ defmodule Techtree.WalletBench.Batch do
 
   require Ash.Query
 
-  alias Techtree.BuildInfo
   alias Techtree.WalletBench
   alias Techtree.WalletBench.{Attempt, Catalog, Judge, Machine}
 
@@ -126,7 +125,7 @@ defmodule Techtree.WalletBench.Batch do
   def require_current!(nil), do: :ok
 
   def require_current!(spec) do
-    check(spec["revision"] == BuildInfo.source_revision(), "site release changed")
+    check(spec["revision"] == commit(), "site release changed")
     check(spec["recipe"] == Catalog.recipe_digest(), "execution recipe changed")
     check(spec["protocol"] == Catalog.protocol_digest(), "test protocol changed")
     check(spec["judge"] == Judge.model(), "judge model changed")
@@ -193,8 +192,11 @@ defmodule Techtree.WalletBench.Batch do
     |> Map.drop(~w(harnesses wallets))
     |> Map.put("harness", manifest["harnesses"][harness])
     |> Map.put("wallet_version", manifest["wallets"][wallet])
-    |> Map.put("revision", BuildInfo.source_revision())
+    |> Map.put("revision", commit())
   end
+
+  # The commit this release runs, which /capabilities.json names.
+  defp commit, do: Application.fetch_env!(:techtree, :build).commit
 
   defp upgraded_pin(pin, version, options) do
     pin = if pin["version"] == version, do: pin, else: %{"version" => version}

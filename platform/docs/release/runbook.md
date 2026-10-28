@@ -25,7 +25,7 @@ direction and has its own page: [rollback.md](rollback.md).
 | `GET /api/v1/publications` | one keyset page of the run log, newest first |
 | `GET /api/v1/publications/:bundle_digest` | the verified projection of one published run |
 | `GET /api/v1/publication-keys/:key_id` | the public half of the key this site countersigns receipts with |
-| `GET /healthz` | whether a release is being served, and which one |
+| `GET /healthz` | `ok` while a release is being served, `503 unavailable` otherwise |
 | `POST /api/v1/publications` | where a participant publishes a finished run, and later withdraws one |
 
 Every route but the last answers `GET` and `HEAD`, and answers the four mutating
@@ -205,7 +205,15 @@ that was intended to be published.
 
     curl -s https://<host>/healthz
 
-reports the active channel, the catalog digest, and the Climb count.
+answers `ok` while a release is being served.
+
+    curl -sI https://<host>/api/v1/catalog
+
+names the active catalog's digest in its `ETag`, and
+
+    curl -s https://<host>/capabilities.json | jq .build
+
+names the commit and image the site runs.
 
     curl -sD- "https://<host>/api/v1/objects/sha256:2aff2707…" -o SKILL.md
     shasum -a 256 SKILL.md

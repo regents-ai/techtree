@@ -9,51 +9,18 @@ defmodule TechtreeWeb.HealthControllerTest do
 
     conn = get(conn, ~p"/healthz")
 
-    assert conn.status == 503
-    body = json_response(conn, 503)
-    assert body["status"] == "unavailable"
-    assert body["catalog_import_status"] == "none"
-    assert body["channel"] == "development"
-    assert body["deployed_source_revision"] == "development"
-    assert get_resp_header(conn, "x-techtree-revision") == ["development"]
+    assert response(conn, 503) == "unavailable"
+    assert response_content_type(conn, :txt) =~ "text/plain"
   end
 
-  describe "with a release being served" do
-    setup do
-      CatalogFixture.use_bundle(CatalogFixture.root())
-      %{release: Importer.import!(CatalogFixture.root())}
-    end
+  test "an application serving a release answers ok", %{conn: conn} do
+    CatalogFixture.use_bundle(CatalogFixture.root())
+    Importer.import!(CatalogFixture.root())
 
-    test "health names the release being served", %{conn: conn, release: release} do
-      conn = get(conn, ~p"/healthz")
+    conn = get(conn, ~p"/healthz")
 
-      assert conn.status == 200
-      body = json_response(conn, 200)
-
-      assert body["status"] == "ok"
-      assert body["catalog_import_status"] == "complete"
-      assert body["channel"] == "development"
-      assert body["catalog_digest"] == release.catalog_digest
-      assert body["source_revision"] == release.source_revision
-      assert body["deployed_source_revision"] == "development"
-      assert body["climb_count"] == 3
-      assert get_resp_header(conn, "cache-control") == ["no-store"]
-      assert get_resp_header(conn, "x-techtree-revision") == ["development"]
-    end
-
-    test "health describes the catalog, never the machine", %{conn: conn} do
-      body = conn |> get(~p"/healthz") |> response(200) |> String.downcase()
-
-      for leak <- [
-            String.downcase(CatalogFixture.root()),
-            "/users",
-            "postgres",
-            "database_url",
-            "secret",
-            "localhost"
-          ] do
-        refute body =~ leak
-      end
-    end
+    assert response(conn, 200) == "ok"
+    assert response_content_type(conn, :txt) =~ "text/plain"
+    assert get_resp_header(conn, "cache-control") == ["no-store"]
   end
 end

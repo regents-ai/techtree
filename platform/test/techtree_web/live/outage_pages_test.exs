@@ -26,7 +26,7 @@ defmodule TechtreeWeb.OutagePagesTest do
 
   setup do
     # Whatever an earlier test's health check left was answered long ago.
-    HealthMemory.remember(%{status: :ok}, HealthMemory.now() - :timer.hours(1))
+    HealthMemory.remember(HealthMemory.now() - :timer.hours(1))
     cut_database()
     on_exit(&bring_back/0)
     {:ok, conn: build_conn()}
@@ -253,7 +253,7 @@ defmodule TechtreeWeb.OutagePagesTest do
   end
 
   # Regression (Sentinel, v167 after-read): a health check that landed in a
-  # database blip answered 503 and said no release was active.
+  # database blip answered 503.
   test "a brief database blip after a healthy answer doesn't fail the health check", %{conn: conn} do
     bring_back()
     Ecto.Adapters.SQL.Sandbox.checkout(Techtree.Repo)
@@ -261,37 +261,32 @@ defmodule TechtreeWeb.OutagePagesTest do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
 
-    assert %{"status" => "ok"} = conn |> get(~p"/healthz") |> json_response(200)
-    healthy = HealthMemory.last_healthy()
+    assert conn |> get(~p"/healthz") |> response(200) == "ok"
 
     cut_database()
 
-    assert %{"status" => "ok", "database" => "unreachable"} =
-             quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(200) end)
+    assert quietly(fn -> build_conn() |> get(~p"/healthz") |> response(200) end) == "ok"
 
-    # The healthy answer was given 44 seconds ago: still inside the grace.
+    # The ok was given 44 seconds ago: still inside the grace.
     given_at = HealthMemory.now() - :timer.seconds(44)
-    HealthMemory.remember(healthy, given_at)
+    HealthMemory.remember(given_at)
 
-    assert %{"status" => "ok", "database" => "unreachable"} =
-             quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(200) end)
+    assert quietly(fn -> build_conn() |> get(~p"/healthz") |> response(200) end) == "ok"
 
     # An answer from the grace is not a live success: the grace still counts
     # from the last one, so a real outage can't keep the machine healthy.
-    assert HealthMemory.get!(:healthy) == {healthy, given_at}
+    assert HealthMemory.get!(:healthy_at) == given_at
 
-    # 46 seconds ago: the grace is over, and the loss fails the check with its real reason.
-    HealthMemory.remember(healthy, HealthMemory.now() - :timer.seconds(46))
+    # 46 seconds ago: the grace is over, and the loss fails the check.
+    HealthMemory.remember(HealthMemory.now() - :timer.seconds(46))
 
-    assert %{"status" => "unavailable", "reason" => "database_unreachable"} =
-             quietly(fn -> build_conn() |> get(~p"/healthz") |> json_response(503) end)
+    assert quietly(fn -> build_conn() |> get(~p"/healthz") |> response(503) end) == "unavailable"
   end
 
   test "a machine that starts during a database loss fails the check", %{conn: conn} do
     HealthMemory.delete_all()
 
-    assert %{"status" => "unavailable", "reason" => "database_unreachable"} =
-             quietly(fn -> conn |> get(~p"/healthz") |> json_response(503) end)
+    assert quietly(fn -> conn |> get(~p"/healthz") |> response(503) end) == "unavailable"
   end
 
   test "the Wallet Bench scores feed asks to try again, in JSON", %{conn: conn} do
@@ -305,12 +300,5 @@ defmodule TechtreeWeb.OutagePagesTest do
              json_response(conn, 503)
 
     assert message =~ "try again"
-  end
-
-  test "a database loss with no recent healthy answer fails with the real reason", %{conn: conn} do
-    body = quietly(fn -> conn |> get(~p"/healthz") |> json_response(503) end)
-
-    assert %{"status" => "unavailable", "reason" => "database_unreachable"} = body
-    refute body["reason"] == "no_active_release"
   end
 end

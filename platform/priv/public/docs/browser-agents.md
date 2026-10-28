@@ -1,6 +1,6 @@
 # Let a browser's agent read Techtree
 
-Every page offers the agent built into a browser these tools through WebMCP (`document.modelContext`). The [tool manifest](/capabilities) describes them as JSON.
+Every page offers the agent built into a browser these tools through WebMCP (`document.modelContext`). The [tool manifest](/capabilities.json) describes them as JSON.
 
 A browser's agent can read and explain: what a Climb tests, what a run on it would need, and what a published Result shows. It can also download a Result's bundle, read the Skill it measured, and read the Wallet Bench scores and each test behind them. It cannot install, prepare, run or compare anything. That work happens on the person's own computer, through the CLI, and nothing a browser tool returns means it has begun.
 

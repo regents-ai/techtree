@@ -54,10 +54,9 @@ defmodule TechtreeWeb.PagesTest do
       :ok
     end
 
-    test "initial HTML identifies its deployed source and omits disconnect copy", %{conn: conn} do
+    test "initial HTML omits disconnect copy", %{conn: conn} do
       {:ok, _live, html} = live(conn, ~p"/results")
 
-      assert html =~ ~s|<meta name="techtree-revision" content="development"/>|
       refute visible_text(html) =~ "The connection to the site dropped"
       refute html =~ "The connection to the site dropped"
     end

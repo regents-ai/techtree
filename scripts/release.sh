@@ -17,8 +17,10 @@
 # bootstrap-staging command, runs the release's migrate command against it,
 # imports the catalog snapshot this tree added last on the
 # stable channel, as production does, starts the server, and checks the health
-# endpoint, the home page, a built stylesheet and the running server's
-# database connection. The signing key and secret are thrown away with it.
+# endpoint, the commit and image /capabilities.json names, the catalog served,
+# the home page, a built stylesheet and the running server's database
+# connection. FLY_IMAGE_REF, which Fly sets on every machine, names the local
+# image. The signing key and secret are thrown away with it.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -80,7 +82,7 @@ git archive --format=tar --prefix=blog_content/ "$commit:blog" | tar -x -C "$con
 git archive --format=tar --prefix=skills_content/ "$commit:skills" | tar -x -C "$context"
 docker build --no-cache \
   --label "org.opencontainers.image.revision=$commit" \
-  --build-arg "TECHTREE_SOURCE_REVISION=$commit" \
+  --build-arg "SOURCE_COMMIT=$commit" \
   --build-arg "PREVIOUS_IMAGE=$previous" \
   --tag "$image" "$context"
 digest="$(docker image inspect --format '{{.Id}}' "$image")"
@@ -104,6 +106,7 @@ release_env=(
   --env TECHTREE_NETWORK_SIGNING_KEY="$(openssl rand -base64 32)"
   --env TECHTREE_BOOTSTRAP_CHANNEL=stable
   --env TECHTREE_SHOWCASE=off
+  --env FLY_IMAGE_REF="$image"
 )
 
 echo "==> Preparing and migrating the database and importing catalog $catalog with the release commands"
@@ -118,9 +121,16 @@ base="http://$(docker port "$run-app" 4000/tcp | head -n 1)"
 wait_for "the health endpoint" curl --silent --fail "$base/healthz"
 
 health="$(curl --silent --fail "$base/healthz")"
-[[ $health == *'"status":"ok"'* ]] || fail "the health endpoint answered $health"
-[[ $health == *"\"deployed_source_revision\":\"$commit\""* ]] || fail "the server names another revision: $health"
-[[ $health == *"\"source_revision\":\"$catalog\""* ]] || fail "the server serves another catalog: $health"
+[[ $health == ok ]] || fail "the health endpoint answered $health"
+
+build="$(curl --silent --fail "$base/capabilities.json" | jq -r '.build | "\(.commit) \(.release)"')"
+[[ $build == "$commit $image" ]] ||
+  fail "/capabilities.json names another build: $build"
+
+catalog_digest="$(git show "$commit:platform/priv/catalog/sources/$catalog/source.json" | jq -er .catalog_digest)"
+served_catalog="$(curl --silent --fail --head "$base/api/v1/catalog" | tr -d '\r' | sed -n 's/^etag: "\(.*\)"$/\1/Ip')"
+[[ $served_catalog == "$catalog_digest" ]] ||
+  fail "the server serves catalog $served_catalog, not $catalog ($catalog_digest)"
 
 home="$(curl --silent --fail "$base/")"
 stylesheet="$(grep -oE '/assets/[^"]+-[0-9a-f]{32}\.css' <<<"$home" | head -n 1)" ||
@@ -145,6 +155,8 @@ echo "  image           $image"
 echo "  image digest    $digest"
 echo "  migrations      bootstrap-staging and migrate succeeded; pending: $pending"
 echo "  catalog         $catalog imported on stable"
-echo "  health          $base/healthz answered ok for $commit"
+echo "  health          $base/healthz answered $health"
+echo "  capabilities    $base/capabilities.json names commit $commit, image $image"
+echo "  catalog served  $served_catalog"
 echo "  static asset    $stylesheet answered $stylesheet_answer"
 echo "  database        the running server queried $connected_database"

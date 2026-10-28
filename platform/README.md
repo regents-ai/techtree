@@ -116,7 +116,8 @@ GET /services/verify           Techtree Verify, a paid offer; /sample-report its
 GET /services/cyber-assist     Techtree Cyber Assist, a paid offer; /sample-report its sample
 GET /blog, /blog/:slug          published posts
 
-GET /healthz                    is a catalog being served, and which one
+GET /healthz                    ok while a catalog is being served
+GET /capabilities.json          the browser tools, and the commit and image running
 GET /api/v1/bootstrap           the installation contract, exact bytes
 GET /api/v1/catalog             the generated catalog index, exact bytes
 GET /api/v1/climbs/:slug        one Climb summarized, with links to its objects

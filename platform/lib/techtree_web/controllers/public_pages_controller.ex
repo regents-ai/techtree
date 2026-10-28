@@ -77,7 +77,11 @@ defmodule TechtreeWeb.PublicPagesController do
   end
 
   def capabilities(conn, _params) do
-    body = Jason.encode!(Techtree.Capabilities.manifest())
+    body =
+      Techtree.Capabilities.manifest()
+      |> Map.put("build", Application.fetch_env!(:techtree, :build))
+      |> Jason.encode!()
+
     conn |> cached(body) |> put_resp_content_type("application/json") |> send_resp(200, body)
   end
 

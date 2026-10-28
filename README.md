@@ -52,7 +52,7 @@ repair tasks from a repository. That trial is no longer offered.
 | Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Start](https://techtree.sh/start), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
 | Structured machine responses (`--json`) for agents and scripts | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) |
 | Create an environment from a Skill: inspect, plan, build, accept, run, verify, export | Experimental | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree forge inspect-skill` through `regents techtree forge export`) |
-| Browser tools for agents (WebMCP), listed at [/capabilities](https://techtree.sh/capabilities): public reads of the Start guide, the Climbs and the Results; signed identity and account reads; and `techtree_publication`, which publishes or withdraws a signed Result | Available now | [`platform/`](platform/) |
+| Browser tools for agents (WebMCP), listed at [/capabilities.json](https://techtree.sh/capabilities.json): public reads of the Start guide, the Climbs and the Results; signed identity and account reads; and `techtree_publication`, which publishes or withdraws a signed Result | Available now | [`platform/`](platform/) |
 | An MCP connector for other agents | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
 | NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
@@ -108,9 +108,9 @@ Host Hermes is the minimum Hermes version each published record accepts, and
 that published value is the one that applies.
 
 The site at techtree.sh serves one active release per channel; the live answer
-is always [`/api/v1/bootstrap`](https://techtree.sh/api/v1/bootstrap). Which
-revision of the site itself is deployed is known only from
-`deployed_source_revision` on [`/healthz`](https://techtree.sh/healthz).
+is always [`/api/v1/bootstrap`](https://techtree.sh/api/v1/bootstrap). The
+commit the site itself runs is `build.commit` at
+[`/capabilities.json`](https://techtree.sh/capabilities.json).
 
 The [changelog](CHANGELOG.md) lists what each release changed, and what the
 0.3.0 release does not yet show.

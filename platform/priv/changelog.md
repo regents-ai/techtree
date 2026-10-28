@@ -24,6 +24,10 @@
   and it names the command that reads new Results.
 - The header menu calls the result checker "Check a Result", so it no longer
   shares a name with Techtree Verify.
+- The list of browser tools moved to `/capabilities.json`, and it now names
+  the exact version of the site that is running. The health check at
+  `/healthz` answers a plain `ok`; which catalog is served is read from
+  `/api/v1/catalog` and `/api/v1/bootstrap`.
 
 ### Fixed
 
