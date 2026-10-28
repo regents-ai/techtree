@@ -32,6 +32,8 @@
 
 ### Fixed
 
+- The site runs on the latest security release of its web server, which
+  closes a way to make it use too much memory.
 - The Wallet Bench test machines run on the latest security release of
   their list of trusted certificate authorities, which stops trusting one
   whose keys were exposed.
