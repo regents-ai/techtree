@@ -123,8 +123,8 @@ wait_for "the health endpoint" curl --silent --fail "$base/healthz"
 health="$(curl --silent --fail "$base/healthz")"
 [[ $health == ok ]] || fail "the health endpoint answered $health"
 
-build="$(curl --silent --fail "$base/capabilities.json" | jq -c .build)"
-[[ $build == "{\"commit\":\"$commit\",\"release\":\"$image\"}" ]] ||
+build="$(curl --silent --fail "$base/capabilities.json" | jq -r '.build | "\(.commit) \(.release)"')"
+[[ $build == "$commit $image" ]] ||
   fail "/capabilities.json names another build: $build"
 
 catalog_digest="$(git show "$commit:platform/priv/catalog/sources/$catalog/source.json" | jq -er .catalog_digest)"
