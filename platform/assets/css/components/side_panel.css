@@ -12,7 +12,7 @@
   position: fixed;
   inset-block: 0;
   inset-inline-end: 0;
-  z-index: 30;
+  z-index: var(--rg-layer-panel);
   container-type: size;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -21,6 +21,7 @@
   overflow: hidden auto;
   border-inline-start: 1px solid var(--color-border);
   background: var(--color-bg);
+  box-shadow: var(--rg-layer-panel-shadow);
   color: var(--color-fg);
   font-family: var(--font-family-ui);
   line-height: 1.55;

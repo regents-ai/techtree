@@ -48,6 +48,42 @@ test("signed in on a phone, the panel opens over the page and fits it", async ({
   await context.close()
 })
 
+// The template's layers check (27 Oct): open panels cover what lies under them. Techtree
+// has no bottom bar; on a short page its footer stands at the foot of the screen
+// instead, so on a phone the open Menu covers the page and the open side panel covers
+// the footer.
+test("on a phone, the open menu and side panel cover the page and the footer", async ({browser}) => {
+  const context = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
+  const outside = await keepOffline(context)
+  await signIn(context)
+  const page = await context.newPage()
+  const errors = watchErrors(page)
+  await page.goto("/account/wallets", {waitUntil: "networkidle"})
+  const footer = (await page.locator(".regent-footer").boundingBox())!
+  const middle = {x: footer.x + footer.width / 2, y: footer.y + footer.height / 2}
+  expect(middle.y, "the footer stands on the screen").toBeLessThan(844)
+  const onTop = (x: number, y: number, id: string) =>
+    page.evaluate(([x, y, id]) => document.elementFromPoint(x, y)?.closest(`#${id}`) !== null, [x, y, id] as const)
+  const sliding = () =>
+    page.evaluate(() => document.getAnimations().filter(a => a instanceof CSSTransition).length)
+
+  await page.getByRole("button", {name: "Menu"}).tap()
+  const menu = page.locator("#site-pages")
+  await expect(menu).toBeVisible()
+  const list = (await menu.boundingBox())!
+  expect(await onTop(list.x + list.width / 2, list.y + list.height - 8, "site-pages")).toBe(true)
+  await page.keyboard.press("Escape")
+  await expect(menu).toBeHidden()
+
+  await page.locator("#account-chip").tap()
+  await expect(page.locator("#shell-aside")).toBeVisible()
+  await expect.poll(sliding).toBe(0)
+  expect(await onTop(middle.x, middle.y, "shell-aside")).toBe(true)
+  expect(errors).toEqual([])
+  expect(outside).toEqual([])
+  await context.close()
+})
+
 test("the wallet code loads on the account pages and nowhere else", async ({context, page}) => {
   await signIn(context)
   const errors = watchErrors(page)

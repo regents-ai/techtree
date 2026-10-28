@@ -24,7 +24,7 @@
 .wallet-bench__grid { border-collapse: collapse; font-size: .8125rem; font-variant-numeric: tabular-nums; }
 .wallet-bench__grid th, .wallet-bench__grid td { padding: .375rem .5rem; text-align: center; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
 .wallet-bench__grid thead th { font-weight: 600; font-size: .75rem; vertical-align: bottom; white-space: normal; min-width: 4.5rem; }
-.wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: 1; min-width: 9rem; text-align: left; background: var(--color-bg); font-size: .875rem; font-weight: 600; }
+.wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: var(--rg-layer-card); min-width: 9rem; text-align: left; background: var(--color-bg); font-size: .875rem; font-weight: 600; }
 .wallet-bench__grid .wallet-bench__total { background: color-mix(in oklab, var(--color-accent) 5%, var(--color-bg)); }
 .wallet-bench__grid thead .wallet-bench__total + th:not(.wallet-bench__total), .wallet-bench__grid td.wallet-bench__total + td:not(.wallet-bench__total) { border-left: 1px solid var(--hairline-strong); }
 .wallet-bench__score { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; padding-inline: .375rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--color-fg); }
