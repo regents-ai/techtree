@@ -14,8 +14,8 @@ RUN := $(UV) run
 # core's cli_version differ, and the live release test fails when the commit
 # isn't that release. The tests put their own `regents` first on PATH, so this
 # names the command in full rather than as a bare `regents`.
-REGENTS_CLI_VERSION := 1.10.19
-REGENTS_CLI_REV := 02f89615c4d8ceaf4c6f597f07112e41f001adc6
+REGENTS_CLI_VERSION := 1.10.20
+REGENTS_CLI_REV := 0e3768f5b92fe8210fb00fea0053bcb5e9c2afaf
 REGENTS_CLI_ARGV ?= $(UV) run --no-project --with "regents-cli @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" regents
 
 .DEFAULT_GOAL := check
