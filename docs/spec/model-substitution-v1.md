@@ -72,7 +72,7 @@ One function computes a root over a set of files, and every digest below uses it
 
 **`file_root(directory, names)`**
 
-1. Take the regular files directly in `directory` (not in subfolders) whose names are in `names`. Symbolic links are refused.
+1. Take the regular files directly in `directory` (not in subfolders) whose names are in `names`. Symbolic links are refused, with one exception: in a Hugging Face cache snapshot folder (`…/models--<org>--<name>/snapshots/<40 hex>`), a link is followed when it resolves, possibly through that repo's `blobs/` folder, to a regular file inside the same cache (the repo's `blobs/` or the cache-wide `hub/blobs/` store current huggingface_hub uses). Any other link is refused. The bytes hashed are the same either way.
 2. For each, the entry `{"path": <file name>, "digest": "sha256:" + lowercase hex SHA-256 of its exact bytes}`.
 3. Sort the entries by `path`, comparing UTF-8 bytes.
 4. The root is `"sha256:"` + lowercase hex SHA-256 of the RFC 8785 bytes of that list (regents-cli `techtree/canonical.py`, the same encoder as every other Techtree digest).
@@ -153,3 +153,9 @@ Settled by the regents-cli lane (regents-cli main 5e33684, `docs/model-substitut
 4. A key comes from `VLLM_API_KEY` and is never written to an answer, input or log.
 5. The addresses belong to the run, not the Campaign or the proof bundle; the bundle holds each side's model block.
 6. dtype, quantization and the bytes loaded stay the operator's statement; an independent rerun checks it.
+
+## 9. Operating notes from the CPU rehearsal (28 Oct 2026)
+
+- Run OBLITERATUS from a git checkout at a clean commit, so its export records the commit and `dirty: false`; an install from git without a `.git` folder records `null`, which the import refuses.
+- OBLITERATUS's pipeline export re-saves the tokenizer under transformers 5 (different bytes, identical behaviour). Before importing, copy the source snapshot's tokenizer files back into the export; the tokenizer rule is unchanged.
+- Export in the dtype the block serves (`--dtype bfloat16` for a bfloat16 model), so the served weights are the digested ones.
