@@ -22,6 +22,7 @@ defmodule Techtree.Network.ModelChangeTest do
       "revision" => "b968826d9c46dd6066d109eabc6255188de91218",
       "weights_root" => "sha256:" <> String.duplicate("1", 64)
     },
+    "config_digest" => "sha256:" <> String.duplicate("c", 64),
     "tokenizer_digest" => "sha256:" <> String.duplicate("2", 64),
     "chat_template_digest" => "sha256:" <> String.duplicate("3", 64),
     "serving" => %{
@@ -91,6 +92,8 @@ defmodule Techtree.Network.ModelChangeTest do
 
   test "a second difference the report owns up to is still not a model change" do
     for {path, value} <- [
+          {["agents", "subject", "model", "config_digest"],
+           "sha256:" <> String.duplicate("d", 64)},
           {["agents", "subject", "model", "tokenizer_digest"],
            "sha256:" <> String.duplicate("6", 64)},
           {["agents", "subject", "model", "chat_template_digest"],
@@ -123,6 +126,36 @@ defmodule Techtree.Network.ModelChangeTest do
       assert {:error,
               %{code: :submission_model_change_invalid, details: %{"pointer" => ^pointer}}} =
                check(candidate: candidate, report: owned_up)
+    end
+  end
+
+  test "a model configuration that differs is refused, as a tokenizer that differs is" do
+    candidate =
+      put_in(
+        model(@abliterated),
+        ["agents", "subject", "model", "config_digest"],
+        "sha256:" <> String.duplicate("d", 64)
+      )
+
+    assert {:error, %{code: :submission_model_change_invalid, details: details}} =
+             check(candidate: candidate, report: report(model(@abliterated)))
+
+    assert details == %{"pointer" => "/agents/subject/model/config_digest"}
+  end
+
+  test "a model block without its configuration digest is refused" do
+    # The Campaign names the same block, so only the block's own shape refuses it.
+    unconfigured = Map.delete(@original, "config_digest")
+
+    for options <- [
+          [campaign: campaign(unconfigured), baseline: model(unconfigured)],
+          [candidate: model(Map.delete(@abliterated, "config_digest"))]
+        ] do
+      assert {:error,
+              %{
+                code: :submission_model_change_invalid,
+                details: %{"pointer" => "/agents/subject/model"}
+              }} = check(options)
     end
   end
 
@@ -221,6 +254,7 @@ defmodule Techtree.Network.ModelChangeTest do
     for broken <- [
           Map.put(@abliterated, "access", ["prime_key"]),
           Map.delete(@abliterated, "derivation"),
+          put_in(@abliterated, ["config_digest"], "sha256:ABC"),
           put_in(@abliterated, ["serving", "engine"], "sglang"),
           put_in(@abliterated, ["serving", "max_model_len"], 0),
           put_in(

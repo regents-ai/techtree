@@ -67,7 +67,7 @@ defmodule Techtree.Network.Result do
 
   @weights_pointer "/agents/subject/model/weights"
   @derivation_pointer "/agents/subject/model/derivation"
-  @model_keys ~w(chat_template_digest derivation serving tokenizer_digest weights)
+  @model_keys ~w(chat_template_digest config_digest derivation serving tokenizer_digest weights)
   @weights_keys ~w(repo revision weights_root)
   @serving_keys ~w(dtype engine max_model_len quantization version)
   @derivation_keys ~w(method method_config_digest seed source tool tool_commit weights_root)
@@ -570,8 +570,8 @@ defmodule Techtree.Network.Result do
 
   defp open_weights?(model) do
     keys?(model, @model_keys) and weights?(model["weights"]) and
-      Digest.valid?(model["tokenizer_digest"]) and Digest.valid?(model["chat_template_digest"]) and
-      serving?(model["serving"]) and
+      Digest.valid?(model["config_digest"]) and Digest.valid?(model["tokenizer_digest"]) and
+      Digest.valid?(model["chat_template_digest"]) and serving?(model["serving"]) and
       (is_nil(model["derivation"]) or derivation?(model["derivation"]))
   end
 
