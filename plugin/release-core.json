@@ -1,19 +1,19 @@
 {
-  "catalog_digest": "sha256:b0ab39451017fce3b268fd44169535af781bce3a931ec842d54ea2a97c4e02c4",
-  "cli_version": "1.10.19",
+  "catalog_digest": "sha256:e0319bae7d256b9f8184c6ad091662492d8b6bb23c30cc1d203b094b507e3044",
+  "cli_version": "1.10.20",
   "climbs": {
     "frontier-cs-open-ended-climb@3": {
-      "engine_digest": "sha256:b97c5454a7b03dfe01e505b11c4aaab72394352fd3a68d1861316a13e02786bf",
+      "engine_digest": "sha256:9a3945f33cf4d25701d9e0c25b1770e5edc34c849cada3a708c8cb91e7ecb5a0",
       "starter_skill_digest": "sha256:c93c985b1017d976408239b2583bff7248507032cb32c7aeb20edd685fbc86a6",
       "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:c09dbdd7d5baf7ffa2ab79cf568c14d0f4c83f95cb83dc099ab4bc73b819f669"
     },
     "hello-world-climb@3": {
-      "engine_digest": "sha256:75583fa66112b9a55e9999e74c66ddde364089eaca2b8b99c68f5faaeb23a675",
+      "engine_digest": "sha256:2e27549363c0268f535df525dcf155e4b88c37136bcae8a7c737245fed183df6",
       "starter_skill_digest": "sha256:596d1368ac157975accce7ceff835eed6bfb789eaf68528a0aefa25a68793b0b",
       "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:2aff27070177d9f37b99d5bef6fa372586887e78180005195cb808971ae55a4c"
     },
     "tasksmith-climb@2": {
-      "engine_digest": "sha256:8ffec10531aa07008aaeaec357dd91b521a49b6ee8913ccfb351e2e51e62869b",
+      "engine_digest": "sha256:345596f4c1b86814bb530a1d21bdda86310cb92a46eebd007ae60d428671788e",
       "starter_skill_digest": "sha256:974fafc5bce1d489fe332c7bdc8e9b9ecb38b873d407ac7d38c70f098362b595",
       "starter_skill_object_url": "https://techtree.sh/api/v1/objects/sha256:6e36be766e6d2ac16f5d8feda3a09f5b1337a6d9f7d1b306cdd44dbe456377d4"
     }
@@ -31,7 +31,7 @@
     "public_log_url": "https://techtree.sh/results",
     "submission_endpoint": "https://techtree.sh/api/v1/publications"
   },
-  "release_id": "climb-v0.7.20",
+  "release_id": "climb-v0.7.21",
   "schema_version": "techtree.release-core.v3",
   "subject_hermes_version": "v2026.9.24"
 }
