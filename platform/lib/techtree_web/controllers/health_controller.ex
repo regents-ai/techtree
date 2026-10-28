@@ -1,7 +1,9 @@
 defmodule TechtreeWeb.HealthController do
   @moduledoc """
   Whether this machine is serving a catalog: `/healthz` in plain text for the
-  host's health check, `ok` or `503 unavailable`.
+  host's health check, `ok` or `503 unavailable`, and `/api/v1/health` in JSON
+  for agents and the command line, `{"status": "ok"}` or 503 with an
+  `unavailable` error.
 
   Serving means there is an active, completed catalog release: the process being
   up is not the same as the site having something true to publish. Which
@@ -25,6 +27,24 @@ defmodule TechtreeWeb.HealthController do
     |> put_resp_header("cache-control", "no-store")
     |> put_resp_content_type("text/plain")
     |> send_resp(status, body)
+  end
+
+  def status(conn, _params) do
+    conn = put_resp_header(conn, "cache-control", "no-store")
+
+    if serving?() do
+      json(conn, %{status: "ok"})
+    else
+      conn
+      |> put_status(:service_unavailable)
+      |> json(%{
+        error: %{
+          code: "unavailable",
+          message: "The site is up but is not serving a catalog release.",
+          hint: "Try again in a minute."
+        }
+      })
+    end
   end
 
   defp serving? do

@@ -8,7 +8,11 @@ defmodule TechtreeWeb.OpenAPITest do
   use ExUnit.Case, async: true
 
   test "every API route, account tool, agent request and /healthz is described with an operation id" do
-    paths = TechtreeWeb.OpenAPI.document()["paths"]
+    paths =
+      TechtreeWeb.OpenAPI.document(
+        TechtreeWeb.Endpoint.url(),
+        Application.fetch_env!(:techtree, :request_rate_limit)
+      )["paths"]
 
     routes =
       for %{verb: verb, path: path} <- TechtreeWeb.Router.__routes__(),

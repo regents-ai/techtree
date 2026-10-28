@@ -6,7 +6,16 @@ defmodule Techtree.Network.WithdrawalRaceTest do
 
   The sandbox would run both on a single connection, where they cannot overlap
   inside Postgres, so this runs them on two real connections outside it and
-  removes the rows it wrote when it is done.
+  removes the entry and events it wrote when it is done.
+
+  Each racer is a different paired agent, so the race meets on the entry and
+  not on one agent's pairing, which each withdrawal locks. The pairings must be
+  committed for both connections to see them, so the two people and their
+  pairings are fixed: written by the first run in this database and found
+  again by every later one, they leave nothing new behind (a pairing written
+  for each run would also add a lasting row to the shared pairing history).
+  Each racer's row in this site's own agents table is removed afterwards and
+  signed in again on the next run.
   """
 
   use ExUnit.Case, async: false
@@ -15,13 +24,18 @@ defmodule Techtree.Network.WithdrawalRaceTest do
   alias Techtree.NetworkFixture
   alias Techtree.Repo
 
+  @racers [
+    {"did:privy:withdrawal-race-1", "0x" <> String.pad_leading("ace1", 40, "0")},
+    {"did:privy:withdrawal-race-2", "0x" <> String.pad_leading("ace2", 40, "0")}
+  ]
+
   setup do
     {public, _private} = keys = NetworkFixture.key_pair()
 
     {entry, agents} =
       Sandbox.unboxed_run(Repo, fn ->
         {NetworkFixture.seed_entry(participant_public_key: Base.encode64(public)),
-         [NetworkFixture.paired_agent(), NetworkFixture.paired_agent()]}
+         Enum.map(@racers, fn {owner, wallet} -> NetworkFixture.paired_agent(owner, wallet) end)}
       end)
 
     on_exit(fn ->
@@ -41,8 +55,8 @@ defmodule Techtree.Network.WithdrawalRaceTest do
     {:ok, entry: entry, keys: keys, agents: agents}
   end
 
-  # Each racer's agent record, as `NetworkFixture.paired_agent/0` wrote it. Its
-  # pairing and person rows stay: they sit in tables no test empties.
+  # Each racer's row in this site's own agents table, which sign-in writes again
+  # on the next run. Its fixed person and pairing stay, to be found again.
   defp remove_agent(agent),
     do:
       Repo.query!("DELETE FROM #{table("agents")} WHERE id = $1", [

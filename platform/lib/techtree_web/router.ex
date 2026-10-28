@@ -197,6 +197,7 @@ defmodule TechtreeWeb.Router do
   scope "/api/v1", TechtreeWeb do
     pipe_through :api
 
+    get "/health", HealthController, :status
     get "/bootstrap", BootstrapController, :show
     get "/catalog", CatalogController, :index
     get "/climbs/:slug", ClimbController, :show

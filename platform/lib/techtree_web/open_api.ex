@@ -11,15 +11,16 @@ defmodule TechtreeWeb.OpenAPI do
   """
 
   alias Techtree.Network
-  alias TechtreeWeb.Endpoint
 
   @digest_pattern "^sha256:[0-9a-f]{64}$"
-  @request_rate_limit Application.compile_env!(:techtree, :request_rate_limit)
   @climb_objects ~w(climb campaign execution_plan data_policy taskset_validation)
 
-  @doc "The OpenAPI document, addressed at this deployment."
-  @spec document() :: map()
-  def document do
+  @doc """
+  The OpenAPI document for the site at `origin`, whose `default` budget is
+  `request_rate_limit` (`limit:` requests per `window_seconds:`).
+  """
+  @spec document(String.t(), keyword()) :: map()
+  def document(origin, request_rate_limit) do
     %{
       "openapi" => "3.1.0",
       "info" => %{
@@ -40,11 +41,11 @@ defmodule TechtreeWeb.OpenAPI do
         "license" => %{"name" => "MIT", "identifier" => "MIT"},
         "contact" => %{"name" => "Regents Labs", "email" => "build@regents.sh"}
       },
-      "servers" => [%{"url" => Endpoint.url()}],
+      "servers" => [%{"url" => origin}],
       "security" => [],
-      "externalDocs" => %{"url" => Endpoint.url() <> "/docs"},
+      "externalDocs" => %{"url" => origin <> "/docs"},
       "paths" => paths() |> Map.new(fn {path, item} -> {path, with_rate_limits(item)} end),
-      "components" => components()
+      "components" => components(request_rate_limit)
     }
   end
 
@@ -52,7 +53,7 @@ defmodule TechtreeWeb.OpenAPI do
     %{
       "/healthz" => %{
         "get" => %{
-          "operationId" => "getHealth",
+          "operationId" => "getServiceHealth",
           "summary" => "Whether a catalog release is being served",
           "description" =>
             "Answers ok in plain text when an active, completed catalog release is " <>
@@ -62,6 +63,18 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" => %{
             "200" => text("A catalog release is being served.", "ok"),
             "503" => text("No catalog release is being served.", "unavailable")
+          }
+        }
+      },
+      "/api/v1/health" => %{
+        "get" => %{
+          "operationId" => "getHealth",
+          "summary" => "Read whether a catalog release is being served",
+          "description" =>
+            "The same check as /healthz, answered in JSON. Responses use Cache-Control: no-store.",
+          "responses" => %{
+            "200" => json("A catalog release is being served.", ref("Health")),
+            "503" => error("The site is up but is not serving a catalog release (unavailable).")
           }
         }
       },
@@ -631,7 +644,7 @@ defmodule TechtreeWeb.OpenAPI do
     }
   end
 
-  defp components do
+  defp components(request_rate_limit) do
     %{
       "securitySchemes" => %{
         "AgentSignature" => %{
@@ -658,20 +671,20 @@ defmodule TechtreeWeb.OpenAPI do
         "RateLimitPolicy" => %{
           "description" =>
             "The budget this request counted against, as \"policy\";q=requests;w=window seconds. " <>
-              "Each client address has #{@request_rate_limit[:limit]} requests per " <>
-              "#{@request_rate_limit[:window_seconds]} seconds, `default`, shared by the health " <>
+              "Each client address has #{request_rate_limit[:limit]} requests per " <>
+              "#{request_rate_limit[:window_seconds]} seconds, `default`, shared by the health " <>
               "check, the API and the Wallet Bench's scores and downloads. Publishing and withdrawing count against their own budgets " <>
               "instead: `publication` for each client address and `publication-agent` for " <>
               "each paired agent.",
           "schema" => %{"type" => "string"},
           "example" =>
-            ~s("default";q=#{@request_rate_limit[:limit]};w=#{@request_rate_limit[:window_seconds]})
+            ~s("default";q=#{request_rate_limit[:limit]};w=#{request_rate_limit[:window_seconds]})
         },
         "RateLimit" => %{
           "description" =>
             "What is left of that budget, as \"policy\";r=remaining;t=seconds until the window resets.",
           "schema" => %{"type" => "string"},
-          "example" => ~s("default";r=#{@request_rate_limit[:limit] - 1};t=42)
+          "example" => ~s("default";r=#{request_rate_limit[:limit] - 1};t=42)
         },
         "RetryAfter" => %{
           "description" => "Seconds to wait before the window resets.",
@@ -692,6 +705,11 @@ defmodule TechtreeWeb.OpenAPI do
 
   defp schemas do
     %{
+      "Health" => %{
+        "type" => "object",
+        "required" => ["status"],
+        "properties" => %{"status" => %{"type" => "string", "const" => "ok"}}
+      },
       "Error" => %{
         "type" => "object",
         "required" => ["error"],
