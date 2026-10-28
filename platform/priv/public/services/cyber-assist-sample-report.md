@@ -13,7 +13,7 @@ A sample that reviews Techtree's own Agent Wallet Bench, which we own and may ex
 
 ## Risk for an agent integration
 
-The bench publishes everything an agent does while it sets up a wallet. Its own findings show why that needs care: all 35 working wallets left their key, login or unlock password in a plain file; three agents typed a private key into a command; one agent made a hidden copy of its Bankr access key and deleted it later. A record of that work is only safe to publish if every secret in it is hidden first.
+The bench publishes everything an agent does while it sets up a wallet. Its own findings show why that needs care: all 35 working wallets left their key or unlock password in a plain file; three agents typed a private key into a command; one agent made a hidden copy of its Bankr access key and deleted it later. A record of that work is only safe to publish if every secret in it is hidden first.
 
 ## Investigation
 
