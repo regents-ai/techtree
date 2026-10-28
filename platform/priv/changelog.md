@@ -1,5 +1,24 @@
 # Changelog
 
+## Website (2026-10-28)
+
+### Added
+
+- The agent skill walks an agent through testing a Skill with the command line,
+  from checking the machine to comparing the two runs, and names the browser
+  tools an agent can read with. No browser tool runs a test.
+- Two paid offers have their own pages: Techtree Verify, which checks the
+  workflows a team ships, and Techtree Cyber Assist, which finds and fixes
+  security weaknesses. Each leads with the Agent Wallet Bench result and
+  has a sample report to read.
+
+### Changed
+
+- The agent skill's list of things to keep an eye on is headed "Watch list",
+  and it names the command that reads new Results.
+- The header menu calls the result checker "Check a Result", so it no longer
+  shares a name with Techtree Verify.
+
 ## Website (2026-10-27)
 
 ### Added
@@ -10,10 +29,6 @@
 - A link to a Result shared on X or elsewhere shows that Result's own
   picture: its Climb, its verdict, how many tasks it ran on, and how many got
   better, stayed the same and got worse. A withdrawn Result's picture says so.
-- Two paid offers have their own pages: Techtree Verify, which checks the
-  workflows a team ships, and Techtree Cyber Assist, which finds and fixes
-  security weaknesses. Each leads with the Agent Wallet Bench result and
-  has a sample report to read.
 
 ### Fixed
 
