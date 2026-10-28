@@ -67,7 +67,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /auth/session",
              "get /blog",
              "get /blog/:slug",
-             "get /capabilities",
+             "get /capabilities.json",
              "get /changelog",
              "get /climbs/:slug",
              "get /contact",

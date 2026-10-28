@@ -161,7 +161,6 @@ defmodule TechtreeWeb.Router do
   scope "/", TechtreeWeb do
     pipe_through :api
 
-    get "/healthz", HealthController, :show
     get "/openapi.json", PublicPagesController, :openapi
   end
 
@@ -173,6 +172,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
+    get "/healthz", HealthController, :show
     get "/sitemap.xml", SitemapController, :index
     get "/results/:bundle_digest/share.png", ResultShareCardController, :show
     get "/robots.txt", PublicPagesController, :robots
@@ -180,7 +180,7 @@ defmodule TechtreeWeb.Router do
     get "/agents/:agent/skill.md", PublicPagesController, :agent_skill_guide
     get "/wallet-bench.md", WalletBenchController, :markdown
     get "/llms.txt", PublicPagesController, :llms
-    get "/capabilities", PublicPagesController, :capabilities
+    get "/capabilities.json", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security
     get "/.well-known/api-catalog", PublicPagesController, :api_catalog
     get "/.well-known/agent-skills/*path", PublicPagesController, :agent_skill

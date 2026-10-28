@@ -42,7 +42,6 @@ defmodule TechtreeWeb.Endpoint do
     longpoll: [connect_info: [session: @session_options]]
 
   plug TechtreeWeb.Plugs.CanonicalHost
-  plug TechtreeWeb.SourceRevision
 
   # Serve at "/" the static files from "priv/static" directory.
   #

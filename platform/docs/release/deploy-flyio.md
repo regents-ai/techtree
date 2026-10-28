@@ -35,7 +35,7 @@ founder is asked to approve anything. Do it in that order.
 | Primary region | `iad` | the org's other production apps already run there, and Ashburn is Fly's largest US-East region. The surface is read-only behind an anycast proxy, so one region is enough |
 | Machine | shared CPU, 1 vCPU, 512 MB | the site serves files it already has and a handful of small reads. 256 MB is under what the BEAM plus a 10-connection pool wants during a release command; 512 MB is the next size up and leaves headroom without paying for a second core |
 | Internal port | 8080 | `PORT` in `fly.toml`, `internal_port` in `[http_service]`, Bandit binds it |
-| Health check | `GET /healthz` | it answers 200 only when there is an active, completed release, so an unimported machine is correctly not sent traffic |
+| Health check | `GET /healthz` | it answers `ok` only when there is an active, completed release, so an unimported machine is correctly not sent traffic |
 | Image | `Dockerfile` at the repository root | Elixir 1.19.5 / OTP 28.2 / Debian trixie, matching this repository's toolchain |
 
 ## Before you start
@@ -153,8 +153,8 @@ being able to do this early.
     flyctl checks list --app techtree-sh
     curl -s https://techtree-sh.fly.dev/healthz
 
-`/healthz` must now be 200 and name channel `development`, catalog digest
-`sha256:10a7fcc5…`, import status `complete`.
+`/healthz` must now answer `ok`, `/api/v1/catalog` must carry the `ETag`
+`sha256:10a7fcc5…`, and `/api/v1/bootstrap` must name channel `development`.
 
 ### 8. Allocate the addresses DNS will point at
 
@@ -246,8 +246,8 @@ Expected before Gate 2:
 
 | Check | Expected |
 | --- | --- |
-| `/healthz` | 200, channel `development`, catalog `sha256:10a7fcc5…`, status `complete` |
-| `/api/v1/catalog` | 200, `application/json` |
+| `/healthz` | 200 `ok` |
+| `/api/v1/catalog` | 200, `application/json`, `ETag` `sha256:10a7fcc5…` |
 | `/api/v1/bootstrap` | `ETag` and body digest both `sha256:9da7a90dcca51a5bfb3950aae75e1bb9032a979931983edd29d8f8215d1126e5…` — the placeholder |
 | `POST /api/v1/bootstrap` | `405` with `Allow: GET, HEAD` |
 | plain `http://` | a redirect to `https://`, with `strict-transport-security` |
@@ -311,7 +311,7 @@ bundle; nothing has imported it.
 
 **Expect the site to be briefly unavailable between these two commands.**
 Setting the secret restarts the machine onto a channel that has nothing
-imported yet, so `/healthz` answers 503 with `channel: "stable"`, the health
+imported yet, so `/healthz` answers 503 `unavailable`, the health
 check fails, and the proxy stops sending it traffic. Nothing is written and no
 pointer moves — the `development` rows are all still there — but the site is
 down until the import finishes. Run the two commands back to back. `flyctl ssh`
@@ -325,13 +325,16 @@ The import prints the catalog digest and `on channel stable`.
 
     curl -s https://techtree.sh/healthz
 
+    curl -sI https://techtree.sh/api/v1/catalog
+
     curl -sD- https://techtree.sh/api/v1/bootstrap -o bootstrap.json
     shasum -a 256 bootstrap.json
 
 | Check | Expected |
 | --- | --- |
 | health check | passing again |
-| `/healthz` | 200, channel `stable`, catalog `sha256:10a7fcc5…`, status `complete` |
+| `/healthz` | 200 `ok` |
+| `/api/v1/catalog` | `ETag` `sha256:10a7fcc5…` |
 | `/api/v1/bootstrap` | `ETag` and body digest both `sha256:d3fdb91588e897253af6e7c6c2bdc1fadc2b346d2e924c85f6e02c1393843191` — the stable floor |
 | the document itself | `"channel": "stable"`, `"placeholder_release": true`, `"version": "0.0.0-placeholder"` |
 | the pages | unchanged, still saying this is not a real release yet |
@@ -433,8 +436,8 @@ so use the import command above today):
     shasum -a 256 bootstrap.json
 
 `ETag` and body digest must both be `sha256:3fdadeeb…`, and must equal the
-digest in `priv/releases/climb-v0.1.0/checksums.json`. `/healthz` must still
-name channel `stable`. Then re-run the whole of step 12; the 405 and the
+digest in `priv/releases/climb-v0.1.0/checksums.json`, and the document must
+still name channel `stable`. Then re-run the whole of step 12; the 405 and the
 redirect must be unchanged.
 
 ## Saved errors

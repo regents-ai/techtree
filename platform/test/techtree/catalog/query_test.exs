@@ -11,17 +11,10 @@ defmodule Techtree.Catalog.QueryTest do
       CatalogFixture.use_bundle(CatalogFixture.root())
     end
 
-    test "there is no release, and health says so plainly" do
+    test "there is no release" do
       assert {:error, %Error{code: :bootstrap_release_missing}} = Query.active_catalog_release()
       assert {:error, %Error{code: :bootstrap_release_missing}} = Query.active_bootstrap_release()
       assert {:error, %Error{}} = Query.catalog_bytes()
-
-      summary = Query.health_summary()
-
-      assert summary.status == :unavailable
-      assert summary.catalog_import_status == :none
-      assert summary.channel == "development"
-      refute Map.has_key?(summary, :source_revision)
     end
   end
 
@@ -61,20 +54,6 @@ defmodule Techtree.Catalog.QueryTest do
 
       assert {:error, %Error{code: :catalog_object_missing}} =
                Query.get_entry_by_digest("sha256:" <> String.duplicate("c", 64))
-    end
-
-    test "health reports the release being served and nothing about the host", %{
-      release: release
-    } do
-      summary = Query.health_summary()
-
-      assert summary.status == :ok
-      assert summary.catalog_import_status == :complete
-      assert summary.catalog_digest == release.catalog_digest
-      assert summary.source_revision == release.source_revision
-      assert summary.climb_count == 3
-
-      refute summary |> inspect() |> String.contains?(CatalogFixture.root())
     end
   end
 

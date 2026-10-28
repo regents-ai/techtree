@@ -9,10 +9,10 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-source_revision="$(git rev-parse HEAD)"
+commit="$(git rev-parse HEAD)"
 upstream_revision="$(git rev-parse '@{u}')"
 
-if [[ "$source_revision" != "$upstream_revision" ]]; then
+if [[ "$commit" != "$upstream_revision" ]]; then
   echo "Refusing to deploy: HEAD has not been pushed to its upstream branch." >&2
   exit 1
 fi
@@ -58,12 +58,12 @@ rsync -a --delete ../skills/ skills_content/
 # site's connections, so releases from this machine take turns: the build and
 # release run under one lock that every site's deploy takes, and wait for it.
 lock=/tmp/regent-shared-db-release.lock
-echo "==> Deploying ${source_revision:0:7} to techtree-sh (waits for any other release holding $lock)"
+echo "==> Deploying ${commit:0:7} to techtree-sh (waits for any other release holding $lock)"
 lockf -k "$lock" flyctl deploy \
   --app techtree-sh \
   --remote-only \
   --ha=false \
-  --build-arg "TECHTREE_SOURCE_REVISION=$source_revision" \
+  --build-arg "SOURCE_COMMIT=$commit" \
   --build-arg "PREVIOUS_IMAGE=$previous_image" \
   "$@"
 

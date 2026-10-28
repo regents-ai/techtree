@@ -136,9 +136,6 @@ if config_env() == :test and System.get_env("TECHTREE_BROWSER_TEST") == "1" do
     formatter: LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
 end
 
-config :techtree,
-  deployed_source_revision: System.get_env("TECHTREE_SOURCE_REVISION", "development")
-
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -289,6 +286,12 @@ if config_env() == :prod do
       ip: {0, 0, 0, 0, 0, 0, 0, 0}
     ],
     secret_key_base: secret_key_base
+
+  # The commit the image was built from, and the Fly image this machine runs.
+  config :techtree, :build, %{
+    commit: System.fetch_env!("SOURCE_COMMIT"),
+    release: System.fetch_env!("FLY_IMAGE_REF")
+  }
 
   # ## SSL Support
   #

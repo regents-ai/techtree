@@ -1,27 +1,24 @@
 defmodule TechtreeWeb.HealthMemory do
   @moduledoc """
-  The last healthy answer `/healthz` gave, and when, on this machine's
-  monotonic clock in milliseconds. For 45 seconds after it, three of Fly's
-  15-second checks, a check that lands in a brief database blip answers from
-  it, so one failed probe doesn't take the machine out of service; a loss that
-  outlasts it does.
+  When `/healthz` last answered `ok`, on this machine's monotonic clock in
+  milliseconds. For 45 seconds after it, three of Fly's 15-second checks, a
+  check that lands in a brief database blip still answers `ok`, so one failed
+  probe doesn't take the machine out of service; a loss that outlasts it does.
   """
   use Nebulex.Cache, otp_app: :techtree, adapter: Nebulex.Adapters.Local
 
   @grace :timer.seconds(45)
 
-  @spec remember(map(), integer()) :: map()
-  def remember(summary, at \\ now()) do
-    put!(:healthy, {summary, at})
-    summary
-  end
+  @doc "Notes that `/healthz` answered `ok` at `at`."
+  @spec remember(integer()) :: :ok
+  def remember(at \\ now()), do: put!(:healthy_at, at)
 
-  @doc "The last healthy answer if it was given less than 45 seconds before `now`."
-  @spec last_healthy(integer()) :: map() | nil
-  def last_healthy(now \\ now()) do
-    case get!(:healthy) do
-      {summary, at} when now - at < @grace -> summary
-      _none_recent -> nil
+  @doc "Whether `/healthz` answered `ok` less than 45 seconds before `now`."
+  @spec recent?(integer()) :: boolean()
+  def recent?(now \\ now()) do
+    case get!(:healthy_at) do
+      at when is_integer(at) -> now - at < @grace
+      nil -> false
     end
   end
 

@@ -17,7 +17,7 @@ Techtree runs on the person's own computer, through regents-cli. Nothing you rea
 - [Agent guide](https://techtree.sh/agents.md): every step from making the tasks to comparing the runs, pairing with your person's account, and the rules. Each review waits for the person's own answer; never approve on their behalf.
 - [Techtree skill](https://techtree.sh/skill.md): what to watch on Techtree and how to check back. Install it with `npx skills add regents-ai/techtree --skill techtree`, or from the [skills index](https://techtree.sh/.well-known/agent-skills/index.json).
 - [Docs](https://techtree.sh/docs): the public API, errors, rate limits, versioning and the browser tools.
-- [OpenAPI description](https://techtree.sh/openapi.json), [tool manifest](https://techtree.sh/capabilities) and [sitemap](https://techtree.sh/sitemap.xml).
+- [OpenAPI description](https://techtree.sh/openapi.json), [tool manifest](https://techtree.sh/capabilities.json) and [sitemap](https://techtree.sh/sitemap.xml).
 - [Results](https://techtree.sh/results), [Wallet Bench](https://techtree.sh/wallet-bench) and [About](https://techtree.sh/about).
 
 Every page answers `Accept: text/markdown` with Markdown.

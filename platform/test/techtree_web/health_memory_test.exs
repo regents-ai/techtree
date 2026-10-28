@@ -9,24 +9,21 @@ defmodule TechtreeWeb.HealthMemoryTest do
 
   alias TechtreeWeb.HealthMemory
 
-  property "a healthy answer is remembered for exactly 45 seconds" do
+  property "an ok is remembered for exactly 45 seconds" do
     now = HealthMemory.now()
 
     check all(ago <- integer(90_000..1_000_000_000), later <- integer(0..90_000)) do
-      summary = %{status: :ok, ago: ago}
-      HealthMemory.remember(summary, now - ago)
-      expected = if later < 45_000, do: summary
+      HealthMemory.remember(now - ago)
 
-      assert HealthMemory.last_healthy(now - ago + later) == expected
+      assert HealthMemory.recent?(now - ago + later) == later < 45_000
     end
   end
 
   test "both sides of the edge" do
-    summary = %{status: :ok}
     at = HealthMemory.now() - :timer.minutes(1)
-    HealthMemory.remember(summary, at)
+    HealthMemory.remember(at)
 
-    assert HealthMemory.last_healthy(at + 44_999) == summary
-    assert HealthMemory.last_healthy(at + 45_000) == nil
+    assert HealthMemory.recent?(at + 44_999)
+    refute HealthMemory.recent?(at + 45_000)
   end
 end

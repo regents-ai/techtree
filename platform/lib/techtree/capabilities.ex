@@ -2,8 +2,8 @@ defmodule Techtree.Capabilities do
   @moduledoc """
   Every tool Techtree's pages offer a browser's own agent, read at compile time
   from `priv/tool_manifest.json`. The browser code registers them from the same
-  file; `/capabilities` serves the manifest, and the Docs page lists them from
-  here.
+  file; `/capabilities.json` serves the manifest with the build the site runs
+  (its commit and image), and the Docs page lists them from here.
   """
 
   @manifest_path Path.expand("../../priv/tool_manifest.json", __DIR__)

@@ -3,7 +3,7 @@ defmodule TechtreeWeb.AgentSkillsTest do
   The Techtree skill as agents fetch it: `/skill.md`, the skills index with a
   zip whose digest is the one listed and each file on its own, and each agent's
   own skill at `/agents/SLUG/skill.md`. Also the browser tools that read a
-  Result's bundle, a Skill and the Wallet Bench, as `/capabilities` lists them.
+  Result's bundle, a Skill and the Wallet Bench, as `/capabilities.json` lists them.
   """
 
   use TechtreeWeb.ConnCase, async: true
@@ -87,7 +87,8 @@ defmodule TechtreeWeb.AgentSkillsTest do
 
   test "the browser tools for bundles, Skills and the Wallet Bench are listed as public reads",
        %{conn: conn} do
-    tools = Map.new(json_response(get(conn, ~p"/capabilities"), 200)["tools"], &{&1["name"], &1})
+    tools =
+      Map.new(json_response(get(conn, ~p"/capabilities.json"), 200)["tools"], &{&1["name"], &1})
 
     for name <- ~w(results_bundle skills_show wallet_bench_list wallet_bench_show) do
       assert %{"annotations" => %{"readOnlyHint" => true}} = tool = tools[name]

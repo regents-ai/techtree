@@ -224,35 +224,6 @@ defmodule Techtree.Catalog.Query do
     )
   end
 
-  @doc """
-  What `/healthz` may say: whether a release is being served, and which one.
-
-  It names no host path, no database, and no environment.
-  """
-  @spec health_summary() :: map()
-  def health_summary do
-    case active_catalog_release() do
-      {:ok, release} ->
-        %{
-          status: :ok,
-          channel: release.channel,
-          catalog_import_status: release.import_status,
-          catalog_digest: release.catalog_digest,
-          source_revision: release.source_revision,
-          imported_at: release.imported_at,
-          climb_count: length(list_climbs())
-        }
-
-      {:error, %Error{code: code}} ->
-        %{
-          status: :unavailable,
-          channel: Catalog.channel(),
-          catalog_import_status: :none,
-          reason: code
-        }
-    end
-  end
-
   defp verified(bytes, digest, relative_path) do
     case Digest.verify_bytes(bytes, digest) do
       :ok ->

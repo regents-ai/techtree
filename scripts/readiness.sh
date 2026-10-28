@@ -201,13 +201,13 @@ for (const path of pages) {
   check(`${path} sends Permissions-Policy: tools=(self)`, policy.includes("tools=(self)"),
     `permissions-policy=${answer.headers.get("permissions-policy")}`);
 }
-const manifestAnswer = await get("/capabilities");
+const manifestAnswer = await get("/capabilities.json");
 const manifest = parses(manifestAnswer.body);
 const tools = (manifest && Array.isArray(manifest.tools)) ? manifest.tools : [];
-check("/capabilities serves the tool manifest as JSON",
+check("/capabilities.json serves the tool manifest as JSON",
   manifestAnswer.status === 200 && type(manifestAnswer) === "application/json" && tools.length > 0,
   `${manifestAnswer.status} ${type(manifestAnswer)} ${tools.length} tools`);
-check("/capabilities is cached with an ETag", cached(manifestAnswer));
+check("/capabilities.json is cached with an ETag", cached(manifestAnswer));
 const names = tools.map((tool) => tool.name);
 const hints = ["readOnlyHint", "untrustedContentHint", "consequentialHint", "debugging"];
 check("every tool name is unique and 1-128 of A-Z a-z 0-9 _ . -",
@@ -238,7 +238,7 @@ const docsHtml = await get("/docs", "text/html");
 check("/docs shows the tools as a table",
   names.every((name) => docsHtml.body.includes(`<td><code>${name}</code></td>`)));
 check("/llms.txt lists exactly the manifest's tools", same(tableNames(llms.body)), tableNames(llms.body).join(", "));
-check("/llms.txt links the tool manifest", llms.body.includes("/capabilities"));
+check("/llms.txt links the tool manifest", llms.body.includes("/capabilities.json"));
 
 console.log("Past the budget");
 let last;

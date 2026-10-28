@@ -55,11 +55,13 @@ defmodule TechtreeWeb.OpenAPI do
           "operationId" => "getHealth",
           "summary" => "Whether a catalog release is being served",
           "description" =>
-            "Healthy means an active, completed catalog release is served. Without one " <>
-              "the answer is 503 with `status` set to `unavailable`.",
+            "Answers ok in plain text when an active, completed catalog release is " <>
+              "served; 503 unavailable otherwise. The release is described at " <>
+              "/api/v1/bootstrap and the running commit at /capabilities.json. " <>
+              "Responses use Cache-Control: no-store.",
           "responses" => %{
-            "200" => json("A catalog release is being served.", ref("Health")),
-            "503" => json("No catalog release is being served.", ref("Health"))
+            "200" => text("A catalog release is being served.", "ok"),
+            "503" => text("No catalog release is being served.", "unavailable")
           }
         }
       },
@@ -706,21 +708,6 @@ defmodule TechtreeWeb.OpenAPI do
         }
       },
       "Digest" => %{"type" => "string", "pattern" => @digest_pattern},
-      "Health" => %{
-        "type" => "object",
-        "required" => ["status", "channel", "catalog_import_status", "deployed_source_revision"],
-        "properties" => %{
-          "status" => %{"type" => "string", "enum" => ["ok", "unavailable"]},
-          "channel" => %{"type" => "string"},
-          "catalog_import_status" => %{"type" => "string"},
-          "catalog_digest" => ref("Digest"),
-          "source_revision" => %{"type" => "string"},
-          "imported_at" => %{"type" => "string", "format" => "date-time"},
-          "climb_count" => %{"type" => "integer", "minimum" => 0},
-          "reason" => %{"type" => "string", "description" => "Why no release is served."},
-          "deployed_source_revision" => %{"type" => "string"}
-        }
-      },
       "LinkedObject" => %{
         "type" => "object",
         "required" => ["digest", "media_type", "url"],
@@ -1469,6 +1456,12 @@ defmodule TechtreeWeb.OpenAPI do
     do: %{
       "description" => description,
       "content" => %{"application/json" => %{"schema" => schema}}
+    }
+
+  defp text(description, body),
+    do: %{
+      "description" => description,
+      "content" => %{"text/plain" => %{"schema" => %{"type" => "string", "const" => body}}}
     }
 
   defp exact(description, schema),

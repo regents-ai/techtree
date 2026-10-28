@@ -12,6 +12,10 @@
 
 - The agent skill's list of things to keep an eye on is headed "Watch list",
   and it names the command that reads new Results.
+- The list of browser tools moved to `/capabilities.json`, and it now names
+  the exact version of the site that is running. The health check at
+  `/healthz` answers a plain `ok`; which catalog is served is read from
+  `/api/v1/catalog` and `/api/v1/bootstrap`.
 
 ## Website (2026-10-27)
 

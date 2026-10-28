@@ -13,7 +13,6 @@
 ARG ELIXIR_VERSION=1.20.4
 ARG OTP_VERSION=29.1.2
 ARG DEBIAN_VERSION=trixie-20261020
-ARG TECHTREE_SOURCE_REVISION
 # The image live when this one is built (platform/scripts/deploy_site.sh and
 # scripts/release.sh name it), whose served files this release keeps while a
 # deploy rolls over. Required.
@@ -70,12 +69,6 @@ RUN mkdir config
 COPY config/config.exs config/${MIX_ENV}.exs config/
 RUN mix deps.compile
 
-ARG TECHTREE_SOURCE_REVISION
-RUN case "$TECHTREE_SOURCE_REVISION" in \
-      [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;; \
-      *) echo "TECHTREE_SOURCE_REVISION must be the clean 40-character git revision" >&2; exit 1 ;; \
-    esac
-
 COPY priv priv
 COPY lib lib
 COPY blog_content /blog
@@ -121,9 +114,12 @@ RUN chown nobody /app
 
 ENV MIX_ENV="prod"
 
-ARG TECHTREE_SOURCE_REVISION
-ENV TECHTREE_SOURCE_REVISION=$TECHTREE_SOURCE_REVISION
-LABEL org.opencontainers.image.revision=$TECHTREE_SOURCE_REVISION
+# The commit this image is built from, which /capabilities.json names.
+# platform/scripts/deploy_site.sh and scripts/release.sh pass it; a build
+# without it stops here.
+ARG SOURCE_COMMIT
+RUN test -n "$SOURCE_COMMIT"
+ENV SOURCE_COMMIT=$SOURCE_COMMIT
 
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/techtree ./
 

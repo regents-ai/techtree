@@ -12,7 +12,7 @@ work were not pushed. All repository-owned ignore files in scope now exclude
 
 The site has been deployed to Fly and its public pages checked. The existing
 catalog, bootstrap and all five public object digests are unchanged. Check
-`/healthz` for the exact deployed application revision and GitHub Checks for the
+`build.commit` at `/capabilities.json` for the exact deployed commit and GitHub Checks for the
 latest CI outcome. The authenticated-CI migration fixture now uses configured
 test credentials rather than a password that only worked with local trust auth.
 
