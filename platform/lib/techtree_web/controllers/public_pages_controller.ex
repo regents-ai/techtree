@@ -72,7 +72,14 @@ defmodule TechtreeWeb.PublicPagesController do
   end
 
   def openapi(conn, _params) do
-    body = Jason.encode!(TechtreeWeb.OpenAPI.document())
+    body =
+      Jason.encode!(
+        TechtreeWeb.OpenAPI.document(
+          TechtreeWeb.Endpoint.url(),
+          Application.fetch_env!(:techtree, :request_rate_limit)
+        )
+      )
+
     conn |> cached(body) |> put_resp_content_type("application/json") |> send_resp(200, body)
   end
 

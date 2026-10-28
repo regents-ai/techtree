@@ -302,8 +302,14 @@ checks separately require Foundry.
 ```bash
 mix setup       # deps, database, assets
 mix precommit   # warnings-as-errors, unused locks, Hex audit, format, Credo, Sobelow,
-                # compile-time links, Ash codegen, TypeScript typecheck, tests
+                # compile-time links, Ash codegen, the CLI's OpenAPI copy,
+                # TypeScript typecheck, tests
 ```
+
+`cli/openapi.json`, the copy `make check-cli` reads, is written from
+`TechtreeWeb.OpenAPI` by `mix techtree.sync_openapi`: the document
+https://techtree.sh serves, with production's request budget. Run it after
+changing the OpenAPI module; `mix precommit` runs it with `--check`.
 
 `mix setup` and `mix test` prepare the local database with
 `mix techtree.setup_local_auth`, which takes the staging bootstrap's own steps in
