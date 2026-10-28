@@ -142,7 +142,7 @@ defmodule Techtree.MixProject do
       {:jason, "~> 1.2"},
       {:decimal, "== 3.2.0"},
       {:dns_cluster, "~> 0.3.0"},
-      {:bandit, "~> 1.14"}
+      {:bandit, "~> 1.14 and >= 1.14.1"}
     ]
   end
 
