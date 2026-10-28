@@ -12,6 +12,12 @@
   security weaknesses. Each leads with the Agent Wallet Bench result and
   has a sample report to read.
 
+### Fixed
+
+- The Wallet Bench test machines run on the latest security release of
+  their list of trusted certificate authorities, which stops trusting one
+  whose keys were exposed.
+
 ### Changed
 
 - The agent skill's list of things to keep an eye on is headed "Watch list",
