@@ -134,6 +134,128 @@ defmodule Techtree.WalletBench.BlankTest do
     end
   end
 
+  # An agent driving a tool through a terminal records its colour codes, and a
+  # progress line ends in a carriage return or backspaces; a secret printed
+  # right after one is blanked, in plain text and in JSON once or twice, the
+  # code itself stays and the JSON stays whole (review of 27 Oct).
+  @shapes [
+    {"0x" <> String.duplicate("1f", 32), "32-byte hex value: a private key or a hash"},
+    {"0X" <> String.duplicate("A9", 32), "32-byte hex value: a private key or a hash"},
+    {String.duplicate("e3", 32), "32-byte hex value: a private key or a hash"},
+    {"sk-ant-api03-" <> String.duplicate("Q", 40), "API key"},
+    {"bk_ABCDEFGHJKLMNPQRSTUV", "API key"},
+    {"ows_key_Zx9Qm2Lk8Vt4Rb7Nc1Yw6Hd3", "wallet agent token"},
+    {"someone@example.com", "email address"},
+    {String.duplicate("4vJ9JU1bJJE96FWSJKvHsmmFADCg4gpZQff4P3bkLKi", 2),
+     "64-byte base58 value: a Solana private key or signature"},
+    {@phrase, "recovery phrase"}
+  ]
+
+  @codes [
+    "\e[32m",
+    "\e[1;32m",
+    "\e[38:5:208m",
+    "\e[?25h",
+    "\e[2K\e[1G",
+    "\e(B\e[m",
+    "\\x1b[32m",
+    "\\033[1m",
+    "\\e[0;33m",
+    "\r",
+    "\b\b\b",
+    "\f",
+    "\a",
+    "\t"
+  ]
+
+  # Two levels deep, `\\b`, `\\f` and `\\u` are read both as an escape and as a
+  # written backslash before a letter, so a blank there may take the escape's
+  # letter: the secret is gone and the outer JSON stays whole.
+  test "a secret right after a colour code or a returned line is blanked, and the code stays" do
+    for {secret, label} <- @shapes, code <- @codes, depth <- [0, 1, 2] do
+      text =
+        Enum.reduce(1..depth//1, "out: " <> code <> secret, fn _depth, text ->
+          Jason.encode!(text)
+        end)
+
+      blanked = Blank.blank(text, [])
+      mark = "[redacted: " <> label <> "]"
+
+      assert blanked =~ mark
+      refute blanked =~ String.slice(secret, -12, 12)
+      if depth > 0, do: assert({:ok, _outer} = Jason.decode(blanked))
+
+      case unwrap(blanked, depth) do
+        {:ok, read} -> assert read == "out: " <> code <> mark, inspect({secret, code, depth})
+        {:error, _inner} -> assert depth == 2 and code =~ ~r/[\a\b\f]/, inspect({secret, code})
+      end
+    end
+  end
+
+  defp unwrap(text, 0), do: {:ok, text}
+
+  defp unwrap(text, depth) do
+    with {:ok, inner} <- Jason.decode(text), do: unwrap(inner, depth - 1)
+  end
+
+  test "an address right after a colour code stays, also written with 0X" do
+    for address <- [@address, "0X" <> String.slice(@address, 2..-1//1)],
+        code <- @codes,
+        depth <- [0, 1, 2] do
+      written = "to " <> code <> address <> "\e[0m"
+      text = Enum.reduce(1..depth//1, written, fn _depth, text -> Jason.encode!(text) end)
+
+      assert Blank.blank(text, []) == text
+    end
+  end
+
+  test "a recovery phrase with a colour code around each word is blanked" do
+    shown =
+      @phrase
+      |> String.split()
+      |> Enum.with_index(1)
+      |> Enum.map_join("  ", fn {word, n} -> "#{n}. \e[1m#{word}\e[0m" end)
+
+    for text <- [shown, Jason.encode!(shown)] do
+      blanked = Blank.blank(text, [])
+      assert blanked =~ "[redacted: recovery phrase]"
+      refute blanked =~ "sausage"
+    end
+  end
+
+  # A written backslash, escaped in JSON, may come right before a key that
+  # starts with `b` or `f` or an address that starts with `u`.
+  test "a secret right after a written backslash is blanked" do
+    for {secret, label} <- [
+          {"b" <> String.duplicate("1f", 31) <> "1",
+           "32-byte hex value: a private key or a hash"},
+          {"bk_ABCDEFGHJKLMNPQRSTUV", "API key"},
+          {"user@corp.example", "email address"}
+        ],
+        depth <- [1, 2] do
+      text = Enum.reduce(1..depth, "CORP\\" <> secret, fn _depth, text -> Jason.encode!(text) end)
+
+      read =
+        Enum.reduce(1..depth, Blank.blank(text, []), fn _depth, text -> Jason.decode!(text) end)
+
+      assert read == "CORP\\[redacted: " <> label <> "]"
+    end
+  end
+
+  # A run of backslashes, as JSON written many levels deep makes, is read once
+  # from its start, and so is each colour code.
+  @tag timeout: 10_000
+  test "a megabyte of backslashes or colour codes before a key is blanked in moments" do
+    key = "0x" <> String.duplicate("1f", 32)
+
+    for filler <- [String.duplicate("\\", 1_000_000), String.duplicate("\e[0m", 250_000)] do
+      assert String.ends_with?(
+               Blank.blank(filler <> "\e[32m" <> key, []),
+               "\e[32m[redacted: 32-byte hex value: a private key or a hash]"
+             )
+    end
+  end
+
   # A long run of an address's characters is read once, not once for each of
   # its characters: a large output is blanked in moments.
   @tag timeout: 10_000

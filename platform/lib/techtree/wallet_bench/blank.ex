@@ -12,7 +12,7 @@ defmodule Techtree.WalletBench.Blank do
   no other rule sees. Then patterns: PEM and PGP private keys, sign-in links
   that carry a code, email addresses, API keys with a vendor's prefix (Anthropic,
   OpenAI, Bankr, Zerion, Privy, Circle), the Open Wallet Standard's agent token
-  (Zerion's signing token), 32-byte hex values with or without `0x` (a
+  (Zerion's signing token), 32-byte hex values with or without `0x` or `0X` (a
   private key looks like a transaction hash, so the blank says it may be
   either), 64-byte base58 values (a Solana key looks like a Solana signature)
   and Solana keys written as 64 numbers, and runs of 12 or more
@@ -20,9 +20,13 @@ defmodule Techtree.WalletBench.Blank do
   thing it hid, so the judge can still rule on a secret that was shown. EVM
   addresses and signatures are longer or shorter than these shapes and stay.
 
-  A value at the start of an output line inside a JSON string follows the
-  escape `\\n` or `\\t`, so the prefixed and fixed-length rules also open after
-  one; a plain word boundary would miss it there.
+  Every rule that reads a value or a phrase's word by its shape starts it the
+  same way (`@start`): after a character that is not one of its own, and also
+  right after a JSON escape (`\\b`, `\\f`, `\\n`, `\\r`, `\\t` or `\\uXXXX`, at
+  any depth) or a terminal's colour or control code, raw or written out, which
+  often ends in a letter. A plain word boundary would miss a secret there. It
+  never starts on the letter of an escape, so blanking leaves the JSON whole,
+  and the colour code itself stays.
   """
 
   @words_path Application.app_dir(:techtree, "priv/wallet_bench/bip39-english.txt")
@@ -31,22 +35,49 @@ defmodule Techtree.WalletBench.Blank do
 
   @phrase_length 12
 
+  # A terminal's colour or control code (ECMA-48: ESC, then `[`, parameters and
+  # a final character, or a single final character), with ESC raw or written
+  # out: `\u001b` in JSON at any depth, `\x1b`, `\033` or `\e`. A run of
+  # backslashes is read once, from its start, so a long run costs no more than
+  # its length.
+  @colour ~S"(?:\x1b|(?<!\\)\\++(?:u001[bB]|x1[bB]|033|e))(?:\[[0-?]*[ -/]*[@-~]|[ -/]*[0-~])"
+
+  # Where a value or a phrase's word may start besides after a character that
+  # is not one of its own (each rule names its own, and a backslash): right
+  # after a JSON escape, `\b`, `\f`, `\n`, `\r`, `\t` or `\uXXXX`, at any
+  # depth; after a backslash that begins no escape, never inside a run of
+  # them, which would read the run again from each; and after a colour code,
+  # which stays (`\K` starts the blank after it). Never on the letter of an
+  # escape one backslash begins, so the JSON a blank lands in stays whole.
+  @start ~S"(?<=\\[bfnrt]|\\u[0-9a-fA-F]{4})|(?<=\\)(?![bfnrtu\\])|" <> @colour <> ~S"\K"
+
+  # A value may also start on a `b`, `f` or `u` after escaped backslashes,
+  # where a hex key, a Bankr key or a user's address may follow a written
+  # backslash; two levels deep that is also an escape, and a blank there may
+  # take its letter. A phrase's word may not: taken with the letter, the word
+  # would hide the phrase. An `n`, `r` or `t` there stays a line break, as JSON
+  # inside JSON writes one.
+  @value_start @start <> ~S"|(?<!\\)(?:\\\\)++\K(?=[bfu])"
+
+  # A word of a recovery phrase starts after a non-letter or at `@start`; what
+  # may stand between two words of a phrase (`blank_phrases/1`).
+  @word ~r/(?:(?<![A-Za-z\\])|#{@start})[A-Za-z]{3,8}(?![A-Za-z])/
+  @gap ~r/\A(?:\s|#{@colour}|\\+[nrt"\/]|\d{1,2}[.):\-]|[,"'\[\]\-|\/_.;+])+\z/u
+
   @patterns [
     {~r/-----BEGIN [A-Z ]*PRIVATE KEY[A-Z ]*-----.*?-----END [A-Z ]*PRIVATE KEY[A-Z ]*-----/s,
      "private key"},
     {~r{https?://[^\s"'<>\\]*[?&#](?:code|token|otp|magic|auth)[^\s"'<>\\]*}i, "sign-in link"},
-    # An address starts where its characters do, or after an escape, never on
-    # the escape's letter; read possessively, each start is tried once.
-    {~r/(?:(?<=\\[nrt])|(?<![A-Za-z0-9._%+\-\\])|(?<=\\)(?![nrt]))[A-Za-z0-9._%+-]++@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/,
+    # Read possessively, each start of an address is tried once.
+    {~r/(?:(?<![A-Za-z0-9._%+\-\\])|#{@value_start})[A-Za-z0-9._%+-]++@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/,
      "email address"},
-    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
+    {~r/(?:(?<![0-9A-Za-z\\])|#{@value_start})(?:sk-[A-Za-z0-9_-]{20,}|bk_[A-Za-z0-9_-]{16,}|zk_[A-Za-z0-9_]{16,}|privy_app_secret_[A-Za-z0-9]{16,}|(?:TEST|LIVE)_API_KEY:[A-Za-z0-9]+:[A-Za-z0-9]+)/,
      "API key"},
     # The Open Wallet Standard's agent token, which Zerion keeps in its config: it signs without the passphrase.
-    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))ows_key_[A-Za-z0-9_]{16,}/, "wallet agent token"},
-    {~r/(?:(?<=\\[nt])|(?<![0-9A-Za-z]))(?:0x)?[0-9a-fA-F]{64}(?![0-9A-Za-z])/,
+    {~r/(?:(?<![0-9A-Za-z\\])|#{@value_start})ows_key_[A-Za-z0-9_]{16,}/, "wallet agent token"},
+    {~r/(?:(?<![0-9A-Za-z\\])|#{@value_start})(?:0[xX])?[0-9a-fA-F]{64}(?![0-9A-Za-z])/,
      "32-byte hex value: a private key or a hash"},
-    # `n`, `r` and `t` are base58 letters too, so an escape's letter is never a start.
-    {~r/(?:(?<=\\[nrt])|(?<![0-9A-Za-z\\])|(?<=\\)(?![nrt]))[1-9A-HJ-NP-Za-km-z]{86,90}(?![0-9A-Za-z])/,
+    {~r/(?:(?<![0-9A-Za-z\\])|#{@value_start})[1-9A-HJ-NP-Za-km-z]{86,90}(?![0-9A-Za-z])/,
      "64-byte base58 value: a Solana private key or signature"},
     {~r/\[\s*(?:\d{1,3}\s*,\s*){63}\d{1,3}\s*\]/, "Solana private key"}
   ]
@@ -58,9 +89,9 @@ defmodule Techtree.WalletBench.Blank do
   # (`\\n`, a `/` as `\\/`), and it may follow such an escape. It may use
   # the web-safe alphabet, `-` and `_` for `+` and `/`. It takes a line after
   # a break, indented or not, only when the rest of that line is base64 and not
-  # a `0x` hex value (an address, key or hash keeps its own rule), so the line
+  # a `0x` or `0X` hex value (an address, key or hash keeps its own rule), so the line
   # after a picture is never cut short, and padding ends it.
-  @picture ~r"(?:(?<=\\[nrt])|(?<![A-Za-z0-9+/\\]))(?:iVBORw0KGg|(?:\\*/|_)9j(?:\\*/|_)|R0lGOD|UklGR|Qk(?:[A-Za-z0-9+_-]|\\*/){6}AAAA|SUkqA|SUkrA|TU0AK|AAAA(?:[A-Za-z0-9+_-]|\\*/){2}Z0eXB(?:hdml[mz]|oZWl[j4tz]|oZXZ[j4]|taWYx|tc2Yx)|PHN2Z|PCFET0NUWVBFIHN2Z|PD94bWw|JVBERi0)(?=(?:[A-Za-z0-9+/_-]|\\+/|\\+[rnt]|[ \t]|\r?\n){100})(?:[A-Za-z0-9+/_-]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?:[ \t]|\\+t)*+(?!0x[0-9a-fA-F]++(?:\\+[rn]|[\r\n]|\\*\"|$))(?=(?:[A-Za-z0-9+/_-]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
+  @picture ~r"(?:(?<![A-Za-z0-9+/\\])|#{@value_start})(?:iVBORw0KGg|(?:\\*/|_)9j(?:\\*/|_)|R0lGOD|UklGR|Qk(?:[A-Za-z0-9+_-]|\\*/){6}AAAA|SUkqA|SUkrA|TU0AK|AAAA(?:[A-Za-z0-9+_-]|\\*/){2}Z0eXB(?:hdml[mz]|oZWl[j4tz]|oZXZ[j4]|taWYx|tc2Yx)|PHN2Z|PCFET0NUWVBFIHN2Z|PD94bWw|JVBERi0)(?=(?:[A-Za-z0-9+/_-]|\\+/|\\+[rnt]|[ \t]|\r?\n){100})(?:[A-Za-z0-9+/_-]++|\\+/|(?:(?:\\+[rn])++|[\r\n]++)(?:[ \t]|\\+t)*+(?!0[xX][0-9a-fA-F]++(?:\\+[rn]|[\r\n]|\\*\"|$))(?=(?:[A-Za-z0-9+/_-]++|\\+/)++=*+(?:\\+[rn]|[\r\n]|\\*\"|$)))*+=*"
 
   # Each escaped `/` or line of a picture is one more step of the match, and
   # the default step limit ends a match silently; ten steps a byte covers any
@@ -212,11 +243,10 @@ defmodule Techtree.WalletBench.Blank do
 
   # A run of recovery-phrase words, in any case: consecutive list words
   # separated only by spaces (any kind), line breaks or tabs (also escaped once
-  # or more, as in JSON inside JSON), a word's number, the quotes, commas and
-  # brackets of a list, or a `-`, `|`, `/`, `_`, `.`, `;` or `+`.
+  # or more, as in JSON inside JSON), a word's number, colour codes, the quotes,
+  # commas and brackets of a list, or a `-`, `|`, `/`, `_`, `.`, `;` or `+`.
   defp blank_phrases(text) do
-    # A word starts after a non-letter, or right after a `\n`, `\r` or `\t` escape.
-    ~r/(?:(?<=\\[nrt])|(?<![A-Za-z\\]))[A-Za-z]{3,8}(?![A-Za-z])/
+    @word
     |> Regex.scan(text, return: :index)
     |> Enum.map(fn [{at, length}] -> {at, length} end)
     |> runs(text, [], [])
@@ -249,7 +279,7 @@ defmodule Techtree.WalletBench.Blank do
 
   defp joined?(text, {at, length}, {next, _length}) do
     gap = binary_part(text, at + length, next - at - length)
-    gap =~ ~r/\A(?:\s|\\+[nrt"\/]|\d{1,2}[.):\-]|[,"'\[\]\-|\/_.;+])+\z/u
+    gap =~ @gap
   end
 
   defp mark(label), do: "[redacted: " <> label <> "]"

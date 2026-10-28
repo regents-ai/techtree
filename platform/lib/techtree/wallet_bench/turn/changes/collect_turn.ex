@@ -4,9 +4,13 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   brings the turn's whole folder back as one archive, reads the tested
   account's secrets on the machine (`secrets.py`, held in memory only), blanks
   every file (`Techtree.WalletBench.Blank`) and stores each under
-  `attempts/<attempt>/<turn>/` in the evidence bucket. The turn records each
-  file's sha256 and size, the harness's conversation id, exit code and timing,
-  and what the tested model's calls cost.
+  `attempts/<attempt>/<turn>/` in the evidence bucket, with `SHA256SUMS`: the
+  sha256 of each stored file, written as `sha256sum` writes them, so a
+  downloaded folder checks with `sha256sum -c`. It is made from the blanked
+  files and holds only their sums, so it is not blanked itself, and it replaces
+  any file of that name the turn left. The turn records each file's sha256 and
+  size, the harness's conversation id, exit code and timing, and what the
+  tested model's calls cost.
 
   A turn whose runner was lost (the machine restarted) or ended badly is
   `failed` at once, with the end of its log, blanked the same way. A turn
@@ -23,6 +27,7 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
   alias Techtree.WalletBench.{Attempt, Blank, Catalog, Evidence, Remote, TurnArchive}
 
   @wait_seconds 30
+  @sums "SHA256SUMS"
 
   @impl true
   def change(changeset, _opts, _context) do
@@ -96,11 +101,16 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
            Remote.run(name, ["bash", "-c", archive, "bash", folder], receive_timeout: 180_000),
          {:ok, files} <- TurnArchive.unpack(encoded),
          {:ok, known, secret_files} <- known_secrets(name) do
-      blanked = Map.new(files, fn {file, content} -> {file, Blank.blank(content, known)} end)
+      blanked =
+        files
+        |> Map.delete(@sums)
+        |> Map.new(fn {file, content} -> {file, Blank.blank(content, known)} end)
 
-      with :ok <- store(attempt, folder, blanked) do
-        {:ok, attributes(blanked),
-         %{files: map_size(blanked), secret_files: Enum.map(secret_files, & &1["path"])}}
+      stored = Map.put(blanked, @sums, sums(blanked))
+
+      with :ok <- store(attempt, folder, stored) do
+        {:ok, attributes(stored),
+         %{files: map_size(stored), secret_files: Enum.map(secret_files, & &1["path"])}}
       end
     end
   end
@@ -162,6 +172,12 @@ defmodule Techtree.WalletBench.Turn.Changes.CollectTurn do
       ".md" -> "text/markdown; charset=utf-8"
       _other -> "text/plain; charset=utf-8"
     end
+  end
+
+  defp sums(files) do
+    files
+    |> Enum.sort()
+    |> Enum.map_join(fn {file, content} -> sha256(content) <> "  " <> file <> "\n" end)
   end
 
   defp sha256(content), do: :crypto.hash(:sha256, content) |> Base.encode16(case: :lower)
