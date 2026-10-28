@@ -46,6 +46,7 @@ defmodule Techtree.Network.Error do
           | :submission_campaign_unpublished
           | :submission_result_inconsistent
           | :submission_skill_change_invalid
+          | :submission_model_change_invalid
           | :skill_artifact_invalid
           | :skill_path_invalid
           | :skill_fingerprint_mismatch
