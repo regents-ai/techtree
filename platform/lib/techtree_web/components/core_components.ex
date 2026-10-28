@@ -213,6 +213,9 @@ defmodule TechtreeWeb.CoreComponents do
   def mutation_words("skill_replacement"),
     do: "One skill is replaced by another. Nothing else may differ."
 
+  def mutation_words("model_substitution"),
+    do: "Only the model's weights change. Nothing else may differ."
+
   def mutation_words(other), do: plain_words(other)
 
   # A Climb's terms describe a published result. Read alone, "is published as

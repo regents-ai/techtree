@@ -45,6 +45,15 @@ defmodule Techtree.Network.Result do
   the one place the Campaign lets differ, written in the shape the CLI writes
   one, and every fingerprint it gives the candidate's Skill must be the one
   the candidate run's own settings, carried in the bundle, give it.
+
+  A model change (`model_substitution`, `docs/spec/model-substitution-v1.md`)
+  is read more strictly, because both runs' settings are compared here rather
+  than taken from the report. The two runs may differ only in the model's
+  weights, plus the candidate's derivation record, which must point at the
+  candidate's own weights and at the baseline's model as their source. The
+  baseline must be the model the Campaign names, the weights must really
+  differ, and the report's list of differences must be exactly the one this
+  site works out itself, so a difference the report leaves out is caught.
   """
 
   alias Techtree.Catalog.Digest
@@ -55,6 +64,15 @@ defmodule Techtree.Network.Result do
 
   @skill_fields ~w(digest media_type size relative_path)
   @skill_reference_keys ~w(digest media_type relative_path size)
+
+  @weights_pointer "/agents/subject/model/weights"
+  @derivation_pointer "/agents/subject/model/derivation"
+  @model_keys ~w(chat_template_digest derivation serving tokenizer_digest weights)
+  @weights_keys ~w(repo revision weights_root)
+  @serving_keys ~w(dtype engine max_model_len quantization version)
+  @derivation_keys ~w(method method_config_digest seed source tool tool_commit weights_root)
+  @source_keys ~w(repo revision)
+  @commit ~r/\A[0-9a-f]{40}\z/
 
   # Wide enough that adding and multiplying scores written as JSON numbers never
   # rounds: a double spans about 650 decimal digits from end to end.
@@ -104,6 +122,19 @@ defmodule Techtree.Network.Result do
           without: value(),
           with: value()
         }
+
+  @typedoc "One run's open weights: where they came from and their root digest."
+  @type weights :: %{
+          repo: String.t() | nil,
+          revision: String.t() | nil,
+          weights_root: String.t()
+        }
+
+  @typedoc """
+  The model change a report measured: the two runs' weights, and the record of
+  how the candidate's were made from the baseline's, when it carries one.
+  """
+  @type model_change :: %{baseline: weights(), candidate: weights(), derivation: map() | nil}
 
   @doc """
   Recompute a report's result under its Campaign, or name what does not hold.
@@ -172,6 +203,37 @@ defmodule Techtree.Network.Result do
        "this result does not show its two runs as differing only in a Skill",
        %{}
      )}
+  end
+
+  @doc """
+  What changed between the two runs of a `model_substitution` Campaign: only
+  the model's weights, and the candidate's record of how they were made.
+
+  `baseline` and `candidate` are the `configuration` of the two runs'
+  experiment manifests, read from the bundle. Both are compared here, leaf by
+  leaf, the same way the CLI compares them, and the report's own list of
+  differences must be exactly that comparison.
+  """
+  @spec model_change(map(), map(), map(), map()) :: {:ok, model_change()} | {:error, Error.t()}
+  def model_change(report, campaign, baseline, candidate)
+      when is_map(report) and is_map(campaign) and is_map(baseline) and is_map(candidate) do
+    with :ok <- model_contract(campaign),
+         {:ok, reported} <- reported_differences(report),
+         {:ok, before} <- open_weights(baseline, "the run without the change"),
+         {:ok, now} <- open_weights(candidate, "the run with the change"),
+         :ok <- named_by_campaign(before, campaign),
+         differences = baseline |> differences(candidate, "") |> Enum.sort_by(& &1["pointer"]),
+         :ok <- only_the_weights(differences),
+         :ok <- weights_differ(before, now),
+         :ok <- derived_from(before, now),
+         :ok <- reported_as_found(reported, differences) do
+      {:ok,
+       %{
+         baseline: weights(before["weights"]),
+         candidate: weights(now["weights"]),
+         derivation: now["derivation"]
+       }}
+    end
   end
 
   # -- The task rows ---------------------------------------------------------
@@ -456,4 +518,229 @@ defmodule Techtree.Network.Result do
        %{"pointer" => pointer}
      )}
   end
+
+  # -- The model change ------------------------------------------------------
+
+  defp model_contract(%{
+         "mutation_contract" => %{
+           "kind" => "model_substitution",
+           "target_agent" => "subject",
+           "allowed_differences" => [@weights_pointer]
+         }
+       }),
+       do: :ok
+
+  defp model_contract(campaign) do
+    model_change_invalid(
+      "this result's Campaign does not let only the model's weights differ",
+      %{"mutation_contract" => campaign["mutation_contract"]}
+    )
+  end
+
+  defp reported_differences(%{
+         "manifest_comparison" => %{
+           "controlled" => true,
+           "violations" => [],
+           "allowed_differences" => [@weights_pointer],
+           "differences" => [_ | _] = differences
+         }
+       }),
+       do: {:ok, differences}
+
+  defp reported_differences(_report) do
+    model_change_invalid(
+      "this result's report does not show its two runs as differing only in the model's weights",
+      %{}
+    )
+  end
+
+  defp open_weights(configuration, side) do
+    model = fetch_in(configuration, ["agents", "subject", "model"])
+
+    if open_weights?(model) do
+      {:ok, model}
+    else
+      model_change_invalid(
+        side <>
+          " does not name its model as open weights, written the way the contract writes them",
+        %{"pointer" => "/agents/subject/model"}
+      )
+    end
+  end
+
+  defp open_weights?(model) do
+    keys?(model, @model_keys) and weights?(model["weights"]) and
+      Digest.valid?(model["tokenizer_digest"]) and Digest.valid?(model["chat_template_digest"]) and
+      serving?(model["serving"]) and
+      (is_nil(model["derivation"]) or derivation?(model["derivation"]))
+  end
+
+  # A revision is a commit of the repository it names, so it never comes alone.
+  defp weights?(weights) do
+    keys?(weights, @weights_keys) and optional_text?(weights["repo"]) and
+      (is_nil(weights["revision"]) or (commit?(weights["revision"]) and text?(weights["repo"]))) and
+      Digest.valid?(weights["weights_root"])
+  end
+
+  defp serving?(serving) do
+    keys?(serving, @serving_keys) and serving["engine"] == "vllm" and text?(serving["version"]) and
+      text?(serving["dtype"]) and optional_text?(serving["quantization"]) and
+      positive?(serving["max_model_len"])
+  end
+
+  defp derivation?(derivation) do
+    keys?(derivation, @derivation_keys) and text?(derivation["tool"]) and
+      commit?(derivation["tool_commit"]) and source?(derivation["source"]) and
+      text?(derivation["method"]) and Digest.valid?(derivation["method_config_digest"]) and
+      (is_nil(derivation["seed"]) or is_integer(derivation["seed"])) and
+      Digest.valid?(derivation["weights_root"])
+  end
+
+  defp source?(source),
+    do: keys?(source, @source_keys) and text?(source["repo"]) and commit?(source["revision"])
+
+  defp keys?(map, keys), do: is_map(map) and Enum.sort(Map.keys(map)) == keys
+  defp commit?(value), do: is_binary(value) and Regex.match?(@commit, value)
+
+  # The Campaign describes the run without the change, and names its model
+  # exactly: by repository and commit.
+  defp named_by_campaign(%{"weights" => weights} = model, campaign) do
+    if model == fetch_in(campaign, ["agents", "subject", "model"]) and text?(weights["repo"]) and
+         commit?(weights["revision"]) do
+      :ok
+    else
+      model_change_invalid(
+        "the run without the change is not the model its Campaign names, by repository and commit",
+        %{"pointer" => "/agents/subject/model"}
+      )
+    end
+  end
+
+  # Every leaf at which the two settings disagree, as an RFC 6901 pointer, the
+  # way the CLI's `diff_values` finds them: descend only where both sides are
+  # the same kind of container, and report anything else whole.
+  defp differences(%{} = baseline, %{} = candidate, pointer) do
+    (Map.keys(baseline) ++ Map.keys(candidate))
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.flat_map(fn key ->
+      child = pointer <> "/" <> escape(key)
+      pair(Map.fetch(baseline, key), Map.fetch(candidate, key), child)
+    end)
+  end
+
+  defp differences(baseline, candidate, pointer) when is_list(baseline) and is_list(candidate) do
+    0
+    |> Range.new(max(length(baseline), length(candidate)) - 1, 1)
+    |> Enum.flat_map(fn index ->
+      child = pointer <> "/" <> Integer.to_string(index)
+      pair(Enum.fetch(baseline, index), Enum.fetch(candidate, index), child)
+    end)
+  end
+
+  defp differences(baseline, candidate, pointer) do
+    if same_scalar?(baseline, candidate),
+      do: [],
+      else: [difference(pointer, baseline, candidate)]
+  end
+
+  defp pair(:error, {:ok, value}, pointer), do: [difference(pointer, nil, value)]
+  defp pair({:ok, value}, :error, pointer), do: [difference(pointer, value, nil)]
+  defp pair({:ok, left}, {:ok, right}, pointer), do: differences(left, right, pointer)
+
+  # JSON has one kind of number, so 1 and 1.0 are the same value; a boolean is
+  # never a number.
+  defp same_scalar?(left, right) when is_number(left) and is_number(right), do: left == right
+  defp same_scalar?(left, right), do: left === right
+
+  defp difference(pointer, baseline, candidate),
+    do: %{"pointer" => pointer, "baseline" => baseline, "candidate" => candidate}
+
+  defp escape(key), do: key |> String.replace("~", "~0") |> String.replace("/", "~1")
+
+  defp only_the_weights(differences) do
+    case Enum.find(differences, &(not model_pointer?(&1["pointer"]))) do
+      nil ->
+        :ok
+
+      %{"pointer" => pointer} ->
+        model_change_invalid(
+          "the two runs differ in a setting other than the model's weights",
+          %{"pointer" => pointer}
+        )
+    end
+  end
+
+  defp model_pointer?(pointer),
+    do:
+      pointer in [@weights_pointer, @derivation_pointer] or
+        String.starts_with?(pointer, @weights_pointer <> "/")
+
+  defp weights_differ(%{"weights" => %{"weights_root" => root}}, %{
+         "weights" => %{"weights_root" => root}
+       }) do
+    model_change_invalid(
+      "both runs name the same weights, so the comparison measures no change",
+      %{"pointer" => @weights_pointer <> "/weights_root"}
+    )
+  end
+
+  defp weights_differ(_baseline, _candidate), do: :ok
+
+  # The baseline is the source model, so only the candidate's weights carry a
+  # record of how they were made, and that record names those weights and the
+  # baseline's model.
+  defp derived_from(%{"derivation" => nil, "weights" => source}, %{
+         "derivation" => derivation,
+         "weights" => weights
+       }) do
+    if is_nil(derivation) or
+         (derivation["weights_root"] == weights["weights_root"] and
+            derivation["source"] == Map.take(source, @source_keys)) do
+      :ok
+    else
+      model_change_invalid(
+        "the candidate's derivation record does not name its own weights and the baseline's " <>
+          "model as their source",
+        %{"pointer" => @derivation_pointer}
+      )
+    end
+  end
+
+  defp derived_from(_baseline, _candidate) do
+    model_change_invalid(
+      "the run without the change carries a derivation record, and only the changed weights " <>
+        "are derived",
+      %{"pointer" => @derivation_pointer}
+    )
+  end
+
+  defp reported_as_found(reported, differences) do
+    if Enum.sort_by(reported, &pointer/1) == differences do
+      :ok
+    else
+      model_change_invalid(
+        "the differences this result's report lists are not the ones its two runs' settings give",
+        %{
+          "reported" => Enum.map(reported, &pointer/1),
+          "recomputed" => Enum.map(differences, & &1["pointer"])
+        }
+      )
+    end
+  end
+
+  defp weights(weights) do
+    %{
+      repo: weights["repo"],
+      revision: weights["revision"],
+      weights_root: weights["weights_root"]
+    }
+  end
+
+  defp fetch_in(value, []), do: value
+  defp fetch_in(%{} = map, [key | path]), do: fetch_in(Map.get(map, key), path)
+  defp fetch_in(_value, _path), do: nil
+
+  defp model_change_invalid(sentence, details),
+    do: {:error, Error.new(:submission_model_change_invalid, sentence, details)}
 end
