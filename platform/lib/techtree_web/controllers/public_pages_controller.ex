@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.PublicPagesController do
   @moduledoc """
-  About, Contact, Privacy and Terms as pages, and the files agents and crawlers
-  read first: the short start for agents at `/llms.txt`, the OpenAPI
+  About, Contact, Privacy, Terms and the two sample reports under `/services`
+  as pages, and the files agents and crawlers read first: the short start for
+  agents at `/llms.txt`, the OpenAPI
   description, the tool manifest, `robots.txt`, `security.txt`, the API
   catalog, the Techtree skill at `/skill.md`, each agent's own skill at
   `/agents/SLUG/skill.md` and the skills index under `/.well-known/agent-skills`.

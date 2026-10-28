@@ -239,6 +239,22 @@ defmodule TechtreeWeb.Layouts do
     do:
       "Repo2RLEnv will turn a repository’s history into practice tasks for agents. Ask to hear when it opens."
 
+  defp description_for_path("/services/verify"),
+    do:
+      "Techtree Verify: agreed workflow checks, reproducible failures, a suite you can run again and a clear report."
+
+  defp description_for_path("/services/verify/sample-report"),
+    do:
+      "A sample Techtree Verify report: 14 checks on the Agent Wallet Bench, each with its evidence."
+
+  defp description_for_path("/services/cyber-assist"),
+    do:
+      "Techtree Cyber Assist: validated security findings, reproduction evidence, repairs in priority order and verified fixes."
+
+  defp description_for_path("/services/cyber-assist/sample-report"),
+    do:
+      "A sample Techtree Cyber Assist report: one validated finding on the Agent Wallet Bench, fixed, verified and released."
+
   defp description_for_path("/docs"),
     do: "Install Techtree, test a Skill, check and publish a Result, and connect an agent."
 

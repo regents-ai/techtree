@@ -134,6 +134,10 @@ defmodule TechtreeWeb.Router do
       live "/changelog", ChangelogLive
       live "/verify", ProofsLive
       live "/repo2rlenv", Repo2RLEnvLive
+      live "/services/verify", ServiceLive, :verify
+      live "/services/cyber-assist", ServiceLive, :cyber_assist
+      get "/services/verify/sample-report", PublicPagesController, :show
+      get "/services/cyber-assist/sample-report", PublicPagesController, :show
       live "/results", RunsLive.Index
       live "/results/:bundle_digest", RunsLive.Show
       live "/examples/tdd", TddShowcaseLive

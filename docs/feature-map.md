@@ -29,7 +29,7 @@ finger on a touch screen, 24 px for a mouse control.
 | Open one Wallet Bench test and its evidence | `wallet_bench.spec.ts` (passed, failed and running tests at three widths) |
 | Check a Result yourself (Verify) | `pages.spec.ts`, `proofs_live_test.exs` |
 | Read a Climb | `climbs_live_test.exs`. **Gap:** no browser check with an imported Climb |
-| Read the changelog, blog, About, Privacy, Terms, the tdd example and Repo2RLEnv | `pages.spec.ts`, `changelog_live_test.exs`, `pages_test.exs`, `tdd_showcase_live_test.exs` |
+| Read the changelog, blog, About, Privacy, Terms, the tdd example, Repo2RLEnv, the Verify and Cyber Assist offers and their sample reports | `pages.spec.ts`, `public_markdown_test.exs`, `changelog_live_test.exs`, `pages_test.exs`, `tdd_showcase_live_test.exs` |
 | Land on a page that doesn't exist and find the way home | `pages.spec.ts`, `error_html_test.exs` |
 | Keep reading Home, Start, Docs, Results and Wallet Bench while the database is down | `outage_pages_test.exs`, `outage_property_test.exs`, `outage_test.exs` |
 

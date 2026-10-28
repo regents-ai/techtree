@@ -10,6 +10,10 @@
 - A link to a Result shared on X or elsewhere shows that Result's own
   picture: its Climb, its verdict, how many tasks it ran on, and how many got
   better, stayed the same and got worse. A withdrawn Result's picture says so.
+- Two paid offers have their own pages: Techtree Verify, which checks the
+  workflows a team ships, and Techtree Cyber Assist, which finds and fixes
+  security weaknesses. Each leads with the Agent Wallet Bench result and
+  has a sample report to read.
 
 ### Fixed
 

@@ -112,6 +112,8 @@ GET /wallet-bench/:id           one wallet test; /wallet-bench/:id/results.json 
 GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
 GET /repo2rlenv                 the planned Repo2RLEnv service
+GET /services/verify           Techtree Verify, a paid offer; /sample-report its sample
+GET /services/cyber-assist     Techtree Cyber Assist, a paid offer; /sample-report its sample
 GET /blog, /blog/:slug          published posts
 
 GET /healthz                    is a catalog being served, and which one

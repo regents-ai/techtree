@@ -81,6 +81,44 @@
 .repo-service__boundary p { max-width: 80ch; }
 .repo-service > .start-guide__next { margin-top: var(--space-4); }
 
+/* The paid offers: the bench result first, then deliverables, steps, a sample and
+   the way to start. Sheets and rules only; nothing floats. */
+.service-offer__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.service-result { padding-block: var(--space-4); border-block: 1px solid var(--hairline-strong); }
+.service-result h2 { margin-top: var(--space-2); }
+.service-result__figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block: var(--space-3) var(--space-2); }
+.service-result__figures > div { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-3) var(--space-3) 0; border-top: 1px solid var(--hairline); }
+.service-result__figures > div + div { padding-left: var(--space-3); border-left: 1px solid var(--hairline); }
+.service-result__figures dd { order: -1; font-family: var(--font-family-title); font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1; font-variant-numeric: tabular-nums; }
+.service-result__figures dt { max-width: 26ch; font-size: .875rem; color: var(--color-fg-muted); }
+.service-offer__part { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-block: var(--space-6); }
+.service-offer__part h2 { margin-top: var(--space-2); max-width: 24ch; }
+.service-offer__part p:not(.eyebrow) { max-width: 58ch; margin-top: var(--space-2); color: var(--color-fg-muted); }
+.service-offer__flow .service-flow { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: var(--space-3); }
+.service-sample > li { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-2); padding-block: var(--space-2); border-top: 1px solid var(--hairline); font-size: .875rem; }
+.service-sample > li:last-child { border-bottom: 1px solid var(--hairline); }
+.service-sample__mark { display: inline-flex; align-items: center; gap: .4rem; flex-shrink: 0; font-weight: 600; white-space: nowrap; }
+.service-sample__mark::before { content: ""; width: .5rem; height: .5rem; background: var(--hairline-strong); }
+.service-sample__mark--pass::before, .service-sample__mark--fixed::before { background: var(--color-success); }
+.service-sample__mark--fail::before { background: var(--color-error); }
+.service-offer__start { margin-block: var(--space-6) var(--space-4); }
+.service-offer__start h2 { margin-top: var(--space-2); font-size: 1.75rem; }
+.service-offer__start p:not(.eyebrow) { max-width: 60ch; margin-block: var(--space-2) var(--space-3); }
+@media (max-width: 47.99rem) {
+  .service-offer__part { grid-template-columns: 1fr; gap: var(--space-3); margin-block: var(--space-4); }
+  .service-result__figures { grid-template-columns: 1fr; }
+  .service-result__figures > div, .service-result__figures > div + div { display: grid; grid-template-columns: 8.75rem minmax(0, 1fr); align-items: baseline; gap: var(--space-2); padding: var(--space-2) 0; border-left: 0; }
+  .service-result__figures dd { font-size: 1.75rem; white-space: nowrap; }
+  .service-offer__flow .service-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .service-offer__flow .service-flow > li:nth-child(2) { border-right: 1px solid var(--rg-local-rule, var(--hairline)); }
+  .service-offer__flow .service-flow > li:nth-child(n+3) { border-top: 0; }
+}
+@media (max-width: 29.99rem) {
+  .service-offer__flow .service-flow { grid-template-columns: 1fr; }
+  .service-offer__flow .service-flow > li { border-right: 1px solid var(--rg-local-rule, var(--hairline)); }
+  .service-offer__flow .service-flow > li + li { border-top: 0; }
+}
+
 /* Frequent filtering stays instant. Three dependent, keyboard-native link rows. */
 .runs-index .runs-index__intro { border: 0; padding-bottom: var(--space-3); }
 .runs-index .runs-index__heading h1 { font-size: clamp(2.25rem, 4vw, 3.5rem); }

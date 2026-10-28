@@ -6,7 +6,8 @@ import {layoutProblems, watchErrors} from "./support/visitor"
 // sideways and every press target is big enough to hit.
 const pages = ["/", "/start", "/docs", "/docs/install", "/docs/test-a-skill", "/docs/api", "/results",
   "/wallet-bench", "/verify", "/changelog",
-  "/examples/tdd", "/repo2rlenv", "/account", "/about", "/privacy", "/terms"]
+  "/examples/tdd", "/repo2rlenv", "/services/verify", "/services/verify/sample-report",
+  "/services/cyber-assist", "/services/cyber-assist/sample-report", "/account", "/about", "/privacy", "/terms"]
 
 for (const width of [1280, 390, 320]) {
   test.describe(`${width} wide`, () => {

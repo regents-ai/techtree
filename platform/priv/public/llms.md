@@ -19,5 +19,6 @@ Techtree runs on the person's own computer, through regents-cli. Nothing you rea
 - [Docs](https://techtree.sh/docs): the public API, errors, rate limits, versioning and the browser tools.
 - [OpenAPI description](https://techtree.sh/openapi.json), [tool manifest](https://techtree.sh/capabilities) and [sitemap](https://techtree.sh/sitemap.xml).
 - [Results](https://techtree.sh/results), [Wallet Bench](https://techtree.sh/wallet-bench) and [About](https://techtree.sh/about).
+- [Techtree Verify](https://techtree.sh/services/verify) and [Techtree Cyber Assist](https://techtree.sh/services/cyber-assist): checks of a team's workflows or security, each with a sample report.
 
 Every page answers `Accept: text/markdown` with Markdown.
