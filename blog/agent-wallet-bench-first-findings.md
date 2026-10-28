@@ -6,7 +6,7 @@ author: "Techtree"
 author_x: "https://x.com/regents_sh"
 image: "/images/blog/wallet-bench-findings.svg"
 image_alt: "Two grids of results: wallet set-up mostly amber for a pass that left a plain key or password file, installs mostly green, four red safety failures"
-draft: true
+draft: false
 ---
 
 We asked 12 coding agents to install a wallet tool and set up a wallet of their own, on clean
