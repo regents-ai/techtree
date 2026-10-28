@@ -26,7 +26,7 @@ The second safeguard is the only protection for a secret that is not in a file t
 
 ## Validation
 
-A terminal colours text by placing a short code in front of it, and that code ends in a letter. The rules for a private key, a vendor access key and Zerion's agent token only started matching after a character that is not a letter or digit, so a key printed straight after a colour code was missed. The same happened after a written line return, and for a key starting with a capital "0X".
+A terminal colours text by placing a short code in front of it, and that code ends in a letter. The rules for a private key, a vendor access key and Zerion's agent token only started matching after a character that is not a letter or digit, so a key printed straight after a colour code was missed. The same happened after a line break saved as text, and for a key starting with a capital "0X".
 
 We copied the rules unchanged and ran them on test values that hold nothing:
 
@@ -36,11 +36,11 @@ We copied the rules unchanged and ran them on test values that hold nothing:
 | The same key on a new line inside a record | Yes |
 | The same key printed in green | **No** |
 | The same key after a colour code, as stored inside a record | **No** |
-| The same key after a written line return | **No** |
+| The same key after a line break saved as text | **No** |
 | The key starting with a capital "0X" | **No** |
 | A Bankr access key, plain | Yes |
 | A Bankr access key printed in bold | **No** |
-| A Bankr access key after a written line return | **No** |
+| A Bankr access key after a line break saved as text | **No** |
 | A Zerion agent token printed in colour | **No** |
 
 Colour does reach the records. [Prime Agent's Zerion wallet test](https://techtree.sh/wallet-bench/e503a55b-da38-4f54-858c-a4822327fb8f) drove the Zerion tool through a simulated terminal, and its transcript holds 34 colour codes. [Grok Build's Bankr wallet test](https://techtree.sh/wallet-bench/11acaad4-8b27-49e5-8175-26db59b80ab8) holds 906 in one file. Across all 85 results, only these two agents' records contained colour codes, and in all 260 files of their 7 results no key or token follows a colour code or a line return.
@@ -51,13 +51,13 @@ A working private key or access key would have been published in a public eviden
 
 ## Repair
 
-Proposed in this review: let each rule also start right after a colour code or a written line return, keep the colour code itself visible in the record, and accept a capital "0X". On the ten inputs above this hid all ten secrets, kept the colour codes and left an ordinary wallet address visible.
+Proposed in this review: let each rule also start right after a colour code or a line break saved as text, keep the colour code itself visible in the record, and accept a capital "0X". On the ten inputs above this hid all ten secrets, kept the colour codes and left an ordinary wallet address visible.
 
-Released on 28 October 2026: every rule for a secret's shape now starts that way, also after other written control characters. In the same release the site writes each test's checksum file itself, from the published files, after secrets are hidden. Tests recorded before then keep their older checksum file.
+Released on 28 October 2026: every rule for a secret's shape now starts that way, and after other hidden formatting characters. In the same release the site writes each test's checksum file itself, from the published files, after secrets are hidden. Tests recorded before then keep their older checksum file.
 
 ## Fix verified
 
-1. The bench's own hiding tests now include keys, access keys and agent tokens after colour codes and written line returns, and keys starting with "0X". They pass in the released version alongside every earlier case.
+1. The bench's own hiding tests now include keys, access keys and agent tokens after colour codes and line breaks saved as text, and keys starting with "0X". They pass in the released version alongside every earlier case.
 2. The ten inputs above were run again through the released version: all ten secrets hidden, the colour codes kept, and an ordinary wallet address left visible.
 
 ## Scope and open questions
@@ -68,6 +68,6 @@ Not covered, or still uncertain:
 
 - How often wallet tools print secrets in colour in practice. The tools we saw used colour for prompts and status lines.
 - No new wallet test has run through a simulated terminal since the release.
-- The separate regents command and its sign-in client, account sign-in, and anything that needs a live probe.
+- The separate regents command and its agent sign-in, account sign-in, and anything that needs a live probe.
 
 Start a conversation about [Techtree Cyber Assist](/services/cyber-assist).

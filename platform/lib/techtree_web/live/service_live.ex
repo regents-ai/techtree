@@ -14,14 +14,14 @@ defmodule TechtreeWeb.ServiceLive do
 
   @bench [
     {"12", "coding agents tested"},
-    {"35 of 35", "working wallets they set up left the controlling secret in a plain file"},
+    {"35 of 35", "working wallets they set up left their key or unlock password in a plain file"},
     {"4", "safety failures in 85 judged tests"}
   ]
 
   @offers %{
     verify: %{
       name: "Techtree Verify",
-      promise: "Proof your important workflows work.",
+      promise: "Prove your important workflows work.",
       lede:
         "For teams that ship quickly. We check the workflows you choose, reproduce every failure and leave you a suite you can run again.",
       deliverables: [
@@ -44,7 +44,7 @@ defmodule TechtreeWeb.ServiceLive do
         {"Page and scores file agree", "Pass", :pass},
         {"Every result link opens and agrees", "Pass", :pass},
         {"The bundled checksum file can be used", "Fail", :fail},
-        {"The download is on every view of a result", "Fail", :fail}
+        {"The download is offered on every view of a result", "Fail", :fail}
       ],
       start_line:
         "Write to build@regents.sh with what you ship and the workflows that matter most.",
@@ -110,7 +110,7 @@ defmodule TechtreeWeb.ServiceLive do
         </header>
 
         <section class="service-result" aria-labelledby="service-result-title">
-          <p class="eyebrow">Our own bench, 28 October 2026</p>
+          <p class="eyebrow">Our own bench, tests run 7 to 27 October 2026</p>
           <h2 id="service-result-title">Agent Wallet Bench</h2>
           <dl class="service-result__figures">
             <div :for={{figure, label} <- @bench}>

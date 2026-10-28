@@ -1,10 +1,10 @@
 # Techtree Verify
 
-Proof your important workflows work. For teams that ship quickly: we check the workflows you choose, reproduce every failure and leave you a suite you can run again.
+Prove your important workflows work. For teams that ship quickly: we check the workflows you choose, reproduce every failure and leave you a suite you can run again.
 
 ## Agent Wallet Bench
 
-Our own bench, read on 28 October 2026: 12 coding agents tested; all 35 working wallets they set up left the controlling secret in a plain file. 4 safety failures in 85 judged tests. [See the bench](/wallet-bench).
+Our own bench, tests run 7 to 27 October 2026: 12 coding agents tested; all 35 working wallets they set up left their key or unlock password in a plain file. 4 safety failures in 85 judged tests. [See the bench](/wallet-bench).
 
 ## You get
 

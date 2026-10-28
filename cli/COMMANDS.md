@@ -170,7 +170,7 @@ A refused proof is not published, and the answer names the file and the check it
 
 - **What it does:** signs this machine in to the person's ChatGPT plan with OpenAI's Sign in
   with ChatGPT, so Climbs can run on that plan (decision 59 a) as well as on the person's own
-  Prime key. Techtree sells no model calls and charges nothing; plan runs use the person's own
+  Prime key. Techtree sells no model calls and is free to use; plan runs use the person's own
   plan allowance.
 - **Who may run it:** anyone with ChatGPT Plus or Pro.
 - **What it changes:** nothing on the site. It writes `<techtree home>/chatgpt.json` (by default
@@ -234,7 +234,7 @@ never         the token in a URL, a log, a container, a --json answer or anythin
 A Climb runs on one of two routes, and the person picks one for each run: their own Prime key,
 as today, or their ChatGPT plan (decision 59 a). Both stay (decision 105 b). Credits bought
 through Stripe's LLM billing come later as a third route. On either route the person pays their
-own provider and Techtree charges nothing. Hello World, Frontier-CS, Tasksmith and the au-bas
+own provider and Techtree is free to use. Hello World, Frontier-CS, Tasksmith and the au-bas
 Climb all move in climb-v0.7.0. `techtree.campaign.v4` and `techtree.experiment.v4` are not
 released yet, so this changes them in place:
 
@@ -320,7 +320,7 @@ no sign-in      model_sign_in_required
     about N tokens of your plan's limits; a try's last reply can go over. Techtree charges
     nothing."
   - Own Prime key: "Runs on your own Prime key. Stops at $X, or sooner when each try passes its
-    token limit or reaches K calls. Techtree charges nothing."
+    token limit or reaches K calls. Techtree is free to use."
   - K is `maximum_model_calls`; N is (`maximum_input_tokens` + `maximum_output_tokens`) × tries;
     $X is `maximum_usd`. The call and dollar limits are exact; the token limits are not.
 - **Site needs:** the importer reads `ModelSpec.access` and the Budgets (`maximum_usd` only when
