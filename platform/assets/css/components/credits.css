@@ -12,7 +12,6 @@
   border-radius: 1.25rem;
   background: var(--color-surface);
   color: var(--color-fg);
-  box-shadow: 0 1.5rem 3rem -1rem color-mix(in oklch, var(--tt-shade) 35%, transparent);
   overflow-y: auto;
 }
 
