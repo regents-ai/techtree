@@ -136,7 +136,7 @@ defmodule TechtreeWeb.Layouts do
       {"Start", ~p"/start"},
       {"Results", ~p"/results"},
       {"Wallet Bench", ~p"/wallet-bench"},
-      {"Check a Result", ~p"/verify"},
+      {"Verify", ~p"/verify"},
       {"Docs", ~p"/docs"}
     ]
   end
