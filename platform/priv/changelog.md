@@ -8,6 +8,12 @@
   from checking the machine to comparing the two runs, and names the browser
   tools an agent can read with. No browser tool runs a test.
 
+### Fixed
+
+- The Wallet Bench test machines run on the latest security release of
+  their list of trusted certificate authorities, which stops trusting one
+  whose keys were exposed.
+
 ### Changed
 
 - The agent skill's list of things to keep an eye on is headed "Watch list",
