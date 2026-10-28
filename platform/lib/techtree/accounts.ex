@@ -19,7 +19,6 @@ defmodule Techtree.Accounts do
     end
 
     resource Techtree.Accounts.SessionAuthority
-    resource Techtree.Accounts.SharedProfile
 
     resource Techtree.Accounts.EnsIdentity do
       define :request_ens_lookup,

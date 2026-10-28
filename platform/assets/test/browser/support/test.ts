@@ -23,7 +23,10 @@ function serverOutsideConnections(): string[] {
 }
 
 // Keeps a browser context offline from the world: every outside address a page
-// asks for is answered empty and recorded, so the test can fail on it.
+// asks for is answered empty and recorded, so the test can fail on it. The page's
+// sign-in bridge, the only part that talks to Privy, is answered with an empty
+// script, as the template's walk does: no browser here holds a Privy sign-in, and
+// the real bridge would rightly sign a test session out.
 export async function keepOffline(context: BrowserContext): Promise<string[]> {
   const outside: string[] = []
   await context.route(url => !["127.0.0.1", "localhost"].includes(url.hostname), route => {
@@ -31,6 +34,8 @@ export async function keepOffline(context: BrowserContext): Promise<string[]> {
     outside.push(url.origin + url.pathname)
     return route.fulfill({status: 204})
   })
+  await context.route(/\/assets\/js\/privy_bridge/, route =>
+    route.fulfill({contentType: "text/javascript", body: ""}))
   return outside
 }
 

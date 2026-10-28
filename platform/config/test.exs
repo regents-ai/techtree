@@ -80,6 +80,8 @@ config :techtree, Techtree.Network,
   rate_limit: [limit: 10, window_seconds: 1_000_000_000],
   agent_rate_limit: [limit: 10, window_seconds: 1_000_000_000]
 
+config :techtree, :privy, app_id: "test-app"
+
 config :techtree, Oban, testing: :manual
 
 # Agents' signed requests reach a stub of the sign-in service, never the real

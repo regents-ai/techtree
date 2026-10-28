@@ -39,11 +39,9 @@ export function pairAgent(): string {
 // the site ends a session another browser presents after it has moved on.
 export async function signIn(context: BrowserContext): Promise<void> {
   const {name, value} = JSON.parse(inBrowserDatabase("sign_in.exs"))
+  // There is no Privy sign-in behind this session; keepOffline (support/test.ts)
+  // answers the sign-in bridge for every context.
   await context.addCookies([{name, value, domain: "127.0.0.1", path: "/"}])
-  // There is no Privy sign-in behind this session, so the provider bridge is
-  // answered with an empty script; the real one would rightly sign it out.
-  await context.route(/\/assets\/js\/privy_bridge/, route =>
-    route.fulfill({contentType: "text/javascript", body: ""}))
 }
 
 // One line the test server wrote (config/runtime.exs), in production's shape.
