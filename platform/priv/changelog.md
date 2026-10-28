@@ -13,6 +13,11 @@
 - The agent skill's list of things to keep an eye on is headed "Watch list",
   and it names the command that reads new Results.
 
+### Fixed
+
+- On the Results page, the harness you picked (or All harnesses) is shown
+  in bold and underlined, like the picks in the other filter rows.
+
 ## Website (2026-10-27)
 
 ### Added
