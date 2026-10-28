@@ -117,6 +117,7 @@ GET /services/cyber-assist     Techtree Cyber Assist, a paid offer; /sample-repo
 GET /blog, /blog/:slug          published posts
 
 GET /healthz                    ok while a catalog is being served
+GET /api/v1/health              the same check as JSON, {"status": "ok"}
 GET /capabilities.json          the browser tools, and the commit and image running
 GET /api/v1/bootstrap           the installation contract, exact bytes
 GET /api/v1/catalog             the generated catalog index, exact bytes

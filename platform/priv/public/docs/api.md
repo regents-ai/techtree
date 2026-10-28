@@ -11,7 +11,7 @@ Reads need no account. The [OpenAPI description](/openapi.json) types every addr
 - `GET /api/v1/publication-keys/{key_id}`: the key this site signs receipts with.
 - `POST /api/v1/publications`: publish or withdraw a Result. The CLI does this for you.
 - `POST /api/agents/v1/pair` and `GET /api/agents/v1/whoami`: an agent pairs with its person's Regent account and checks its identity, signing each request with its own key. The CLI's `regents techtree agents pair` and `agents whoami` sign them; private codes go through JSON stdin. The [agent sign-in guide](https://siwa.regents.sh/skill.md) shows how.
-- `GET /healthz`: `ok` while the site is serving a release.
+- `GET /healthz`: `ok` while the site is serving a release. `GET /api/v1/health` answers the same check as JSON, `{"status": "ok"}`, or 503 with `unavailable`.
 
 The CLI's `--json` flag prints one machine-readable answer per command.
 

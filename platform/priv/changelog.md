@@ -13,6 +13,9 @@
   has a sample report to read.
 - `/capabilities.json` names the regents-cli release agents install, 1.10.19,
   under `cli`.
+- `GET /api/v1/health` answers whether the site is serving a catalog release
+  as JSON, `{"status": "ok"}`, or 503 with `unavailable`: the same check as
+  `/healthz`, for agents and monitors that read JSON.
 
 ### Changed
 

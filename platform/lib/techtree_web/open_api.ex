@@ -53,7 +53,7 @@ defmodule TechtreeWeb.OpenAPI do
     %{
       "/healthz" => %{
         "get" => %{
-          "operationId" => "getHealth",
+          "operationId" => "getServiceHealth",
           "summary" => "Whether a catalog release is being served",
           "description" =>
             "Answers ok in plain text when an active, completed catalog release is " <>
@@ -63,6 +63,18 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" => %{
             "200" => text("A catalog release is being served.", "ok"),
             "503" => text("No catalog release is being served.", "unavailable")
+          }
+        }
+      },
+      "/api/v1/health" => %{
+        "get" => %{
+          "operationId" => "getHealth",
+          "summary" => "Read whether a catalog release is being served",
+          "description" =>
+            "The same check as /healthz, answered in JSON. Responses use Cache-Control: no-store.",
+          "responses" => %{
+            "200" => json("A catalog release is being served.", ref("Health")),
+            "503" => error("The site is up but is not serving a catalog release (unavailable).")
           }
         }
       },
@@ -693,6 +705,11 @@ defmodule TechtreeWeb.OpenAPI do
 
   defp schemas do
     %{
+      "Health" => %{
+        "type" => "object",
+        "required" => ["status"],
+        "properties" => %{"status" => %{"type" => "string", "const" => "ok"}}
+      },
       "Error" => %{
         "type" => "object",
         "required" => ["error"],
