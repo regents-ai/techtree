@@ -391,15 +391,14 @@ defmodule Techtree.NetworkFixture do
 
   @doc """
   Withdraw one published entry through the ingest, with the network key,
-  origin and paired agent the controller would hand it.
+  origin and paired agent the controller would hand it (a new one unless
+  `actor` names one).
   """
-  @spec withdraw(binary()) :: term()
-  def withdraw(request) do
+  @spec withdraw(binary(), %{id: String.t(), privy_user_id: String.t(), wallet: String.t()}) ::
+          term()
+  def withdraw(request, actor \\ paired_agent()) do
     {:ok, key} = Key.load()
-
-    Techtree.Network.Ingest.withdraw(request, key, TechtreeWeb.Endpoint.url(),
-      actor: paired_agent()
-    )
+    Techtree.Network.Ingest.withdraw(request, key, TechtreeWeb.Endpoint.url(), actor: actor)
   end
 
   @doc """
