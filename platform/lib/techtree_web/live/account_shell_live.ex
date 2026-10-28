@@ -190,7 +190,7 @@ defmodule TechtreeWeb.AccountShellLive do
           verified_connections={@verified_connections}
           verified_connections_notice={@verified_connections_notice}
         />
-        <dialog
+        <Regent.Structure.dialog
           :if={current_account(@access_context)}
           id="shell-credits"
           class="shell-credits-dialog"
@@ -213,7 +213,7 @@ defmodule TechtreeWeb.AccountShellLive do
             account={current_account(@access_context)}
             credits={@credits_read}
           />
-        </dialog>
+        </Regent.Structure.dialog>
       </div>
     </Layouts.page>
     """

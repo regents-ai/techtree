@@ -104,7 +104,8 @@ defmodule Techtree.Accounts.HumanAccount do
 
   calculations do
     # The name set in the person's shared Regent profile.
-    calculate :display_name, :string, Techtree.Accounts.HumanAccount.ProfileName, public?: true
+    calculate :display_name, :string, {RegentIdentity.ProfileName, otp_app: :techtree},
+      public?: true
 
     # The ENS name and picture, only while they were read for the account's
     # current wallet.

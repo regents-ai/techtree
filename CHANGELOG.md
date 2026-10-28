@@ -17,6 +17,14 @@
 - The agent skill's list of things to keep an eye on is headed "Watch list",
   and it names the command that reads new Results.
 
+### Fixed
+
+- On the Results page, the harness you picked (or All harnesses) is shown
+  in bold and underlined, like the picks in the other filter rows.
+- The Buy Credits window has the Regents cut-corner frame and a full-size
+  close button in its top right corner. Before, the button was a tiny mark in
+  the top left.
+
 ## Website (2026-10-27)
 
 ### Added

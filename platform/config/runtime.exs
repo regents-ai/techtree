@@ -58,9 +58,12 @@ if config_env() != :test do
     secret_access_key: System.get_env("WALLETBENCH_AWS_SECRET_ACCESS_KEY")
 end
 
-config :techtree, :privy,
-  app_id: System.get_env("PRIVY_APP_ID"),
-  verification_key: System.get_env("PRIVY_VERIFICATION_KEY")
+# Tests sign in to their own app id (config/test.exs), whatever the shell sets.
+if config_env() != :test do
+  config :techtree, :privy,
+    app_id: System.get_env("PRIVY_APP_ID"),
+    verification_key: System.get_env("PRIVY_VERIFICATION_KEY")
+end
 
 # The template's optional ENS lookup, disabled unless this site's endpoint is set.
 if config_env() != :test do

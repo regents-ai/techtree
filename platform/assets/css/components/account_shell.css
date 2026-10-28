@@ -79,6 +79,10 @@
 .account-picture[data-shown] img:first-child {
   visibility: hidden;
 }
+/* The Buy Credits dialog's close button, square in the dialog's top right
+   corner, and kept there while the dialog scrolls. Its margins give back the
+   room it takes, so the panel keeps its place. This file comes after the shared
+   primitives (app.css), so it wins over the shared button's padding. */
 .shell-credits-dialog__close {
   position: sticky;
   inset-block-start: calc(-1 * var(--shell-credits-pad-top));

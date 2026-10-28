@@ -1,22 +1,12 @@
 @layer regents-product {
 /* Regent Credits: the header's balance and the Buy Credits dialog it opens. */
 
+/* The window is the shared cut-corner frame (Regent.Structure.dialog). The close
+   button sits in its top corner, as far in as the frame's own padding. */
 .shell-credits-dialog {
-  --shell-credits-pad-top: 1.5rem;
-  --shell-credits-pad-side: 1.5rem;
-  box-sizing: border-box;
-  width: min(30rem, calc(100% - 2rem));
-  max-height: calc(100dvh - 4rem);
-  padding: var(--shell-credits-pad-top) var(--shell-credits-pad-side) 1rem;
-  border: 1px solid var(--ash-line-strong);
-  border-radius: 1.25rem;
-  background: var(--color-surface);
-  color: var(--color-fg);
-  overflow-y: auto;
-}
-
-.shell-credits-dialog::backdrop {
-  background: color-mix(in oklch, var(--tt-shade) 30%, transparent);
+  --rg-dialog-size: 30rem;
+  --shell-credits-pad-top: clamp(var(--space-2), 4vw, var(--space-4));
+  --shell-credits-pad-side: clamp(var(--space-2), 4vw, var(--space-4));
 }
 
 .shell-credits-dialog .credits-panel__head {
@@ -260,14 +250,6 @@
 }
 
 @media (max-width: 47.99rem) {
-  .shell-credits-dialog {
-    width: calc(100% - 1rem);
-    --shell-credits-pad-top: 1rem;
-    --shell-credits-pad-side: 0.75rem;
-    max-height: calc(100dvh - 1rem);
-    padding-block-end: 0.75rem;
-  }
-
   .credits-panel__amount {
     font-size: 2.25rem;
   }
