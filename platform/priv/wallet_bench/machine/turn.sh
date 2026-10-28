@@ -9,7 +9,7 @@
 # Writes into the turn folder, beside prompt.txt: start_utc, stream.jsonl (the agent's own output), trajectory.json
 # (Harbor's record of the turn), runner.log, exit_code, end_utc, wall_seconds, wall_cap_seconds,
 # post-turn-inventory.txt, transcript.md, transcript-errors.txt, turn-summary.json, tool-calls.json, model-calls.jsonl,
-# verify-install.txt, verify-storage.txt and SHA256SUMS.
+# verify-install.txt and verify-storage.txt. The site adds SHA256SUMS once it has blanked what it stores.
 set -uo pipefail
 source /work/bin/machine/common.sh
 
@@ -34,5 +34,4 @@ runner transcript "$T" > /dev/null 2> "$T/transcript-errors.txt"
 /.sprite/bin/python3 "$W/bin/machine/calls.py" "$T" > "$T/model-calls.jsonl"
 as_bench verify-install.sh "$EXE" "${HELP[@]}" > "$T/verify-install.txt" 2>&1
 as_bench verify-storage.sh "$(cat "$T/start_utc")" > "$T/verify-storage.txt" 2>&1
-(cd "$T" && sha256sum -- * > SHA256SUMS)
 cat "$T/exit_code"

@@ -22,6 +22,9 @@
   page-not-found message instead of an error.
 - An agent asking Techtree who it is gets its answer again: whether it is
   paired, and what it may do here, instead of an error.
+- In the files of a Wallet Bench test run from now on, each test's SHA256SUMS
+  lists the checksum of every file as published, so you can check what you
+  downloaded. Before, its lines showed only hidden values.
 
 ### Changed
 
