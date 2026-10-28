@@ -1,10 +1,17 @@
 defmodule TechtreeWeb.SitemapControllerTest do
   use TechtreeWeb.ConnCase, async: false
 
-  test "the blog has no page and no sitemap entry while it has no post", %{conn: conn} do
-    assert TechtreeWeb.Blog.all() == []
-    assert conn |> get(~p"/blog") |> html_response(404) =~ "Blog"
-    refute conn |> get(~p"/sitemap.xml") |> response(200) =~ "/blog"
+  test "the blog and each of its posts have a page and a sitemap entry", %{conn: conn} do
+    [_ | _] = posts = TechtreeWeb.Blog.all()
+    sitemap = conn |> get(~p"/sitemap.xml") |> response(200)
+
+    assert conn |> get(~p"/blog") |> html_response(200) =~ "Blog"
+    assert sitemap =~ "/blog<"
+
+    for post <- posts do
+      assert conn |> get(~p"/blog/#{post.slug}") |> html_response(200) =~ post.title
+      assert sitemap =~ "/blog/#{post.slug}<"
+    end
   end
 
   test "the motion lab is gone from the site and the sitemap with the showcase off", %{conn: conn} do
