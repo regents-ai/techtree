@@ -1043,3 +1043,9 @@ released on its own.
   failure-path coverage.
 - Hosted comparisons, public collaboration and payments, automatic Skill
   optimization, private proving, and training remain outside this milestone.
+
+## 2026-10-29 — Agent parity table
+
+- Add docs/agent-parity.md: every action a person can do on Techtree, with its five agent
+  surfaces (page, WebMCP, hosted MCP, Claude connector, CLI) and the gap for each
+  missing one (31 actions, gaps T1 to T11). Docs only; nothing on the site changes.
