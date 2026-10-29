@@ -55,3 +55,4 @@ also `CHANGELOG.md`) only says what changed for people and agents.
 | v207 | 29 Oct 2026 | d9008a3 | Cyber Assist sample report: two agents typed a key; a third sought admin rights (d9008a3f) | v206 679656c |
 | v208 | 29 Oct 2026 | 25e074a | Findings post corrected: two agents typed a private key into a command, Muse Code sought admin rights; no shell-history claim (tt/findings-correction-1029 b6836596) | v207 d9008a3 |
 | v209 | 29 Oct 2026 | 306f799 | Chrome WebMCP origin-trial token on every page (expires 29 Mar 2027) | v208 25e074a |
+| v210 | 29 Oct 2026 | 2714d18 | Account menu from the template (rollout 2026-10-28-account-menu), Claude Duet agent picture (design-system 3134bab0, elixir-utils 9da44bdc) | v209 306f799 |
