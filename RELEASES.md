@@ -54,3 +54,4 @@ also `CHANGELOG.md`) only says what changed for people and agents.
 | v206 | 29 Oct 2026 | 679656c | Offer pages count their Wallet Bench figures from the scores feed (tt/offer-live-figures-1029); model block config_digest and tightened link, index and route rules in the model_change check and spec (tt/config-digest-1028) | v205 f7525c8 |
 | v207 | 29 Oct 2026 | d9008a3 | Cyber Assist sample report: two agents typed a key; a third sought admin rights (d9008a3f) | v206 679656c |
 | v208 | 29 Oct 2026 | 25e074a | Findings post corrected: two agents typed a private key into a command, Muse Code sought admin rights; no shell-history claim (tt/findings-correction-1029 b6836596) | v207 d9008a3 |
+| v209 | 29 Oct 2026 | 306f799 | Chrome WebMCP origin-trial token on every page (expires 29 Mar 2027) | v208 25e074a |
