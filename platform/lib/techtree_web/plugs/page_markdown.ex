@@ -1,8 +1,8 @@
 defmodule TechtreeWeb.Plugs.PageMarkdown do
   @moduledoc """
   The Markdown answer of the public pages built from the database or from
-  release files: Start, Results, each Result, each Climb, the Wallet Bench and
-  the tdd example. The database-free pages are answered before the router
+  release files: Start, Results, each Result, each Climb, the Wallet Bench, the
+  two offers under `/services` and the tdd example. The database-free pages are answered before the router
   (`TechtreeWeb.PublicDocuments`); these wait for the router, so an HTML
   request reads nothing here and a Markdown one reads only what its page reads,
   through the same queries.
@@ -33,6 +33,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     TechtreeWeb.RunsLive.Show => :result,
     TechtreeWeb.ClimbsLive.Show => :climb,
     TechtreeWeb.WalletBenchLive.Index => :wallet_bench,
+    TechtreeWeb.ServiceLive => :offer,
     TechtreeWeb.TddShowcaseLive => :tdd
   }
 
@@ -100,6 +101,15 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   end
 
   defp markdown(:tdd, _conn), do: tdd(TddShowcase.load!(TddShowcase.folder()))
+
+  defp markdown(:offer, %{private: %{phoenix_live_view: {_view, opts, _session}}}) do
+    offer = Keyword.fetch!(opts, :action)
+    figures = TechtreeWeb.ServiceLive.figures()
+
+    offer
+    |> PublicDocuments.offer()
+    |> String.replace("{{bench}}", TechtreeWeb.ServiceLive.bench_markdown(figures))
+  end
 
   defp start(%{installable?: true, introductory_reference: reference} = release) do
     """

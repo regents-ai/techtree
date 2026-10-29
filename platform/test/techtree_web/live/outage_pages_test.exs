@@ -121,6 +121,27 @@ defmodule TechtreeWeb.OutagePagesTest do
     refute has_element?(live, "[role=status]", "No wallet tests have run yet")
   end
 
+  test "an offer page says its bench figures can't be shown, and so does its Markdown", %{
+    conn: conn
+  } do
+    TechtreeWeb.WalletBenchScores.delete_all()
+
+    {:ok, live, _html} = quietly(fn -> live(conn, ~p"/services/verify") end)
+
+    assert has_element?(live, ".service-result [role=status]", "figures can't be shown")
+    refute has_element?(live, ".service-result__figures")
+
+    text =
+      quietly(fn ->
+        conn
+        |> Plug.Conn.put_req_header("accept", "text/markdown")
+        |> get(~p"/services/cyber-assist")
+      end)
+      |> response(200)
+
+    assert text =~ "The bench figures can't be shown right now."
+  end
+
   # A browser that holds a sign-in, made without the database: the claim's own
   # shape is all a page reads before it asks the database about it.
   defp signed_in(conn) do

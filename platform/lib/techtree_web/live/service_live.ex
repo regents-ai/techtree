@@ -7,16 +7,15 @@ defmodule TechtreeWeb.ServiceLive do
   `priv/public/services/<offer>.md`, the same facts in words, and its sample
   report is a public document (`TechtreeWeb.PublicDocuments`).
 
-  The bench figures are the published scores as read on 28 October 2026.
+  The bench figures are counted from the published scores
+  (`TechtreeWeb.WalletBenchScores.figures/0`, the grids `/wallet-bench.json`
+  serves), on the page and in its Markdown (`bench_markdown/1`), so they
+  follow the bench as its results come in.
   """
 
   use TechtreeWeb, :live_view
 
-  @bench [
-    {"12", "coding agents tested"},
-    {"35 of 35", "working wallets they set up left their key or unlock password in a plain file"},
-    {"4", "safety failures in 85 judged tests"}
-  ]
+  alias TechtreeWeb.{Outage, WalletBenchScores}
 
   @offers %{
     verify: %{
@@ -89,10 +88,58 @@ defmodule TechtreeWeb.ServiceLive do
      assign(socket,
        page_title: offer.name,
        offer: offer,
-       bench: @bench,
+       bench: figures(),
        mailto: "mailto:build@regents.sh?subject=" <> URI.encode(offer.subject)
      )}
   end
+
+  @doc "The bench figures from the published scores, or `:database_down` when they can't be read."
+  @spec figures() :: {:ok, WalletBenchScores.figures()} | :database_down
+  def figures, do: Outage.read(&WalletBenchScores.figures/0)
+
+  @doc "The bench paragraph of an offer's Markdown, the same words as the page's figures."
+  @spec bench_markdown({:ok, WalletBenchScores.figures()} | :database_down) :: String.t()
+  def bench_markdown({:ok, figures}) do
+    [agents, wallets, safety] =
+      for {figure, label} <- bench(figures), do: figure <> " " <> label
+
+    "#{tested(figures)}: #{agents}; #{wallets}. #{safety}. [See the bench](/wallet-bench)."
+  end
+
+  def bench_markdown(:database_down),
+    do: "The bench figures can't be shown right now. [See the bench](/wallet-bench)."
+
+  defp bench(figures) do
+    [
+      {Integer.to_string(figures.agents), plural(figures.agents, "coding agent") <> " tested"},
+      {"#{figures.plain_file} of #{figures.working}",
+       plural(figures.working, "working wallet") <>
+         " they set up left their key or unlock password in a plain file"},
+      {Integer.to_string(figures.safety),
+       plural(figures.safety, "safety failure") <>
+         " in #{figures.judged} " <> plural(figures.judged, "judged test")}
+    ]
+  end
+
+  defp plural(1, noun), do: noun
+  defp plural(_count, noun), do: noun <> "s"
+
+  defp tested(%{first_day: nil}), do: "Our own bench, no tests judged yet"
+
+  defp tested(%{first_day: first, last_day: last}),
+    do: "Our own bench, tests run " <> days(first, last)
+
+  defp days(day, day), do: date(day, "%-d %B %Y")
+
+  defp days(%{year: year, month: month} = first, %{year: year, month: month} = last),
+    do: date(first, "%-d") <> " to " <> date(last, "%-d %B %Y")
+
+  defp days(%{year: year} = first, %{year: year} = last),
+    do: date(first, "%-d %B") <> " to " <> date(last, "%-d %B %Y")
+
+  defp days(first, last), do: date(first, "%-d %B %Y") <> " to " <> date(last, "%-d %B %Y")
+
+  defp date(day, format), do: Calendar.strftime(day, format)
 
   @impl true
   def render(assigns) do
@@ -110,14 +157,23 @@ defmodule TechtreeWeb.ServiceLive do
         </header>
 
         <section class="service-result" aria-labelledby="service-result-title">
-          <p class="eyebrow">Our own bench, tests run 7 to 27 October 2026</p>
-          <h2 id="service-result-title">Agent Wallet Bench</h2>
-          <dl class="service-result__figures">
-            <div :for={{figure, label} <- @bench}>
-              <dt>{label}</dt>
-              <dd>{figure}</dd>
-            </div>
-          </dl>
+          <%= case @bench do %>
+            <% {:ok, figures} -> %>
+              <p class="eyebrow">{tested(figures)}</p>
+              <h2 id="service-result-title">Agent Wallet Bench</h2>
+              <dl class="service-result__figures">
+                <div :for={{figure, label} <- bench(figures)}>
+                  <dt>{label}</dt>
+                  <dd>{figure}</dd>
+                </div>
+              </dl>
+            <% :database_down -> %>
+              <p class="eyebrow">Our own bench</p>
+              <h2 id="service-result-title">Agent Wallet Bench</h2>
+              <p class="empty-state" role="status">
+                The bench figures can't be shown right now. Try again in a minute.
+              </p>
+          <% end %>
           <a class="text-link" href={~p"/wallet-bench"}>See the bench →</a>
         </section>
 

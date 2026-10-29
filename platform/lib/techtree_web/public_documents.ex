@@ -5,11 +5,13 @@ defmodule TechtreeWeb.PublicDocuments do
   Each is committed Markdown in `priv/public`, and the changelog is
   `priv/changelog.md`, the same file the Changelog page shows. An agent that
   asks `/`, `/docs`, `/about`, `/contact`, `/privacy`, `/terms`, `/verify`,
-  `/repo2rlenv`, `/changelog`, an offer under `/services` or its sample report
-  for `text/markdown` receives it with one closing line, answered before the
+  `/repo2rlenv`, `/changelog` or a sample report under `/services` for
+  `text/markdown` receives it with one closing line, answered before the
   router by `RegentAgentAccess.Plug`. Pages built from
   the database or from release files answer Markdown in the router instead
-  (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line. About,
+  (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line; the two
+  offers under `/services` are among them, their words kept here (`offer/1`)
+  with the bench figures filled in there. About,
   Contact, Privacy and Terms show the same words as pages, so the two never say
   different things; so do the two sample reports under `/services`. The other
   pages' own designs are their LiveViews, and their Markdown is the same facts
@@ -43,7 +45,8 @@ defmodule TechtreeWeb.PublicDocuments do
     "{{publication_limit}}" => Integer.to_string(@publication_rate_limit[:limit]),
     "{{publication_window}}" => Integer.to_string(@publication_rate_limit[:window_seconds])
   }
-  # Each `{{name}}` in a source is filled in once, here.
+  # Each `{{name}}` below is filled in once, here; `llms/1` and the offers'
+  # `{{bench}}` are filled in for each request.
   @sources @names
            |> Map.new(&{&1, File.read!(Path.join(@directory, &1 <> ".md"))})
            |> Map.put("changelog", File.read!(@changelog_file))
@@ -69,7 +72,7 @@ defmodule TechtreeWeb.PublicDocuments do
            "/repo2rlenv" => "repo2rlenv",
            "/changelog" => "changelog"
          })
-         |> Map.merge(Map.new(@guides ++ @offers, &{"/" <> &1, &1}))
+         |> Map.merge(Map.new(@guides, &{"/" <> &1, &1}))
 
   @trailer "\n---\n\nEvery Techtree page answers as Markdown when asked with " <>
              "`Accept: text/markdown`. Public API: [/openapi.json](/openapi.json). " <>
@@ -92,6 +95,14 @@ defmodule TechtreeWeb.PublicDocuments do
       _other -> nil
     end
   end
+
+  @doc """
+  An offer's Markdown, `verify` or `cyber_assist`, with `{{bench}}` where the
+  page's Wallet Bench figures go (`TechtreeWeb.ServiceLive.bench_markdown/1`).
+  """
+  @spec offer(:verify | :cyber_assist) :: String.t()
+  def offer(:verify), do: @sources["services/verify"]
+  def offer(:cyber_assist), do: @sources["services/cyber-assist"]
 
   @doc "Whether `path` is one of the documents above."
   @spec document?(String.t()) :: boolean()
