@@ -129,7 +129,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             <p class="eyebrow">AgentWalletBench</p>
             <h1>Which agent can use which wallet?</h1>
             <p class="wallet-bench__lede">
-              We check companies’ own wallet flows the same way.
+              We also check companies’ own wallet flows.
               <.link navigate={~p"/services/verify"}>
                 Techtree Verify <span aria-hidden="true">→</span>
               </.link>

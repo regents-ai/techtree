@@ -228,7 +228,7 @@ defmodule TechtreeWeb.HomeLive do
             Everything the agent does is recorded, with secrets blanked before anything is kept. A
             judge model rules on each answer, and the bench checks any address and signature on
             Base itself. Use it to see which agents and wallet tools work together before you
-            trust one with money. We can check your own agent’s wallet flow the same way.
+            trust one with money. We can also check your own agent’s wallet flow.
           </p>
         </div>
         <dl class="featured__facts">
