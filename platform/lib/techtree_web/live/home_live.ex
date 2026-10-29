@@ -252,6 +252,9 @@ defmodule TechtreeWeb.HomeLive do
           <.link navigate={~p"/services/verify"} class="text-link">
             Techtree Verify <span aria-hidden="true">→</span>
           </.link>
+          <.link navigate={~p"/formal"} class="text-link">
+            Techtree Formal <span aria-hidden="true">→</span>
+          </.link>
         </p>
       </section>
 

@@ -140,6 +140,7 @@ defmodule TechtreeWeb.Router do
       live "/services/cyber-assist", ServiceLive, :cyber_assist
       get "/services/verify/sample-report", PublicPagesController, :show
       get "/services/cyber-assist/sample-report", PublicPagesController, :show
+      live "/formal", FormalLive
       live "/results", RunsLive.Index
       live "/results/:bundle_digest", RunsLive.Show
       live "/examples/tdd", TddShowcaseLive

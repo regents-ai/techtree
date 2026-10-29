@@ -2,6 +2,15 @@
 
 ## Website (2026-10-29)
 
+### Added
+
+- **Techtree Formal.** A new page, /formal, explains in plain words what a
+  formal proof shows and what it doesn't, lists recent advances with the date
+  and source of each, describes a worked example in progress (the Wallet
+  Bench's funding cap) and says what to send to build@regents.sh to have code
+  proved. The reply is a scoped quote; the work is paid and priced once the
+  scope is agreed.
+
 ### Changed
 
 - **Account menu.** Your picture and name at the top right now open a small

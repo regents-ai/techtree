@@ -255,6 +255,10 @@ defmodule TechtreeWeb.Layouts do
     do:
       "A sample Techtree Cyber Assist report: one validated finding on the Agent Wallet Bench, fixed, verified and released."
 
+  defp description_for_path("/formal"),
+    do:
+      "Techtree Formal: what formal verification proves and what it doesn't, recent advances with their sources, and how to send code to be proved."
+
   defp description_for_path("/docs"),
     do: "Install Techtree, test a Skill, check and publish a Result, and connect an agent."
 

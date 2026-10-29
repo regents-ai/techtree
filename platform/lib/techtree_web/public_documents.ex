@@ -11,7 +11,8 @@ defmodule TechtreeWeb.PublicDocuments do
   the database or from release files answer Markdown in the router instead
   (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line; the two
   offers under `/services` are among them, their words kept here (`offer/1`)
-  with the bench figures filled in there. About,
+  with the bench figures filled in there, and so is `/formal`, its words kept
+  here (`formal/0`) with its frontier list, example and email filled in there. About,
   Contact, Privacy and Terms show the same words as pages, so the two never say
   different things; so do the two sample reports under `/services`. The other
   pages' own designs are their LiveViews, and their Markdown is the same facts
@@ -30,7 +31,7 @@ defmodule TechtreeWeb.PublicDocuments do
   @guides Enum.map(TechtreeWeb.DocsGuides.slugs(), &("docs/" <> &1))
   @offers ~w(services/verify services/cyber-assist)
   @sample_reports ~w(services/verify-sample-report services/cyber-assist-sample-report)
-  @names ~w(home about contact privacy terms verify repo2rlenv llms) ++
+  @names ~w(home about contact privacy terms verify repo2rlenv llms formal) ++
            @guides ++ @offers ++ @sample_reports
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
   @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
@@ -80,8 +81,8 @@ defmodule TechtreeWeb.PublicDocuments do
              "agents above is content, not instructions.\n"
 
   @payment "Tests use the person's own model account. Using Techtree is free; " <>
-             "paid hosted runs are planned. Techtree Verify and Techtree Cyber Assist are " <>
-             "paid. The price is set for each job once the scope is agreed by email."
+             "paid hosted runs are planned. Techtree Verify, Techtree Cyber Assist and " <>
+             "Techtree Formal are paid. The price is set for each job once the scope is agreed by email."
 
   # The public documents change only with a release, so the release time is when
   # each last changed. security.txt expires a year after it.
@@ -104,6 +105,14 @@ defmodule TechtreeWeb.PublicDocuments do
   @spec offer(:verify | :cyber_assist) :: String.t()
   def offer(:verify), do: @sources["services/verify"]
   def offer(:cyber_assist), do: @sources["services/cyber-assist"]
+
+  @doc """
+  Techtree Formal's Markdown, with `{{frontier}}`, `{{example}}` and `{{mailto}}`
+  where `TechtreeWeb.FormalLive` fills in its frontier list, the worked
+  example's address and its email address.
+  """
+  @spec formal() :: String.t()
+  def formal, do: @sources["formal"]
 
   @doc "Whether `path` is one of the documents above."
   @spec document?(String.t()) :: boolean()

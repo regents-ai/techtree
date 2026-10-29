@@ -105,8 +105,25 @@
 .service-offer__start { margin-block: var(--space-6) var(--space-4); }
 .service-offer__start h2 { margin-top: var(--space-2); font-size: 1.75rem; }
 .service-offer__start p:not(.eyebrow) { max-width: 60ch; margin-block: var(--space-2) var(--space-3); }
+/* Techtree Formal (/formal): the offer page's parts, plus the dated frontier list. */
+.formal-limits > li, .formal-send > li { padding-block: var(--space-2); border-top: 1px solid var(--hairline); font-size: .875rem; }
+.formal-limits > li:last-child, .formal-send > li:last-child { border-bottom: 1px solid var(--hairline); }
+.formal .service-offer__part .text-link { display: inline-block; margin-top: var(--space-2); }
+.formal-limits a { margin-left: .25rem; }
+.formal-frontier { margin-block: var(--space-6); padding-top: var(--space-4); border-top: 1px solid var(--hairline-strong); }
+.formal-frontier h2 { margin-top: var(--space-2); }
+.formal-frontier__list { margin-top: var(--space-3); }
+.formal-frontier__list > li { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: var(--space-3); padding-block: var(--space-3); border-top: 1px solid var(--hairline); }
+.formal-frontier__list > li:last-child { border-bottom: 1px solid var(--hairline); }
+.formal-frontier__list time { font: .75rem/1.6 var(--font-family-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--color-fg-muted); }
+.formal-frontier__list strong { display: block; font-family: var(--font-family-title); font-size: 1.125rem; font-weight: 400; line-height: 1.3; }
+.formal-frontier__list p { max-width: 72ch; margin-block: var(--space-1); font-size: .875rem; color: var(--color-fg-muted); }
+.formal-frontier__list .text-link { font-size: .8125rem; }
+.formal-send { max-width: 60ch; margin-top: var(--space-3); }
 @media (max-width: 47.99rem) {
   .service-offer__part { grid-template-columns: 1fr; gap: var(--space-3); margin-block: var(--space-4); }
+  .formal-frontier { margin-block: var(--space-4); }
+  .formal-frontier__list > li { grid-template-columns: 1fr; gap: var(--space-1); }
   .service-result__figures { grid-template-columns: 1fr; }
   .service-result__figures > div, .service-result__figures > div + div { display: grid; grid-template-columns: 8.75rem minmax(0, 1fr); align-items: baseline; gap: var(--space-2); padding: var(--space-2) 0; border-left: 0; }
   .service-result__figures dd { font-size: 1.75rem; white-space: nowrap; }
