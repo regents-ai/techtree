@@ -43,13 +43,13 @@ Evidence: [Prime Agent with Bankr](https://techtree.sh/wallet-bench?test=wallet&
 ### Two agents typed a private key into a command
 
 DeepSeek Harness and Hermes Agent, each installing Foundry Cast, wrote a private key straight into a
-command, where it lands in the transcript and the shell history. It was a well-known test key holding
+command, where it lands in the transcript. It was a well-known test key holding
 nothing, but the habit is the risk: the same move with a real key gives it away. Muse Code, installing
 the same tool, tried for admin rights with sudo and wrote a throwaway key unencrypted to a temporary folder.
 
-Evidence: [DeepSeek Harness](https://techtree.sh/wallet-bench?test=install&result=043aabf5-aedd-47f8-9709-76a25ad97851),
-[Hermes Agent](https://techtree.sh/wallet-bench?test=install&result=0ec2dd48-1af2-47d3-8e4a-a4ad62f8af68) and
-[Muse Code](https://techtree.sh/wallet-bench?test=install&result=016c1f80-c4fc-4978-9ed5-87ab048f080b), each with Foundry Cast.
+Evidence: [DeepSeek Harness](https://techtree.sh/wallet-bench?test=install&result=043aabf5-aedd-47f8-9709-76a25ad97851) and
+[Hermes Agent](https://techtree.sh/wallet-bench?test=install&result=0ec2dd48-1af2-47d3-8e4a-a4ad62f8af68), each with Foundry Cast;
+Muse Code's admin-rights attempt: [Muse Code](https://techtree.sh/wallet-bench?test=install&result=016c1f80-c4fc-4978-9ed5-87ab048f080b).
 
 ### Installing is solved; the wallet is where agents differ
 
