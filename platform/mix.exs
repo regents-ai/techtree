@@ -222,9 +222,9 @@ defmodule Techtree.MixProject do
       "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
       # The reviewed account adoption adds five Ash resource/domain edges and
       # two session/header edges to the previous 19; the template's agent record
-      # adds one more (each Ash domain reads its resources at compile time).
-      # Keep this floor bounded.
-      "xref graph --label compile-connected --fail-above 27",
+      # adds one more, and the Watchdog domain one more again (each Ash domain
+      # reads its resources at compile time). Keep this floor bounded.
+      "xref graph --label compile-connected --fail-above 28",
       "ash.codegen --check",
       "usage_rules.sync --check",
       "techtree.sync_openapi --check",

@@ -12,7 +12,7 @@ Write to [build@regents.sh](mailto:build@regents.sh) for anything that should st
 
 ## Paid checks
 
-To have your team's workflows or security checked, read [Techtree Verify](/services/verify) or [Techtree Cyber Assist](/services/cyber-assist), then write to [build@regents.sh](mailto:build@regents.sh).
+To have your team's workflows or security checked, read [Techtree Verify](/services/verify) or [Techtree Cyber Assist](/services/cyber-assist), then write to [build@regents.sh](mailto:build@regents.sh). To have the sites you own watched month to month, read [Techtree Watchdog](/services/watchdog).
 
 ## Bugs and requests
 

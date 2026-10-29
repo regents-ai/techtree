@@ -114,6 +114,8 @@ GET /results/:bundle_digest     one published Result in full
 GET /repo2rlenv                 the planned Repo2RLEnv service
 GET /services/verify           Techtree Verify, a paid offer; /sample-report its sample
 GET /services/cyber-assist     Techtree Cyber Assist, a paid offer; /sample-report its sample
+GET /services/watchdog         Techtree Watchdog, a paid monthly watch on sites you own
+GET /watchdog                  Signed in: add sites and addresses, prove ownership (Watchdog)
 GET /blog, /blog/:slug          published posts
 
 GET /healthz                    ok while a catalog is being served

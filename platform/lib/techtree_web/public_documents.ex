@@ -9,9 +9,9 @@ defmodule TechtreeWeb.PublicDocuments do
   `text/markdown` receives it with one closing line, answered before the
   router by `RegentAgentAccess.Plug`. Pages built from
   the database or from release files answer Markdown in the router instead
-  (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line; the two
+  (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line; the three
   offers under `/services` are among them, their words kept here (`offer/1`)
-  with the bench figures filled in there. About,
+  with the bench figures filled in there (Watchdog has none). About,
   Contact, Privacy and Terms show the same words as pages, so the two never say
   different things; so do the two sample reports under `/services`. The other
   pages' own designs are their LiveViews, and their Markdown is the same facts
@@ -28,7 +28,7 @@ defmodule TechtreeWeb.PublicDocuments do
 
   @directory Application.app_dir(:techtree, "priv/public")
   @guides Enum.map(TechtreeWeb.DocsGuides.slugs(), &("docs/" <> &1))
-  @offers ~w(services/verify services/cyber-assist)
+  @offers ~w(services/verify services/cyber-assist services/watchdog)
   @sample_reports ~w(services/verify-sample-report services/cyber-assist-sample-report)
   @names ~w(home about contact privacy terms verify repo2rlenv llms) ++
            @guides ++ @offers ++ @sample_reports
@@ -101,9 +101,10 @@ defmodule TechtreeWeb.PublicDocuments do
   page's Wallet Bench figures go (`TechtreeWeb.ServiceLive.bench_markdown/1`)
   and `{{mailto}}` where its email address goes (`TechtreeWeb.ServiceLive.mailto/1`).
   """
-  @spec offer(:verify | :cyber_assist) :: String.t()
+  @spec offer(:verify | :cyber_assist | :watchdog) :: String.t()
   def offer(:verify), do: @sources["services/verify"]
   def offer(:cyber_assist), do: @sources["services/cyber-assist"]
+  def offer(:watchdog), do: @sources["services/watchdog"]
 
   @doc "Whether `path` is one of the documents above."
   @spec document?(String.t()) :: boolean()

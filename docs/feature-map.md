@@ -29,7 +29,7 @@ finger on a touch screen, 24 px for a mouse control.
 | Open one Wallet Bench test and its evidence | `wallet_bench.spec.ts` (passed, failed and running tests at three widths) |
 | Check a Result yourself (Verify) | `pages.spec.ts`, `proofs_live_test.exs` |
 | Read a Climb | `climbs_live_test.exs`. **Gap:** no browser check with an imported Climb |
-| Read the changelog, blog, About, Privacy, Terms, the tdd example, Repo2RLEnv, the Verify and Cyber Assist offers and their sample reports | `pages.spec.ts`, `public_markdown_test.exs`, `changelog_live_test.exs`, `pages_test.exs`, `tdd_showcase_live_test.exs` |
+| Read the changelog, blog, About, Privacy, Terms, the tdd example, Repo2RLEnv, the Verify, Cyber Assist and Watchdog offers and the Verify and Cyber Assist sample reports | `pages.spec.ts`, `public_markdown_test.exs`, `changelog_live_test.exs`, `pages_test.exs`, `tdd_showcase_live_test.exs`, `service_live_test.exs` |
 | Land on a page that doesn't exist and find the way home | `pages.spec.ts`, `error_html_test.exs` |
 | Keep reading Home, Start, Docs, Results and Wallet Bench while the database is down | `outage_pages_test.exs`, `outage_property_test.exs`, `outage_test.exs` |
 
@@ -42,6 +42,7 @@ finger on a touch screen, 24 px for a mouse control.
 | On a phone, see the open Menu over the page, with the page and footer out of reach until it closes; on a short phone screen the account menu ends inside the screen and reaches Sign out | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
 | Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens at desktop and phone width, both buttons show, everything in it fits a finger, and the wallet code loads on the account pages and on no other page |
+| On Watchdog, add a site you own, get its DNS record or file to publish, press Check to prove ownership, and add, turn off or remove the addresses on it; only your own list is seen or changed, and an address can't be active until its site is proven | `watchdog_test.exs`, `watchdog_ownership_test.exs`, `watchdog_live_test.exs`. **Gap:** the signed-in Watchdog page has no headless browser walk yet |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
 | Rename a paired agent from its window on the Account page, at both widths; a name with hidden characters is refused | `signed_in.spec.ts` |
 | See the three most recently active agents in the account menu | `menu_agents_test.exs` (property) |

@@ -2,7 +2,7 @@
 
 Prove your important workflows work. For teams that ship quickly: we check the workflows you choose, such as how an agent sets up and uses a wallet, reproduce every failure and leave you a suite you can run again.
 
-For a security review instead, see [Techtree Cyber Assist](/services/cyber-assist).
+For a security review instead, see [Techtree Cyber Assist](/services/cyber-assist). For ongoing watching of sites you own, see [Techtree Watchdog](/services/watchdog).
 
 ## Wallet Bench
 

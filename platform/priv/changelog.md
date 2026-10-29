@@ -2,6 +2,16 @@
 
 ## Website (2026-10-29)
 
+### Added
+
+- Techtree Watchdog, a new paid offer: a monthly watch on the sites you own.
+  Its page explains how it works, the rules we follow, what you get, and how to
+  reach us, and the home, contact, About and agent pages link to it.
+- Signed in, a Watchdog page where you add the sites you own and the addresses
+  on them, prove each site is yours with a DNS record or a small file, and press
+  Check. We only ever read the proof you publish; nothing else of your site is
+  touched, and an address stays off until its site is proven.
+
 ### Changed
 
 - **Account menu.** Your picture and name at the top right now open a small

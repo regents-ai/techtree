@@ -246,3 +246,34 @@
 @media (forced-colors: active) {
   .results-filter-choices .result-choice[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -3px; }
 }
+
+/* Watchdog: the public offer's rules list, and the signed-in page where a
+   person adds sites and addresses, sees each site's proof state and the exact
+   record or file to publish. Sheets and rules only; nothing floats. */
+.service-rules { margin-top: var(--space-2); max-width: 60ch; display: grid; gap: 0; }
+.service-rules > li { padding-block: var(--space-2); border-top: 1px solid var(--hairline); }
+.service-rules > li:last-child { border-bottom: 1px solid var(--hairline); }
+
+.watchdog .watchdog-add { margin-block: var(--space-4); }
+.watchdog .watchdog-add h2 { margin-bottom: var(--space-3); }
+.watchdog-form { display: grid; gap: var(--space-3); max-width: 34rem; }
+.watchdog-form--inline { margin-top: var(--space-3); }
+.watchdog-method { display: flex; flex-wrap: wrap; gap: var(--space-3); border: 0; padding: 0; margin: 0; }
+.watchdog-method legend { font-weight: 600; margin-bottom: var(--space-1); }
+.watchdog-method label { display: inline-flex; align-items: center; gap: var(--space-1); }
+.watchdog-sites { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
+.watchdog-site { display: grid; gap: var(--space-3); }
+.watchdog-site__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); justify-content: space-between; }
+.watchdog-site__head h2 { font-size: 1.5rem; word-break: break-word; }
+.watchdog-proof dl { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
+.watchdog-proof dt { font-size: .8125rem; color: var(--color-fg-muted); }
+.watchdog-proof dd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; }
+.watchdog-proof code, .watchdog-routes code { word-break: break-all; }
+.watchdog-site__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.watchdog-routes { border-top: 1px solid var(--hairline); padding-top: var(--space-3); }
+.watchdog-routes h3 { margin-bottom: var(--space-2); }
+.watchdog-routes > ul { display: grid; gap: var(--space-1); margin-bottom: var(--space-3); }
+.watchdog-routes > ul > li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding-block: var(--space-2); border-top: 1px solid var(--hairline); }
+@media (max-width: 47.99rem) {
+  .service-offer__flow .service-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

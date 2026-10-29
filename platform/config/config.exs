@@ -125,9 +125,17 @@ config :techtree,
     Techtree.Catalog,
     Techtree.Network,
     Techtree.WalletBench,
-    Techtree.ModelClimb
+    Techtree.ModelClimb,
+    Techtree.Watchdog
   ],
   generators: [timestamp_type: :utc_datetime]
+
+# Watchdog keeps a person's claimed sites and the addresses on them. The caps
+# bound one account's list; the numbers are a starting point, open for the
+# founder to set per plan.
+config :techtree, Techtree.Watchdog,
+  max_hosts_per_account: 20,
+  max_routes_per_account: 100
 
 # Background jobs. The schema they live in is set in `config/runtime.exs`, beside
 # the repo's. `sprites` holds the AgentWalletBench machine, attempt and turn
@@ -137,7 +145,14 @@ config :techtree,
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
-  queues: [ens: 2, default: 1, sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
+  queues: [
+    ens: 2,
+    default: 1,
+    sprites: 10,
+    wallet_bench_judge: 3,
+    wallet_bench_funding: 1,
+    watchdog: 2
+  ],
   cron: [crontab: [{"17 4 * * *", Techtree.ErrorPruner}]],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]

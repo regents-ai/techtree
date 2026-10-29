@@ -255,6 +255,10 @@ defmodule TechtreeWeb.Layouts do
     do:
       "A sample Techtree Cyber Assist report: one validated finding on the Agent Wallet Bench, fixed, verified and released."
 
+  defp description_for_path("/services/watchdog"),
+    do:
+      "Techtree Watchdog: a monthly watch on the sites you own, proven ownership, agreed limits, reproduced findings with fixes and a retest."
+
   defp description_for_path("/docs"),
     do: "Install Techtree, test a Skill, check and publish a Result, and connect an agent."
 

@@ -131,6 +131,40 @@ defmodule TechtreeWeb.ServiceLiveTest do
     end
   end
 
+  test "the Watchdog page shows its sections, its price with no figure, and links the other offers",
+       %{conn: conn} do
+    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
+
+    assert has_element?(live, "h1", "Keep watch on the sites you own.")
+    assert has_element?(live, "h2", "How it works")
+    assert has_element?(live, "h2", "The rules we follow")
+    assert has_element?(live, "h2", "You get")
+    assert has_element?(live, ".service-rules li", "Only sites you've proven you own.")
+    assert render(live) =~ "Monthly, per site. Ask us for the price."
+    refute render(live) =~ ~r/[$£€]\s?\d/
+    assert has_element?(live, ~s|.service-offer__other a[href="/services/verify"]|)
+    assert has_element?(live, ~s|.service-offer__other a[href="/services/cyber-assist"]|)
+  end
+
+  test "the Watchdog page and Markdown start the same Company/Sites/Contact email", %{conn: conn} do
+    mailto = TechtreeWeb.ServiceLive.mailto(:watchdog)
+    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
+
+    text =
+      conn
+      |> put_req_header("accept", "text/markdown")
+      |> get(~p"/services/watchdog")
+      |> response(200)
+
+    assert has_element?(live, ~s|.service-offer__start a[href="#{mailto}"]|)
+    assert text =~ "(#{mailto})"
+    refute text =~ "{{"
+
+    assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
+    assert %{"subject" => "Techtree Watchdog", "body" => body} = URI.decode_query(query)
+    assert String.split(body, "\r\n") == ["Company:", "Sites:", "Contact:"]
+  end
+
   test "with nothing judged yet the pages say so, not a range of days", %{conn: conn} do
     Techtree.Repo.query!("UPDATE wallet_bench_turns SET judgment = NULL")
     WalletBenchScores.delete_all()
