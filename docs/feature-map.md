@@ -37,14 +37,15 @@ finger on a touch screen, 24 px for a mouse control.
 
 | What a person can do | Proved by |
 | --- | --- |
-| Open the side panel from their name: Sign out, Manage Account, Techtree account, their agents, Pair New Agent | `signed_in.spec.ts`, `side_panel_live_test.exs` |
-| Use the side panel on a phone without sideways scrolling | `signed_in.spec.ts` |
-| On a phone, see the open Menu over the page and the open side panel over the footer | `signed_in.spec.ts` |
+| Open the account menu from their name on every page: their agents with Manage, Pair New Agent, Manage Account and Sign out; it hangs under the button inside the screen at 1280, 390 and 320 wide, the page still fits, a press outside or Escape closes it with focus back on the button, and with less motion it appears at once | `signed_in.spec.ts`, `account_menu_live_test.exs` |
+| Pair New Agent in the account menu, and in the Agents list, lands on the Account page's pairing box with the keyboard on the agent choice, every press; Manage Account opens the Account page; both close the menu; pairing is on the Account page only | `signed_in.spec.ts`, `account_menu_live_test.exs` |
+| On a phone, see the open Menu over the page, with the page and footer out of reach until it closes; on a short phone screen the account menu ends inside the screen and reaches Sign out | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
 | Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens at desktop and phone width, both buttons show, everything in it fits a finger, and the wallet code loads on the account pages and on no other page |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
 | Rename a paired agent from its window on the Account page, at both widths; a name with hidden characters is refused | `signed_in.spec.ts` |
-| See the three most recently active agents in the side panel | `panel_agents_test.exs` (property) |
+| See the three most recently active agents in the account menu | `menu_agents_test.exs` (property) |
+| Every agent kind the library knows, Claude Duet included, draws its picture in the agents list and the account menu, so an agent paired on another site never breaks a person's list here | `agent_pictures_test.exs` |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
 | Approve and Buy Credits on Base | **Gap:** needs a wallet and the chain; not run |
 | Points, Wallets and Connections tabs with real data | **Gap:** read from the shared account service, which tests don't reach |

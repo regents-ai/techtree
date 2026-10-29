@@ -22,14 +22,16 @@ defmodule Techtree.PublicIdentity do
 
   def picture(account), do: present(Map.get(account, :ens_avatar_url))
 
+  def ens_name(account), do: present(Map.get(account, :ens_name))
+
   def squares(account),
     do: account |> Map.get(:wallet_address) |> normalize_wallet() |> identicon()
 
-  def short_wallet(wallet) when is_binary(wallet) do
+  defp short_wallet(wallet) when is_binary(wallet) do
     if Regex.match?(@wallet, wallet), do: RegentFormat.short_address(wallet), else: "Account"
   end
 
-  def short_wallet(_wallet), do: "Account"
+  defp short_wallet(_wallet), do: "Account"
 
   defp present(value) when is_binary(value) do
     case String.trim(value) do

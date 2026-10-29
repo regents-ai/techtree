@@ -33,7 +33,8 @@ defmodule Techtree.AccessContext do
       label: PublicIdentity.label(account),
       squares: PublicIdentity.squares(account),
       picture: PublicIdentity.picture(account),
-      wallet: own_wallet(context)
+      wallet: own_wallet(context),
+      ens_name: PublicIdentity.ens_name(account)
     }
   end
 end

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-brand="techtree" data-theme={assigns[:theme]} data-aside={@aside}>
+<html lang="en" data-brand="techtree" data-theme={assigns[:theme]}>
   <head>
     <meta name="agent-request-origin" content={TechtreeWeb.Endpoint.url()} />
     <meta charset="utf-8" />
@@ -87,7 +87,7 @@
     </a>
     <Regent.Structure.frame class="techtree-frame">
       <.masthead current_path={request_path(assigns)}>
-        {live_render(@conn, TechtreeWeb.SidePanelLive,
+        {live_render(@conn, TechtreeWeb.AccountMenuLive,
           container: {:div, class: "masthead__account"},
           session: TechtreeWeb.Live.Session.render_context(@conn)
         )}

@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.AccountLive do
   @moduledoc """
   The signed-in person's Account, one tab each: Account (their profile, their
-  Credits and the agents they paired), Wallets (the wallets their sign-in
+  Credits, the agents they paired and pairing a new one, in the layout every
+  Regent site shares, `Regent.Account.layout`), Wallets (the wallets their sign-in
   verified) and Connections (the accounts they have connected). Points has its own tab (`TechtreeWeb.PointsLive`).
 
   Everything here is read from the sign-in the shell already holds; nothing on
@@ -12,8 +13,6 @@ defmodule TechtreeWeb.AccountLive do
 
   import TechtreeWeb.Components.PageHead, only: [page_head: 1]
   import TechtreeWeb.Components.VerifiedConnections
-
-  alias Techtree.PublicIdentity
 
   attr :lease, :map, required: true
   attr :account, :map, default: nil
@@ -30,57 +29,66 @@ defmodule TechtreeWeb.AccountLive do
       signed_out_reason={@signed_out_reason}
     >
       <:tip>Your profile, your Credits and your agents.</:tip>
-      <div class="account-grid">
-        <section id="account-identity" class="account-identity" aria-label="Your account">
-          <p class="account-kicker">Your account</p>
-          <div class="account-identity__who">
-            <TechtreeWeb.Components.AccountControls.account_picture
-              id="account-identity-picture"
-              class="account-identity__avatar"
-              squares={@account_control.squares}
-              picture={@account_control.picture}
-              size={64}
-            />
-            <div class="account-identity__name">
-              <h2>{@account_control.label}</h2>
-              <p :if={short_wallet(@account) not in [nil, @account_control.label]}>
-                <code>{short_wallet(@account)}</code>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section class="account-panel account-details" aria-labelledby="account-details-title">
-          <h2 id="account-details-title">Profile</h2>
-          <dl>
-            <div>
-              <dt>Display name</dt>
-              <dd>{@account.display_name || "Not set"}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <Regent.Account.credits_summary
-          :if={@account}
-          id="account-credits"
-          available={
-            @credits_read.value && RegentCredits.Amount.format(@credits_read.value.available)
-          }
-          held={@credits_read.value && RegentCredits.Amount.format(@credits_read.value.held)}
-          state={if @credits_read.state in [:idle, :empty], do: :loading, else: @credits_read.state}
-        >
-          <a href="https://regents.sh/account" class="account-credits__manage">
-            Manage Credits on regents.sh
-          </a>
-        </Regent.Account.credits_summary>
-
-        <.live_component
-          module={TechtreeWeb.AgentsPanel}
-          id="account-agents"
-          lease={@lease}
-          account={@account}
-        />
-      </div>
+      <Regent.Account.layout id="account">
+        <:identity>
+          <Regent.Account.identity
+            id="account-identity"
+            name={@account_control.label}
+            wallet={@account_control.wallet}
+            ens_name={@account_control.ens_name}
+          >
+            <:picture>
+              <TechtreeWeb.Components.AccountControls.account_picture
+                id="account-identity-picture"
+                squares={@account_control.squares}
+                picture={@account_control.picture}
+                size={64}
+              />
+            </:picture>
+          </Regent.Account.identity>
+        </:identity>
+        <:agents>
+          <.live_component
+            module={TechtreeWeb.AgentsPanel}
+            id="account-agents"
+            lease={@lease}
+            account={@account}
+          />
+        </:agents>
+        <:pairing>
+          <.live_component
+            module={TechtreeWeb.PairingBox}
+            id="account-pairing-box"
+            lease={@lease}
+            account={@account}
+          />
+        </:pairing>
+        <:credits>
+          <Regent.Account.credits_summary
+            id="account-credits"
+            available={
+              @credits_read.value && RegentCredits.Amount.format(@credits_read.value.available)
+            }
+            held={@credits_read.value && RegentCredits.Amount.format(@credits_read.value.held)}
+            state={if @credits_read.state in [:idle, :empty], do: :loading, else: @credits_read.state}
+          >
+            <a href="https://regents.sh/account" class="account-credits__manage">
+              Manage Credits on regents.sh
+            </a>
+          </Regent.Account.credits_summary>
+        </:credits>
+        <:profile>
+          <section class="account-panel account-details" aria-labelledby="account-details-title">
+            <h2 id="account-details-title">Profile</h2>
+            <dl>
+              <div>
+                <dt>Display name</dt>
+                <dd>{@account.display_name || "Not set"}</dd>
+              </div>
+            </dl>
+          </section>
+        </:profile>
+      </Regent.Account.layout>
     </.settings_page>
     """
   end
@@ -189,11 +197,4 @@ defmodule TechtreeWeb.AccountLive do
     |> Enum.uniq()
     |> Enum.reject(&(&1 == primary))
   end
-
-  # The card names the person the way the header does; the wallet is only
-  # repeated beneath when that name is something other than the wallet itself.
-  defp short_wallet(%{wallet_address: wallet}) when is_binary(wallet),
-    do: PublicIdentity.short_wallet(wallet)
-
-  defp short_wallet(_account), do: nil
 end

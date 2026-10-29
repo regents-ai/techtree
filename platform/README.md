@@ -324,9 +324,12 @@ again changes nothing. It refuses any database that is not on `127.0.0.1` (or
 `mix phx.server` needs `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY`; without them the
 local server refuses to start, because nobody could sign in. Other tasks run without them.
 
-Every page can sign in. The header shows Sign in, or the person's name, which opens
-the side panel (`TechtreeWeb.SidePanelLive`): Sign out, Manage Account, the agents
-paired with the account with where each was last active, and Pair New Agent. Each
+Every page can sign in. The header shows Sign in, or the person's picture and name,
+which open the account menu under it (`TechtreeWeb.AccountMenuLive`): their name and
+wallet, the three agents paired with the account that were active most recently with
+where each was last active, Pair New Agent, Manage Account and Sign out. Pairing itself
+is on the Account page (`/account#account-pairing`), in the layout every Regent site
+shares (`Regent.Account.layout`). Each
 agent's reading from the sign-in service is kept five minutes on the machine, and a
 failed read one minute (`Techtree.Agents.ActivityReading`); reads that give no reading
 are counted in `health.agent_activity_unread.total` by reason. The shared account lives at `/account`, with
@@ -373,14 +376,14 @@ monorepo root.
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 | `TECHTREE_SHOWCASE` | `public` or `off`: whether the motion lab at `/animations` exists; required in production, `public` elsewhere unless set |
-| `SIWA_ACTIVITY_READ_TOKEN` | the reader key for the sign-in service's agent activity, which gives the side panel each agent's last active site and the Account page each agent's sites by day (`Techtree.Agents.ActivityReading` keeps each reading five minutes); optional, and unset means neither shows activity |
+| `SIWA_ACTIVITY_READ_TOKEN` | the reader key for the sign-in service's agent activity, which gives the account menu each agent's last active site and the Account page each agent's sites by day (`Techtree.Agents.ActivityReading` keeps each reading five minutes); optional, and unset means neither shows activity |
 
 No model-provider credential is read by this application.
 
 
 ## When the database doesn't answer
 
-Home, Start, Docs, Results and Wallet Bench, and the side panel on every page, read
+Home, Start, Docs, Results and Wallet Bench, and the account menu on every page, read
 through `TechtreeWeb.Outage`. A read that lost its connection (the pool can't reach
 Postgres, or Postgres ended it with a shutdown or "cannot connect now") gives the
 page's "can't be shown right now" note instead of a 500, and one warning in the log,

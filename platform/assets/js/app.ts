@@ -2,9 +2,9 @@ import {browserCsrfToken, holdSocketDuringCookieRotation, installAccountAuthLazy
   installCrossTabCsrf, retireRefusedSession, type PinnedSocket} from "./auth_lazy"
 import {InfoDialog} from "./hooks/info_dialog"
 import {AccountPicture} from "./hooks/account_picture"
+import {AccountMenu} from "./hooks/account_menu"
 import {AccountShell} from "./hooks/account_shell"
-import {SidePanel} from "./hooks/side_panel"
-import {PanelAgents} from "./hooks/panel_agents"
+import {MenuAgents} from "./hooks/menu_agents"
 import {VerifiedConnections} from "./hooks/verified_connections"
 import "../vendor/regent_ui/blog.mjs"
 import "../vendor/regent_ui/pill_select.mjs"
@@ -25,6 +25,7 @@ import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionCount, MotionRefusal} from "./hooks/motion/moments"
 import {installPublicTools} from "./public_tools"
+import {installSiteMenu} from "./site_menu"
 import {installVisitLog} from "./visit_log"
 
 // First, so an error anywhere below is reported too.
@@ -32,6 +33,7 @@ installVisitLog()
 mountMotion(document)
 installPublicTools()
 installCopyButtons()
+installSiteMenu()
 
 // The colour theme. Until the visitor chooses, the page carries no theme and the
 // shared colours follow the device, dark unless it asks for light. A press
@@ -241,7 +243,7 @@ Hooks.CopyCommandPageView = {
   },
 }
 
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountShell, SidePanel, PanelAgents, VerifiedConnections, ...walletHooks, MotionCount, MotionRefusal})
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell, MenuAgents, VerifiedConnections, ...walletHooks, MotionCount, MotionRefusal})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

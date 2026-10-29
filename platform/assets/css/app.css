@@ -3,7 +3,6 @@
 @import "components/onchain_steps.css";
 @import "components/account_auth_status.css";
 @import "pages/account.css";
-@import "components/side_panel.css";
 @import "../vendor/regent_ui/design_system_tokens.css";
 @import "../vendor/regent_ui/primitives.css";
 /* After the shared primitives, as the template's shell is, so the Credits close

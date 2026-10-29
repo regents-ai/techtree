@@ -15,70 +15,152 @@ function watchWalletCode(page: Page): () => boolean {
   return () => seen
 }
 
-test("signed in, the name opens the side panel with sign out, the account and pairing", async ({context, page}) => {
+const menu = (page: Page) => page.locator("#account-menu")
+
+// Opened, and done dropping in, so what is measured is where it rests.
+async function openMenu(page: Page, press: (target: Locator) => Promise<void> = target => target.click()) {
+  await press(page.locator("#account-chip"))
+  await expect(menu(page)).toBeVisible()
+  await expect.poll(() => menu(page).evaluate(element => element.getAnimations().length)).toBe(0)
+}
+
+// The account menu the account's button opens on every page (TechtreeWeb.AccountMenuLive),
+// at 1280, 390 and 320 wide: the person's name, their agents with Manage, Pair New
+// Agent, Manage Account and Sign out; it hangs under its button inside the screen, the
+// page still fits, and Escape closes it with focus back on the button. Techtree's
+// header has no Credits balance, so the menu has no balance row at any width.
+for (const width of [1280, 390, 320]) {
+  test(`at ${width} wide, the account menu hangs under its button with the agents, Pair New Agent, Manage Account and Sign out`, async ({browser}) => {
+    const hasTouch = width < 768
+    const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
+    const outside = await keepOffline(context)
+    await signIn(context)
+    const page = await context.newPage()
+    const errors = watchErrors(page)
+    await page.goto("/docs", {waitUntil: "networkidle"})
+    await openMenu(page, target => (hasTouch ? target.tap() : target.click()))
+
+    await expect(menu(page)).toHaveAccessibleName(await page.locator("#account-chip .account-name").innerText())
+    await expect(menu(page).locator("#shell-agents").getByRole("heading", {name: "Your agents"})).toBeVisible()
+    await expect(menu(page).getByRole("link", {name: "Manage your agents"})).toHaveAttribute("href", "/account#account-agents")
+    await expect(menu(page).getByRole("link", {name: "Pair New Agent"})).toHaveAttribute("href", "/account#account-pairing")
+    await expect(menu(page).getByRole("link", {name: "Manage Account"})).toHaveAttribute("href", "/account")
+    await expect(menu(page).getByRole("button", {name: "Sign out"})).toBeVisible()
+    await expect(menu(page).locator(".rg-account-menu__balance")).toHaveCount(0)
+
+    const chip = (await page.locator("#account-chip").boundingBox())!
+    const box = (await menu(page).boundingBox())!
+    expect(box.y).toBeGreaterThanOrEqual(chip.y + chip.height)
+    expect(box.x).toBeGreaterThanOrEqual(0)
+    expect(box.x + box.width).toBeLessThanOrEqual(width)
+    if (!hasTouch) expect(Math.abs(box.x + box.width - (chip.x + chip.width))).toBeLessThan(2)
+    expect(await layoutProblems(page)).toEqual([])
+
+    await menu(page).getByRole("link", {name: "Manage Account"}).focus()
+    await page.keyboard.press("Escape")
+    await expect(menu(page)).toBeHidden()
+    await expect(page.locator("#account-chip")).toBeFocused()
+    expect(errors).toEqual([])
+    expect(outside).toEqual([])
+    await context.close()
+  })
+}
+
+test("a press outside the account menu closes it, and asked for less motion it appears at once", async ({context, page}) => {
+  await signIn(context)
+  const errors = watchErrors(page)
+  await page.emulateMedia({reducedMotion: "reduce"})
+  await page.goto("/results", {waitUntil: "networkidle"})
+  await page.locator("#account-chip").focus()
+  await page.keyboard.press("Enter")
+  await expect(menu(page)).toBeVisible()
+  expect(await menu(page).evaluate(element => element.getAnimations().length)).toBe(0)
+  const box = (await menu(page).boundingBox())!
+  await page.mouse.click(box.x / 2, box.y + box.height + 20)
+  await expect(menu(page)).toBeHidden()
+  expect(errors).toEqual([])
+})
+
+test("Manage Account in the account menu opens the Account page and the menu closes", async ({context, page}) => {
   await signIn(context)
   const errors = watchErrors(page)
   await page.goto("/docs", {waitUntil: "networkidle"})
-
-  await page.locator("#account-chip").click()
-  await expect(page.locator("#shell-aside")).toBeVisible()
-  await expect(page.locator("#shell-aside [data-account-target='sign-out']")).toBeVisible()
-  await expect(page.locator("#shell-aside a[href='/account']")).toBeVisible()
-  await expect(page.locator("#shell-pairing-box")).toBeAttached()
-  expect(await layoutProblems(page)).toEqual([])
-
-  await page.keyboard.press("Escape")
-  await expect(page.locator("#shell-aside")).toBeHidden()
-  await expect(page.locator("#account-chip")).toBeFocused()
+  await openMenu(page)
+  await menu(page).getByRole("link", {name: "Manage Account"}).click()
+  await expect(page).toHaveURL(/\/account$/)
+  await expect(page.locator("#account-agents")).toBeVisible()
+  await expect(menu(page)).toBeHidden()
   expect(errors).toEqual([])
 })
 
-test("signed in on a phone, the panel opens over the page and fits it", async ({browser}) => {
-  const context = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
-  const outside = await keepOffline(context)
+test("Pair New Agent in the account menu lands on the Account page's pairing box, every press", async ({context, page}) => {
   await signIn(context)
-  const page = await context.newPage()
   const errors = watchErrors(page)
-  await page.goto("/results", {waitUntil: "networkidle"})
-  await page.locator("#account-chip").click()
-  await expect(page.locator("#shell-aside")).toBeVisible()
-  expect(await layoutProblems(page)).toEqual([])
+  await page.goto("/docs", {waitUntil: "networkidle"})
+  await openMenu(page)
+  await menu(page).getByRole("link", {name: "Pair New Agent"}).click()
+  await expect(page).toHaveURL(/\/account#account-pairing$/)
+  await expect(page.locator("[data-phx-main].phx-connected")).toBeAttached()
+  await expect(menu(page)).toBeHidden()
+  const pairing = page.locator("#account-pairing")
+  await expect(pairing).toBeInViewport()
+  // The keyboard starts on the agent choice.
+  await expect(pairing.getByRole("radio").first()).toBeFocused()
+
+  // Pressed again from the same address after scrolling away, it moves there again.
+  await page.evaluate(() => window.scrollTo({top: 0}))
+  await expect(pairing.getByRole("heading", {name: "Pair New Agent"})).not.toBeInViewport()
+  await openMenu(page)
+  await menu(page).getByRole("link", {name: "Pair New Agent"}).click()
+  await expect(menu(page)).toBeHidden()
+  await expect(pairing).toBeInViewport()
+  await expect(pairing.getByRole("radio").first()).toBeFocused()
+
+  // The Agents list's own Pair New Agent leads to the same box.
+  await page.evaluate(() => window.scrollTo({top: 0}))
+  await page.locator("#account-agents").getByRole("link", {name: "Pair New Agent"}).click()
+  await expect(pairing).toBeInViewport()
+  await expect(pairing.getByRole("radio").first()).toBeFocused()
   expect(errors).toEqual([])
-  expect(outside).toEqual([])
-  await context.close()
 })
 
-// The template's layers check (27 Oct): open panels cover what lies under them. Techtree
-// has no bottom bar; on a short page its footer stands at the foot of the screen
-// instead, so on a phone the open Menu covers the page and the open side panel covers
-// the footer.
-test("on a phone, the open menu and side panel cover the page and the footer", async ({browser}) => {
+// On a phone the open Menu covers the page, and while it is open the page and its
+// footer are out of reach until it closes (the account menu rollout, step 4).
+// The account menu is a popover the browser lifts above the page, so on a short
+// phone screen it ends inside the screen and scrolls to Sign out.
+test("on a phone, the open Menu puts the page and footer out of reach, and the account menu reaches Sign out", async ({browser}) => {
   const context = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
   const outside = await keepOffline(context)
   await signIn(context)
   const page = await context.newPage()
   const errors = watchErrors(page)
   await page.goto("/account/wallets", {waitUntil: "networkidle"})
-  const footer = (await page.locator(".regent-footer").boundingBox())!
-  const middle = {x: footer.x + footer.width / 2, y: footer.y + footer.height / 2}
-  expect(middle.y, "the footer stands on the screen").toBeLessThan(844)
-  const onTop = (x: number, y: number, id: string) =>
-    page.evaluate(([x, y, id]) => document.elementFromPoint(x, y)?.closest(`#${id}`) !== null, [x, y, id] as const)
-  const sliding = () =>
-    page.evaluate(() => document.getAnimations().filter(a => a instanceof CSSTransition).length)
+  const behind = page.locator(".techtree-frame > :not(.masthead)")
+  const inert = () => behind.evaluateAll(parts => parts.map(part => (part as HTMLElement).inert))
+  expect((await inert()).length).toBeGreaterThan(0)
 
   await page.getByRole("button", {name: "Menu"}).tap()
-  const menu = page.locator("#site-pages")
-  await expect(menu).toBeVisible()
-  const list = (await menu.boundingBox())!
-  expect(await onTop(list.x + list.width / 2, list.y + list.height - 8, "site-pages")).toBe(true)
+  const list = page.locator("#site-pages")
+  await expect(list).toBeVisible()
+  const listBox = (await list.boundingBox())!
+  expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("#site-pages") !== null,
+    [listBox.x + listBox.width / 2, listBox.y + listBox.height - 8] as const)).toBe(true)
+  await expect.poll(async () => [...new Set(await inert())]).toEqual([true])
   await page.keyboard.press("Escape")
-  await expect(menu).toBeHidden()
+  await expect(list).toBeHidden()
+  await expect.poll(async () => [...new Set(await inert())]).toEqual([false])
 
-  await page.locator("#account-chip").tap()
-  await expect(page.locator("#shell-aside")).toBeVisible()
-  await expect.poll(sliding).toBe(0)
-  expect(await onTop(middle.x, middle.y, "shell-aside")).toBe(true)
+  for (const width of [390, 320]) {
+    await page.setViewportSize({width, height: 360})
+    await openMenu(page, target => target.tap())
+    const box = (await menu(page).boundingBox())!
+    expect(box.y + box.height).toBeLessThanOrEqual(360)
+    const signOut = menu(page).getByRole("button", {name: "Sign out"})
+    await signOut.scrollIntoViewIfNeeded()
+    await expect(signOut).toBeInViewport()
+    await page.keyboard.press("Escape")
+    await expect(menu(page)).toBeHidden()
+  }
   expect(errors).toEqual([])
   expect(outside).toEqual([])
   await context.close()
@@ -132,9 +214,9 @@ test("on a phone, Buy Credits opens and everything in it fits a finger", async (
 })
 
 // A reconnecting page sends the pairing form back with no agent picked, and a
-// submit can come before a choice. Neither may crash the side panel (Sentinel,
-// 23 Oct 2026, from Patchbay's error mail; ash-template 13379ab). Each agent then
-// keeps its own code until it expires.
+// submit can come before a choice. Neither may crash the Account page's pairing box
+// (Sentinel, 23 Oct 2026, from Patchbay's error mail; ash-template 13379ab). Each
+// agent then keeps its own code until it expires.
 test("the pairing form with nothing chosen leaves the box as it is", async ({context, page}) => {
   await signIn(context)
   const errors = watchErrors(page)
@@ -144,10 +226,9 @@ test("the pairing form with nothing chosen leaves the box as it is", async ({con
       if (String(frame.payload).includes('"phx_error"')) crashes.push(String(frame.payload).slice(0, 120))
     }),
   )
-  await page.goto("/docs", {waitUntil: "networkidle"})
-  await page.locator("#account-chip").click()
-  const form = page.locator("form#shell-pairing-box")
-  const message = page.locator("#shell-pairing-box pre")
+  await page.goto("/account", {waitUntil: "networkidle"})
+  const form = page.locator("form#account-pairing-box")
+  const message = page.locator("#account-pairing-box pre")
   await expect(form.getByRole("radio", {checked: true})).toHaveCount(0)
 
   await form.getByRole("radio").first().dispatchEvent("input")

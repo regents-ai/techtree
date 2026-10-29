@@ -32,7 +32,7 @@ defmodule TechtreeWeb.Layouts do
   end
 
   attr(:current_path, :string, default: "/")
-  slot(:inner_block, required: true, doc: "the account control and its side panel")
+  slot(:inner_block, required: true, doc: "the account control and its menu")
 
   defp masthead(assigns) do
     assigns =

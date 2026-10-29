@@ -38,7 +38,7 @@ defmodule TechtreeWeb.Live.Session do
 
   @doc """
   Reads the session for a page. The account pages (`:load_human`) fail whole when
-  the read loses its database connection. A public page and the side panel beside
+  the read loses its database connection. A public page and the account menu beside
   every page (`:load_visitor`) draw as signed out instead, so they stay up in an
   outage; the cookie is left exactly as it was, so the visitor is still signed in
   once the database is back and the page is loaded again.
@@ -161,8 +161,8 @@ defmodule TechtreeWeb.Live.Session do
     end)
   end
 
-  # Only a page the router mounted navigates. The side panel beside it
-  # (`TechtreeWeb.SidePanelLive`) has no navigation of its own, and LiveView
+  # Only a page the router mounted navigates. The account menu beside it
+  # (`TechtreeWeb.AccountMenuLive`) has no navigation of its own, and LiveView
   # refuses the hook there; its events and messages are rechecked as a page's are.
   defp recheck_on_navigation(%{router: nil} = socket, _lease), do: socket
 

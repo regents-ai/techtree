@@ -67,7 +67,7 @@ defmodule TechtreeWeb.AgentSkillsTest do
     end
   end
 
-  test "each agent the side panel offers has its own skill: the Techtree skill and its own set up",
+  test "each agent the pairing box offers has its own skill: the Techtree skill and its own set up",
        %{conn: conn} do
     for harness <- RegentAgents.Harness.featured() do
       slug = harness |> to_string() |> String.replace("_", "-")
