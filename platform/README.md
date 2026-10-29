@@ -104,7 +104,7 @@ GET /verify                     what verification establishes
 GET /docs                       every guide, grouped
 GET /docs/:slug                 one guide (install, test-a-skill, verify, publish, ...)
 GET /skill.md                   the Techtree skill: what to watch, how to check back
-GET /.well-known/agent-skills/index.json  the skills index, with the skill as a zip
+GET /.well-known/agent-skills/index.json  the skills index: techtree and wallet-secrets, each as a zip
 GET /agents/:agent/skill.md     the skill plus steps for one agent (hermes, codex, ...)
 GET /agents.md                  the agent guide: the exact release and every step
 GET /wallet-bench               Wallet Bench scores; /wallet-bench.json for agents

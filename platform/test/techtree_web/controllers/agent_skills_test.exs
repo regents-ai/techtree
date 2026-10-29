@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.AgentSkillsTest do
   @moduledoc """
-  The Techtree skill as agents fetch it: `/skill.md`, the skills index with a
-  zip whose digest is the one listed and each file on its own, and each agent's
+  The Techtree skill as agents fetch it: `/skill.md`, the skills index (with the
+  wallet-secrets skill beside it) with a zip whose digest is the one listed and
+  each file on its own, and each agent's
   own skill at `/agents/SLUG/skill.md`. Also the browser tools that read a
   Result's bundle, a Skill and the Wallet Bench, as `/capabilities.json` lists them.
   """
@@ -24,7 +25,7 @@ defmodule TechtreeWeb.AgentSkillsTest do
     assert conn.resp_body == @skill_md
   end
 
-  test "the skills index lists the Techtree skill with the digest of the zip it links",
+  test "the skills index lists the Techtree and wallet-secrets skills with the digest of each zip",
        %{conn: conn} do
     index = get(conn, "/.well-known/agent-skills/index.json")
 
@@ -32,25 +33,31 @@ defmodule TechtreeWeb.AgentSkillsTest do
     assert content_type(index) =~ "application/json"
     assert get_resp_header(index, "access-control-allow-origin") == ["*"]
 
-    assert %{"$schema" => _schema, "skills" => [skill]} = Jason.decode!(index.resp_body)
-    assert %{"name" => "techtree", "type" => "archive", "url" => url, "digest" => digest} = skill
-    assert skill["description"] != ""
+    assert %{"$schema" => _schema, "skills" => skills} = Jason.decode!(index.resp_body)
+    assert Enum.map(skills, & &1["name"]) == ["techtree", "wallet-secrets"]
 
-    zip = get(build_conn(), url)
+    for skill <- skills do
+      name = skill["name"]
+      skill_md = File.read!(Path.expand("../../../../skills/#{name}/SKILL.md", __DIR__))
+      assert %{"type" => "archive", "url" => url, "digest" => digest} = skill
+      assert skill["description"] != ""
 
-    assert zip.status == 200
-    assert content_type(zip) == "application/zip"
+      zip = get(build_conn(), url)
 
-    assert digest ==
-             "sha256:" <> Base.encode16(:crypto.hash(:sha256, zip.resp_body), case: :lower)
+      assert zip.status == 200
+      assert content_type(zip) == "application/zip"
 
-    {:ok, files} = :zip.unzip(zip.resp_body, [:memory])
-    assert {~c"SKILL.md", @skill_md} in files
+      assert digest ==
+               "sha256:" <> Base.encode16(:crypto.hash(:sha256, zip.resp_body), case: :lower)
 
-    for {name, body} <- files do
-      single = get(build_conn(), "/.well-known/agent-skills/techtree/#{name}")
-      assert single.status == 200, "techtree/#{name} answered #{single.status}"
-      assert single.resp_body == body
+      {:ok, files} = :zip.unzip(zip.resp_body, [:memory])
+      assert {~c"SKILL.md", skill_md} in files
+
+      for {file, body} <- files do
+        single = get(build_conn(), "/.well-known/agent-skills/#{name}/#{file}")
+        assert single.status == 200, "#{name}/#{file} answered #{single.status}"
+        assert single.resp_body == body
+      end
     end
   end
 

@@ -9,10 +9,12 @@ defmodule TechtreeWeb.AgentSkills do
   between skills resolve. The zips are built with fixed dates and modes, so the
   same files always give the same digest. The Techtree skill's `SKILL.md` is
   also `/skill.md`, and each agent's own skill (`TechtreeWeb.AgentGuides`).
+  The wallet-secrets skill is the one the Wallet Bench can install in an agent
+  before a run (`Techtree.WalletBench.Catalog.skill!/1`).
   """
 
   @root Path.expand("../../../skills", __DIR__)
-  @names ~w(techtree)
+  @names ~w(techtree wallet-secrets)
   @base "/.well-known/agent-skills"
   @schema "https://schemas.agentskills.io/discovery/0.2.0/schema.json"
   @types %{".md" => "text/markdown", ".py" => "text/x-python", ".yaml" => "application/yaml"}

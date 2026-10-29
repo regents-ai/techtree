@@ -202,6 +202,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       machine:
         attempt.machine &&
           Map.take(attempt.machine.manifest, ~w(harness_version model reasoning_effort os)),
+      skill: Copy.skill(attempt),
       agent_address: attempt.agent_address,
       model_cost_usd: attempt.model_spend_usd,
       judge_cost_usd: attempt.judge_cost_usd,

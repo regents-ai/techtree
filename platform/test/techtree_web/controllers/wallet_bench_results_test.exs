@@ -251,7 +251,7 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
     keys = fn map -> map |> Map.keys() |> Enum.sort() end
 
     assert keys.(results) ==
-             ~w(agent agent_address failure funding harness_id id judge_cost_usd machine model_cost_usd page started_at status tests timeline wallet_id wallet_tool)
+             ~w(agent agent_address failure funding harness_id id judge_cost_usd machine model_cost_usd page skill started_at status tests timeline wallet_id wallet_tool)
 
     assert [install | _] = results["tests"]
 

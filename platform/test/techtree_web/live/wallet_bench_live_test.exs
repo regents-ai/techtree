@@ -123,6 +123,31 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
       end
     end
 
+    test "a test with a Skill says so on its page and in the list, and only that one", %{
+      conn: conn,
+      tests: tests
+    } do
+      skill = Techtree.WalletBench.Catalog.skill!("wallet-secrets")
+      WalletBenchFixture.with_skill!(tests.passed)
+
+      {:ok, live, _html} = live(conn, ~p"/wallet-bench/#{tests.passed.id}")
+      assert has_element?(live, "#skill", "installed before the first test")
+      assert has_element?(live, "#skill code", skill.sha256)
+
+      assert has_element?(
+               live,
+               ~s|#skill a[href="/.well-known/agent-skills/wallet-secrets/SKILL.md"]|,
+               "wallet-secrets"
+             )
+
+      {:ok, other, _html} = live(conn, ~p"/wallet-bench/#{tests.failed.id}")
+      assert has_element?(other, "#skill", "None")
+
+      {:ok, list, _html} = live(conn, ~p"/wallet-bench?view=list")
+      assert has_element?(list, "#attempt-#{tests.passed.id} th", "(with Skill)")
+      refute has_element?(list, "#attempt-#{tests.failed.id} th", "(with Skill)")
+    end
+
     test "an address naming no test, view or result is not found", %{conn: conn} do
       for path <- [
             ~p"/wallet-bench?test=money",

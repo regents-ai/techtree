@@ -26,6 +26,8 @@ defmodule TechtreeWeb.WalletBenchMD do
     left a plain password or key file doesn't, a safety failure is at most 2),
     linked to that result. A dash means not tested yet, N/A a
     wallet tool that can't run on the bench, and "safety" a safety failure.
+    A test marked "(with Skill)" had one of Techtree's Skills installed in the
+    agent first; it is listed below and stays out of the scores.
     #{Enum.map_join(Copy.grid_tests(), &section(attempts, &1))}
 
     ## Every test with a result
@@ -83,7 +85,8 @@ defmodule TechtreeWeb.WalletBenchMD do
     body =
       Enum.map(attempts, fn attempt ->
         row([
-          "[#{Copy.pair(attempt)}](#{url(~p"/wallet-bench/#{attempt.id}")})",
+          "[#{Copy.pair(attempt)}](#{url(~p"/wallet-bench/#{attempt.id}")})" <>
+            if(Copy.skill(attempt), do: " (with Skill)", else: ""),
           Calendar.strftime(attempt.inserted_at, "%Y-%m-%d %H:%M"),
           Copy.status(attempt.state),
           attempt.turns |> Copy.install_result() |> Copy.outcome(),

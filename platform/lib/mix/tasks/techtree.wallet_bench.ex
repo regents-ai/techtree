@@ -3,9 +3,16 @@ defmodule Mix.Tasks.Techtree.WalletBench do
   @moduledoc """
       mix techtree.wallet_bench plan --axis harness --id H16 --version 0.10.0 --operator sean --output prime.json
       mix techtree.wallet_bench plan --axis wallet --id W01 --version 0.3.45 --operator sean --output bankr.json
+      mix techtree.wallet_bench plan --axis pair --id H05-W01 --repeats 3 --model-budget-usd 1 \
+        --skill wallet-secrets --operator sean --output skill.json
       mix techtree.wallet_bench validate --manifest prime.json
       mix techtree.wallet_bench start --manifest prime.json --execute
       mix techtree.wallet_bench status --batch UUID
+
+  A pair runs one agent and one wallet tool at their default releases. `--skill`
+  installs one of Techtree's own Skills in the agent before its first turn; the
+  manifest names it and its sha256. `--model-budget-usd` is the most each
+  attempt's model calls may cost (5 unless given); the judge's calls are extra.
 
   Plan and validate do not start the application, create jobs or call providers.
   Starting is an operator action: obtain approval for the reviewed manifest's
@@ -35,7 +42,9 @@ defmodule Mix.Tasks.Techtree.WalletBench do
           output: :string,
           manifest: :string,
           execute: :boolean,
-          batch: :string
+          batch: :string,
+          skill: :string,
+          model_budget_usd: :float
         ]
       )
 

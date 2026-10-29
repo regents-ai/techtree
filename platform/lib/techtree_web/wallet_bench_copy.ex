@@ -81,6 +81,16 @@ defmodule TechtreeWeb.WalletBenchCopy do
         &(&1.test == :T2 and not String.contains?(&1.prompt, "create one now"))
       )
 
+  @doc """
+  The Skill the attempt's batch installed in the agent before its first turn,
+  as the batch's manifest names it (`"name"` and the SKILL.md's `"sha256"`), or
+  nil. An attempt with a Skill stays out of the score grids, which compare the
+  agents as they come.
+  """
+  @spec skill(map()) :: %{String.t() => String.t()} | nil
+  def skill(%{run_spec: %{"skill" => skill}}), do: skill
+  def skill(_attempt), do: nil
+
   @spec turn_state(atom()) :: String.t()
   def turn_state(:queued), do: "Queued"
   def turn_state(:running), do: "Running"
@@ -285,10 +295,12 @@ defmodule TechtreeWeb.WalletBenchCopy do
   or `{:fixed, reason}` for a wallet tool that never runs. Each row carries its
   agent's middle time for the test and its mean score out of 10; rows run from the
   highest mean down, agents with no result last. Takes attempts newest first,
-  with turns.
+  with turns; an attempt with a Skill (`skill/1`) stays out.
   """
   @spec grid([map()], grid_test()) :: %{wallets: [map()], rows: [map()]}
   def grid(attempts, test) do
+    attempts = Enum.reject(attempts, &skill/1)
+
     newest =
       Enum.reduce(attempts, %{}, fn attempt, newest ->
         case result(attempt.turns, test) do

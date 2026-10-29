@@ -271,6 +271,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
                 <tr :for={attempt <- @listed} id={"attempt-#{attempt.id}"}>
                   <th scope="row">
                     <.link navigate={~p"/wallet-bench/#{attempt.id}"}>{Copy.pair(attempt)}</.link>
+                    <span :if={Copy.skill(attempt)} class="quiet">(with Skill)</span>
                   </th>
                   <td class="results-ledger__date" data-label="Started">
                     {Calendar.strftime(attempt.inserted_at, "%d %b %Y %H:%M")} UTC
@@ -347,6 +348,11 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             On 7 Oct 2026 the wallet question gained one sentence asking the agent to make a wallet
             if it had none. Tests sent the earlier wording are marked “(earlier question)”, and each
             test's page shows the prompt it was sent, word for word.
+          </p>
+          <p>
+            Tests marked “(with Skill)” had one of Techtree's Skills installed in the agent before
+            the first question, to compare the same agent with and without it. Their questions are
+            word for word the same, each one's page names the Skill, and they stay out of the scores.
           </p>
           <p>
             From 14 Oct 2026 every agent pays Anthropic's lower price when it sends again the part of

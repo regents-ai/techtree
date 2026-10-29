@@ -25,6 +25,23 @@ defmodule TechtreeWeb.WalletBenchMDTest do
              "| Hermes Agent | 1m | 9.1 | [10.0](#{url(~p"/wallet-bench/#{tests.passed.id}")}) | - | [8.2](#{url(~p"/wallet-bench/#{tests.failed.id}")}) |"
   end
 
+  test "a test with a Skill installed is listed as one, outside the grids", %{conn: conn} do
+    tests = WalletBenchFixture.seed!()
+    WalletBenchFixture.with_skill!(tests.passed)
+    markdown = conn |> get(~p"/wallet-bench.md") |> response(200)
+
+    [_intro, wallet, rest] = String.split(markdown, ~r/^## (Wallet|Install)$/m)
+    refute wallet =~ tests.passed.id
+    [install, list] = String.split(rest, "## Every test with a result")
+    refute install =~ tests.passed.id
+
+    assert list =~
+             "| [Hermes Agent × Bankr](#{url(~p"/wallet-bench/#{tests.passed.id}")}) (with Skill) |"
+
+    refute list =~
+             "[Hermes Agent × MoonPay](#{url(~p"/wallet-bench/#{tests.failed.id}")}) (with Skill)"
+  end
+
   test "a flagged pass that met every check is a 9.0, and the scores say why", %{conn: conn} do
     tests = WalletBenchFixture.seed!()
     WalletBenchFixture.flag_wallet_pass!(tests.passed)

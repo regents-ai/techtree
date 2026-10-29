@@ -31,6 +31,33 @@ Cline remains installation-only because its adapter cannot resume a conversation
 Every other admitted harness runs installation and wallet/signature tasks.
 No batch admitted by this workflow funds a wallet or runs the money tests.
 
+## One pair, with or without a Skill
+
+Sean asked on 29 October 2026 ("44. a") to compare one agent with and without one
+of Techtree's own Skills. A `pair` plan runs one harness and one wallet at their
+default releases; `--repeats` runs it up to three times. `--skill NAME` installs
+that Skill (`skills/NAME/SKILL.md` at the repository root, also served at
+`/.well-known/agent-skills/NAME/SKILL.md`) in the agent before its first turn.
+`--model-budget-usd` sets each attempt's model cap below the usual $5.
+
+```sh
+mix techtree.wallet_bench plan --axis pair --id H05-W01 --repeats 3 --model-budget-usd 1 \
+  --operator sean --output bankr-plain.json
+mix techtree.wallet_bench plan --axis pair --id H05-W01 --repeats 3 --model-budget-usd 1 \
+  --skill wallet-secrets --operator sean --output bankr-skill.json
+```
+
+The manifest names the Skill and the sha256 of its SKILL.md; a changed Skill
+needs a new plan. Starting the batch freezes both in every attempt. The
+attempt's first step puts the SKILL.md on the machine, root-owned and readable by
+the tested account, checks the sha256 it reads back, and records it in the
+attempt's events before the model key goes on. Harbor's adapter copies it into
+the agent's own skills folder before each turn. The prompts are word for word the
+same with and without it. Only Claude Code (H05) takes a Skill so far: its
+adapter is the one checked to copy it. Attempts with a Skill are marked "(with
+Skill)" in the list, name the Skill and its sha256 on their own page and in
+`results.json`, and stay out of the score grids and the figures counted from them.
+
 Versions must be exact; `latest`, moving aliases and shell syntax are rejected.
 Hermes upgrades also need `--source-ref FULL_40_HEX_COMMIT`. Prime and oh-my-pi
 upgrades need `--archive-sha256 FULL_64_HEX_SHA256`, taken from the exact upstream
@@ -41,7 +68,8 @@ source commit. The checked-in defaults are in
 ## Start only after operator approval
 
 Review the complete manifest and obtain Sean's approval for its provider costs.
-Each attempt's model proxy caps the attempt's model calls at $5. Every model call
+Each attempt's model proxy caps the attempt's model calls at the manifest's
+`model_budget_usd`, $5 unless the plan set less. Every model call
 goes to Anthropic as claude-opus-5-5 with adaptive thinking at high effort, and
 each answer is capped at 32,000 output tokens. Every call in flight holds the
 most it can be priced at: its input tokens, all priced as five-minute cache
@@ -51,7 +79,7 @@ translated call's input is bounded by its length in bytes, plus 10,000 tokens fo
 tool instructions and 10,000 for each image (Anthropic shrinks any image to at most
 4,784 tokens on Opus 5.5), and one carrying a file or
 document is refused. A call that would take the
-recorded cost plus every held amount past $5 is refused. Calls a harness makes at
+recorded cost plus every held amount past the budget is refused. Calls a harness makes at
 the same moment therefore cannot overshoot the cap together, and each request
 gets one answer and reaches the model once. A request reusing an earlier call id
 is refused, also after a proxy restart. Only the harness's own tools reach the

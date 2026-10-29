@@ -87,6 +87,23 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
     assert %{"score" => 10.0, "outcome" => "Pass"} = hd(hd(install["rows"])["cells"])
   end
 
+  test "a test with a Skill installed stays out of the feed's grids and figures", %{
+    conn: conn,
+    tests: tests
+  } do
+    WalletBenchFixture.with_skill!(tests.passed)
+    body = conn |> get(~p"/wallet-bench.json") |> json_response(200)
+
+    [%{"test" => "wallet"} = wallet, %{"test" => "install"} = install] = body["tests"]
+    hermes = Enum.find(wallet["rows"], &(&1["agent"] == "Hermes Agent"))
+    assert %{"overall" => nil, "seconds" => nil} = hermes
+    assert %{"wallet_tool" => "Bankr", "state" => "not_tested"} = hd(hermes["cells"])
+
+    hermes = Enum.find(install["rows"], &(&1["agent"] == "Hermes Agent"))
+    assert %{"wallet_tool" => "Bankr", "state" => "not_tested"} = hd(hermes["cells"])
+    assert %{working: 0, judged: 1} = WalletBenchScores.figures()
+  end
+
   # The page and the feed build their grids from the same pieces; Postgres's
   # answer must be the page's own.
   test "the feed's grids are the page's grids" do

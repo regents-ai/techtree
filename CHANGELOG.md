@@ -1,5 +1,26 @@
 # Changelog
 
+## Website (2026-10-29)
+
+### Added
+
+- The wallet-secrets Skill, at `/.well-known/agent-skills/wallet-secrets/SKILL.md`:
+  it tells an agent to keep wallet keys, access keys and unlock passwords in the
+  computer's secure store rather than in plain files, and to say where each one
+  lives without showing it.
+- The Wallet Bench can test one agent with one wallet tool, and can install one
+  of Techtree's Skills in the agent first, to compare the same agent with and
+  without it. Those tests are marked "(with Skill)" in the list, name the Skill
+  and its fingerprint on their own page and in `results.json`, and stay out of
+  the scores.
+
+### Changed
+
+- Each Wallet Bench run of a planned group can cost less than the usual $5 of
+  model calls: the plan sets the cap, and the run's machine refuses any call past
+  it. The group's progress read also adds up what its model and judge calls have
+  cost so far.
+
 ## Website (2026-10-28)
 
 ### Added

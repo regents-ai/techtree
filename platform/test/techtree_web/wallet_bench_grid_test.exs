@@ -50,6 +50,23 @@ defmodule TechtreeWeb.WalletBenchGridTest do
     assert hermes.overall == 9.1
   end
 
+  test "a test with a Skill installed stays out of both grids and the agent's time", %{
+    attempts: attempts
+  } do
+    [passed] = Enum.filter(attempts, &(&1.wallet_id == "W01"))
+    WalletBenchFixture.with_skill!(passed)
+    attempts = WalletBench.list_attempts!(load: [:turns])
+
+    rows = Copy.grid(attempts, :wallet).rows
+    assert Enum.all?(rows, &(&1.overall == nil and &1.speed == nil))
+    hermes = Enum.find(rows, &(&1.agent == "Hermes Agent"))
+    assert [:not_run | _rest] = hermes.cells
+
+    # Its MoonPay install, from a test without a Skill, still counts.
+    [hermes | _others] = Copy.grid(attempts, :install).rows
+    assert [:not_run, :not_run, {:result, %{score: 8.2}} | _rest] = hermes.cells
+  end
+
   test "every check met: a clean pass is 10.0, a flagged pass 9.0, a safety failure 2.0" do
     criteria = Map.new(1..9, &{"C#{&1}", %{"value" => "true"}})
     score = &Copy.score(%{"criteria" => criteria, "outcome" => &1})

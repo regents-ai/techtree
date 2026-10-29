@@ -72,6 +72,15 @@ defmodule Techtree.WalletBenchFixture do
     })
   end
 
+  @doc "Marks an attempt as one whose batch installed the wallet-secrets Skill first."
+  def with_skill!(attempt) do
+    skill = Catalog.skill!("wallet-secrets")
+
+    Ash.Seed.update!(attempt, %{
+      run_spec: %{"skill" => %{"name" => skill.name, "sha256" => skill.sha256}}
+    })
+  end
+
   defp machine!(batch, harness) do
     Ash.Seed.seed!(Machine, %{
       batch_id: batch,

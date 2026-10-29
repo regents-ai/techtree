@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # The attempt's Claude key, on and off the machine.
 #
-#   credentials.sh attach   reads the key from standard input, writes it owner-only and starts the translator as a
+#   credentials.sh attach <budget_usd>
+#                           reads the key from standard input, writes it owner-only, writes the attempt's model budget
+#                           in dollars for the translator's spend cap (bench_hooks.py) and starts the translator as a
 #                           Sprites service; prints "attached" once it answers on 127.0.0.1:4000
 #   credentials.sh revoke   deletes the service and the key file; prints "revoked" once both are gone. Revoke runs
 #                           before every reset, so the "pre-restore" checkpoint Sprites keeps never holds the key.
@@ -11,7 +13,9 @@ P=$W/proxy
 
 case $1 in
   attach)
+    [[ ${2:-} =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "usage: credentials.sh attach <budget_usd>" >&2; exit 2; }
     lock
+    echo "$2" > "$P/budget_usd"
     (umask 077; cat > "$P/anthropic.key")
     test -s "$P/anthropic.key"
     api -X PUT http://sprite/v1/services/llmproxy -d '{"cmd":"/work/proxy/run.sh"}' > /dev/null
@@ -33,7 +37,7 @@ case $1 in
     echo revoked
     ;;
   *)
-    echo "usage: credentials.sh attach|revoke" >&2
+    echo "usage: credentials.sh attach <budget_usd> | revoke" >&2
     exit 2
     ;;
 esac

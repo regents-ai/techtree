@@ -1,7 +1,8 @@
 """The twelve agents the bench tests: each one's Harbor adapter and model. Their pinned releases are in harnesses.json.
 
 Every agent talks to claude-opus-5-5 through the machine's translator (LiteLLM on 127.0.0.1:4000), which sends every
-call to Anthropic with adaptive thinking at effort high, counts cost and refuses new calls once the attempt reaches $5.
+call to Anthropic with adaptive thinking at effort high, counts cost and refuses new calls once the attempt reaches its
+model budget.
 Claude Code and Grok Build speak Anthropic's format; the others speak OpenAI's chat or Responses format, which the
 translator turns into Anthropic's. Muse Code reaches the translator through the gate (muse_gate.py). The agents only hold the machine's local translator token, never the Claude key.
 """
@@ -33,6 +34,9 @@ from .prime import PrimeAgent
 
 # Where every adapter keeps the agent's sessions and output on the machine, for the whole attempt.
 LOGS = Path("/logs/agent")
+# The batch's Skill, when it names one (machine/skill.sh). Harbor's adapter copies it into the agent's own skills folder
+# before each turn; the controller sends a Skill only to the agents whose adapter does (Catalog.skill_harness_ids/0).
+SKILLS = Path("/opt/awb-skills")
 
 
 @dataclass(frozen=True)
@@ -106,6 +110,7 @@ def agent(harness_id: str) -> BaseInstalledAgent:
         environment_logs_dir=PurePosixPath(LOGS),
         model_name=harness.model,
         version=release["version"],
+        skills_dir=SKILLS.as_posix() if SKILLS.is_dir() else None,
         **options,
     )
     if harness_id == "H04":

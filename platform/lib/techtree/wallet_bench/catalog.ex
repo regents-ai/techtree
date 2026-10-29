@@ -16,6 +16,10 @@ defmodule Techtree.WalletBench.Catalog do
   The pack holds `machine/` and `runner/`. Its digest is the sha256 of a
   `sha256sum`-style list of every file in it, so it names the exact scripts a
   baseline carries, whatever the files' dates.
+
+  A batch can also install one of Techtree's own Skills (`skills/` at the
+  repository's root) in the agent before its first turn, to compare runs with
+  and without it. The prompts stay word for word the same.
   """
 
   @install_tests [:T1a, :T1b]
@@ -188,7 +192,34 @@ defmodule Techtree.WalletBench.Catalog do
   # releases). Each had been public for three days or more when it was chosen, and the wallet's notes describe it.
   @wallet_versions %{"W01" => "0.3.45", "W03" => "1.100.1", "W07" => "1.8.5", "W13" => "1.11.0"}
 
+  # The Skills a batch can install in the agent before its first turn: Techtree's
+  # own, from the repository's `skills/` folder (served at
+  # /.well-known/agent-skills), each a lone SKILL.md. Read when the app compiles.
+  skill_folders =
+    for name <- ~w(wallet-secrets),
+        do: {name, Path.expand("../../../../skills/#{name}", __DIR__)}
+
+  for {_name, folder} <- skill_folders do
+    ["SKILL.md"] = File.ls!(folder)
+    @external_resource Path.join(folder, "SKILL.md")
+  end
+
+  @skills Map.new(skill_folders, fn {name, folder} ->
+            body = File.read!(Path.join(folder, "SKILL.md"))
+            sha256 = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
+            {name, %{name: name, body: body, sha256: sha256}}
+          end)
+
+  # The agents whose adapter copies a Skill into the agent's own skills folder
+  # (Harbor's `skills_dir`), checked for each one added here.
+  @skill_harnesses ~w(H05)
+
+  # The most an attempt's model calls may cost, in dollars, unless its batch sets
+  # less; the machine's translator refuses any call past it (bench_hooks.py).
+  @model_budget_usd 5
+
   @type harness :: %{id: String.t(), name: String.t(), tests: [atom()]}
+  @type skill :: %{name: String.t(), body: String.t(), sha256: String.t()}
   @type wallet :: %{
           id: String.t(),
           name: String.t(),
@@ -232,6 +263,22 @@ defmodule Techtree.WalletBench.Catalog do
 
   @spec harness!(String.t()) :: harness()
   def harness!(id), do: Map.fetch!(@harnesses, id)
+
+  @doc "A Skill a batch can install, with its SKILL.md and that file's sha256."
+  @spec skill!(String.t()) :: skill()
+  def skill!(name), do: Map.fetch!(@skills, name)
+
+  @doc "The Skills a batch can install."
+  @spec skill_names() :: [String.t()]
+  def skill_names, do: Map.keys(@skills)
+
+  @doc "The most an attempt's model calls may cost, in dollars, unless its batch sets less."
+  @spec model_budget_usd() :: pos_integer()
+  def model_budget_usd, do: @model_budget_usd
+
+  @doc "The harness ids whose agent receives a batch's Skill."
+  @spec skill_harness_ids() :: [String.t()]
+  def skill_harness_ids, do: @skill_harnesses
 
   @doc "The exact default release with its fingerprint: a source commit, an archive checksum or npm's published integrity."
   def harness_pin!(id),

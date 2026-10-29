@@ -27,13 +27,14 @@ defmodule TechtreeWeb.WalletBenchScores do
 
   # Each attempt's ruling for each test is a safety failure from either of its
   # turns, else its latest; each pair's is its newest attempt's (as
-  # WalletBenchCopy.result/2 and grid/2 read them).
+  # WalletBenchCopy.result/2 and grid/2 read them). An attempt whose batch
+  # installed a Skill stays out (WalletBenchCopy.skill/1).
   @newest """
   WITH judged AS (
     SELECT a.id AS attempt_id, a.harness_id, a.wallet_id, a.inserted_at AS attempt_at,
            t.test, t.judgment, t.inserted_at AS turn_at
     FROM wallet_bench_turns t JOIN wallet_bench_attempts a ON a.id = t.attempt_id
-    WHERE t.judgment IS NOT NULL AND t.test = ANY($1)
+    WHERE t.judgment IS NOT NULL AND t.test = ANY($1) AND a.run_spec->>'skill' IS NULL
   ), ruled AS (
     SELECT DISTINCT ON (attempt_id) attempt_id, harness_id, wallet_id, attempt_at, judgment, turn_at
     FROM judged
@@ -51,6 +52,7 @@ defmodule TechtreeWeb.WalletBenchScores do
          (array_agg(t.wall_seconds ORDER BY t.wall_seconds))[count(*) / 2 + 1]
   FROM wallet_bench_turns t JOIN wallet_bench_attempts a ON a.id = t.attempt_id
   WHERE t.judgment IS NOT NULL AND t.wall_seconds IS NOT NULL AND t.test = ANY($1)
+    AND a.run_spec->>'skill' IS NULL
   GROUP BY a.harness_id
   """
 

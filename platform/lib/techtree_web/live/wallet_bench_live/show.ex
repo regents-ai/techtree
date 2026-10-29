@@ -1,6 +1,7 @@
 defmodule TechtreeWeb.WalletBenchLive.Show do
   @moduledoc """
-  One wallet test attempt: the machine it ran on, the extra notes on its
+  One wallet test attempt: the machine it ran on, the Skill it had if any,
+  the extra notes on its
   agent's and wallet tool's versions, each test's ruling with its
   checks and reasons, the bench's own checks, the funding sends of a money
   attempt, the stored evidence and everything that happened, in order.
@@ -45,6 +46,7 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
       judges: judges(attempt),
       notes: notes(attempt),
       wallet_version: wallet_version(attempt),
+      skill: Copy.skill(attempt),
       verdicts: verdicts(attempt),
       events: WalletBench.list_attempt_events!(attempt.id)
     )
@@ -100,6 +102,13 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             <dd>{wallet(@attempt).name}, run as <code>{wallet(@attempt).executable}</code></dd>
             <dt :if={@wallet_version}>Wallet tool version</dt>
             <dd :if={@wallet_version}>{@wallet_version}</dd>
+            <dt>Skill</dt>
+            <dd :if={@skill} id="skill">
+              <a href={~p"/.well-known/agent-skills/#{@skill["name"]}/SKILL.md"}>{@skill["name"]}</a>,
+              installed before the first test, SHA-256 <code>{@skill["sha256"]}</code>.
+              This test stays out of the scores.
+            </dd>
+            <dd :if={!@skill} id="skill">None</dd>
             <dt :if={@judges != []}>Judge</dt>
             <dd :if={@judges != []}>{Enum.join(@judges, ", ")}</dd>
           </dl>

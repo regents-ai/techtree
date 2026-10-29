@@ -11,18 +11,23 @@ defmodule Techtree.WalletBench.Batch do
   alias Techtree.WalletBench
   alias Techtree.WalletBench.{Attempt, Catalog, Judge, Machine}
 
-  @fields ~w(format batch axis target operator harnesses wallets repeats recipe protocol access model effort judge)
+  @fields ~w(format batch axis target operator harnesses wallets repeats recipe protocol access model effort judge
+             model_budget_usd skill)
   @pin_fields ~w(version source_ref archive_sha256 integrity)
   @version ~r/\Av?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z/
   @sha ~r/\A[0-9a-f]{64}\z/
   @ref ~r/\A[0-9a-f]{40}\z/
   @integrity ~r/\Asha512-[A-Za-z0-9+\/]{86}==\z/
 
-  @doc "Resolve one upgraded harness against all wallets, or one wallet against all harnesses."
+  @doc """
+  Resolve one upgraded harness against all wallets, one wallet against all
+  harnesses, or one pair (`H05-W01`) at both default releases. `:skill` names
+  a Skill the agent gets before its first turn, and `:model_budget_usd` the
+  most each attempt's model calls may cost (`Catalog.model_budget_usd/0` unless given).
+  """
   def plan(options) do
     axis = Keyword.fetch!(options, :axis)
     target = Keyword.fetch!(options, :id)
-    version = Keyword.fetch!(options, :version)
 
     harnesses =
       for id <- Enum.sort(Catalog.harness_ids()), into: %{}, do: {id, Catalog.harness_pin!(id)}
@@ -35,16 +40,23 @@ defmodule Techtree.WalletBench.Batch do
     {harnesses, wallets} =
       case axis do
         "harness" ->
+          version = Keyword.fetch!(options, :version)
           pin = upgraded_pin(Map.fetch!(harnesses, target), version, options)
 
           {%{target => pin}, wallets}
 
         "wallet" ->
           _ = Map.fetch!(wallets, target)
-          {harnesses, %{target => version}}
+          {harnesses, %{target => Keyword.fetch!(options, :version)}}
+
+        "pair" ->
+          if options[:version], do: raise(ArgumentError, "a pair runs both default releases")
+          [harness, wallet] = String.split(target, "-")
+
+          {%{harness => Map.fetch!(harnesses, harness)}, %{wallet => Map.fetch!(wallets, wallet)}}
 
         _ ->
-          raise ArgumentError, "axis must be harness or wallet"
+          raise ArgumentError, "axis must be harness, wallet or pair"
       end
 
     %{
@@ -61,7 +73,9 @@ defmodule Techtree.WalletBench.Batch do
       "access" => "unassisted",
       "model" => "claude-opus-5-5",
       "effort" => "high",
-      "judge" => Judge.model()
+      "judge" => Judge.model(),
+      "model_budget_usd" => Keyword.get(options, :model_budget_usd, Catalog.model_budget_usd()),
+      "skill" => skill(options[:skill])
     }
     |> validate!()
   end
@@ -77,6 +91,11 @@ defmodule Techtree.WalletBench.Batch do
 
     Enum.each(harnesses, &validate_pin!/1)
 
+    check(
+      manifest["skill"] == nil or Map.keys(harnesses) -- Catalog.skill_harness_ids() == [],
+      "a Skill reaches only the agents in Catalog.skill_harness_ids/0"
+    )
+
     Enum.each(wallets, fn {id, version} ->
       check(id in Catalog.tested_wallet_ids(), "supported wallet")
       version!(version)
@@ -85,14 +104,16 @@ defmodule Techtree.WalletBench.Batch do
     manifest
   end
 
-  @doc "Count and model spending cap for review; judge and Sprite costs are additional."
+  @doc "Count, Skill and model spending cap for review; judge and Sprite costs are additional."
   def summary(manifest) do
     count = map_size(manifest["harnesses"]) * map_size(manifest["wallets"]) * manifest["repeats"]
 
     %{
       batch: manifest["batch"],
       attempts: count,
-      model_cap_usd: count * 5,
+      skill: manifest["skill"],
+      model_budget_usd: manifest["model_budget_usd"],
+      model_cap_usd: count * manifest["model_budget_usd"],
       access: "unassisted",
       money_tests: false
     }
@@ -131,18 +152,36 @@ defmodule Techtree.WalletBench.Batch do
     check(spec["judge"] == Judge.model(), "judge model changed")
   end
 
-  @doc "One read of progress; this function never polls or starts provider work."
+  @doc """
+  One read of progress, with what the batch's model and judge calls have cost so
+  far; this function never polls or starts provider work.
+  """
   def status(batch) do
     {:ok, batch} = Ecto.UUID.cast(batch)
-    rows = attempts(batch)
+    rows = batch |> attempts() |> Ash.load!([:model_spend_usd, :judge_cost_usd])
     machines = Machine |> Ash.Query.filter(batch_id == ^batch) |> Ash.read!()
+
+    spent = fn field ->
+      Enum.reduce(rows, Decimal.new(0), &Decimal.add(Map.fetch!(&1, field) || 0, &2))
+    end
 
     %{
       batch: batch,
+      model_spend_usd: spent.(:model_spend_usd),
+      judge_cost_usd: spent.(:judge_cost_usd),
       attempts:
         Enum.map(
           rows,
-          &Map.take(&1, [:id, :harness_id, :wallet_id, :replicate, :state, :failure])
+          &Map.take(&1, [
+            :id,
+            :harness_id,
+            :wallet_id,
+            :replicate,
+            :state,
+            :failure,
+            :model_spend_usd,
+            :judge_cost_usd
+          ])
         ),
       machines:
         Enum.map(
@@ -198,6 +237,13 @@ defmodule Techtree.WalletBench.Batch do
   # The commit this release runs, which /capabilities.json names.
   defp commit, do: Application.fetch_env!(:techtree, :build).commit
 
+  defp skill(nil), do: nil
+
+  defp skill(name) do
+    skill = Catalog.skill!(name)
+    %{"name" => skill.name, "sha256" => skill.sha256}
+  end
+
   defp upgraded_pin(pin, version, options) do
     pin = if pin["version"] == version, do: pin, else: %{"version" => version}
 
@@ -243,6 +289,19 @@ defmodule Techtree.WalletBench.Batch do
     )
 
     check(manifest["judge"] == Judge.model(), "judge model changed; make a new plan")
+
+    check(
+      is_number(manifest["model_budget_usd"]) and manifest["model_budget_usd"] > 0 and
+        manifest["model_budget_usd"] <= Catalog.model_budget_usd(),
+      "model budget (above 0, at most #{Catalog.model_budget_usd()} dollars an attempt)"
+    )
+
+    check(
+      manifest["skill"] == nil or
+        (is_map(manifest["skill"]) and manifest["skill"]["name"] in Catalog.skill_names() and
+           manifest["skill"] == skill(manifest["skill"]["name"])),
+      "Skill unknown or changed; make a new plan"
+    )
   end
 
   defp validate_axis!(manifest, harnesses, wallets) do
@@ -263,8 +322,18 @@ defmodule Techtree.WalletBench.Batch do
           "all supported harnesses"
         )
 
+      "pair" ->
+        check(
+          [Enum.join(Map.keys(harnesses) ++ Map.keys(wallets), "-")] == [manifest["target"]],
+          "one target harness and wallet"
+        )
+
+        [harness] = Map.keys(harnesses)
+        check(harness in Catalog.harness_ids(), "supported harness")
+        check(:T2 in Catalog.tests(harness), "a harness that takes the wallet test")
+
       _ ->
-        check(false, "axis must be harness or wallet")
+        check(false, "axis must be harness, wallet or pair")
     end
   end
 

@@ -10,7 +10,8 @@ A translated request that marks nothing for caching is sent with Anthropic's req
 conversation so far is read back from the five-minute cache on the next call, as a harness speaking Anthropic's own
 format asks for itself. A request that marks its own cache points keeps them, since Anthropic allows only a few.
 
-The attempt's calls never cost more than BUDGET_USD. Each request holds the most it can be priced at until it is
+The attempt's calls never cost more than BUDGET_USD, the attempt's model budget, which credentials.sh writes to
+/work/proxy/budget_usd before the translator starts. Each request holds the most it can be priced at until it is
 charged: its input tokens, all priced as five-minute cache writes (the dearest input), and MAX_OUTPUT output tokens,
 the cap every request is given. An Anthropic Messages request's input is counted by Anthropic's token counter, which
 is free and runs no model, plus a tenth, because the counter is an estimate. A translated request's input is bounded
@@ -54,7 +55,8 @@ from litellm.integrations.custom_logger import CustomLogger
 from litellm.llms.base_llm.anthropic_messages.transformation import BaseAnthropicMessagesConfig
 from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler
 
-BUDGET_USD = 5.0
+with open("/work/proxy/budget_usd") as _budget:
+    BUDGET_USD = float(_budget.read())
 MODEL = "claude-opus-5-5"
 MAX_OUTPUT = 32_000
 CONTEXT = 1_000_000
