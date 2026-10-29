@@ -84,6 +84,7 @@
 /* The paid offers: the bench result first, then deliverables, steps, a sample and
    the way to start. Sheets and rules only; nothing floats. */
 .service-offer__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.service-offer__other { margin-top: var(--space-2); max-width: 65ch; font-size: .875rem; color: var(--color-fg-muted); }
 .service-result { padding-block: var(--space-4); border-block: 1px solid var(--hairline-strong); }
 .service-result h2 { margin-top: var(--space-2); }
 .service-result__figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block: var(--space-3) var(--space-2); }

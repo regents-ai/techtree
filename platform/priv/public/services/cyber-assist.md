@@ -2,6 +2,8 @@
 
 Find and fix the security weaknesses that matter. For applications and agent integrations: we validate each weakness, show how to reproduce it, rank the repairs and check that each fix holds.
 
+To check that your workflows work, see [Techtree Verify](/services/verify).
+
 ## Agent Wallet Bench
 
 {{bench}}
@@ -26,4 +28,4 @@ Our own bench, reviewed the way a Cyber Assist customer's product would be: one 
 
 ## Start a conversation
 
-Write to [build@regents.sh](mailto:build@regents.sh?subject=Techtree%20Cyber%20Assist) with what you build and where you want a second look.
+Write to [build@regents.sh]({{mailto}}) with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope.

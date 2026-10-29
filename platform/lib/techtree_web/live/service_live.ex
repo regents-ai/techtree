@@ -3,7 +3,8 @@ defmodule TechtreeWeb.ServiceLive do
   The two paid offers, Techtree Verify at `/services/verify` and Techtree Cyber
   Assist at `/services/cyber-assist`: the Agent Wallet Bench result first, then
   what the buyer gets, how an engagement runs, a sample of the report and the way
-  to start a conversation. Each page's Markdown is
+  to start a conversation, an email whose body already asks for what we need
+  (`mailto/1`). Each page links to the other offer. Each page's Markdown is
   `priv/public/services/<offer>.md`, the same facts in words, and its sample
   report is a public document (`TechtreeWeb.PublicDocuments`).
 
@@ -22,7 +23,12 @@ defmodule TechtreeWeb.ServiceLive do
       name: "Techtree Verify",
       promise: "Prove your important workflows work.",
       lede:
-        "For teams that ship quickly. We check the workflows you choose, reproduce every failure and leave you a suite you can run again.",
+        "For teams that ship quickly. We check the workflows you choose, such as how an agent sets up and uses a wallet, reproduce every failure and leave you a suite you can run again.",
+      other: %{
+        lead: "For a security review instead, see",
+        name: "Techtree Cyber Assist",
+        path: "/services/cyber-assist"
+      },
       deliverables: [
         {"Agreed coverage",
          "The workflows that matter to you, and the behaviour each must show."},
@@ -46,14 +52,20 @@ defmodule TechtreeWeb.ServiceLive do
         {"The download is offered on every view of a result", "Fail", :fail}
       ],
       start_line:
-        "Write to build@regents.sh with what you ship and the workflows that matter most.",
-      subject: "Techtree Verify"
+        "Write to build@regents.sh with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope.",
+      subject: "Techtree Verify",
+      body: ["Product:", "Workflows that matter most:", "Place to try them:"]
     },
     cyber_assist: %{
       name: "Techtree Cyber Assist",
       promise: "Find and fix the security weaknesses that matter.",
       lede:
         "For applications and agent integrations. We validate each weakness, show how to reproduce it, rank the repairs and check that each fix holds.",
+      other: %{
+        lead: "To check that your workflows work, see",
+        name: "Techtree Verify",
+        path: "/services/verify"
+      },
       deliverables: [
         {"Validated findings", "Only weaknesses we reproduced, each with a priority."},
         {"Reproduction evidence", "The inputs, steps and records that show each one."},
@@ -75,8 +87,9 @@ defmodule TechtreeWeb.ServiceLive do
         {"The hiding step also hid the bundled checksums", "Low, fixed", :fixed}
       ],
       start_line:
-        "Write to build@regents.sh with what you build and where you want a second look.",
-      subject: "Techtree Cyber Assist"
+        "Write to build@regents.sh with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope.",
+      subject: "Techtree Cyber Assist",
+      body: ["Product:", "Parts for a second look:", "Place to try it:"]
     }
   }
 
@@ -89,8 +102,16 @@ defmodule TechtreeWeb.ServiceLive do
        page_title: offer.name,
        offer: offer,
        bench: figures(),
-       mailto: "mailto:build@regents.sh?subject=" <> URI.encode(offer.subject)
+       mailto: mailto(socket.assigns.live_action)
      )}
+  end
+
+  @doc "The email an offer starts: to build@regents.sh, with its subject and the lines its body asks for."
+  @spec mailto(:verify | :cyber_assist) :: String.t()
+  def mailto(offer) do
+    %{subject: subject, body: lines} = Map.fetch!(@offers, offer)
+    query = URI.encode_query([subject: subject, body: Enum.join(lines, "\r\n")], :rfc3986)
+    "mailto:build@regents.sh?" <> query
   end
 
   @doc "The bench figures from the published scores, or `:database_down` when they can't be read."
@@ -154,6 +175,9 @@ defmodule TechtreeWeb.ServiceLive do
             <a class="rg-button rg-button--primary" href={@mailto}>Start a conversation</a>
             <a class="text-link" href={@offer.sample_path}>Read the sample report →</a>
           </div>
+          <p class="service-offer__other">
+            {@offer.other.lead} <a href={@offer.other.path}>{@offer.other.name}</a>.
+          </p>
         </header>
 
         <section class="service-result" aria-labelledby="service-result-title">

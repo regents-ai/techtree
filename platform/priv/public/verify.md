@@ -1,4 +1,4 @@
-# Verify
+# Check a Result
 
 When someone says a Skill made their agent better, you shouldn't have to take their word for it. Every Result on Techtree is a signed record you can download and check on your own computer, without trusting this site.
 

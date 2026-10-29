@@ -24,7 +24,7 @@ Both runs use the same tasks, model, tools and limits. Whatever differs in the R
 
 ### Results you can check yourself
 
-A Result can be checked offline on your own computer, without trusting Techtree. [Verify](/verify) explains what verification establishes.
+A Result can be checked offline on your own computer, without trusting Techtree. [Check a Result](/verify) explains what verification establishes.
 
 ### Never ranked
 
@@ -65,9 +65,9 @@ Techtree is built and run by Regents Labs, an agentic product lab whose products
 | Founder | Sean Brennan |
 | Website | [techtree.sh](https://techtree.sh) |
 | Core offering | With-and-without comparisons of a Skill, ending in a signed Result anyone can check offline |
-| Pricing | Free to use. Model costs are billed by the model provider you choose |
+| Pricing | Free to use. Model costs are billed by the model provider you choose. Techtree Verify and Techtree Cyber Assist are paid checks. |
 | Status | Working technical preview |
-| Services | Climbs, task building from a Skill, signed Results, publishing |
+| Services | Climbs, task building from a Skill, signed Results, publishing, and paid checks: [Techtree Verify](/services/verify) and [Techtree Cyber Assist](/services/cyber-assist) |
 | Communication | [build@regents.sh](mailto:build@regents.sh) |
 | Social | [X @regents_sh](https://x.com/regents_sh) · [GitHub](https://github.com/regents-ai/techtree) · Founder: [X](https://x.com/seanwbren), [LinkedIn](https://www.linkedin.com/in/seanwbren) |
 | Token | REGENT, on Base |
@@ -87,11 +87,11 @@ The signed record of a finished Climb. You can check it offline and choose to pu
 
 ### How do I check a Result?
 
-On your own computer, without trusting this site. [Verify](/verify) shows how and says what a check does and doesn't establish.
+On your own computer, without trusting this site. [Check a Result](/verify) shows how and says what a check does and doesn't establish.
 
 ### What does Techtree cost?
 
-Nothing. You pay your model provider for the model your agent uses.
+Nothing. You pay your model provider for the model your agent uses. Techtree Verify and Techtree Cyber Assist are paid checks.
 
 ### Which agent does Techtree run?
 

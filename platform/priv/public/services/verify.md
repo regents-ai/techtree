@@ -1,6 +1,8 @@
 # Techtree Verify
 
-Prove your important workflows work. For teams that ship quickly: we check the workflows you choose, reproduce every failure and leave you a suite you can run again.
+Prove your important workflows work. For teams that ship quickly: we check the workflows you choose, such as how an agent sets up and uses a wallet, reproduce every failure and leave you a suite you can run again.
+
+For a security review instead, see [Techtree Cyber Assist](/services/cyber-assist).
 
 ## Agent Wallet Bench
 
@@ -26,4 +28,4 @@ Our own bench, checked the way a Verify customer's product would be: 12 of 14 ch
 
 ## Start a conversation
 
-Write to [build@regents.sh](mailto:build@regents.sh?subject=Techtree%20Verify) with what you ship and the workflows that matter most.
+Write to [build@regents.sh]({{mailto}}) with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope.

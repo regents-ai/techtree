@@ -81,7 +81,7 @@ defmodule TechtreeWeb.PublicDocuments do
 
   @payment "Tests use the person's own model account. Using Techtree is free; " <>
              "paid hosted runs are planned. Techtree Verify and Techtree Cyber Assist are " <>
-             "paid engagements agreed in conversation."
+             "paid. The price is set for each job once the scope is agreed by email."
 
   # The public documents change only with a release, so the release time is when
   # each last changed. security.txt expires a year after it.
@@ -98,7 +98,8 @@ defmodule TechtreeWeb.PublicDocuments do
 
   @doc """
   An offer's Markdown, `verify` or `cyber_assist`, with `{{bench}}` where the
-  page's Wallet Bench figures go (`TechtreeWeb.ServiceLive.bench_markdown/1`).
+  page's Wallet Bench figures go (`TechtreeWeb.ServiceLive.bench_markdown/1`)
+  and `{{mailto}}` where its email address goes (`TechtreeWeb.ServiceLive.mailto/1`).
   """
   @spec offer(:verify | :cyber_assist) :: String.t()
   def offer(:verify), do: @sources["services/verify"]

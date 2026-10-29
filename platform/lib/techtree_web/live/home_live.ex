@@ -228,7 +228,7 @@ defmodule TechtreeWeb.HomeLive do
             Everything the agent does is recorded, with secrets blanked before anything is kept. A
             judge model rules on each answer, and the bench checks any address and signature on
             Base itself. Use it to see which agents and wallet tools work together before you
-            trust one with money.
+            trust one with money. We can check your own agent’s wallet flow the same way.
           </p>
         </div>
         <dl class="featured__facts">
@@ -248,6 +248,9 @@ defmodule TechtreeWeb.HomeLive do
         <p class="featured__links">
           <.link navigate={~p"/wallet-bench"} class="text-link">
             See the wallet tests <span aria-hidden="true">→</span>
+          </.link>
+          <.link navigate={~p"/services/verify"} class="text-link">
+            Techtree Verify <span aria-hidden="true">→</span>
           </.link>
         </p>
       </section>

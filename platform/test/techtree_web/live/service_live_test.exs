@@ -117,6 +117,20 @@ defmodule TechtreeWeb.ServiceLiveTest do
     end
   end
 
+  test "each offer's page and Markdown start the same email", %{conn: conn} do
+    for {offer, path} <- [verify: ~p"/services/verify", cyber_assist: ~p"/services/cyber-assist"] do
+      mailto = TechtreeWeb.ServiceLive.mailto(offer)
+      {:ok, live, _html} = live(conn, path)
+      text = conn |> put_req_header("accept", "text/markdown") |> get(path) |> response(200)
+
+      assert has_element?(live, ~s|.service-offer__start a[href="#{mailto}"]|)
+      assert text =~ "(#{mailto})"
+      assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
+      assert %{"subject" => _subject, "body" => body} = URI.decode_query(query)
+      assert [_one, _two, _three] = String.split(body, "\r\n")
+    end
+  end
+
   test "with nothing judged yet the pages say so, not a range of days", %{conn: conn} do
     Techtree.Repo.query!("UPDATE wallet_bench_turns SET judgment = NULL")
     WalletBenchScores.delete_all()
