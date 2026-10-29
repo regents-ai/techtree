@@ -78,9 +78,14 @@ defmodule TechtreeWeb.Endpoint do
   # Before the parser, so a caller over the publication limit costs no read.
   plug TechtreeWeb.PublicationRate
 
+  # Chrome's WebMCP origin trial, issued to https://techtree.sh and valid until
+  # 29 Mar 2027. The token is public; Chrome ignores it on any other host.
+  @webmcp_origin_trial "AqW8ICPWC6cD2JEdu5Sn8Dulym1cerKg9AFMbxlrqruuG/45TlMuluqrHdO2PXJ1a4HiOB41NbsR253uC7k7qAcAAABLeyJvcmlnaW4iOiJodHRwczovL3RlY2h0cmVlLnNoOjQ0MyIsImZlYXR1cmUiOiJXZWJNQ1AiLCJleHBpcnkiOjE4MDYzNjQ4MDB9"
+
   # Every page, and every Markdown or refusal the next plug answers before the
   # router, carries these. Browser agents may use the tools every page
-  # registers, from this site only. API responses replace them with their own.
+  # registers, from this site only, and Chrome learns the origin trial before
+  # reading `tools`. API responses replace them with their own.
   plug :secure_browser_headers
 
   # Before the parser, so a body it refuses on an `/api` path is answered
@@ -157,7 +162,8 @@ defmodule TechtreeWeb.Endpoint do
     put_secure_browser_headers(conn, %{
       "content-security-policy" => TechtreeWeb.ContentSecurityPolicy.reading(),
       "referrer-policy" => "no-referrer",
-      "permissions-policy" => "tools=(self)"
+      "permissions-policy" => "tools=(self)",
+      "origin-trial" => @webmcp_origin_trial
     })
   end
 end
