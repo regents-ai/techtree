@@ -281,7 +281,8 @@ Follow that guide before `mix setup`.
 
 `make check` runs the full model-free repository gate, including platform asset
 setup and registry checks. It requires the platform prerequisites, Foundry,
-and pinned Solidity dependencies. It does not start paid inference, publish
+pinned Solidity dependencies, and Node for the pinned Quint that checks the
+[Wallet Bench funding model](formal/wallet_bench_funding/README.md). It does not start paid inference, publish
 results, release packages, deploy, or transfer money. Setup can download dependencies.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for the

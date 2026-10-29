@@ -2,6 +2,14 @@
 
 ## Website (2026-10-29)
 
+### Added
+
+- A machine-checked model of the Wallet Bench funding total
+  (`formal/wallet_bench_funding`): attempts funded at once never keep more
+  than the run's total, and no more money moves on Base than the total. It is
+  checked on every `make check`, with a test that funds five attempts at once
+  against the database.
+
 ### Changed
 
 - **Account menu.** Your picture and name at the top right now open a small

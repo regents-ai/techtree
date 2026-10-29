@@ -2,7 +2,7 @@
 
 .PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli release readiness browser
 
-check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-contracts
+check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-contracts check-formal
 
 check-plugin:
 	$(MAKE) -C plugin check
@@ -34,6 +34,16 @@ REGENTS_CLI_REV := 0e3768f5b92fe8210fb00fea0053bcb5e9c2afaf
 check-cli:
 	uv run --no-project --with "regents-cli[check] @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" \
 	  python -m regents_cli.check_commands cli/commands.json cli/openapi.json
+
+# The model of the Wallet Bench funding cap (formal/wallet_bench_funding/README.md):
+# its witness traces and random runs, in seconds, with no Java. formal-proof adds
+# Apalache's proof for every depth, which needs Java 17 or later on PATH.
+.PHONY: check-formal formal-proof
+check-formal:
+	formal/wallet_bench_funding/check.sh
+
+formal-proof:
+	formal/wallet_bench_funding/check.sh proof
 
 .PHONY: check-contracts
 check-contracts:
