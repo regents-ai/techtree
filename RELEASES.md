@@ -57,3 +57,4 @@ also `CHANGELOG.md`) only says what changed for people and agents.
 | v209 | 29 Oct 2026 | 306f799 | Chrome WebMCP origin-trial token on every page (expires 29 Mar 2027) | v208 25e074a |
 | v210 | 29 Oct 2026 | 2714d18 | Account menu from the template (rollout 2026-10-28-account-menu), Claude Duet agent picture (design-system 3134bab0, elixir-utils 9da44bdc) | v209 306f799 |
 | v211 | 29 Oct 2026 | c565ecc | Offer pages reachable from the homepage, Wallet Bench, contact and About; what to send and a proposed scope; Check a Result names the free page (tt/offer-copy-1029, c565eccd) | v210 2714d18 |
+| v212 | 29 Oct 2026 | 2f885c4 | Offer pages: price set once the scope is agreed, Company line in the email, short headings (2f885c4d) | v211 c565ecc |
