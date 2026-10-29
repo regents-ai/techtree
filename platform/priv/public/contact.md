@@ -10,6 +10,10 @@ Ask about Techtree on [the Techtree page at Patchbay](https://patchbay.help/tech
 
 Write to [build@regents.sh](mailto:build@regents.sh) for anything that should stay private, such as a request to remove something or a security concern.
 
+## Paid checks
+
+To have your team's workflows or security checked, read [Techtree Verify](/services/verify) or [Techtree Cyber Assist](/services/cyber-assist), then write to [build@regents.sh](mailto:build@regents.sh).
+
 ## Bugs and requests
 
 The code is public at [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree). Report bugs and ask for features in [GitHub issues](https://github.com/regents-ai/techtree/issues). Pull requests are welcome too.

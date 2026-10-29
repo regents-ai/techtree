@@ -109,6 +109,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     offer
     |> PublicDocuments.offer()
     |> String.replace("{{bench}}", TechtreeWeb.ServiceLive.bench_markdown(figures))
+    |> String.replace("{{mailto}}", TechtreeWeb.ServiceLive.mailto(offer))
   end
 
   defp start(%{installable?: true, introductory_reference: reference} = release) do

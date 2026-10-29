@@ -243,6 +243,10 @@ defmodule TechtreeWeb.AgentsController do
     https://techtree.sh/wallet-bench.md: each pair's newest judged result, then
     every test with a result, each linked to its evidence.
 
+    To have a company's own agent wallet flow checked, read
+    https://techtree.sh/services/verify. To ask for it, the person writes to
+    build@regents.sh.
+
     ## Related Regent products
 
     - [Regents](https://regents.sh/llms.txt): agent identity, operations, staking and redemption.

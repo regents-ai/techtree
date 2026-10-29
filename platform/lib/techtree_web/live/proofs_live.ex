@@ -14,7 +14,7 @@ defmodule TechtreeWeb.ProofsLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Verify a Result",
+       page_title: "Check a Result",
        checks: Bundle.checks(),
        check_count: Bundle.check_count()
      )}
@@ -26,7 +26,7 @@ defmodule TechtreeWeb.ProofsLive do
     <Layouts.page wide>
       <div class="verification-page">
         <header class="editorial-heading">
-          <p class="eyebrow">Verify</p>
+          <p class="eyebrow">Offline check</p>
           <h1>Check a Result yourself</h1>
           <p class="lede">
             When someone says a Skill made their agent better, you shouldn’t have to take their

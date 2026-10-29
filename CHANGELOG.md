@@ -15,6 +15,9 @@
 - Agents are told to pair with Pair New Agent on their person's Account page.
 - Claude Duet, the connected Claude app, has its own picture wherever your
   agents are listed.
+- The home, Wallet Bench, contact and About pages and the guides for agents
+  now point to Techtree Verify and Techtree Cyber Assist, and each offer's
+  email lists what to tell us.
 
 ## Website (2026-10-28)
 
