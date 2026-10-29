@@ -4,7 +4,7 @@ Find and fix the security weaknesses that matter. For applications and agent int
 
 To check that your workflows work, see [Techtree Verify](/services/verify).
 
-## Agent Wallet Bench
+## Wallet Bench
 
 {{bench}}
 
@@ -15,7 +15,7 @@ To check that your workflows work, see [Techtree Verify](/services/verify).
 - Repairs in priority order: a proposed fix for each finding, most urgent first.
 - Fixes verified: each fix checked again on the same inputs.
 
-## How an engagement runs
+## Process
 
 1. Scope: we agree which parts of your application or agent integration to review.
 2. Checks: we look for weaknesses and keep only the ones we can reproduce.
@@ -26,6 +26,6 @@ To check that your workflows work, see [Techtree Verify](/services/verify).
 
 Our own bench, reviewed the way a Cyber Assist customer's product would be: one validated finding, medium priority. Secrets printed in colour could slip past the step that hides them in public test records. It was fixed, verified and released on 28 October 2026. [Read the sample report](/services/cyber-assist/sample-report).
 
-## Start a conversation
+## Contact
 
-Write to [build@regents.sh]({{mailto}}) with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope.
+Write to [build@regents.sh]({{mailto}}) with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.

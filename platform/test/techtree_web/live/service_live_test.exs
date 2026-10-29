@@ -127,7 +127,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
       assert text =~ "(#{mailto})"
       assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
       assert %{"subject" => _subject, "body" => body} = URI.decode_query(query)
-      assert [_one, _two, _three] = String.split(body, "\r\n")
+      assert ["Company:", "Product:" | _rest] = String.split(body, "\r\n")
     end
   end
 

@@ -52,9 +52,9 @@ defmodule TechtreeWeb.ServiceLive do
         {"The download is offered on every view of a result", "Fail", :fail}
       ],
       start_line:
-        "Write to build@regents.sh with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope.",
+        "Write to build@regents.sh with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.",
       subject: "Techtree Verify",
-      body: ["Product:", "Workflows that matter most:", "Place to try them:"]
+      body: ["Company:", "Product:", "Workflows that matter most:", "Place to try them:"]
     },
     cyber_assist: %{
       name: "Techtree Cyber Assist",
@@ -87,9 +87,9 @@ defmodule TechtreeWeb.ServiceLive do
         {"The hiding step also hid the bundled checksums", "Low, fixed", :fixed}
       ],
       start_line:
-        "Write to build@regents.sh with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope.",
+        "Write to build@regents.sh with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.",
       subject: "Techtree Cyber Assist",
-      body: ["Product:", "Parts for a second look:", "Place to try it:"]
+      body: ["Company:", "Product:", "Parts for a second look:", "Place to try it:"]
     }
   }
 
@@ -172,7 +172,7 @@ defmodule TechtreeWeb.ServiceLive do
           <h1 id="service-title">{@offer.promise}</h1>
           <p class="lede">{@offer.lede}</p>
           <div class="service-offer__actions">
-            <a class="rg-button rg-button--primary" href={@mailto}>Start a conversation</a>
+            <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
             <a class="text-link" href={@offer.sample_path}>Read the sample report →</a>
           </div>
           <p class="service-offer__other">
@@ -184,7 +184,7 @@ defmodule TechtreeWeb.ServiceLive do
           <%= case @bench do %>
             <% {:ok, figures} -> %>
               <p class="eyebrow">{tested(figures)}</p>
-              <h2 id="service-result-title">Agent Wallet Bench</h2>
+              <h2 id="service-result-title">Wallet Bench</h2>
               <dl class="service-result__figures">
                 <div :for={{figure, label} <- bench(figures)}>
                   <dt>{label}</dt>
@@ -193,7 +193,7 @@ defmodule TechtreeWeb.ServiceLive do
               </dl>
             <% :database_down -> %>
               <p class="eyebrow">Our own bench</p>
-              <h2 id="service-result-title">Agent Wallet Bench</h2>
+              <h2 id="service-result-title">Wallet Bench</h2>
               <p class="empty-state" role="status">
                 The bench figures can't be shown right now. Try again in a minute.
               </p>
@@ -215,7 +215,7 @@ defmodule TechtreeWeb.ServiceLive do
         </section>
 
         <Regent.Structure.panel class="service-offer__flow rg-panel__body">
-          <p class="eyebrow">How an engagement runs</p>
+          <p class="eyebrow">Process</p>
           <ol class="service-flow">
             <li :for={{{stage, title, detail}, index} <- Enum.with_index(@offer.steps, 1)}>
               <span>0{index} / {stage}</span><strong>{title}</strong><small>{detail}</small>
@@ -242,7 +242,7 @@ defmodule TechtreeWeb.ServiceLive do
 
         <Regent.Structure.panel class="service-offer__start rg-panel__body rg-support-panel">
           <p class="eyebrow">Start</p>
-          <h2>Start a conversation</h2>
+          <h2>Contact</h2>
           <p>{@offer.start_line}</p>
           <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
         </Regent.Structure.panel>

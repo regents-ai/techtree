@@ -4,7 +4,7 @@ Prove your important workflows work. For teams that ship quickly: we check the w
 
 For a security review instead, see [Techtree Cyber Assist](/services/cyber-assist).
 
-## Agent Wallet Bench
+## Wallet Bench
 
 {{bench}}
 
@@ -15,7 +15,7 @@ For a security review instead, see [Techtree Cyber Assist](/services/cyber-assis
 - A repeatable suite: one script that reruns every check after each release.
 - A clear report: each check, its result and its evidence, in one table.
 
-## How an engagement runs
+## Process
 
 1. Scope: we agree the workflows and the behaviour each must show.
 2. Checks: we run every check and keep the evidence.
@@ -26,6 +26,6 @@ For a security review instead, see [Techtree Cyber Assist](/services/cyber-assis
 
 Our own bench, checked the way a Verify customer's product would be: 12 of 14 checks passed and 2 failures were reproduced. [Read the sample report](/services/verify/sample-report).
 
-## Start a conversation
+## Contact
 
-Write to [build@regents.sh]({{mailto}}) with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope.
+Write to [build@regents.sh]({{mailto}}) with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.
