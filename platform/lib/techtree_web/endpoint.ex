@@ -102,10 +102,10 @@ defmodule TechtreeWeb.Endpoint do
   # One budget per caller, shared by the health check, the browser's visit
   # reports, every `/api` path, answered or not, except publishing, which `TechtreeWeb.PublicationRate`
   # counts on its own, the Wallet Bench's scores and downloads, each of
-  # which reads the whole table or a stored file, and each Result's share
-  # picture, which is drawn for every request. Every answer says what is
-  # left of it; past it the answer is 429 with Retry-After. Pages are never
-  # counted, and counting never waits.
+  # which reads the whole table or a stored file, and the share pictures of
+  # each Result and of the Wallet Bench, each drawn for every request. Every
+  # answer says what is left of it; past it the answer is 429 with
+  # Retry-After. Pages are never counted, and counting never waits.
   plug :limit_rate
 
   # One route reads a request body, and nothing here needs to accept a file. A
@@ -149,6 +149,7 @@ defmodule TechtreeWeb.Endpoint do
   defp counted?(["wallet-bench", _id, "evidence" | _], _conn), do: true
   defp counted?(["wallet-bench", _id, "results.zip"], _conn), do: true
   defp counted?(["results", _digest, "share.png"], _conn), do: true
+  defp counted?(["wallet-bench.png"], _conn), do: true
   defp counted?(["api" | _], conn), do: not TechtreeWeb.PublicationAddress.post?(conn)
   defp counted?(_path, _conn), do: false
 

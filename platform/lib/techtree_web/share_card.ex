@@ -1,25 +1,35 @@
-defmodule TechtreeWeb.ResultShareCard do
+defmodule TechtreeWeb.ShareCard do
   @moduledoc """
-  The picture a shared link to a published Result shows on X and other sites,
-  in the site picture's Canopy frame: the Climb's name, the verdict in large
-  type and how many tasks the Result ran on, with three tiles on the right for
-  the tasks that went better, stayed the same and went worse.
+  The pictures a shared link shows on X, LinkedIn and other sites, in the site
+  picture's Canopy frame: a published Result's and the Wallet Bench's. Every
+  other page shows the site's own picture.
+
+  A Result's picture names the Climb, the verdict in large type and how many
+  tasks the Result ran on, with three tiles on the right for the tasks that
+  went better, stayed the same and went worse. The Climb's name is the site's
+  own (`TechtreeWeb.ResultNames`); the publisher's name for the Skill is never
+  drawn, since nothing checks it. A withdrawn Result says so under the
+  verdict, and its picture's address changes with the withdrawal, so a site
+  that keeps pictures by address fetches the new one.
+
+  The Wallet Bench's picture names the bench, how many agents and wallet tools
+  have a result and how many results are scored, with the wallet test's score
+  grid on the right: a box for each agent and wallet tool, shaded by its score
+  as the page shades it, a safety failure in tangerine and an empty box for a
+  pair not tested yet. It is drawn from the scores the bench publishes
+  (`TechtreeWeb.WalletBenchScores.board/0`), and its address carries a
+  version of them, so a site that keeps pictures by address fetches the new
+  grid once a score changes.
 
   Every word on the left sits in the part of the picture that X's phone view
   keeps (the left 640 or so of its 1200) and clear of the bottom-left corner,
-  where X lays the site's name. The Climb's name is the site's own
-  (`TechtreeWeb.ResultNames`); the publisher's name for the Skill is never
-  drawn, since nothing checks it.
-
-  A withdrawn Result says so under the verdict, and its picture's address
-  changes with the withdrawal, so a site that keeps pictures by address
-  fetches the new one.
+  where X lays the site's name.
   """
 
   use TechtreeWeb, :verified_routes
 
   alias Techtree.Network.Query
-  alias TechtreeWeb.{ResultAssessment, ResultNames}
+  alias TechtreeWeb.{ResultAssessment, ResultNames, WalletBenchCopy, WalletBenchScores}
   alias Vix.Vips.{Image, Operation}
 
   @width 1200
@@ -40,7 +50,7 @@ defmodule TechtreeWeb.ResultShareCard do
   @h1_gap 34
   @lede_w 560
 
-  # The three tiles on the right.
+  # The three tiles, or the bench's grid, on the right.
   @tiles_x 680
   @tiles_w 464
   @tiles_top 132
@@ -48,6 +58,12 @@ defmodule TechtreeWeb.ResultShareCard do
   @tile_gap 14
   @tile_pad 26
   @tile_line_gap 14
+
+  # The bench's boxes: never larger than this, this far apart, and a score
+  # written in each only when the box is at least `@box_words` wide.
+  @box_most 64
+  @box_gap 6
+  @box_words 28
 
   @ground "#1E6B45"
   @edge "#DCE3D6"
@@ -62,6 +78,18 @@ defmodule TechtreeWeb.ResultShareCard do
   # Better, the same and worse, top to bottom.
   @tile_fills [@ground, "#D2E4D5", "#E6ECE2"]
 
+  # A bench box's fill and its score's colour by shade, 1 (lowest) to 5 (9 and
+  # over), as `TechtreeWeb.WalletBenchCopy.shade/1` gives it; a box not tested yet.
+  @box_fills %{
+    1 => {"#E6ECE2", @ink},
+    2 => {"#D2E4D5", @ink},
+    3 => {"#9CCBA8", @ink},
+    4 => {@dot, "#FFFFFF"},
+    5 => {@ground, "#FFFFFF"}
+  }
+  @box_safety {@tangerine, "#FFFFFF"}
+  @box_empty "#EEF1EA"
+
   # The Regents crown: its squares on a 178 x 106 grid.
   @crown_box {31, 46, 178, 106}
   @crown_squares [{31, 46}, {103, 46}, {175, 46}] ++
@@ -71,16 +99,16 @@ defmodule TechtreeWeb.ResultShareCard do
   Where a Result's picture is served. A withdrawn Result's address carries
   `v=withdrawn`, so it differs from the one shared before the withdrawal.
   """
-  @spec image_url(map()) :: String.t()
-  def image_url(entry) do
+  @spec result_image_url(map()) :: String.t()
+  def result_image_url(entry) do
     if Query.withdrawn?(entry),
       do: url(~p"/results/#{entry.bundle_digest}/share.png?#{[v: "withdrawn"]}"),
       else: url(~p"/results/#{entry.bundle_digest}/share.png")
   end
 
-  @doc "What the picture shows, in words, for a reader that cannot see it."
-  @spec alt(map()) :: String.t()
-  def alt(entry) do
+  @doc "What a Result's picture shows, in words, for a reader that cannot see it."
+  @spec result_alt(map()) :: String.t()
+  def result_alt(entry) do
     assessment = entry.assessment
 
     withdrawn(entry) <>
@@ -97,27 +125,82 @@ defmodule TechtreeWeb.ResultShareCard do
   words the site chooses, so only a fault in the drawing library stops it,
   and that raises.
   """
-  @spec png(map()) :: binary()
-  def png(entry) do
-    {words, eyebrow_middle} = words(entry)
-    {canvas, _flags} = Operation.svgload_buffer!(svg(eyebrow_middle))
+  @spec result_png(map()) :: binary()
+  def result_png(entry) do
+    lede = withdrawn(entry) <> "#{tasks(entry.task_count)}, with and without the Skill."
+
+    {words, eyebrow_middle} =
+      words(
+        entry |> ResultNames.campaign() |> plain() |> String.upcase(),
+        ResultAssessment.verdict_label(entry.assessment),
+        lede
+      )
+
+    {canvas, _flags} = Operation.svgload_buffer!(svg(eyebrow_middle, tiles_svg()))
 
     (words ++ tile_words(entry.assessment))
     |> Enum.reduce(canvas, &place/2)
     |> Operation.pngsave_buffer!()
   end
 
-  # The site's name, the Climb's name, the verdict and the task count, each
-  # placed under the one before it, and the middle of the Climb's name, where
-  # the dot before it sits.
-  defp words(entry) do
-    eyebrow = entry |> ResultNames.campaign() |> plain() |> String.upcase()
-    verdict = ResultAssessment.verdict_label(entry.assessment)
-    lede = withdrawn(entry) <> "#{tasks(entry.task_count)}, with and without the Skill."
+  @doc """
+  Where the Wallet Bench's picture is served, for the grid `board`
+  (`TechtreeWeb.WalletBenchScores.board/0`). The address carries a version of
+  the grid, so it moves when a score does.
+  """
+  @spec bench_image_url(WalletBenchScores.board()) :: String.t()
+  def bench_image_url(board) do
+    version = board |> :erlang.phash2() |> Integer.to_string(36) |> String.downcase()
+    url(~p"/wallet-bench.png?#{[v: version]}")
+  end
 
+  @doc "What the Wallet Bench's picture shows, in words, for a reader that cannot see it."
+  @spec bench_alt(WalletBenchScores.board()) :: String.t()
+  def bench_alt(%{rows: []}), do: "AgentWalletBench on Techtree: no wallet tests have run yet."
+
+  def bench_alt(board),
+    do: "AgentWalletBench on Techtree: #{bench_title(board)}, #{bench_lede(board)}"
+
+  @doc """
+  The Wallet Bench's picture as PNG bytes, 1200 by 630, for the grid `board`.
+  Like a Result's, only a fault in the drawing library stops it, and that
+  raises.
+  """
+  @spec bench_png(WalletBenchScores.board()) :: binary()
+  def bench_png(board) do
+    {title, lede} =
+      case board.rows do
+        [] -> {"Wallet Bench", "No wallet tests have run yet."}
+        _rows -> {bench_title(board), bench_lede(board)}
+      end
+
+    {words, eyebrow_middle} = words("AGENTWALLETBENCH", title, lede)
+    boxes = boxes(board)
+    {canvas, _flags} = Operation.svgload_buffer!(svg(eyebrow_middle, boxes_svg(boxes)))
+
+    (words ++ box_words(boxes))
+    |> Enum.reduce(canvas, &place/2)
+    |> Operation.pngsave_buffer!()
+  end
+
+  defp bench_title(%{rows: rows, wallets: wallets}),
+    do: "#{count(length(rows), "agent")}, #{count(wallets, "wallet tool")}"
+
+  defp bench_lede(%{rows: rows}) do
+    scored = rows |> List.flatten() |> Enum.count(& &1)
+    "#{count(scored, "result")} scored out of 10 by the judge's checks."
+  end
+
+  defp count(1, noun), do: "1 #{noun}"
+  defp count(count, noun), do: "#{count} #{noun}s"
+
+  # The site's name, the eyebrow, the title and the lede, each placed under
+  # the one before it, and the middle of the eyebrow, where the dot before it
+  # sits.
+  defp words(eyebrow, title, lede) do
     site = layer("TECHTREE.SH", :mono, 17, @muted)
     eyebrow = fit(eyebrow, :mono, 17, @muted, @words_w - 24)
-    lines = wrap(verdict, :pixel, @h1_size, @ink, @words_w)
+    lines = wrap(title, :pixel, @h1_size, @ink, @words_w)
     lede = layer(lede, :regular, 25, @muted, width: @lede_w)
 
     h1_top = @eyebrow_top + Image.height(eyebrow) + @h1_gap
@@ -160,16 +243,59 @@ defmodule TechtreeWeb.ResultShareCard do
     {@tiles_top + index * (height + @tile_gap), height}
   end
 
-  defp svg(eyebrow_middle) do
-    tiles =
-      @tile_fills
-      |> Enum.with_index()
-      |> Enum.map_join(fn {fill, index} ->
-        {top, height} = tile(index)
+  defp tiles_svg do
+    @tile_fills
+    |> Enum.with_index()
+    |> Enum.map_join(fn {fill, index} ->
+      {top, height} = tile(index)
+      rect(@tiles_x, top, @tiles_w, height, fill)
+    end)
+  end
 
-        ~s|<rect x="#{@tiles_x + 0.5}" y="#{top + 0.5}" width="#{@tiles_w - 1}" height="#{height - 1}" fill="#{fill}" stroke="#{@ink}" stroke-width="1"/>|
-      end)
+  # Each of the bench's boxes, as `{x, y, size, cell}`, the grid's rows and
+  # columns centred in the place the tiles take. A cell is `{score, safety?}`,
+  # or nil for a pair not tested yet.
+  defp boxes(%{rows: []}), do: []
 
+  defp boxes(%{rows: rows, wallets: wallets}) do
+    across = (@tiles_w - (wallets - 1) * @box_gap) / wallets
+    down = (@tiles_bottom - @tiles_top - (length(rows) - 1) * @box_gap) / length(rows)
+    size = [across, down, @box_most] |> Enum.min() |> floor()
+    width = wallets * size + (wallets - 1) * @box_gap
+    height = length(rows) * size + (length(rows) - 1) * @box_gap
+    left = @tiles_x + div(@tiles_w - width, 2)
+    top = @tiles_top + div(@tiles_bottom - @tiles_top - height, 2)
+
+    for {row, y} <- Enum.with_index(rows), {cell, x} <- Enum.with_index(row) do
+      {left + x * (size + @box_gap), top + y * (size + @box_gap), size, cell}
+    end
+  end
+
+  defp boxes_svg(boxes) do
+    Enum.map_join(boxes, fn {x, y, size, cell} ->
+      fill = if cell, do: elem(box_colors(cell), 0), else: @box_empty
+      rect(x, y, size, size, fill)
+    end)
+  end
+
+  # Each tested box's score, centred in it, when the boxes are wide enough.
+  defp box_words([{_x, _y, size, _cell} | _boxes]) when size < @box_words, do: []
+
+  defp box_words(boxes) do
+    for {x, y, size, {score, _safety?} = cell} <- boxes do
+      words = layer(to_string(score), :pixel, round(size * 0.4), elem(box_colors(cell), 1))
+      {words, {x + div(size - Image.width(words), 2), y + div(size - Image.height(words), 2)}}
+    end
+  end
+
+  defp box_colors({_score, true}), do: @box_safety
+  defp box_colors({score, false}), do: Map.fetch!(@box_fills, WalletBenchCopy.shade(score))
+
+  defp rect(x, y, width, height, fill),
+    do:
+      ~s|<rect x="#{x + 0.5}" y="#{y + 0.5}" width="#{width - 1}" height="#{height - 1}" fill="#{fill}" stroke="#{@ink}" stroke-width="1"/>|
+
+  defp svg(eyebrow_middle, right) do
     """
     <svg xmlns="http://www.w3.org/2000/svg" width="#{@width}" height="#{@height}">
       <rect width="#{@width}" height="#{@height}" fill="#{@ground}"/>
@@ -181,7 +307,7 @@ defmodule TechtreeWeb.ResultShareCard do
         fill="#{@powder}" transform="rotate(-45 #{@width - @inset - 14} #{@height - @inset - 14})"/>
       #{crown_svg(@left, 62, 76)}
       <rect x="#{@left}" y="#{eyebrow_middle - 6}" width="12" height="12" fill="#{@dot}"/>
-      #{tiles}
+      #{right}
     </svg>
     """
   end

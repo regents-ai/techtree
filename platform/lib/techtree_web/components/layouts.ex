@@ -157,8 +157,8 @@ defmodule TechtreeWeb.Layouts do
   defp share_title(title) when title in [nil, ""], do: "Techtree"
   defp share_title(title), do: title <> " · Techtree"
 
-  # A published Result's page shows its own picture (`TechtreeWeb.ResultShareCard`);
-  # every other page shows the site's.
+  # A published Result's page and the Wallet Bench show their own pictures
+  # (`TechtreeWeb.ShareCard`); every other page shows the site's.
   defp share_image(%{share_image: image}), do: image
 
   defp share_image(_assigns),

@@ -180,7 +180,8 @@ defmodule TechtreeWeb.Router do
   scope "/", TechtreeWeb do
     get "/healthz", HealthController, :show
     get "/sitemap.xml", SitemapController, :index
-    get "/results/:bundle_digest/share.png", ResultShareCardController, :show
+    get "/results/:bundle_digest/share.png", ShareCardController, :result
+    get "/wallet-bench.png", ShareCardController, :wallet_bench
     get "/robots.txt", PublicPagesController, :robots
     get "/agents.md", AgentsController, :show
     get "/agents/:agent/skill.md", PublicPagesController, :agent_skill_guide

@@ -8,7 +8,8 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   A box opens that result in a window, with the full results to download. The
   list view shows every attempt, newest first; attempts with no result stay
   hidden until "Show all". The extra notes by version follow either view.
-  Updates as attempts move.
+  Updates as attempts move. A shared link to the page shows the bench's own
+  picture, its score grid (`TechtreeWeb.ShareCard`).
 
   The address carries the test (`test`), the view (`view=list`) and the open
   result (`result`), so each state can be linked to and comes back on reload.
@@ -19,14 +20,35 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   alias Techtree.WalletBench
   alias Techtree.WalletBench.Judge
   alias TechtreeWeb.Outage
+  alias TechtreeWeb.ShareCard
   alias TechtreeWeb.WalletBenchCopy, as: Copy
+  alias TechtreeWeb.WalletBenchScores
 
   import TechtreeWeb.WalletBenchLive.Turn, only: [turn: 1, verdict: 1]
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: TechtreeWeb.Endpoint.subscribe("wallet_bench:attempts")
-    {:ok, socket |> assign(page_title: "Wallet Bench", judge: Judge.model()) |> load()}
+
+    {:ok,
+     socket
+     |> assign(page_title: "Wallet Bench", judge: Judge.model())
+     |> share_image()
+     |> load()}
+  end
+
+  # The bench's own share picture, named in the page a link preview reads,
+  # which is the first render; the site's picture while the scores can't be
+  # read.
+  defp share_image(socket) do
+    with false <- connected?(socket),
+         {:ok, board} <- Outage.read(&WalletBenchScores.board/0) do
+      assign(socket,
+        share_image: %{url: ShareCard.bench_image_url(board), alt: ShareCard.bench_alt(board)}
+      )
+    else
+      _connected_or_unread -> socket
+    end
   end
 
   @impl true

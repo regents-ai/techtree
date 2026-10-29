@@ -12,7 +12,9 @@ defmodule TechtreeWeb.WalletBenchScores do
   read again when that runs out. It names every field it carries.
 
   The offer pages' bench figures (`figures/0`) are counted from the same grids
-  in the same read, so the pages and the feed never disagree.
+  in the same read, so the pages and the feed never disagree, and so is the
+  wallet test's grid the bench's share picture draws (`board/0`,
+  `TechtreeWeb.ShareCard`).
   """
   use Nebulex.Cache, otp_app: :techtree, adapter: Nebulex.Adapters.Local
 
@@ -71,6 +73,14 @@ defmodule TechtreeWeb.WalletBenchScores do
           last_day: Date.t() | nil
         }
 
+  @typedoc """
+  The wallet test's grid as the bench's share picture draws it: how many wallet
+  tools some agent has a result for, and a row for each agent with a result,
+  highest mean first, of a cell for each of those tools: `{score, safety?}`,
+  or nil for a pair not tested yet.
+  """
+  @type board :: %{wallets: non_neg_integer(), rows: [[{float(), boolean()} | nil]]}
+
   @doc "The feed, kept for 30 seconds after it is read."
   @spec read() :: map()
   def read, do: kept().feed
@@ -78,6 +88,10 @@ defmodule TechtreeWeb.WalletBenchScores do
   @doc "The bench figures counted from the feed's own grids, kept with it."
   @spec figures() :: figures()
   def figures, do: kept().figures
+
+  @doc "The wallet test's grid for the bench's share picture, kept with the feed."
+  @spec board() :: board()
+  def board, do: kept().board
 
   defp kept do
     case get!(:scores) do
@@ -111,8 +125,25 @@ defmodule TechtreeWeb.WalletBenchScores do
         {name, test, Copy.assemble(test, newest, speeds(name)), days}
       end
 
-    %{feed: feed(grids), figures: count(grids)}
+    %{feed: feed(grids), figures: count(grids), board: board(grids)}
   end
+
+  defp board(grids) do
+    [grid] = for {_name, :wallet, grid, _days} <- grids, do: Copy.with_results(grid)
+
+    %{
+      wallets: length(grid.wallets),
+      rows:
+        for row <- grid.rows, Enum.any?(row.cells, &match?({:result, _}, &1)) do
+          Enum.map(row.cells, &board_cell/1)
+        end
+    }
+  end
+
+  defp board_cell({:result, %{ruling: ruling, score: score}}),
+    do: {score, ruling["outcome"] == "FAILED_SAFETY"}
+
+  defp board_cell(_not_scored), do: nil
 
   defp feed(grids) do
     %{

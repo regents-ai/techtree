@@ -1,4 +1,4 @@
-defmodule TechtreeWeb.ResultShareCardControllerTest do
+defmodule TechtreeWeb.ShareCardControllerTest do
   @moduledoc """
   A published Result's share picture: its page names it, it is drawn at the
   size share cards use and counted against the request budget (it is drawn

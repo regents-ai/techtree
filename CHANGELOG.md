@@ -2,6 +2,14 @@
 
 ## Website (2026-10-29)
 
+### Added
+
+- **Wallet Bench picture.** A link to the Wallet Bench shared on LinkedIn, X
+  or anywhere else now shows the bench itself: how many agents and wallet
+  tools have a result, how many results are scored, and the wallet test's
+  score grid, each box shaded by its score, a safety failure in tangerine.
+  The picture follows the scores, so a new score gives a new picture.
+
 ### Changed
 
 - **Account menu.** Your picture and name at the top right now open a small
