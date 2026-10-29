@@ -2,7 +2,7 @@ defmodule TechtreeWeb.AgentsPanel do
   @moduledoc """
   The agents a person has paired with their account (`RegentAgents`), on the
   Account page, in the shared agents list (`Regent.Account.agents`), with Pair
-  New Agent opening the side panel's pairing box (`TechtreeWeb.PairingBox`),
+  New Agent leading to the pairing box below it (`TechtreeWeb.PairingBox`),
   and a larger view of one agent with where it has been active across the Regent
   sites, a line for each site and day (`Techtree.Agents.ActivityReading`), its
   name, which the person may change, and Unpair.
@@ -18,6 +18,8 @@ defmodule TechtreeWeb.AgentsPanel do
   in or is unpaired anywhere.
   """
   use TechtreeWeb, :live_component
+
+  require Logger
 
   alias Regent.Primitives, as: P
   alias RegentAgents.{Harness, HumanBacking, PairedAgent, Person}
@@ -183,7 +185,9 @@ defmodule TechtreeWeb.AgentsPanel do
           </P.button>
         </:actions>
         <:footer>
-          <P.button type="button" variant="secondary" data-aside-open>Pair New Agent</P.button>
+          <a href="#account-pairing" class="rg-button rg-button--secondary rg-button--no-arrow">
+            <span class="rg-button__label">Pair New Agent</span>
+          </a>
 
           <Regent.Account.agent_detail
             :if={@detail}
@@ -297,8 +301,15 @@ defmodule TechtreeWeb.AgentsPanel do
   defp read_agents(socket) do
     agents =
       case RegentAgents.list_my_agents(actor: socket.assigns.person) do
-        {:ok, agents} -> agents
-        {:error, _error} -> :unavailable
+        {:ok, agents} ->
+          agents
+
+        {:error, error} ->
+          Logger.warning(
+            "The agents for the Account page couldn't be read: #{inspect(failure_kinds(error))}"
+          )
+
+          :unavailable
       end
 
     socket = assign(socket, agents: agents, now: DateTime.utc_now())
@@ -347,4 +358,8 @@ defmodule TechtreeWeb.AgentsPanel do
   end
 
   defp moment(datetime), do: Calendar.strftime(datetime, "%-d %B %Y, %H:%M UTC")
+
+  # The kinds of failure alone: the failure's words can hold the person's id.
+  defp failure_kinds(%{errors: [_ | _] = errors}), do: Enum.map(errors, & &1.__struct__)
+  defp failure_kinds(error), do: [error.__struct__]
 end

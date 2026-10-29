@@ -124,10 +124,13 @@ defmodule TechtreeWeb.AccountShellLive do
   end
 
   # An agent paired, checked in or was unpaired, here or on another Regent site.
-  # The Account tab lists the agents; the side panel follows on its own.
+  # The Account tab lists the agents and holds the pairing box; the account menu
+  # follows on its own.
   def handle_info(:agents_changed, socket) do
-    if socket.assigns.route_spec.route_id == :account,
-      do: send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
+    if socket.assigns.route_spec.route_id == :account do
+      send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
+      send_update(TechtreeWeb.PairingBox, id: "account-pairing-box", agents_changed: true)
+    end
 
     {:noreply, socket}
   end

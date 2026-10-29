@@ -3,9 +3,12 @@
   position: relative;
 }
 
+/* The account control and its menu, at the right end of the header's one row. */
+.masthead__account { grid-row: 1; grid-column: 4; justify-self: end; min-width: 0; }
+
 /* The template's account-control border token, mixed from Techtree's own ink. */
 .account-shell,
-.side-panel {
+.account-menu-control {
   --ash-line-strong: color-mix(in oklab, var(--color-fg) 40%, var(--color-border));
 }
 
@@ -30,7 +33,16 @@
 }
 .account-chip .account-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .account-chip:hover { background: var(--color-surface); }
-.account-chip[aria-expanded="true"] { border-color: var(--color-border); background: var(--color-surface); }
+.account-menu-control:has(#account-menu:popover-open) .account-chip { border-color: var(--color-border); background: var(--color-surface); }
+/* The account menu hangs from the account button. */
+#account-chip { anchor-name: --rg-account-menu; }
+/* The menu's headings are short labels in the interface face, not page titles. */
+#account-menu h2 { margin: 0; font-family: var(--font-family-ui); font-size: .95rem; font-weight: 600; line-height: 1.35; letter-spacing: normal; }
+/* A name that is the wallet opens its full address; with a mouse it is at least
+   24px tall, as every control here is (a finger already gets 44px). */
+@media (hover: hover) and (pointer: fine) {
+  #account-menu .rg-account-menu__name .rg-address__label { min-block-size: 1.5rem; }
+}
 .account-chip:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
 /* On a phone the picture stands for the name, which screen readers still hear. */
@@ -110,6 +122,18 @@
 }
 
 .account-shell { min-width: 0; }
+
+/* The Account page's shared parts, in Techtree's page, which is 254px wide on a
+   320px phone. A name that is the wallet, with its copy and explorer icons, goes
+   under the picture when the row has no room for both, and its icons go under it
+   when it alone fills the row. Five agent pictures to a row fit when each keeps a
+   finger's 44px and no more. */
+.account-shell .rg-account-identity__who { flex-wrap: wrap; }
+.account-shell .rg-account-identity__name h2 { min-inline-size: 0; }
+.account-shell .rg-account-identity__name h2 .rg-address { flex-wrap: wrap; }
+@media (max-width: 22.49rem) {
+  #account-pairing-box .rg-account__choice { padding: 1px; }
+}
 .account-shell__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-block-end: 2rem; }
 .account-shell__tabs { display: flex; flex-wrap: wrap; gap: .25rem; }
 .account-shell__controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }

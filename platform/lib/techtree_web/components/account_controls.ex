@@ -10,8 +10,9 @@ defmodule TechtreeWeb.Components.AccountControls do
 
   @doc """
   The account control at the right of the header on every page: Sign in, or,
-  signed in, the name, which opens the side panel. auth_lazy.ts drives its
-  `data-account-target` markers; the component itself never authenticates anyone.
+  signed in, the picture and name, which open the account menu
+  (`TechtreeWeb.AccountMenuLive`). auth_lazy.ts drives its `data-account-target`
+  markers; the component itself never authenticates anyone.
   """
   def account_control(assigns) do
     ~H"""
@@ -28,10 +29,7 @@ defmodule TechtreeWeb.Components.AccountControls do
         id="account-chip"
         class="account-chip"
         type="button"
-        aria-controls="shell-aside"
-        aria-expanded="false"
-        data-aside-toggle
-        phx-mounted={JS.ignore_attributes(["aria-expanded"])}
+        popovertarget="account-menu"
       >
         <.account_name id="account-chip-picture" account_control={@account_control} />
       </button>

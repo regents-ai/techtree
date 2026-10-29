@@ -169,7 +169,7 @@ defmodule TechtreeWeb.OutagePagesTest do
     for {key, value} <- session, do: assert(Plug.Conn.get_session(conn, key) == value)
   end
 
-  # The side panel is drawn by the page's outer layout, which the test client
+  # The account menu is drawn by the page's outer layout, which the test client
   # doesn't connect, so its live mount is run here as a connecting socket would.
   defp connecting(session) do
     %Phoenix.LiveView.Socket{transport_pid: self(), private: %{connect_info: %{session: session}}}
@@ -177,7 +177,7 @@ defmodule TechtreeWeb.OutagePagesTest do
 
   @rendered %{"client_key" => "outage-test", "render_route" => "/results"}
 
-  test "the side panel's live connection goes on signed out for a signed-in visitor" do
+  test "the account menu's live connection goes on signed out for a signed-in visitor" do
     {_conn, session} = signed_in(build_conn())
 
     assert {:cont, socket} =

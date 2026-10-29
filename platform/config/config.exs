@@ -51,7 +51,7 @@ config :regent_agents,
     "not_paired" => [
       "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",
       "Check your status here at any time.",
-      "Pair with the code your person makes with Pair New Agent in the side panel."
+      "Pair with the code your person makes with Pair New Agent on their Account page."
     ],
     "person_not_here" => [
       "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",

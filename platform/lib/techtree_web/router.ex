@@ -9,7 +9,6 @@ defmodule TechtreeWeb.Router do
   alias TechtreeWeb.Plugs.AgentWallet
 
   @theme_cookie "techtree_theme"
-  @aside_cookie "techtree_aside"
 
   # Pages are HTML here, and every public page also answers
   # `Accept: text/markdown`: the database-free ones from
@@ -34,12 +33,11 @@ defmodule TechtreeWeb.Router do
     plug :fetch_cookies
     plug :fetch_live_flash
     plug :put_theme
-    plug :put_aside
     plug :put_root_layout, html: {TechtreeWeb.Layouts, :root}
     plug :protect_from_forgery
   end
 
-  # Canonical authentication on every page, whose side panel signs in and out.
+  # Canonical authentication on every page, whose account menu signs in and out.
   # sobelow_skip ["Config.CSP"]
   pipeline :account_browser do
     plug :enforce_session_authority
@@ -260,13 +258,6 @@ defmodule TechtreeWeb.Router do
   defp put_theme(conn, _opts) do
     assign(conn, :theme, saved_theme(conn.req_cookies[@theme_cookie]))
   end
-
-  # Whether the side panel was left open (`assets/js/side_panel.ts`), so the
-  # first render already draws it that way. Only the two values reach the page.
-  defp put_aside(conn, _opts), do: assign(conn, :aside, aside(conn.req_cookies[@aside_cookie]))
-
-  defp aside("open"), do: "open"
-  defp aside(_value), do: "closed"
 
   # Until the visitor chooses, there is no theme and the device decides.
   defp saved_theme(value) when value in ["light", "dark"], do: value

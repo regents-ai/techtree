@@ -348,7 +348,7 @@
     {
       "name": "agent_whoami",
       "title": "Check my agent identity and pairing",
-      "description": "Verify your own SIWA identity and current pairing before private work. Requires a fresh per-request SIWA proof, but no pairing. Reads your identity and effective access only; awards no Points and manages no grants. If effective_access.paired is false, ask the owner to sign in on this site and pair you with Pair New Agent in the side panel, then redeem the code they paste you through the existing SIWA pairing flow. First prepare agent_whoami with empty input and sign its exact request with your existing signer. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified.",
+      "description": "Verify your own SIWA identity and current pairing before private work. Requires a fresh per-request SIWA proof, but no pairing. Reads your identity and effective access only; awards no Points and manages no grants. If effective_access.paired is false, ask the owner to sign in on this site and pair you with Pair New Agent on their Account page, then redeem the code they paste you through the existing SIWA pairing flow. First prepare agent_whoami with empty input and sign its exact request with your existing signer. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified.",
       "input_schema": {
         "type": "object",
         "additionalProperties": false,

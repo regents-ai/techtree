@@ -35,7 +35,7 @@ defmodule Techtree.Application do
         TechtreeWeb.GithubStars.Reader,
         {Registry, keys: :duplicate, name: TechtreeWeb.ResultsDownloads},
         TechtreeWeb.WalletBenchScores,
-        # Each agent's reading for an open side panel, unlinked from the page.
+        # Each agent's reading for an open account menu, unlinked from the page.
         {Task.Supervisor, name: Techtree.Agents.Reads},
         Techtree.RateLimit,
         # Start a worker by calling: Techtree.Worker.start_link(arg)

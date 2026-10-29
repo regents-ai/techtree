@@ -22,12 +22,12 @@ defmodule TechtreeWeb.AgentGuides do
             {Path.basename(file, ".md"), %{name: name, setup: String.trim(setup)}}
           end)
 
-  # The agents the side panel offers, as slugs.
+  # The agents the pairing box offers, as slugs.
   @slugs Enum.map(
            RegentAgents.Harness.featured(),
            &(&1 |> to_string() |> String.replace("_", "-"))
          )
-  # Every agent the side panel offers has a skill, and every skill is one it offers.
+  # Every agent the pairing box offers has a skill, and every skill is one it offers.
   @unmatched (@slugs -- Map.keys(@guides)) ++ (Map.keys(@guides) -- @slugs)
   if @unmatched != [],
     do: raise("priv/public/agents and Harness.featured/0 differ: #{inspect(@unmatched)}")

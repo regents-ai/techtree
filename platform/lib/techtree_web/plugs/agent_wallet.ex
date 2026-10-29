@@ -29,7 +29,7 @@ defmodule TechtreeWeb.Plugs.AgentWallet do
   @not_person %{
     "agent_not_paired" =>
       {403, "This agent is not paired with an account.",
-       "Ask your person to sign in on this site and pair you with Pair New Agent in the side panel, then send the request again."},
+       "Ask your person to sign in on this site and pair you with Pair New Agent on their Account page, then send the request again."},
     "person_not_here" =>
       {403, "The person this agent is paired with hasn't signed in on this site yet.",
        "Ask your person to sign in on this site once, then send the request again."}

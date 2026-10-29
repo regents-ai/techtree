@@ -3,7 +3,7 @@ defmodule Techtree.Agents.ActivityReading do
   Each paired agent's reading from the sign-in service (`RegentAgents.Activity`):
   where it has been active across the Regent sites and its registry listing.
   A reading is kept on this machine for five minutes and shared by every page
-  that shows the agent, the side panel's list and the Account page's view alike,
+  that shows the agent, the account menu's list and the Account page's view alike,
   so the service is read at most once per agent in that time. The service answers
   up to 600 reads a minute from a site machine. A failed read is kept for one
   minute, so while the service is down each agent is asked again at most once a

@@ -6,7 +6,7 @@ defmodule TechtreeWeb.ContentSecurityPolicy do
   styles, images and fonts come from this site, requests and the live connection
   go back to it, and nothing frames another site or is framed itself. Pages use
   `sign_in/0`, which admits Privy and the template account components, because
-  every page's side panel can sign in.
+  every page's account control can sign in.
 
   Stricter than the template's baseline, because nothing here needs more: no
   style attributes in markup (the headline reveal clips each word with a class),

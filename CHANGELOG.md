@@ -1,5 +1,21 @@
 # Changelog
 
+## Website (2026-10-29)
+
+### Changed
+
+- **Account menu.** Your picture and name at the top right now open a small
+  menu under them instead of a panel at the side of the page: your name and
+  wallet, your three most recently active agents, Pair New Agent, Manage
+  Account and Sign out. A press outside it or Escape closes it.
+- **Pairing.** Pair New Agent, in the menu or in your agents list, takes you
+  to the pairing box on your Account page, laid out as on every Regents site.
+- On a phone, while the page list from Menu is open, the page behind it can't
+  be pressed or reached with Tab until the list closes.
+- Agents are told to pair with Pair New Agent on their person's Account page.
+- Claude Duet, the connected Claude app, has its own picture wherever your
+  agents are listed.
+
 ## Website (2026-10-28)
 
 ### Added

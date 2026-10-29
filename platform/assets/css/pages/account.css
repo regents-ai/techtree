@@ -38,10 +38,6 @@
   text-transform: none;
 }
 
-.account-identity .account-kicker {
-  color: var(--color-fg-muted);
-}
-
 /* Panels */
 
 .account-grid {
@@ -51,12 +47,7 @@
   align-items: start;
 }
 
-.account-identity {
-  grid-column: 1 / -1;
-}
-
-.account-panel,
-.account-identity {
+.account-panel {
   display: grid;
   gap: 1rem;
   padding: 1.5rem 0;
@@ -65,43 +56,6 @@
 .account-panel h2 {
   font-size: 1.35rem;
   line-height: 1.1;
-}
-
-/* Identity card */
-
-.account-identity {
-  min-height: 0;
-  align-content: end;
-}
-
-.account-identity__who {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  min-width: 0;
-}
-
-.account-identity__avatar {
-  flex: none;
-  width: 4rem;
-  height: 4rem;
-  border: 1px solid var(--color-border);
-}
-
-.account-identity__name {
-  display: grid;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.account-identity__name h2 {
-  font-size: 1.5rem;
-  line-height: 1.05;
-  overflow-wrap: anywhere;
-}
-
-.account-identity__name code {
-  color: var(--color-fg-muted);
 }
 
 /* Details */
@@ -192,12 +146,6 @@
     align-items: stretch;
     flex-direction: column;
   }
-}
-
-/* Agents: the shared list, then pairing; the whole row of the grid. */
-
-.account-agents {
-  grid-column: 1 / -1;
 }
 
 }
