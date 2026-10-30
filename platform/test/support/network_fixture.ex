@@ -410,35 +410,44 @@ defmodule Techtree.NetworkFixture do
   """
   @spec sign_as(%{wallet_address: String.t()}) :: :ok
   def sign_as(%{wallet_address: wallet}) do
+    # Like the sign-in service, this answers only the site's own verify key
+    # (config/test.exs); any other key would leave every signed request at 503.
     Req.Test.stub(RegentAgents.Broker, fn conn ->
       {:ok, body, conn} = Plug.Conn.read_body(conn)
 
-      if Jason.decode!(body)["headers"]["x-siwa-signature"] == @fixture_proof do
-        Req.Test.json(conn, %{
-          code: "http_envelope_valid",
-          data: %{
-            verified: true,
-            walletAddress: wallet,
-            agentBook: nil,
-            agentRegistration: nil,
-            principal: %{
-              kind: "wallet",
-              wallet_address: wallet,
-              chain_id: 8453,
-              audience: "techtree"
+      cond do
+        Plug.Conn.get_req_header(conn, "authorization") != ["Bearer test-site-verify-key"] ->
+          conn
+          |> Plug.Conn.put_status(401)
+          |> Req.Test.json(%{error: %{code: "site_verify_unauthorized"}})
+
+        Jason.decode!(body)["headers"]["x-siwa-signature"] == @fixture_proof ->
+          Req.Test.json(conn, %{
+            code: "http_envelope_valid",
+            data: %{
+              verified: true,
+              walletAddress: wallet,
+              agentBook: nil,
+              agentRegistration: nil,
+              principal: %{
+                kind: "wallet",
+                wallet_address: wallet,
+                chain_id: 8453,
+                audience: "techtree"
+              }
             }
-          }
-        })
-      else
-        conn
-        |> Plug.Conn.put_status(401)
-        |> Req.Test.json(%{
-          error: %{
-            code: "http_headers_missing",
-            message: "Signed agent proof required",
-            hint: "Sign with SIWA"
-          }
-        })
+          })
+
+        true ->
+          conn
+          |> Plug.Conn.put_status(401)
+          |> Req.Test.json(%{
+            error: %{
+              code: "http_headers_missing",
+              message: "Signed agent proof required",
+              hint: "Sign with SIWA"
+            }
+          })
       end
     end)
 

@@ -53,6 +53,9 @@ swap_size_mb = 512
   # bin/server alone, so that `bin/migrate` and `bin/techtree eval` can run on
   # the same machine without a second process trying to bind PORT.
   #
+  # SIWA_SITE_VERIFY_KEY is a secret too: this site's own key at the sign-in
+  # service, without which the release refuses to start (see the runbook).
+  #
   # TECHTREE_BOOTSTRAP_CHANNEL is deliberately absent here too: it belongs with
   # the deployed app rather than in the image, because moving it and importing
   # the matching bundle have to happen in one operator step (deploy runbook,

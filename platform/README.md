@@ -376,6 +376,7 @@ monorepo root.
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 | `TECHTREE_SHOWCASE` | `public` or `off`: whether the motion lab at `/animations` exists; required in production, `public` elsewhere unless set |
+| `SIWA_SITE_VERIFY_KEY` | this site's own verify key at the sign-in service, the `techtree` entry of its `SIWA_SITE_VERIFY_KEYS`: 32 or more letters, digits, `-` or `_`, or the boot stops with a message naming this setting; required in production. It goes with every signed agent request the site asks the service to check, and it names the audience the service checks it for. If the service refuses it, the site logs an error and agents get 503 `siwa_request_failed` until it is fixed. Development uses the sign-in service's development key (`config/dev.exs`), which only a sign-in service run on this machine accepts |
 | `SIWA_ACTIVITY_READ_TOKEN` | the reader key for the sign-in service's agent activity, which gives the account menu each agent's last active site and the Account page each agent's sites by day (`Techtree.Agents.ActivityReading` keeps each reading five minutes); optional, and unset means neither shows activity |
 
 No model-provider credential is read by this application.

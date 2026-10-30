@@ -45,6 +45,26 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
     assert agents(wallet) == []
   end
 
+  test "a verify key the sign-in service refuses closes every door with 503, logged as the site's fault",
+       %{conn: conn} do
+    wallet = wallet()
+    NetworkFixture.sign_as(%{wallet_address: wallet})
+    siwa = Application.fetch_env!(:regent_agents, :siwa)
+    on_exit(fn -> Application.put_env(:regent_agents, :siwa, siwa) end)
+    Application.put_env(:regent_agents, :siwa, Keyword.put(siwa, :verify_key, "another-site-key"))
+
+    log =
+      ExUnit.CaptureLog.capture_log(fn ->
+        for door <- @doors do
+          assert error_code(send_to(conn, door), 503) == "siwa_request_failed"
+        end
+      end)
+
+    assert log =~ "verify_key_refused"
+    refute log =~ "another-site-key"
+    assert agents(wallet) == []
+  end
+
   test "an agent nobody paired is refused at every door as itself, and is known by its wallet",
        %{conn: conn} do
     wallet = wallet()

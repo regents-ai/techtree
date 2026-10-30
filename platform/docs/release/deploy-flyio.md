@@ -104,6 +104,11 @@ public key itself — so the address is derivable from a receipt and a receipt
 can be checked by anybody. Replacing it invalidates every receipt already
 issued, so it is set once and left alone.
 
+`SIWA_SITE_VERIFY_KEY` is this site's own key at the sign-in service, the
+`techtree` entry of its `SIWA_SITE_VERIFY_KEYS`. It is staged with the sign-in
+service's keys, never generated here, and the release refuses to start without
+one of the right shape.
+
 `PHX_HOST` is deliberately the Fly hostname for now. Every absolute URL the site
 prints, and the origin its live pages are allowed to connect from, is built from
 it — so while the smoke test runs against `techtree-sh.fly.dev`, that is what it
@@ -516,6 +521,6 @@ belongs to a channel, and no rollback crosses between them.
   nosniff, frame, and referrer headers this application attaches to every static
   file.
 - `flyctl logs --app techtree-sh` for anything that goes wrong at boot. A
-  missing `PHX_HOST`, `SECRET_KEY_BASE`, `DATABASE_POOLED_URL`, or
-  `TECHTREE_NETWORK_SIGNING_KEY` stops the release before it starts, by name,
-  rather than booting into a wrong guess.
+  missing `PHX_HOST`, `SECRET_KEY_BASE`, `DATABASE_POOLED_URL`,
+  `TECHTREE_NETWORK_SIGNING_KEY` or `SIWA_SITE_VERIFY_KEY` stops the release
+  before it starts, by name, rather than booting into a wrong guess.

@@ -1,7 +1,9 @@
-// Manifest-listed public reads and signed requests. Keys stay in the caller's SIWA signer.
+// Manifest-listed public reads and signed requests. A signed tool takes only its input;
+// the agent's browser host signs the exact request (window.regentsSign), so no key,
+// signature or receipt passes through the page.
 
 import manifest from "../../priv/tool_manifest.json" with {type: "json"}
-import {signedTools, type SignedOperation, type SignedInput} from "../vendor/regent_agent_access/signed_tools"
+import {Refused, signedTools, type SignedOperation} from "../vendor/regent_agent_access/signed_tools"
 import {report, visitId} from "./visit_log"
 
 function signedTransport() { return signedTools({
@@ -10,9 +12,8 @@ function signedTransport() { return signedTools({
   audience: manifest.audience,
   proofHeaders: manifest.proof_headers,
   requestHeaders: client,
-  operations: manifest.tools.map(entry => ({...entry,
-    input_schema: "operation_input_schema" in entry ? entry.operation_input_schema : entry.input_schema,
-  })) as unknown as SignedOperation[],
+  // Only the signed tools are operations.
+  operations: manifest.tools.filter(entry => entry.authentication === "siwa_per_request") as unknown as SignedOperation[],
 }) }
 
 
@@ -158,22 +159,17 @@ const tools: ModelContextTool[] = entries.filter(entry => entry.scope === "site"
   inputSchema: entry.input_schema,
   annotations: entry.annotations,
   async execute(input: unknown, {signal}: {signal?: AbortSignal}) {
-    if (entry.name === "prepare_agent_request") {
-      try {
-        const args = input as {operation: string; input: Record<string, unknown>}
-        return {ok: true, request: signedTransport().prepare(args.operation, args.input)}
-      } catch (error) {
-        return {ok: false, error: {code: "invalid_preparation", message: String(error)}}
-      }
-    }
     if (entry.authentication === "siwa_per_request") {
       try {
-        const response = await signedTransport().execute(entry.name, input as SignedInput, signal)
+        const response = await signedTransport().execute(entry.name, input as Record<string, unknown>, signal)
         const data = await response.json()
         return response.ok ? {ok: true, status: response.status, data} : {ok: false, status: response.status, error: data.error}
       } catch (error) {
+        // No agent signer, a signer that failed or said no, or a call cancelled while
+        // it signed: nothing was sent, and the refusal has the words for the agent.
+        if (error instanceof Refused) return {ok: false, error: error.refusal}
         return {ok: false, error: {code: "signed_request_failed", message: String(error),
-          hint: "Sign fresh proof for the exact prepared request with your existing SIWA signer. Report a missing signer; browser cookies grant no agent authority."}}
+          hint: "Check the input against this tool's schema, then call the tool again. Browser cookies grant no agent authority."}}
       }
     }
     const problem = inputProblem(input, entry.input_schema)

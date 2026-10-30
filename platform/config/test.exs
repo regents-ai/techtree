@@ -88,6 +88,9 @@ config :techtree, Oban, testing: :manual
 # one (`Req.Test.stub(RegentAgents.Broker, ...)`, `Techtree.NetworkFixture.sign_as/1`).
 config :regent_agents, req_options: [plug: {Req.Test, RegentAgents.Broker}]
 
+# The sign-in service is answered by the test itself (RegentAgents.Broker).
+config :regent_agents, :siwa, verify_key: "test-site-verify-key"
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

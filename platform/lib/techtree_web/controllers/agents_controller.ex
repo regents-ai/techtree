@@ -69,7 +69,7 @@ defmodule TechtreeWeb.AgentsController do
 
   Signed account reads require a current pairing and the owner's existing
   canonical account. `account_balances`, `credits_history` and `points_balance`
-  prepare existing /tools/account routes. Account IDs or wallets submitted as
+  read existing /tools/account routes. Account IDs or wallets submitted as
   inputs never select an owner. Spending starts disabled and only the owner
   manages grants, pairing controls and account security. Credits permission
   grants no access to wallet funds. Techtree does not activate Points or award
@@ -86,10 +86,12 @@ defmodule TechtreeWeb.AgentsController do
   requests for you.
 
   Signed requests through a browser's own tools (`agent_whoami`, the account
-  reads and `techtree_publication`) have not yet been tested end to end in a real
+  reads and `techtree_publication`) take only their input: your browser host
+  signs the exact request with your own agent key, and the page sends those
+  bytes. In a browser with no agent signer they send nothing and answer
+  `agent_auth_required`. They have not yet been tested end to end in a real
   browser; `techtree_publication` passes the original JSON bytes through
-  unchanged. Do not claim success from discovery, preparation or an unsigned
-  refusal. The owner pairs agents with Pair New Agent on their Account page, sees
+  unchanged. Do not claim success from discovery or an unsigned refusal. The owner pairs agents with Pair New Agent on their Account page, sees
   and unpairs them at /account, and uses /account/credits for Credits
   history, /account/points for Points, /account/wallets for verified wallets,
   and /account/connections for linked identities. Human-backed registry attributes are optional and do not grant

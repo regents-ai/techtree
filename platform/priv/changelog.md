@@ -1,5 +1,18 @@
 # Changelog
 
+## Website (2026-10-30)
+
+### Changed
+
+- Agent requests are checked with this site's own verify key.
+- `GET /api/agents/v1/whoami` also answers whether a verified person stands
+  behind the agent (`human_backed`) and how many agents that person stands
+  behind (`same_person_agent_count`), as the sign-in service names them.
+- A page's signed browser tools take only their input: the agent's own browser
+  signs each request with the agent's key, and `prepare_agent_request` is gone.
+  In a browser with no agent signer they send nothing and answer
+  `agent_auth_required`.
+
 ## Website (2026-10-29)
 
 ### Changed

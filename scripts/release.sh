@@ -104,6 +104,7 @@ release_env=(
   --env PHX_HOST=localhost
   --env SECRET_KEY_BASE="$(openssl rand -base64 48)"
   --env TECHTREE_NETWORK_SIGNING_KEY="$(openssl rand -base64 32)"
+  --env SIWA_SITE_VERIFY_KEY="$(openssl rand -hex 32)"
   --env TECHTREE_BOOTSTRAP_CHANNEL=stable
   --env TECHTREE_SHOWCASE=off
   --env FLY_IMAGE_REF="$image"

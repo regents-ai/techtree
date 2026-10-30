@@ -75,6 +75,7 @@ defmodule TechtreeWeb.Plugs.AgentWallet do
       else: {:ok, nil}
   end
 
+  # The shared plug has already refused a verdict for another site's audience.
   @impl Siwa.AgentAuthPlug.Hooks
   def accept(
         conn,
@@ -82,19 +83,11 @@ defmodule TechtreeWeb.Plugs.AgentWallet do
           "verified" => true,
           "walletAddress" => address,
           "agentBook" => book,
-          "principal" => %{
-            "kind" => "wallet",
-            "wallet_address" => address,
-            "chain_id" => 8453,
-            "audience" => audience
-          }
+          "principal" => %{"kind" => "wallet", "wallet_address" => address, "chain_id" => 8453}
         },
         _context
-      ) do
-    if audience == RegentAgents.Broker.audience(),
-      do: sign_in(conn, address, book),
-      else: refused(:unsupported_principal)
-  end
+      ),
+      do: sign_in(conn, address, book)
 
   def accept(_conn, _data, _context), do: refused(:unsupported_principal)
 
