@@ -9,6 +9,7 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
   use TechtreeWeb.ConnCase, async: false
 
   require Ash.Query
+  require Logger
 
   alias Ecto.Adapters.SQL
   alias Techtree.Agents.Agent
@@ -50,11 +51,19 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
     wallet = wallet()
     NetworkFixture.sign_as(%{wallet_address: wallet})
     siwa = Application.fetch_env!(:regent_agents, :siwa)
-    on_exit(fn -> Application.put_env(:regent_agents, :siwa, siwa) end)
+    level = Logger.level()
+
+    on_exit(fn ->
+      Application.put_env(:regent_agents, :siwa, siwa)
+      Logger.configure(level: level)
+    end)
+
     Application.put_env(:regent_agents, :siwa, Keyword.put(siwa, :verify_key, "another-site-key"))
+    # Every line, debug included, so a key in any of them would show.
+    Logger.configure(level: :debug)
 
     log =
-      ExUnit.CaptureLog.capture_log(fn ->
+      ExUnit.CaptureLog.capture_log([level: :debug], fn ->
         for door <- @doors do
           assert error_code(send_to(conn, door), 503) == "siwa_request_failed"
         end
@@ -62,6 +71,35 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
 
     assert log =~ "verify_key_refused"
     refute log =~ "another-site-key"
+    assert agents(wallet) == []
+  end
+
+  test "a verdict made for another site's audience, or for none, closes every door with 503",
+       %{conn: conn} do
+    wallet = wallet()
+
+    for audience <- [%{audience: "patchbay"}, %{audience: "Techtree"}, %{audience: nil}, %{}] do
+      Req.Test.stub(RegentAgents.Broker, fn stub ->
+        Req.Test.json(stub, %{
+          code: "http_envelope_valid",
+          data: %{
+            verified: true,
+            walletAddress: wallet,
+            agentBook: nil,
+            agentRegistration: nil,
+            principal:
+              Map.merge(%{kind: "wallet", wallet_address: wallet, chain_id: 8453}, audience)
+          }
+        })
+      end)
+
+      ExUnit.CaptureLog.capture_log(fn ->
+        for door <- @doors do
+          assert error_code(send_to(conn, door), 503) == "siwa_request_failed"
+        end
+      end)
+    end
+
     assert agents(wallet) == []
   end
 
