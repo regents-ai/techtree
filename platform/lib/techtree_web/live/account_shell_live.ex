@@ -1,5 +1,5 @@
 defmodule TechtreeWeb.AccountShellLive do
-  @moduledoc "One template account frame for profile, Credits, Points, wallets and connections."
+  @moduledoc "One template account frame for profile, agents, Credits, Points, wallets and connections."
   use TechtreeWeb, :live_view
 
   alias Techtree.Accounts
@@ -10,6 +10,7 @@ defmodule TechtreeWeb.AccountShellLive do
 
   @tabs [
     %{route_id: :account, label: "Account", path: "/account"},
+    %{route_id: :account_agents, label: "Agents", path: "/account/agents"},
     %{route_id: :points, label: "Points", path: "/account/points"},
     %{route_id: :credits, label: "Credits", path: "/account/credits"},
     %{route_id: :wallets, label: "Wallets", path: "/account/wallets"},
@@ -124,10 +125,10 @@ defmodule TechtreeWeb.AccountShellLive do
   end
 
   # An agent paired, checked in or was unpaired, here or on another Regent site.
-  # The Account tab lists the agents and holds the pairing box; the account menu
+  # The Agents tab lists the agents and holds the pairing box; the account menu
   # follows on its own.
   def handle_info(:agents_changed, socket) do
-    if socket.assigns.route_spec.route_id == :account do
+    if socket.assigns.route_spec.route_id == :account_agents do
       send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
       send_update(TechtreeWeb.PairingBox, id: "account-pairing-box", agents_changed: true)
     end
@@ -162,10 +163,15 @@ defmodule TechtreeWeb.AccountShellLive do
         <AccountLive.profile
           :if={@route_spec.route_id == :account}
           signed_out_reason={@signed_out_reason}
-          lease={@session_lease}
           account={current_account(@access_context)}
           account_control={@account_control}
           credits_read={@credits_read}
+        />
+        <AccountLive.agents
+          :if={@route_spec.route_id == :account_agents}
+          signed_out_reason={@signed_out_reason}
+          lease={@session_lease}
+          account={current_account(@access_context)}
         />
         <TechtreeWeb.PointsLive.page
           :if={@route_spec.route_id == :points}

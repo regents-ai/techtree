@@ -26,19 +26,19 @@ defmodule TechtreeWeb.AccountMenuLiveTest do
       assert count(header, ~s|#account-chip[popovertarget="account-menu"]|) == 1
       assert count(header, "#account-menu[popover]") == 1
       assert count(header, "#account-menu #shell-agents") == 1
-      assert count(header, ~s|#account-menu a[href="/account#account-pairing"]|) == 1
+      assert count(header, ~s|#account-menu a[href="/account/agents#account-pairing"]|) == 1
       assert count(header, ~s|#account-menu a[href="/account"]|) == 1
       assert count(header, ~s|#account-menu [data-account-target="sign-out"]|) == 1
     end
   end
 
-  test "signed in, pairing is on the Account page and nowhere else", %{conn: conn} do
+  test "signed in, pairing is on the Agents page and nowhere else", %{conn: conn} do
     conn = signed_in(conn)
 
-    account = conn |> get("/account") |> html_response(200) |> LazyHTML.from_document()
-    assert account |> LazyHTML.query("#account-pairing #account-pairing-box") |> Enum.count() == 1
+    agents = conn |> get("/account/agents") |> html_response(200) |> LazyHTML.from_document()
+    assert agents |> LazyHTML.query("#account-pairing #account-pairing-box") |> Enum.count() == 1
 
-    for page <- ["/", "/docs", "/about"] do
+    for page <- ["/", "/docs", "/account", "/about"] do
       html = conn |> get(page) |> html_response(200) |> LazyHTML.from_document()
       assert html |> LazyHTML.query("#account-pairing") |> Enum.count() == 0
     end

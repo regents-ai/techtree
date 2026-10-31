@@ -8,8 +8,8 @@ defmodule TechtreeWeb.AccountMenuLive do
   name, which open the account menu (`Regent.Account.menu`) hanging under it: the
   person's picture, name and wallet, the three agents paired with the account that
   were active most recently (`TechtreeWeb.MenuAgents`), Pair New Agent, Manage
-  Account and Sign out. Pairing itself and everything else about the account are
-  on the Account page. The browser opens and closes the menu (`popover`), so the
+  Account and Sign out. The agents and pairing are on the Agents page, and
+  everything else about the account is on the Account page. The browser opens and closes the menu (`popover`), so the
   server never stores whether it is open; following a link in it closes it
   (`assets/js/hooks/account_menu.ts`).
   """
@@ -46,7 +46,7 @@ defmodule TechtreeWeb.AccountMenuLive do
         wallet={@account_control.wallet}
         ens_name={@account_control.ens_name}
         manage_href={~p"/account"}
-        pair_href={~p"/account#account-pairing"}
+        pair_href={~p"/account/agents#account-pairing"}
       >
         <:picture>
           <.account_picture

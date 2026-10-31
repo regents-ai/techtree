@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.AgentsPanel do
   @moduledoc """
   The agents a person has paired with their account (`RegentAgents`), on the
-  Account page, in the shared agents list (`Regent.Account.agents`), with Pair
+  Agents page, in the shared agents list (`Regent.Account.agents`), with Pair
   New Agent leading to the pairing box below it (`TechtreeWeb.PairingBox`),
   and a larger view of one agent with where it has been active across the Regent
   sites, a line for each site and day (`Techtree.Agents.ActivityReading`), its
@@ -9,13 +9,15 @@ defmodule TechtreeWeb.AgentsPanel do
 
   Pairing immediately lets an agent do what `TechtreeWeb.Capabilities.may/0`
   lists, which the list's tip and the agent's view show the person, and the
-  agent's view adds what it has spent of their Credits. World ID is optional. It never touches their wallet (`TechtreeWeb.Plugs.AgentWallet`).
+  agent's view adds what it has spent of their Credits. Beside each agent is this
+  site's own part of it, if it has one (`TechtreeWeb.AccountSite`). World ID is optional. It never touches their wallet (`TechtreeWeb.Plugs.AgentWallet`).
   Pairing is shared by every Regent site, so an agent paired on another one is
   listed here too.
 
   The parent passes `account` (the signed-in account), its `session_lease` as
   `lease` and `id`, and sends `agents_changed: true` when an agent pairs, checks
-  in or is unpaired anywhere.
+  in or is unpaired anywhere, and `site_changed: true` when this site's part of
+  them changes.
   """
   use TechtreeWeb, :live_component
 
@@ -25,6 +27,7 @@ defmodule TechtreeWeb.AgentsPanel do
   alias RegentAgents.{Harness, HumanBacking, PairedAgent, Person}
   alias Techtree.Agents.ActivityReading
   alias Techtree.Credits
+  alias TechtreeWeb.AccountSite
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.Live.Session
 
@@ -40,6 +43,9 @@ defmodule TechtreeWeb.AgentsPanel do
 
   @impl true
   def update(%{agents_changed: true}, socket), do: {:ok, read_agents(socket)}
+
+  def update(%{site_changed: true}, socket),
+    do: {:ok, assign(socket, site: site(socket.assigns.account, socket.assigns.agents))}
 
   def update(%{account: account, id: id, lease: lease}, socket) do
     {:ok,
@@ -162,6 +168,7 @@ defmodule TechtreeWeb.AgentsPanel do
       >
         <:about>Once paired, an agent may: {may_words()}.</:about>
         <:actions :let={agent}>
+          <AccountSite.agent id={"#{@id}-site-#{agent.id}"} part={@site[agent.wallet]} />
           <P.button
             type="button"
             variant="quiet"
@@ -306,19 +313,29 @@ defmodule TechtreeWeb.AgentsPanel do
 
         {:error, error} ->
           Logger.warning(
-            "The agents for the Account page couldn't be read: #{inspect(failure_kinds(error))}"
+            "The agents for the Agents page couldn't be read: #{inspect(failure_kinds(error))}"
           )
 
           :unavailable
       end
 
-    socket = assign(socket, agents: agents, now: DateTime.utc_now())
+    socket =
+      assign(socket,
+        agents: agents,
+        site: site(socket.assigns.account, agents),
+        now: DateTime.utc_now()
+      )
 
     case socket.assigns.detail do
       %{agent: %{id: id}} -> show_agent(socket, id)
       nil -> socket
     end
   end
+
+  defp site(account, agents) when is_list(agents),
+    do: AccountSite.read(account, Enum.map(agents, & &1.wallet))
+
+  defp site(_account, :unavailable), do: %{}
 
   # Where the agent has been active and its registry listing come from its
   # shared reading in the background, and what it has spent from the person's

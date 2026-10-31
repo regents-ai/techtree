@@ -81,6 +81,7 @@ defmodule TechtreeWeb.Router do
       session: {TechtreeWeb.Live.Session, :render_context, []},
       on_mount: [{TechtreeWeb.Live.Session, :load_human}] do
       live "/account", AccountShellLive, :account
+      live "/account/agents", AccountShellLive, :account_agents
       live "/account/points", AccountShellLive, :points
       live "/account/credits", AccountShellLive, :credits
       live "/account/wallets", AccountShellLive, :wallets

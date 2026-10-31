@@ -44,6 +44,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /.well-known/security.txt",
              "get /about",
              "get /account",
+             "get /account/agents",
              "get /account/connections",
              "get /account/credits",
              "get /account/points",

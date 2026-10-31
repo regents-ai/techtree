@@ -4,6 +4,9 @@
 
 ### Changed
 
+- **Agents.** Your agents and Pair New Agent have their own tab, Agents, at
+  /account/agents. Your Account tab keeps your profile and your Credits, and
+  Pair New Agent in the account menu takes you to the Agents tab.
 - Signed requests name the site they are for, so a proof made for another site
   is refused here.
 - A page's signed browser tools take only their input: the agent's own browser

@@ -42,8 +42,8 @@ for (const width of [1280, 390, 320]) {
 
     await expect(menu(page)).toHaveAccessibleName(await page.locator("#account-chip .account-name").innerText())
     await expect(menu(page).locator("#shell-agents").getByRole("heading", {name: "Your agents"})).toBeVisible()
-    await expect(menu(page).getByRole("link", {name: "Manage your agents"})).toHaveAttribute("href", "/account#account-agents")
-    await expect(menu(page).getByRole("link", {name: "Pair New Agent"})).toHaveAttribute("href", "/account#account-pairing")
+    await expect(menu(page).getByRole("link", {name: "Manage your agents"})).toHaveAttribute("href", "/account/agents")
+    await expect(menu(page).getByRole("link", {name: "Pair New Agent"})).toHaveAttribute("href", "/account/agents#account-pairing")
     await expect(menu(page).getByRole("link", {name: "Manage Account"})).toHaveAttribute("href", "/account")
     await expect(menu(page).getByRole("button", {name: "Sign out"})).toBeVisible()
     await expect(menu(page).locator(".rg-account-menu__balance")).toHaveCount(0)
@@ -88,18 +88,20 @@ test("Manage Account in the account menu opens the Account page and the menu clo
   await openMenu(page)
   await menu(page).getByRole("link", {name: "Manage Account"}).click()
   await expect(page).toHaveURL(/\/account$/)
-  await expect(page.locator("#account-agents")).toBeVisible()
+  await expect(page.locator("#account-identity")).toBeVisible()
   await expect(menu(page)).toBeHidden()
   expect(errors).toEqual([])
 })
 
-test("Pair New Agent in the account menu lands on the Account page's pairing box, every press", async ({context, page}) => {
+test("Pair New Agent in the account menu lands on the Agents page's pairing box, every press", async ({context, page}) => {
+  // Short enough that the box, under the agents list, starts below the screen.
+  await page.setViewportSize({width: 1280, height: 480})
   await signIn(context)
   const errors = watchErrors(page)
   await page.goto("/docs", {waitUntil: "networkidle"})
   await openMenu(page)
   await menu(page).getByRole("link", {name: "Pair New Agent"}).click()
-  await expect(page).toHaveURL(/\/account#account-pairing$/)
+  await expect(page).toHaveURL(/\/account\/agents#account-pairing$/)
   await expect(page.locator("[data-phx-main].phx-connected")).toBeAttached()
   await expect(menu(page)).toBeHidden()
   const pairing = page.locator("#account-pairing")
@@ -213,8 +215,36 @@ test("on a phone, Buy Credits opens and everything in it fits a finger", async (
   await context.close()
 })
 
+// The Agents tab holds the agents and the pairing box, and the Account tab keeps the
+// profile and Credits without them, at 1280, 390 and 320 wide.
+for (const width of [1280, 390, 320]) {
+  test(`at ${width} wide, the Agents tab holds the agents and pairing, and the Account tab neither`, async ({browser}) => {
+    const hasTouch = width < 768
+    const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
+    const outside = await keepOffline(context)
+    await signIn(context)
+    const page = await context.newPage()
+    const errors = watchErrors(page)
+
+    await page.goto("/account/agents", {waitUntil: "networkidle"})
+    await expect(page.locator(".account-shell__tabs").getByRole("link", {name: "Agents"})).toHaveAttribute("aria-current", "page")
+    await expect(page.locator("#account-agents")).toBeVisible()
+    await expect(page.locator("#account-pairing #account-pairing-box")).toBeAttached()
+    expect(await layoutProblems(page)).toEqual([])
+
+    await page.goto("/account", {waitUntil: "networkidle"})
+    await expect(page.locator("#account-identity")).toBeVisible()
+    await expect(page.locator("#account-agents")).toHaveCount(0)
+    await expect(page.locator("#account-pairing")).toHaveCount(0)
+    expect(await layoutProblems(page)).toEqual([])
+    expect(errors).toEqual([])
+    expect(outside).toEqual([])
+    await context.close()
+  })
+}
+
 // A reconnecting page sends the pairing form back with no agent picked, and a
-// submit can come before a choice. Neither may crash the Account page's pairing box
+// submit can come before a choice. Neither may crash the Agents page's pairing box
 // (Sentinel, 23 Oct 2026, from Patchbay's error mail; ash-template 13379ab). Each
 // agent then keeps its own code until it expires.
 test("the pairing form with nothing chosen leaves the box as it is", async ({context, page}) => {
@@ -226,7 +256,7 @@ test("the pairing form with nothing chosen leaves the box as it is", async ({con
       if (String(frame.payload).includes('"phx_error"')) crashes.push(String(frame.payload).slice(0, 120))
     }),
   )
-  await page.goto("/account", {waitUntil: "networkidle"})
+  await page.goto("/account/agents", {waitUntil: "networkidle"})
   const form = page.locator("form#account-pairing-box")
   const message = page.locator("#account-pairing-box pre")
   await expect(form.getByRole("radio", {checked: true})).toHaveCount(0)
@@ -270,7 +300,7 @@ for (const width of ["desktop", "phone"] as const) {
     const page = await context.newPage()
     const errors = watchErrors(page)
     const press = (target: Locator) => (hasTouch ? target.tap() : target.click())
-    await page.goto("/account", {waitUntil: "networkidle"})
+    await page.goto("/account/agents", {waitUntil: "networkidle"})
     await press(page.getByRole("button", {name: `See ${agent}’s actions`}))
 
     const agentWindow = page.getByRole("dialog", {name: agent})
