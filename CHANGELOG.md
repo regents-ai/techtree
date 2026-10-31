@@ -1,5 +1,16 @@
 # Changelog
 
+## Website (2026-11-01)
+
+### Changed
+
+- Signed requests name the site they are for, so a proof made for another site
+  is refused here.
+- A page's signed browser tools take only their input: the agent's own browser
+  signs each request with the agent's key, and `prepare_agent_request` is gone.
+  In a browser with no agent signer they send nothing and answer
+  `agent_auth_required`.
+
 ## Website (2026-10-29)
 
 ### Changed
