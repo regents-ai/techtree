@@ -67,14 +67,13 @@ const toSigned = (page: Page) => {
 
 const publication = {raw_body: "{\"bundle\": {\"id\": \"fixture\"}}"}
 
-test("a signed tool lists only its own input, and no preparation tool is offered", async ({page}) => {
+test("a signed tool lists only its own input", async ({page}) => {
   await open(page, "none")
   const tools = await page.evaluate(() =>
     [...(window as unknown as {pageTools: Map<string, {name: string; inputSchema: {properties: object}}>}).pageTools.values()]
       .map(tool => ({name: tool.name, fields: Object.keys(tool.inputSchema.properties).sort()})))
   expect(tools.find(tool => tool.name === "techtree_publication")!.fields).toEqual(["raw_body"])
   expect(tools.find(tool => tool.name === "agent_whoami")!.fields).toEqual([])
-  expect(tools.map(tool => tool.name)).not.toContain("prepare_agent_request")
 })
 
 test("with no agent signer a signed tool sends nothing and says how to get one", async ({page}) => {

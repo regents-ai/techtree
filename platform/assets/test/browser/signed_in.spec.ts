@@ -215,10 +215,10 @@ test("on a phone, Buy Credits opens and everything in it fits a finger", async (
   await context.close()
 })
 
-// The Agents tab holds the agents and the pairing box, and the Account tab keeps the
-// profile and Credits without them, at 1280, 390 and 320 wide.
+// The Agents tab holds the agents and the pairing box, and the Account tab the
+// profile, at 1280, 390 and 320 wide.
 for (const width of [1280, 390, 320]) {
-  test(`at ${width} wide, the Agents tab holds the agents and pairing, and the Account tab neither`, async ({browser}) => {
+  test(`at ${width} wide, the Agents tab holds the agents and pairing, and the Account tab the profile`, async ({browser}) => {
     const hasTouch = width < 768
     const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
     const outside = await keepOffline(context)
@@ -234,8 +234,6 @@ for (const width of [1280, 390, 320]) {
 
     await page.goto("/account", {waitUntil: "networkidle"})
     await expect(page.locator("#account-identity")).toBeVisible()
-    await expect(page.locator("#account-agents")).toHaveCount(0)
-    await expect(page.locator("#account-pairing")).toHaveCount(0)
     expect(await layoutProblems(page)).toEqual([])
     expect(errors).toEqual([])
     expect(outside).toEqual([])

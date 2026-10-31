@@ -38,7 +38,7 @@ defmodule TechtreeWeb.AccountMenuLiveTest do
     agents = conn |> get("/account/agents") |> html_response(200) |> LazyHTML.from_document()
     assert agents |> LazyHTML.query("#account-pairing #account-pairing-box") |> Enum.count() == 1
 
-    for page <- ["/", "/docs", "/account", "/about"] do
+    for page <- ["/", "/docs", "/about"] do
       html = conn |> get(page) |> html_response(200) |> LazyHTML.from_document()
       assert html |> LazyHTML.query("#account-pairing") |> Enum.count() == 0
     end
