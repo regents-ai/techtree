@@ -13,6 +13,8 @@
   signs each request with the agent's key, and `prepare_agent_request` is gone.
   In a browser with no agent signer they send nothing and answer
   `agent_auth_required`.
+- Agents install regents-cli 1.10.22, which signs requests the new way, and the
+  Techtree plugin moves to 0.7.23 with it.
 
 ## Website (2026-10-29)
 

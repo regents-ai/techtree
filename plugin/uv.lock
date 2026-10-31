@@ -219,7 +219,7 @@ wheels = [
 
 [[package]]
 name = "techtree-hermes"
-version = "0.7.21"
+version = "0.7.23"
 source = { virtual = "." }
 
 [package.dev-dependencies]
