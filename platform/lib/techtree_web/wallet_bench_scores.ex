@@ -14,13 +14,15 @@ defmodule TechtreeWeb.WalletBenchScores do
   The offer pages' bench figures (`figures/0`) are counted from the same grids
   in the same read, so the pages and the feed never disagree, and so is the
   wallet test's grid the bench's share picture draws (`board/0`,
-  `TechtreeWeb.ShareCard`).
+  `TechtreeWeb.ShareCard`). The picture itself (`picture/0`) is drawn once for
+  each version of that grid and kept beside it for the same 30 seconds.
   """
   use Nebulex.Cache, otp_app: :techtree, adapter: Nebulex.Adapters.Local
 
   use TechtreeWeb, :verified_routes
 
   alias Techtree.Repo
+  alias TechtreeWeb.ShareCard
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   @kept :timer.seconds(30)
@@ -92,6 +94,28 @@ defmodule TechtreeWeb.WalletBenchScores do
   @doc "The wallet test's grid for the bench's share picture, kept with the feed."
   @spec board() :: board()
   def board, do: kept().board
+
+  @doc """
+  The bench's share picture of the kept grid, as PNG bytes
+  (`TechtreeWeb.ShareCard.bench_png/1`). It is drawn once for each version of
+  the grid and kept beside it for 30 seconds, under one key, so a burst of
+  link previews draws it once and a changed grid replaces the picture held.
+  """
+  @spec picture() :: binary()
+  def picture do
+    board = board()
+    version = :erlang.phash2(board)
+
+    case get!(:picture) do
+      {^version, png} ->
+        png
+
+      _none_or_older ->
+        png = ShareCard.bench_png(board)
+        put!(:picture, {version, png}, ttl: @kept)
+        png
+    end
+  end
 
   defp kept do
     case get!(:scores) do

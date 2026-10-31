@@ -28,19 +28,20 @@ defmodule TechtreeWeb.ShareCardController do
 
   @doc """
   The Wallet Bench's picture, of the grid as the scores stand now: the page
-  names it with a version of them, so a new grid is a new address. Kept by
-  readers for five minutes. When the scores can't be read the answer is 503,
-  asked again in a minute.
+  names it with a version of them, so a new grid is a new address. Drawn once
+  for each version and kept with the scores (`WalletBenchScores.picture/0`),
+  and kept by readers for five minutes. When the scores can't be read the
+  answer is 503, asked again in a minute.
   """
   # The body is a PNG drawn by the site, sent as image/png.
   # sobelow_skip ["XSS.ContentType", "XSS.SendResp"]
   def wallet_bench(conn, _params) do
-    case Outage.read(&WalletBenchScores.board/0) do
-      {:ok, board} ->
+    case Outage.read(&WalletBenchScores.picture/0) do
+      {:ok, png} ->
         conn
         |> put_resp_header("cache-control", "public, max-age=300")
         |> put_resp_content_type("image/png", nil)
-        |> send_resp(200, ShareCard.bench_png(board))
+        |> send_resp(200, png)
 
       :database_down ->
         conn |> put_resp_header("retry-after", "60") |> send_resp(503, "")

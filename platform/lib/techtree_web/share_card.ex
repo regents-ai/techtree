@@ -188,7 +188,7 @@ defmodule TechtreeWeb.ShareCard do
 
   defp bench_lede(%{rows: rows}) do
     scored = rows |> List.flatten() |> Enum.count(& &1)
-    "#{count(scored, "result")} scored out of 10 by the judge's checks."
+    "#{count(scored, "result")}, each scored out of 10."
   end
 
   defp count(1, noun), do: "1 #{noun}"
