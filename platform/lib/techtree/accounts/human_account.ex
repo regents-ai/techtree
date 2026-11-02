@@ -45,7 +45,16 @@ defmodule Techtree.Accounts.HumanAccount do
       accept [:privy_user_id, :wallet_address, :wallet_addresses]
       upsert? true
       upsert_identity :unique_privy_user_id
-      upsert_fields []
+      # A sign-in to an existing account writes nothing to it, and the account
+      # comes back marked as skipped.
+      upsert_condition expr(false)
+      return_skipped_upsert? true
+
+      emit Techtree.Accounts.Signals, :account_registered,
+        dynamic?: true,
+        description: "Only when the sign-in inserted the account."
+
+      change Techtree.Accounts.HumanAccount.AnnounceRegistration
       change load([:display_name])
     end
 

@@ -20,11 +20,11 @@ defmodule TechtreeWeb.RouterTest do
              "delete /auth/privy/session",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
+             "post /api/v1/account/credits/history",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",
              "post /auth/privy/session",
-             "post /tools/account/credits/history",
              "post /visit-log"
            ]
   end
@@ -54,6 +54,8 @@ defmodule TechtreeWeb.RouterTest do
              "get /animations",
              "get /api/model-climb/v1/reports",
              "get /api/model-climb/v1/reports/:digest",
+             "get /api/v1/account/balances",
+             "get /api/v1/account/points",
              "get /api/v1/bootstrap",
              "get /api/v1/catalog",
              "get /api/v1/climbs/:slug",
@@ -93,8 +95,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /skill.md",
              "get /start",
              "get /terms",
-             "get /tools/account/balances",
-             "get /tools/account/points",
              "get /verify",
              "get /wallet-bench",
              "get /wallet-bench.json",
@@ -105,11 +105,11 @@ defmodule TechtreeWeb.RouterTest do
              "get /wallet-bench/:id/results.zip",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
+             "post /api/v1/account/credits/history",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",
              "post /auth/privy/session",
-             "post /tools/account/credits/history",
              "post /visit-log"
            ]
   end

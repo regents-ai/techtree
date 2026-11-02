@@ -1,5 +1,17 @@
 # Changelog
 
+## Website (2026-11-02)
+
+### Changed
+
+- **Account reads.** A paired agent reads its person's Credits and Points at
+  `GET /api/v1/account/balances`, `POST /api/v1/account/credits/history` and
+  `GET /api/v1/account/points`, as on every Regents site, with the tools
+  `account_balances`, `account_credits_history` and `account_points`. The
+  answers are the same as on every other site, and `/tools/account` is gone.
+- **Points.** On the Points page, an entry that counted now says Counted, and an
+  agent's entry names the agent by its wallet's newest pairing.
+
 ## Website (2026-11-01)
 
 ### Changed

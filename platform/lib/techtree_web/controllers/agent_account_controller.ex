@@ -2,72 +2,55 @@ defmodule TechtreeWeb.AgentAccountController do
   @moduledoc "Read-only shared account data for the current paired agent; no grant management."
   use TechtreeWeb, :controller
 
-  alias RegentPoints.{Amount, Rules}
+  alias RegentPoints.Rules
+  alias TechtreeWeb.{PointsEntries, UnexpectedFailure}
 
   @points_off "Earning Points is off on this site."
-  @spending_off "Approving agent spending is off on this site."
+  @spending_closed "Agent spending isn't open yet. Your person can do this themselves."
+  @spending_ask "Your person can allow you to spend Credits on this site on their Regents account at regents.sh/account."
 
+  # What the agent may spend, and the note, both come from the agent's budget
+  # (`RegentCredits.agent_budget/1`): its grant, and whether a grant can be made.
   def balances(conn, _params) do
     actor = credit_actor(conn)
 
     case RegentCredits.agent_budget(actor: actor) do
       {:ok, budget} ->
-        answer = %{
-          account_id: conn.assigns.actor.human_account_id,
-          pairing_id: actor.pairing_id,
-          credits: RegentCredits.balance(actor.privy_user_id),
-          spending_grant: budget
-        }
+        answer = %{credits: RegentCredits.balance(actor.privy_user_id), spending_grant: budget}
+        private_json(conn, with_note(answer, spending_note(budget)))
 
-        conn
-        |> put_resp_header("cache-control", "no-store")
-        |> json(with_note(answer, not RegentCredits.agent_grants_enabled?(), @spending_off))
-
-      {:error, _error} ->
-        unavailable(conn)
+      {:error, error} ->
+        conn |> UnexpectedFailure.log(error) |> unavailable()
     end
   end
 
-  def history(conn, _params) do
-    case conn.body_params do
-      params when is_map(params) and map_size(params) == 0 ->
-        read_history(conn, %{})
+  defp spending_note(%{site_allowed: true}), do: nil
+  defp spending_note(%{grant_approvals_available: false}), do: @spending_closed
+  defp spending_note(%{grant_approvals_available: true}), do: @spending_ask
 
-      %{"after" => cursor} = params when map_size(params) == 1 and is_binary(cursor) ->
-        read_history(conn, %{after: cursor})
+  def credits_history(%{body_params: %{"after" => cursor}} = conn, _params)
+      when not is_binary(cursor),
+      do: invalid_cursor(conn)
 
-      _other ->
-        TechtreeWeb.ExactResponse.send_error(
-          conn,
-          400,
-          :invalid_input,
-          "Send an empty JSON object or only the after cursor.",
-          "Use the cursor from the preceding history page."
-        )
-    end
-  end
+  def credits_history(conn, _params) do
+    args =
+      case conn.body_params do
+        %{"after" => cursor} when is_binary(cursor) -> %{after: cursor}
+        _ -> %{}
+      end
 
-  defp read_history(conn, args) do
     case RegentCredits.history(args, actor: credit_actor(conn)) do
       {:ok, history} ->
-        answer = %{
+        private_json(conn, %{
           entries: history.entries,
           pagination: %{has_more: history.more?, next_cursor: history.next}
-        }
-
-        conn |> put_resp_header("cache-control", "no-store") |> json(answer)
+        })
 
       {:error, error} ->
         if cursor_error?(error) do
-          TechtreeWeb.ExactResponse.send_error(
-            conn,
-            422,
-            :invalid_cursor,
-            "That history cursor is invalid.",
-            "Send after as the previous page's pagination.next_cursor, unchanged, or omit it for the newest entries."
-          )
+          invalid_cursor(conn)
         else
-          unavailable(conn)
+          conn |> UnexpectedFailure.log(error) |> unavailable()
         end
     end
   end
@@ -80,61 +63,25 @@ defmodule TechtreeWeb.AgentAccountController do
 
   defp cursor_error?(_error), do: false
 
+  # Points as decimal text, the same figures the Points page shows.
   def points(conn, _params) do
     case RegentPoints.summary(actor: conn.assigns.actor) do
       {:ok, summary} ->
-        entries =
-          Enum.map(
-            summary.entries,
-            &point_entry/1
-          )
+        private_json(conn, with_note(PointsEntries.answer(summary), points_note(Rules.active())))
 
-        result =
-          Map.take(summary, [:balance_micro, :earned_today_micro, :pending, :allowances, :more?])
-          |> Map.merge(%{
-            points: Amount.format(summary.balance_micro),
-            earned_today: Amount.format(summary.earned_today_micro),
-            daily_allowances:
-              Enum.map(
-                summary.allowances,
-                &%{scope: &1.scope, remaining: Amount.format(&1.remaining)}
-              ),
-            entries: entries,
-            more: summary.more?
-          })
-
-        conn
-        |> put_resp_header("cache-control", "no-store")
-        |> json(with_note(result, Rules.active() == [], @points_off))
-
-      {:error, _error} ->
-        unavailable(conn)
+      {:error, error} ->
+        conn |> UnexpectedFailure.log(error) |> unavailable()
     end
   end
 
-  # Keep the published raw fields while adding the template's readable fields.
-  defp point_entry(entry) do
-    entry
-    |> Map.take([
-      :id,
-      :rule_id,
-      :rule_version,
-      :source_app,
-      :actor_kind,
-      :actor_id,
-      :points_micro_delta,
-      :earned_at,
-      :reason_code
-    ])
-    |> Map.merge(%{
-      points: Amount.format(entry.points_micro_delta),
-      source: entry.source_app,
-      by: entry.actor_kind
-    })
-  end
+  defp points_note([]), do: @points_off
+  defp points_note(_earning), do: nil
 
-  defp with_note(answer, true, note), do: Map.put(answer, :note, note)
-  defp with_note(answer, false, _note), do: answer
+  defp with_note(answer, nil), do: answer
+  defp with_note(answer, note), do: Map.put(answer, :note, note)
+
+  defp private_json(conn, answer),
+    do: conn |> put_resp_header("cache-control", "no-store") |> json(answer)
 
   defp credit_actor(conn) do
     actor = conn.assigns.actor
@@ -147,13 +94,23 @@ defmodule TechtreeWeb.AgentAccountController do
     )
   end
 
+  defp invalid_cursor(conn),
+    do:
+      TechtreeWeb.ExactResponse.send_error(
+        conn,
+        422,
+        :invalid_cursor,
+        "That cursor is invalid.",
+        "Send after as the previous page's pagination.next_cursor, unchanged, or omit it for the newest entries."
+      )
+
   defp unavailable(conn),
     do:
       TechtreeWeb.ExactResponse.send_error(
         conn,
         503,
-        :account_unavailable,
-        "The shared account data could not be read.",
-        "Try again with a fresh signed request."
+        :unavailable,
+        "That could not be reached right now.",
+        "Try again in a moment."
       )
 end

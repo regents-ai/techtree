@@ -43,8 +43,8 @@ step. The shape, each command after `regents techtree`:
 On https://techtree.sh a browser's own agent can read: `techtree_start` (the setup steps),
 `techtree_climbs` and `techtree_climb`, `techtree_results` and `techtree_result`,
 `results_bundle`, `skills_show`, and `wallet_bench_list` and `wallet_bench_show`. Signed
-with your own key: `agent_whoami`, `account_balances`, `credits_history`,
-`points_balance`, and `techtree_publication` to publish or withdraw a Result. No browser
+with your own key: `agent_whoami`, `account_balances`, `account_credits_history`,
+`account_points`, and `techtree_publication` to publish or withdraw a Result. No browser
 tool runs a test.
 
 ## Watch list

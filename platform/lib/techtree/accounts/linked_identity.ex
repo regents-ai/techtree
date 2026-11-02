@@ -1,5 +1,11 @@
 defmodule Techtree.Accounts.LinkedIdentity do
-  @moduledoc "A social account Privy verified for one human account, one per provider."
+  @moduledoc """
+  A social account Privy verified for one human account, one per provider.
+
+  `inserted_at` is when this subject was linked to this account: a later
+  sign-in with the same subject leaves it, and linking a different subject for
+  the provider resets it. `verified_at` is Privy's newest check of the link.
+  """
 
   use Ash.Resource,
     domain: Techtree.Accounts,
@@ -25,7 +31,18 @@ defmodule Techtree.Accounts.LinkedIdentity do
 
       upsert? true
       upsert_identity :unique_provider_per_account
-      upsert_fields [:subject, :username, :display_name, :verified_at, :metadata]
+      # Reached only for a subject new to the account: a first link for the
+      # provider, or one that replaces the account's earlier subject, so
+      # `inserted_at` is always when this subject was linked.
+      upsert_fields [:subject, :username, :display_name, :verified_at, :metadata, :inserted_at]
+
+      emit Techtree.Accounts.Signals, :social_linked
+    end
+
+    # A sign-in that finds the same subject already linked to the account.
+    update :refresh_verified do
+      accept [:username, :display_name, :verified_at, :metadata]
+      require_atomic? false
     end
 
     read :read_mine do
@@ -53,7 +70,13 @@ defmodule Techtree.Accounts.LinkedIdentity do
   end
 
   policies do
-    policy action([:upsert_verified, :for_account, :by_provider_subject, :remove_verified]) do
+    policy action([
+             :upsert_verified,
+             :refresh_verified,
+             :for_account,
+             :by_provider_subject,
+             :remove_verified
+           ]) do
       authorize_if actor_attribute_equals(:role, :system)
     end
 

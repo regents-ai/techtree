@@ -229,10 +229,12 @@ defmodule TechtreeWeb.Router do
     get "/reports/:digest", ModelClimbReportController, :show
   end
 
-  scope "/tools/account", TechtreeWeb do
+  # A paired agent's reads of its person's Credits and Points, at the same
+  # paths on every site.
+  scope "/api/v1/account", TechtreeWeb do
     pipe_through [:api, :paired_agent]
     get "/balances", AgentAccountController, :balances
-    post "/credits/history", AgentAccountController, :history
+    post "/credits/history", AgentAccountController, :credits_history
     get "/points", AgentAccountController, :points
   end
 

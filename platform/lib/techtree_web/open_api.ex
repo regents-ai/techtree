@@ -25,7 +25,7 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "4",
+        "version" => "5",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
@@ -434,25 +434,25 @@ defmodule TechtreeWeb.OpenAPI do
           )
           |> update_in(["responses"], &Map.drop(&1, ["403"]))
       },
-      "/tools/account/balances" => %{
+      "/api/v1/account/balances" => %{
         "get" =>
           signed_account_read(
-            "account_balances",
-            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note explains when approving new grants is off; existing grants are not revoked by that flag."
+            "getAccountBalances",
+            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note says what the person can do when the agent may not spend here."
           )
       },
-      "/tools/account/points" => %{
+      "/api/v1/account/points" => %{
         "get" =>
           signed_account_read(
-            "points_balance",
-            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing. points and earned_today are decimal text; daily_allowances gives scope and remaining. A note explains when earning is off."
+            "getAccountPoints",
+            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing. points and earned_today are decimal text; daily_allowances gives name and remaining; each entry says who earned it and whether it counted. A note explains when earning is off."
           )
       },
-      "/tools/account/credits/history" => %{
+      "/api/v1/account/credits/history" => %{
         "post" =>
           Map.put(
             signed_account_read(
-              "credits_history",
+              "listCreditsHistory",
               "Current paired agent's canonical owner's Credits history; a read-only cursor page. Entries group transfers into events with kind, direction and positive amount. pagination contains has_more and next_cursor."
             ),
             "requestBody",

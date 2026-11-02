@@ -32,7 +32,14 @@ config :regent_points,
   program_id: "regents-points-v1",
   starts_at: nil,
   approved_rules: [],
-  adapters: %{"credits.purchase_settled" => Techtree.Points.CreditsPurchase}
+  adapters: %{
+    "account.activated" => Techtree.Points.AccountActivated,
+    "agent.activated" => Techtree.Points.PairedAgent,
+    "credits.purchase_settled" => Techtree.Points.CreditsPurchase,
+    "social.farcaster" => Techtree.Points.LinkedSocial,
+    "social.github" => Techtree.Points.LinkedSocial,
+    "social.x" => Techtree.Points.LinkedSocial
+  }
 
 config :regent_identity, repo: Techtree.Repo, ash_domains: [RegentIdentity]
 
