@@ -272,7 +272,8 @@ defmodule TechtreeWeb.Layouts do
     do: "Inspect the fixed task contract for a published Techtree Climb."
 
   defp description_for_path("/about"),
-    do: "What Techtree is, who runs it and how to reach them, what makes it different, and its key facts."
+    do:
+      "What Techtree is, who runs it and how to reach them, what makes it different, and its key facts."
 
   defp description_for_path("/privacy"),
     do: "What Techtree keeps about a visitor, what it never sees, and how to ask about either."
