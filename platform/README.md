@@ -342,7 +342,7 @@ An agent signs every request with its wallet, and ash-template's
 `TechtreeWeb.Plugs.AgentWallet` signs it in: its first signed request adds its row
 to `agents` (`Techtree.Agents.Agent`), and it acts as `Techtree.Actors.Agent`,
 itself or paired with its person. The three agent addresses, `POST
-/api/v1/publications`, `/api/model-climb/v1/reports` and `/tools/account`, admit
+/api/v1/publications`, `/api/model-climb/v1/reports` and `/api/v1/account`, admit
 only an agent acting as its person; any other agent is refused with
 `agent_not_paired` or `person_not_here`. The pairing is read again just before the
 answer leaves, so an unpairing during a request never sends the person's data.

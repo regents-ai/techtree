@@ -6,8 +6,11 @@ defmodule TechtreeWeb.Telemetry do
   `[:techtree, :repo, :query]` (`queue_time` is the wait for a connection),
   `[:techtree, :chain, :failure]` for each chain request that got no answer
   (`Techtree.ChainClient`), `[:techtree, :wallet, :failure]` for each press the
-  browser reported as not sent or not confirmed (`wallet_failed/2`), and
-  agents' activity reads that gave no reading (`Techtree.Agents.ActivityReading`).
+  browser reported as not sent or not confirmed (`wallet_failed/2`),
+  agents' activity reads that gave no reading (`Techtree.Agents.ActivityReading`),
+  and the clock time the Points tally of finished periods last ran to its end
+  (`[:regent_points, :tally_periods, :finished]`), so a stalled tally shows as a
+  time that stops moving.
   Every request the router sends to a page or controller is timed by its route
   pattern (`[:phoenix, :router_dispatch, :stop]`), never by its path, and every
   query by its whole time (`total_time` of the same Ecto event). Background jobs
@@ -171,6 +174,12 @@ defmodule TechtreeWeb.Telemetry do
         event_name: [:techtree, :chain, :failure],
         tags: [:method, :class, :chain_id, :scope],
         description: "Chain requests that got no answer"
+      ),
+      last_value("health.points_tally_finished.seconds",
+        event_name: [:regent_points, :tally_periods, :finished],
+        measurement: fn _measurements -> System.system_time(:second) end,
+        description:
+          "When the Points tally of finished periods last ran to its end, in Unix seconds"
       ),
       last_value("health.job.oldest_age.seconds",
         event_name: [:techtree, :jobs, :oldest_unfinished],

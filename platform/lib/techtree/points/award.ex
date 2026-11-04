@@ -8,6 +8,14 @@ defmodule Techtree.Points.Award do
       now holds (`credits.purchase_settled`), from `RegentCredits.Signals`.
       Credits is one Regents ledger, so every site names it "regents" and a
       purchase earns once.
+    * A new Regent account (`account.activated`), from
+      `Techtree.Accounts.Signals`. The account is one Regents account on
+      every site, so it is named "regents" too.
+    * A social account linked to an account (`social.x`, `social.github`,
+      `social.farcaster`), from `Techtree.Accounts.Signals`, keyed by the
+      provider and its subject so one social account earns once.
+    * An agent paired with its person (`agent.activated`), from
+      `RegentAgents.Signals`, keyed by the pairing.
   """
 
   use Ash.Resource,
@@ -17,6 +25,45 @@ defmodule Techtree.Points.Award do
   alias Techtree.Actors.System
 
   actions do
+    action :account_registered do
+      argument :signal, Techtree.Accounts.Signals.AccountRegistered, allow_nil?: false
+
+      run fn %{arguments: %{signal: signal}}, _context ->
+        record(%{
+          rule_id: "account.activated",
+          source_app: "regents",
+          source_kind: "account",
+          source_event_key: to_string(signal.account_id)
+        })
+      end
+    end
+
+    action :social_linked do
+      argument :signal, Techtree.Accounts.Signals.SocialLinked, allow_nil?: false
+
+      run fn %{arguments: %{signal: signal}}, _context ->
+        record(%{
+          rule_id: "social.#{signal.provider}",
+          source_app: "regents",
+          source_kind: "linked_identity",
+          source_event_key: "#{signal.provider}:#{signal.subject}"
+        })
+      end
+    end
+
+    action :agent_paired do
+      argument :signal, RegentAgents.Signals.AgentPaired, allow_nil?: false
+
+      run fn %{arguments: %{signal: signal}}, _context ->
+        record(%{
+          rule_id: "agent.activated",
+          source_app: "regents",
+          source_kind: "pairing",
+          source_event_key: signal.paired_agent_id
+        })
+      end
+    end
+
     action :credits_purchase do
       argument :signal, :struct, allow_nil?: false
 
@@ -40,6 +87,15 @@ defmodule Techtree.Points.Award do
   end
 
   signals_in do
+    from Techtree.Accounts.Signals do
+      on :account_registered, :account_registered
+      on :social_linked, :social_linked
+    end
+
+    from RegentAgents.Signals do
+      on :agent_paired, :agent_paired
+    end
+
     from RegentCredits.Signals do
       on :purchase_credited, :purchase_credited, action: :credits_purchase
       on :purchase_attributed, :purchase_attributed, action: :credits_purchase

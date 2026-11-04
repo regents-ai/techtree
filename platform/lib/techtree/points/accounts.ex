@@ -11,16 +11,12 @@ defmodule Techtree.Points.Accounts do
   @impl true
   def agent_names(_id, []), do: {:ok, %{}}
 
-  def agent_names(id, ids) do
-    # The canonical account supplies the owner; historical episodes retain names.
+  def agent_names(id, wallets) do
+    # The canonical account supplies the owner; a wallet's newest pairing names it.
     with {:ok, account} <- Accounts.points_account(id, actor: %System{}),
-         {:ok, %{rows: rows}} <-
-           Ecto.Adapters.SQL.query(
-             Techtree.Repo,
-             "SELECT id::text, name FROM regent_agents.pairing_history WHERE privy_user_id = $1 AND id::text = ANY($2::text[])",
-             [account.privy_user_id, ids]
-           ) do
-      {:ok, Map.new(rows, fn [id, name] -> {id, name} end)}
+         {:ok, pairings} <- RegentAgents.pairing_histories(account.privy_user_id) do
+      names = for %{wallet: wallet, name: name} <- pairings, wallet in wallets, do: {wallet, name}
+      {:ok, Map.new(names)}
     end
   end
 end

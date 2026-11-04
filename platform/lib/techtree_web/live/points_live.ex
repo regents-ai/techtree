@@ -3,6 +3,7 @@ defmodule TechtreeWeb.PointsLive do
   use TechtreeWeb, :html
   import TechtreeWeb.Components.PageHead, only: [page_head: 1]
   alias RegentPoints.{Amount, Rules}
+  alias TechtreeWeb.PointsEntries
   attr :account, :map, default: nil
   attr :signed_out_reason, :atom, default: :signed_out
   attr :points, TechtreeWeb.Read, required: true
@@ -50,7 +51,10 @@ defmodule TechtreeWeb.PointsLive do
           allowances={
             Enum.map(
               if(@earning == [], do: [], else: @points.value.allowances),
-              &%{label: scope_name(&1.scope), value: "#{Amount.format(&1.remaining)} remaining"}
+              &%{
+                label: PointsEntries.allowance_name(&1.scope),
+                value: "#{Amount.format(&1.remaining)} remaining"
+              }
             )
           }
         />
@@ -244,17 +248,11 @@ defmodule TechtreeWeb.PointsLive do
     end)
   end
 
-  defp actor_name(%{actor_kind: "human"}, _names), do: "You"
-  defp actor_name(entry, names), do: Map.get(names, entry.actor_id, "Previously connected agent")
+  defp actor_name(entry, names), do: PointsEntries.agent_name(entry, names) || "You"
 
-  defp entry_status(%{reversal_of_entry_id: id}) when not is_nil(id), do: "Correction"
-  defp entry_status(%{points_micro_delta: 0}), do: "Allowance reached"
-  defp entry_status(_), do: "Confirmed"
+  defp entry_status(entry), do: entry |> PointsEntries.status() |> PointsEntries.status_label()
 
   defp summary_state(state) when state in [:idle, :loading], do: :loading
   defp summary_state(:empty), do: :ready
   defp summary_state(state), do: state
-
-  defp scope_name("activity:account"), do: "You and your agents"
-  defp scope_name("credits"), do: "Credits purchases"
 end

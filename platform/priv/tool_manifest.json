@@ -380,7 +380,7 @@
     {
       "name": "account_balances",
       "title": "Read account Credits and agent budget",
-      "description": "Read the shared user Credits balance and this active pairing\u2019s spending grant. Reading does not enable spending. Your browser host signs this exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. The answer notes when approving new spending grants is off; that flag does not revoke existing grants.",
+      "description": "Read the shared user Credits balance and this active pairing\u2019s spending grant. Reading does not enable spending. Your browser host signs this exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. When it may not spend here, the answer's note says what your person can do.",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -394,14 +394,14 @@
       "requires": "siwa_and_pairing",
       "state_changing": false,
       "payment": "none",
-      "route": "GET /tools/account/balances",
+      "route": "GET /api/v1/account/balances",
       "scope": "site",
       "authentication": "siwa_per_request",
       "pairing_required": true,
       "availability": "available",
       "interfaces": {
         "webmcp": "account_balances",
-        "http": "GET /tools/account/balances",
+        "http": "GET /api/v1/account/balances",
         "cli": {
           "command": "account balances",
           "release_status": "published"
@@ -410,7 +410,7 @@
       "effect": "read"
     },
     {
-      "name": "credits_history",
+      "name": "account_credits_history",
       "title": "Read Credits history",
       "description": "Read a private page of Credits history. The optional after cursor continues the previous page. Your browser host signs this exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified.",
       "input_schema": {
@@ -432,14 +432,14 @@
       "requires": "siwa_and_pairing",
       "state_changing": false,
       "payment": "none",
-      "route": "POST /tools/account/credits/history",
+      "route": "POST /api/v1/account/credits/history",
       "scope": "site",
       "authentication": "siwa_per_request",
       "pairing_required": true,
       "availability": "available",
       "interfaces": {
-        "webmcp": "credits_history",
-        "http": "POST /tools/account/credits/history",
+        "webmcp": "account_credits_history",
+        "http": "POST /api/v1/account/credits/history",
         "cli": {
           "command": "account credits-history",
           "release_status": "published"
@@ -448,9 +448,9 @@
       "effect": "read"
     },
     {
-      "name": "points_balance",
+      "name": "account_points",
       "title": "Read account Points",
-      "description": "Read shared user Points and remaining allowances. Reading awards no Points. Your browser host signs this exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. Earning Points is off; the answer says so in note.",
+      "description": "Read shared user Points, remaining allowances and recent entries, each saying who earned it and whether it counted. Reading awards no Points. Your browser host signs this exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. Earning Points is off; the answer says so in note.",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -464,14 +464,14 @@
       "requires": "siwa_and_pairing",
       "state_changing": false,
       "payment": "none",
-      "route": "GET /tools/account/points",
+      "route": "GET /api/v1/account/points",
       "scope": "site",
       "authentication": "siwa_per_request",
       "pairing_required": true,
       "availability": "available",
       "interfaces": {
-        "webmcp": "points_balance",
-        "http": "GET /tools/account/points",
+        "webmcp": "account_points",
+        "http": "GET /api/v1/account/points",
         "cli": {
           "command": "account points",
           "release_status": "published"

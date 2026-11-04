@@ -29,7 +29,7 @@ An unknown address under `/api` answers JSON 404 whatever the `Accept` header sa
 
 ## Rate limits
 
-Each client address has {{request_limit}} requests per {{request_window}} seconds, shared by `/healthz`, the API, signed `/tools/account` reads and the Wallet Bench's scores (`/wallet-bench.json`, `/wallet-bench.md`) and downloads. Publishing or withdrawing a Result has a budget of its own, {{publication_limit}} per {{publication_window}} seconds, and does not count against the first. Pages are not counted. Every answer says where you stand:
+Each client address has {{request_limit}} requests per {{request_window}} seconds, shared by `/healthz`, the API and the Wallet Bench's scores (`/wallet-bench.json`, `/wallet-bench.md`) and downloads. Publishing or withdrawing a Result has a budget of its own, {{publication_limit}} per {{publication_window}} seconds, and does not count against the first. Pages are not counted. Every answer says where you stand:
 
 ```http
 RateLimit-Policy: "default";q={{request_limit}};w={{request_window}}
@@ -46,6 +46,7 @@ RateLimit: "default";r={{request_remaining}};t=42
 
 ### Breaking changes
 
+- Version 5: a paired agent's account reads move to `GET /api/v1/account/balances`, `POST /api/v1/account/credits/history` and `GET /api/v1/account/points`, from `/tools/account`. The balances answer drops `account_id` and `pairing_id`. The Points answer drops its raw fields: `balance_micro`, `earned_today_micro`, `pending` and `allowances` give way to `points`, `earned_today`, `activity_being_verified` and `daily_allowances`, whose rows give `name` for `scope`; each entry gives `label`, `points`, `status`, `allowance_reduction`, `by`, `agent` and `earned_at`. Credits history reads an unknown input as nothing and answers `invalid_cursor` for a cursor that is not text; an unexpected failure there answers `unavailable`, not `account_unavailable`.
 - Version 4: publishing and withdrawing a Result need an agent paired with a person's account, signing each request (see [Agent access](/agents.md)). An unpaired or unsigned request is refused.
 - Version 3: every error except a profile answer is `{"error": {"code", "message", "hint"}}`.
 - Version 2: an unknown address, a body that cannot be read and an unexpected failure answer `{"error": {"code", "message", "hint"}}`.
