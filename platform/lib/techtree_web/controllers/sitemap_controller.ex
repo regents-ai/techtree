@@ -19,7 +19,7 @@ defmodule TechtreeWeb.SitemapController do
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.Showcase
 
-  @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /about /contact /privacy /terms
+  @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /about /privacy /terms
             /services/verify /services/verify/sample-report /services/cyber-assist
             /services/cyber-assist/sample-report) ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))

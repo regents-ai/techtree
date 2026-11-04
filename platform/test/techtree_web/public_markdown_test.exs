@@ -17,7 +17,6 @@ defmodule TechtreeWeb.PublicMarkdownTest do
   @pages [
            "/",
            "/about",
-           "/contact",
            "/privacy",
            "/terms",
            "/docs",

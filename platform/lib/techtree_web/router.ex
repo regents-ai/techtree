@@ -127,8 +127,7 @@ defmodule TechtreeWeb.Router do
     live_session :public, session: {TechtreeWeb.Live.Session, :render_context, []} do
       live "/", HomeLive
       get "/about", PublicPagesController, :show
-      get "/contact", PublicPagesController, :show
-      get "/privacy", PublicPagesController, :show
+        get "/privacy", PublicPagesController, :show
       get "/terms", PublicPagesController, :show
       get "/blog", BlogController, :index
       get "/blog/:slug", BlogController, :show

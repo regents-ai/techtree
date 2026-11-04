@@ -4,7 +4,7 @@ defmodule TechtreeWeb.PublicDocuments do
 
   Each is committed Markdown in `priv/public`, and the changelog is
   `priv/changelog.md`, the same file the Changelog page shows. An agent that
-  asks `/`, `/docs`, `/about`, `/contact`, `/privacy`, `/terms`, `/verify`,
+  asks `/`, `/docs`, `/about`, `/privacy`, `/terms`, `/verify`,
   `/repo2rlenv`, `/changelog` or a sample report under `/services` for
   `text/markdown` receives it with one closing line, answered before the
   router by `RegentAgentAccess.Plug`. Pages built from
@@ -12,7 +12,7 @@ defmodule TechtreeWeb.PublicDocuments do
   (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line; the two
   offers under `/services` are among them, their words kept here (`offer/1`)
   with the bench figures filled in there. About,
-  Contact, Privacy and Terms show the same words as pages, so the two never say
+  Privacy and Terms show the same words as pages, so the two never say
   different things; so do the two sample reports under `/services`. The other
   pages' own designs are their LiveViews, and their Markdown is the same facts
   in words. Each Docs guide is
@@ -30,7 +30,7 @@ defmodule TechtreeWeb.PublicDocuments do
   @guides Enum.map(TechtreeWeb.DocsGuides.slugs(), &("docs/" <> &1))
   @offers ~w(services/verify services/cyber-assist)
   @sample_reports ~w(services/verify-sample-report services/cyber-assist-sample-report)
-  @names ~w(home about contact privacy terms verify repo2rlenv llms) ++
+  @names ~w(home about privacy terms verify repo2rlenv llms) ++
            @guides ++ @offers ++ @sample_reports
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
   @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
@@ -59,7 +59,6 @@ defmodule TechtreeWeb.PublicDocuments do
            end)
   @pages %{
     "/about" => "about",
-    "/contact" => "contact",
     "/privacy" => "privacy",
     "/terms" => "terms",
     "/services/verify/sample-report" => "services/verify-sample-report",
@@ -148,7 +147,7 @@ defmodule TechtreeWeb.PublicDocuments do
   end
 
   @doc """
-  About, Contact, Privacy, Terms or a sample report split for its page layout:
+  About, Privacy, Terms or a sample report split for its page layout:
   the title, the one-paragraph lede under it, and the rest rendered as HTML.
   """
   @spec page(String.t()) :: %{title: String.t(), lede: String.t(), body_html: String.t()}
@@ -187,7 +186,7 @@ defmodule TechtreeWeb.PublicDocuments do
     Expires: #{@released_at |> DateTime.shift(year: 1) |> DateTime.to_iso8601()}
     Preferred-Languages: en
     Canonical: #{url("/.well-known/security.txt")}
-    Policy: #{url("/contact")}
+    Policy: #{url("/about")}
     """
   end
 

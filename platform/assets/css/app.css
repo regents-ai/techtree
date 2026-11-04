@@ -352,7 +352,7 @@ html[data-theme="light"] .hero__crown-still { background-image: url("/images/cro
 /* Names and addresses stay whole; the description column keeps a readable measure and the table scrolls instead. */
 .docs-prose td code { overflow-wrap: normal; white-space: nowrap; }
 .docs-prose td:last-child { min-width: 18rem; }
-/* About, Contact, Privacy and Terms: a long value in a table's last column wraps to fit a phone. */
+/* About, Privacy and Terms: a long value in a table's last column wraps to fit a phone. */
 .public-document td:last-child { overflow-wrap: anywhere; }
 .docs-code, .prompt__block { max-width: 100%; margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 

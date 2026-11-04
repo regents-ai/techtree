@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **Contact.** How to reach us is now part of the About page.
 - **Correct data.** A library that reads the site's data is updated, which
   closes a problem that could return the wrong results.
 - Agents install regents-cli 1.10.23, and the Techtree plugin moves to 0.7.24
