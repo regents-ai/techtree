@@ -3,7 +3,9 @@ name = "awb-runner"
 version = "1.0.0"
 description = "Drives one tested agent on its bench machine through Harbor's agent adapters."
 requires-python = ">=3.13"
-dependencies = ["harbor==0.24.0"]
+dependencies = ["harbor==0.25.0"]
 
 [tool.uv]
 package = false
+# LiteLLM asks for filelock below 4.0; 3.x carries security alerts, and it uses only the unchanged FileLock API.
+override-dependencies = ["filelock==4.2.7"]

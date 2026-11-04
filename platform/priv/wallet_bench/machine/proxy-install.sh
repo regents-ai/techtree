@@ -14,13 +14,13 @@
 # litellm-requirements.txt, each matched to its hashes.
 set -euo pipefail
 source /work/bin/machine/common.sh
-LITELLM_VERSION=1.104.3
+LITELLM_VERSION=1.108.0
 P=$W/proxy
 
 mkdir -p "$P"
 chmod 700 "$P"
 /.sprite/bin/uv venv --python 3.13 "$P/venv"
-/.sprite/bin/uv pip install --python "$P/venv/bin/python" --require-hashes -r "$W/bin/machine/litellm-requirements.txt"
+/.sprite/bin/uv pip install --python "$P/venv/bin/python" --no-deps --require-hashes -r "$W/bin/machine/litellm-requirements.txt"
 "$P/venv/bin/litellm" --version | grep -F "$LITELLM_VERSION"
 
 cat > "$P/litellm.yaml" <<'EOF'

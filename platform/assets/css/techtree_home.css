@@ -30,7 +30,7 @@
 }
 /* The newest Result: the proof under the promise. */
 .hero--landing .hero-result { width: 100%; min-height: 0; gap: var(--space-2); margin-top: var(--space-4); }
-.hero-result__eyebrow { display: block; margin-bottom: var(--space-1); font: .6875rem var(--font-family-mono); text-transform: uppercase; letter-spacing: .08em; }
+.hero-result__eyebrow { display: block; margin-bottom: var(--space-1); font: .6875rem var(--font-family-ui); text-transform: uppercase; letter-spacing: .08em; }
 .hero-result__outcome { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-2); font-size: .875rem; font-variant-numeric: tabular-nums; }
 .hero-result .hero-product__destination { margin-top: 0; }
 .hero--landing .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
@@ -38,7 +38,6 @@
   margin-top: var(--space-3);
   font-family: var(--font-family-ui);
   font-size: clamp(1rem, 1.2vw, 1.25rem);
-  font-weight: 600;
   line-height: 1.55;
   color: var(--color-fg);
 }

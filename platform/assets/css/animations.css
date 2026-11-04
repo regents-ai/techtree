@@ -42,7 +42,7 @@
 
 .motion-lab__kicker {
   color: var(--color-fg-muted);
-  font: 0.72rem/1 var(--font-family-mono);
+  font: 0.72rem/1 var(--font-family-ui);
   letter-spacing: var(--tracking-microlabel);
   text-transform: uppercase;
 }
@@ -83,7 +83,7 @@
   height: 1.8rem;
   background: var(--ash-accent-warm);
   color: var(--color-fg-on-accent);
-  font: 1rem/1 var(--font-family-mono);
+  font: 1rem/1 var(--font-family-ui);
 }
 
 .motion-lab__section-head p {
@@ -106,7 +106,7 @@
   margin-inline-start: 0.45em;
   padding: 0.1em 0.35em;
   border: 1px solid currentColor;
-  font: 0.625rem/1 var(--font-family-mono);
+  font: 0.625rem/1 var(--font-family-ui);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -126,7 +126,7 @@
   border-inline-end: 1px solid var(--color-border);
   background: var(--color-surface);
   color: var(--color-fg-muted);
-  font: 0.8rem/1 var(--font-family-mono);
+  font: 0.8rem/1 var(--font-family-ui);
   cursor: pointer;
 }
 
@@ -158,7 +158,7 @@
 
 .motion-lab__pickers dt {
   color: var(--color-fg-muted);
-  font: 0.72rem/1 var(--font-family-mono);
+  font: 0.72rem/1 var(--font-family-ui);
   letter-spacing: var(--tracking-microlabel);
   text-transform: uppercase;
 }
@@ -222,7 +222,7 @@
 .motion-lab__fx-stitch {
   margin: -0.6em 0 0 -0.3em;
   color: var(--fx-color);
-  font: 700 1.3rem/1 var(--font-family-mono);
+  font: 1.3rem/1 var(--font-family-ui);
 }
 
 /* Panels */
@@ -354,9 +354,6 @@
   transform-origin: 0 100%;
 }
 
-.motion-lab__note p {
-  font-weight: var(--font-weight-semibold);
-}
 
 .motion-lab__note .motion-lab__close {
   justify-self: start;
@@ -428,7 +425,7 @@
   padding: 0.45rem 0.8rem;
   border: 1px solid var(--ash-line-strong);
   background: var(--color-bg);
-  font: 0.8rem/1.2 var(--font-family-mono);
+  font: 0.8rem/1.2 var(--font-family-ui);
   white-space: nowrap;
 }
 
@@ -504,7 +501,7 @@
   border: 0;
   background: none;
   color: var(--color-fg-muted);
-  font: var(--font-weight-semibold) 0.95rem/1 var(--font-family-ui);
+  font: 0.95rem/1 var(--font-family-ui);
   cursor: pointer;
 }
 
@@ -576,7 +573,7 @@
   padding: 0.6rem;
   border: 1px solid var(--ash-line-strong);
   background: var(--color-bg);
-  font: 0.75rem/1.2 var(--font-family-mono);
+  font: 0.75rem/1.2 var(--font-family-ui);
   overflow-wrap: anywhere;
 }
 

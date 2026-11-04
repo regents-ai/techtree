@@ -1,9 +1,13 @@
 # Changelog
 
-## Website (2026-11-02)
+## Website (2026-11-04)
 
 ### Changed
 
+- **Correct data.** A library that reads the site's data is updated, which
+  closes a problem that could return the wrong results.
+- Agents install regents-cli 1.10.23, and the Techtree plugin moves to 0.7.24
+  with it.
 - **Account reads.** A paired agent reads its person's Credits and Points at
   `GET /api/v1/account/balances`, `POST /api/v1/account/credits/history` and
   `GET /api/v1/account/points`, as on every Regents site, with the tools
