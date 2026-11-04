@@ -11,7 +11,7 @@
 .wallet-bench__head h1 { font-size: clamp(1.75rem, 4vw, 2.25rem); letter-spacing: -.02em; }
 .wallet-bench__switch, .wallet-bench__tests { display: flex; flex-wrap: wrap; gap: var(--space-1); }
 .wallet-bench__switch { padding: 3px; border: 1px solid var(--hairline); background: var(--color-surface); }
-.wallet-bench__switch a, .wallet-bench__tests a, .wallet-bench__soon { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.25rem; padding-inline: .875rem; font-size: .875rem; font-weight: 600; text-decoration: none; color: var(--color-fg-muted); }
+.wallet-bench__switch a, .wallet-bench__tests a, .wallet-bench__soon { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.25rem; padding-inline: .875rem; font-size: .875rem; text-decoration: none; color: var(--color-fg-muted); }
 .wallet-bench__switch a[aria-current="page"] { color: var(--color-fg); background: var(--color-bg); box-shadow: 0 0 0 1px var(--hairline-strong); }
 .wallet-bench__tests a { border: 1px solid var(--hairline-strong); color: var(--color-fg); }
 .wallet-bench__tests a[aria-current="page"] { background: var(--color-fg); border-color: var(--color-fg); color: var(--color-bg); }
@@ -23,11 +23,11 @@
 /* The score grid: an agent per row, a box per wallet tool. */
 .wallet-bench__grid { border-collapse: collapse; font-size: .8125rem; font-variant-numeric: tabular-nums; }
 .wallet-bench__grid th, .wallet-bench__grid td { padding: .375rem .5rem; text-align: center; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
-.wallet-bench__grid thead th { font-weight: 600; font-size: .75rem; vertical-align: bottom; white-space: normal; min-width: 4.5rem; }
-.wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: var(--rg-layer-card); min-width: 9rem; text-align: left; background: var(--color-bg); font-size: .875rem; font-weight: 600; }
+.wallet-bench__grid thead th { font-size: .75rem; vertical-align: bottom; white-space: normal; min-width: 4.5rem; }
+.wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: var(--rg-layer-card); min-width: 9rem; text-align: left; background: var(--color-bg); font-size: .875rem; }
 .wallet-bench__grid .wallet-bench__total { background: color-mix(in oklab, var(--color-accent) 5%, var(--color-bg)); }
 .wallet-bench__grid thead .wallet-bench__total + th:not(.wallet-bench__total), .wallet-bench__grid td.wallet-bench__total + td:not(.wallet-bench__total) { border-left: 1px solid var(--hairline-strong); }
-.wallet-bench__score { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; padding-inline: .375rem; border-radius: 4px; font-weight: 600; text-decoration: none; color: var(--color-fg); }
+.wallet-bench__score { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; padding-inline: .375rem; border-radius: 4px; text-decoration: none; color: var(--color-fg); }
 a.wallet-bench__score:hover { outline: 2px solid var(--color-fg); outline-offset: 1px; }
 /* More checks met, a stronger box: from a tint of the accent up to the accent darkened. */
 .wallet-bench__score--1 { background: color-mix(in oklab, var(--color-accent) 18%, var(--color-bg)); }
@@ -75,17 +75,17 @@ a.wallet-bench__score:hover { outline: 2px solid var(--color-fg); outline-offset
 .wallet-bench__facts dt { color: var(--color-fg-muted); }
 .wallet-bench__facts dd { margin: 0; overflow-wrap: anywhere; }
 .wallet-bench .wallet-bench__criteria { min-width: 0; }
-.wallet-bench__criteria th[scope="row"] { width: 32%; font-weight: 600; vertical-align: top; }
+.wallet-bench__criteria th[scope="row"] { width: 32%; vertical-align: top; }
 .wallet-bench__criteria td { vertical-align: top; overflow-wrap: anywhere; }
-.wallet-bench__value { white-space: nowrap; font-weight: 600; }
+.wallet-bench__value { white-space: nowrap; }
 .wallet-bench__reasoning p { margin-top: var(--space-2); max-width: 65ch; white-space: pre-line; }
 .wallet-bench summary { cursor: pointer; min-height: 2.75rem; display: flex; align-items: center; }
 .wallet-bench pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .8125rem/1.5 var(--font-family-mono); padding: var(--space-2); background: var(--color-bg); border: 1px solid var(--hairline); }
 .wallet-bench__files ul { display: grid; gap: var(--space-1); margin-top: var(--space-1); padding: 0; list-style: none; }
 .wallet-bench__files li { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
-.wallet-bench__files a { display: inline-flex; align-items: center; min-height: 2.75rem; font-family: var(--font-family-mono); font-size: .875rem; }
+.wallet-bench__files a { display: inline-flex; align-items: center; min-height: 2.75rem; font-family: var(--font-family-ui); font-size: .875rem; }
 .wallet-bench__events { display: grid; gap: var(--space-1); padding-left: 0; list-style: none; font-size: .875rem; }
-.wallet-bench__events time { display: inline-block; min-width: 5rem; font-family: var(--font-family-mono); color: var(--color-fg-muted); }
+.wallet-bench__events time { display: inline-block; min-width: 5rem; font-family: var(--font-family-ui); color: var(--color-fg-muted); }
 
 @media (pointer: coarse) {
   .wallet-bench__switch a, .wallet-bench__tests a { min-height: 2.75rem; }
