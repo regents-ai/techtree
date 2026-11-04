@@ -13,10 +13,12 @@ RUN := $(UV) run
 # release core: tests/test_cli_pin.py fails when the version here and the
 # core's cli_version differ, and the live release test fails when the commit
 # isn't that release. The tests put their own `regents` first on PATH, so this
-# names the command in full rather than as a bare `regents`.
+# names the command in full rather than as a bare `regents`. It runs on the
+# Python an installation plan installs it on (CLI_PYTHON_SERIES in
+# cli/constants.py), which is not the Python this gate runs on.
 REGENTS_CLI_VERSION := 1.10.23
 REGENTS_CLI_REV := 8e8f2af47977807e10b6971c7fc9ffe1fd6f64c2
-REGENTS_CLI_ARGV ?= $(UV) run --no-project --with "regents-cli @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" regents
+REGENTS_CLI_ARGV ?= $(UV) run --no-project --python 3.12 --with "regents-cli @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" regents
 
 .DEFAULT_GOAL := check
 

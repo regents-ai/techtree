@@ -12,7 +12,7 @@ name = "techtree-hermes"
 version = "0.7.24"
 description = "Controlled local agent Skill evaluation and uplift through Techtree"
 readme = "README.md"
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12,<3.16"
 license-files = ["LICENSE"]
 authors = [{ name = "Techtree" }]
 # Specification section 9.6: the plugin runtime carries no third-party
