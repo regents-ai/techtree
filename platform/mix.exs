@@ -102,9 +102,9 @@ defmodule Techtree.MixProject do
        sparse: "credo_ash",
        only: [:dev, :test],
        runtime: false},
-      {:sobelow, "~> 0.16", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.18", only: [:dev, :test], runtime: false},
       # Test too: precommit runs in the test environment and checks the AGENTS.md block.
-      {:usage_rules, "~> 1.2.8", only: [:dev, :test], runtime: false},
+      {:usage_rules, "~> 1.3", only: [:dev, :test], runtime: false},
       {:ash_phoenix, "~> 2.3.26"},
       # ash_postgres main with #910 until a Hex release carries it: upserts use the
       # repo's prefix, which picks each site's schema on the shared database. It

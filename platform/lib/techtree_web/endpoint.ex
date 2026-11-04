@@ -113,7 +113,7 @@ defmodule TechtreeWeb.Endpoint do
   # meets the same refusal it would have met anyway. No address accepts more
   # than the publication cap (`Techtree.Network.maximum_body_bytes/0`).
   plug TechtreeWeb.Plugs.Parsers,
-    parsers: [:urlencoded, :json],
+    parsers: [Plug.Parsers.URLENCODED, Plug.Parsers.JSON],
     pass: ["*/*"],
     length: Application.compile_env!(:techtree, [Techtree.Network, :maximum_body_bytes]),
     body_reader: {TechtreeWeb.PublicationBody, :read_body, []},

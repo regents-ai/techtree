@@ -1,5 +1,12 @@
 # Changelog
 
+## Website (2026-11-04)
+
+### Changed
+
+- **Correct data.** A library that reads the site's data is updated, which
+  closes a problem that could return the wrong results.
+
 ## Website (2026-11-01)
 
 ### Changed
