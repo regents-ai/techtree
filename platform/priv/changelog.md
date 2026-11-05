@@ -1,5 +1,13 @@
 # Changelog
 
+## Website (2026-11-05)
+
+### Added
+
+- **Agents.** Each agent you can pair now has its own page at /agents: how to
+  set it up, common questions and where to get help.
+- Agents can read the Docs list as JSON at /api/v1/docs.
+
 ## Website (2026-11-04)
 
 ### Changed

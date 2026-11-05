@@ -129,6 +129,8 @@ defmodule TechtreeWeb.Router do
       get "/about", PublicPagesController, :show
       get "/privacy", PublicPagesController, :show
       get "/terms", PublicPagesController, :show
+      get "/agents", PublicPagesController, :show
+      get "/agents/:agent", PublicPagesController, :show
       get "/blog", BlogController, :index
       get "/blog/:slug", BlogController, :show
       live "/docs", DocsLive
@@ -196,6 +198,7 @@ defmodule TechtreeWeb.Router do
     pipe_through :api
 
     get "/health", HealthController, :status
+    get "/docs", PublicPagesController, :document, assigns: %{document: "/docs"}
     get "/bootstrap", BootstrapController, :show
     get "/catalog", CatalogController, :index
     get "/climbs/:slug", ClimbController, :show

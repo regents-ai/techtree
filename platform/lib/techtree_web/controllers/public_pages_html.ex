@@ -1,11 +1,11 @@
 defmodule TechtreeWeb.PublicPagesHTML do
-  @moduledoc "About, Privacy, Terms and the sample reports, in the site's document layout."
+  @moduledoc "About, Privacy, Terms, the sample reports and the agents' pages, in the site's document layout."
 
   use TechtreeWeb, :html
 
   attr :page, :map, required: true
 
-  # PublicDocuments.page/1 renders committed Markdown at compile time; no request HTML enters it.
+  # PublicDocuments.page/1 renders only committed Markdown; no request HTML enters it.
   # sobelow_skip ["XSS.Raw"]
   def show(assigns) do
     ~H"""
