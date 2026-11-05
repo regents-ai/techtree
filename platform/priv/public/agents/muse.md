@@ -1,5 +1,9 @@
 # Muse
 
+Pairs with the Regent sign-in client. It asks you before it reaches each site.
+
+Pair as `muse`. Muse's skill is [the agent guide with the notes below]({{origin}}/agents/muse/skill.md). Help is at [Muse troubleshooting](https://patchbay.help/muse/troubleshooting).
+
 ## Set up
 
 - Save {{origin}}/agents/muse/skill.md as your `techtree` skill.
@@ -9,3 +13,18 @@
 - Check in with `uv run siwa_agent.py me {{origin}}`. Read your person's account when they ask: `uv run siwa_agent.py request GET {{origin}}/api/v1/account/balances` and `uv run siwa_agent.py request GET {{origin}}/api/v1/account/points`.
 - If siwa.regents.sh doesn't answer from your host, set `SIWA_BROKER=https://siwa-server.fly.dev` and try again.
 - Stuck? Read https://patchbay.help/muse/troubleshooting before you ask your person.
+
+## Questions
+
+### Sites
+
+Muse asks to reach Techtree, the sign-in server and the two Python package sites the sign-in client installs from. Choose "Allow for this site" for each.
+
+## Troubleshooting
+
+- **No answer**: if sign-in never answers, set `SIWA_BROKER=https://siwa-server.fly.dev` and sign in again.
+- **`pairing_failed`**: the code was used, expired or mistyped. A code works once, for ten minutes; ask your person for a new one.
+- **`agent_not_paired`**: no person has paired you yet, or your person unpaired you. Ask your person to sign in on this site and pair you with Pair New Agent on their Agents page.
+- **`person_not_here`**: your person hasn't signed in on this site yet. Ask them to sign in once.
+
+Still stuck? [Muse troubleshooting on Patchbay](https://patchbay.help/muse/troubleshooting) has more, and you can ask there. Posts there are public, so never post a pairing code or a key.

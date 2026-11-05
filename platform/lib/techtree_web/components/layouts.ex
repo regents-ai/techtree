@@ -265,6 +265,9 @@ defmodule TechtreeWeb.Layouts do
     end
   end
 
+  defp description_for_path("/agents" <> _rest = path),
+    do: TechtreeWeb.AgentGuides.description(path) || description_for_path("/")
+
   defp description_for_path("/changelog"),
     do: "Techtree release notes: new features, fixes, and the limits of each release."
 

@@ -78,6 +78,18 @@ defmodule TechtreeWeb.OpenAPI do
           }
         }
       },
+      "/api/v1/docs" => %{
+        "get" => %{
+          "operationId" => "getDocs",
+          "summary" => "Read the documentation",
+          "description" =>
+            "The documentation list's title and its Markdown, the text GET /docs serves " <>
+              "as Markdown. Anyone may read it; no sign-in.",
+          "responses" => %{
+            "200" => json("The documentation list.", ref("PublicDocument"))
+          }
+        }
+      },
       "/api/v1/bootstrap" => %{
         "get" => %{
           "operationId" => "getBootstrap",
@@ -705,6 +717,11 @@ defmodule TechtreeWeb.OpenAPI do
 
   defp schemas do
     %{
+      "PublicDocument" => %{
+        "type" => "object",
+        "required" => ["title", "markdown"],
+        "properties" => %{"title" => %{"type" => "string"}, "markdown" => %{"type" => "string"}}
+      },
       "Health" => %{
         "type" => "object",
         "required" => ["status"],

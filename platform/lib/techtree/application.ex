@@ -13,6 +13,7 @@ defmodule Techtree.Application do
     # `:public_key.cacerts_get/0`, so it is loaded before anything connects.
     :ok = :public_key.cacerts_load(CAStore.file_path())
     :ok = TechtreeWeb.UnexpectedFailure.attach_jobs()
+    :ok = RegentHttp.ErrorSaving.attach()
     :ok = TechtreeWeb.VisitLog.Events.attach()
 
     children =
