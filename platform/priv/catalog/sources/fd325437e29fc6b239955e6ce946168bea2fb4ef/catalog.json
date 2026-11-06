@@ -1,0 +1,112 @@
+{
+  "climbs": [
+    {
+      "digest": "sha256:901fdf3e8eaf6a497a8723b814104996a53f987d81664c0a7af8be98156e5f1b",
+      "path": "climbs/hello-world-climb.json",
+      "reference": "hello-world-climb@3"
+    },
+    {
+      "digest": "sha256:0b6dcd12e0262407d949c8d56ad5fa01c68907547269ccef6c0f93e2aff45cb2",
+      "path": "climbs/frontier-cs-open-ended-climb.json",
+      "reference": "frontier-cs-open-ended-climb@3"
+    },
+    {
+      "digest": "sha256:10f93284514806fd7c1c6dade2168a665c5e9fdae5a194b5e1f548b15d635170",
+      "path": "climbs/tasksmith-climb.json",
+      "reference": "tasksmith-climb@2"
+    }
+  ],
+  "objects": {
+    "sha256:01dfb4eb0102d95a8df0a9bd66c075b2b77c824ae255f94d895fecc278afcea8": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/hello-world-climb.json"
+    },
+    "sha256:0c6a57f27dac838f74176bd44c3b85e16e7edcdb724ace7ad18768c88994bd0f": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/hello-world-climb.json"
+    },
+    "sha256:137106086896be57e02c5d41bc167c6714fa754a731e337358ef1e2e643ef5a5": {
+      "kind": "execution_plan",
+      "media_type": "application/json",
+      "path": "execution-plans/hello-world-climb.json"
+    },
+    "sha256:1fde0a9e20e6459f9b1ff182b82c8d756b7f1f46f05f56b6f1edb58bef3c20b8": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/tasksmith-held-out.json"
+    },
+    "sha256:255d9e8afd7718bb9a3b201029d75b0eb681e5b6385b3fb05817017bab236cc2": {
+      "kind": "execution_plan",
+      "media_type": "application/json",
+      "path": "execution-plans/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:275999c4c61988877b70fe1a3784d16f8d412dcec45236304ffdca0b29c6ca78": {
+      "kind": "validation_evidence",
+      "media_type": "application/json",
+      "path": "validation-evidence/hello-world-climb.json"
+    },
+    "sha256:36d2689f1e0971456f98b65b2bf853f742f596e8559c611ba406683ad7b0315f": {
+      "kind": "data_policy",
+      "media_type": "application/json",
+      "path": "data-policies/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:66254aee3bbe6d4f3bcb62f06b359bf7adc9293e291374adfe2e3924fd38792c": {
+      "kind": "validation_evidence",
+      "media_type": "application/json",
+      "path": "validation-evidence/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:6c532a43d595286a08260481890bbbffa16d1b4dd89465d1cc8395099d9ebcf9": {
+      "kind": "data_policy",
+      "media_type": "application/json",
+      "path": "data-policies/hello-world-climb.json"
+    },
+    "sha256:6d62aec447afc16e57bfb9f5ee520311124c7d6f18e5da743b0694bf14b3dfd4": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/tasksmith-climb.json"
+    },
+    "sha256:6f64b2b7c2a2a3be68f3ba37f2ec5963566cc2551518d752c6826c4030d8f4d0": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/tasksmith-held-out.json"
+    },
+    "sha256:80bb2add4810e7a413f130d43ab50ee3e8634941b3cdca5de9e827579a9e74b7": {
+      "kind": "execution_plan",
+      "media_type": "application/json",
+      "path": "execution-plans/tasksmith-climb.json"
+    },
+    "sha256:846b1d11acfb5d9983bf71f2fcb2f4550d9f44ee5970a9b95963d6ff19820ea2": {
+      "kind": "validation_evidence",
+      "media_type": "application/json",
+      "path": "validation-evidence/tasksmith-climb.json"
+    },
+    "sha256:a3a4abbf8d85659f4375dcef66d40c93ec0a4242ad9e1b1bb6c8a0ea9e396a7d": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:af794321bdba9b057fd145be1fae1fee2be567f074c1da5eb1023285529e7bcb": {
+      "kind": "campaign",
+      "media_type": "application/json",
+      "path": "campaigns/frontier-cs-open-ended-climb.json"
+    },
+    "sha256:c3bc194e224df54ff07090e1042b9dcdde8a08fda162687b41109ab15d7d0669": {
+      "kind": "taskset_validation",
+      "media_type": "application/json",
+      "path": "taskset-validations/tasksmith-climb.json"
+    },
+    "sha256:e16d502d0ca3b6ebcac9f784b35c411cadd1f14358a907d6de883e75e3136dc9": {
+      "kind": "validation_evidence",
+      "media_type": "application/json",
+      "path": "validation-evidence/tasksmith-held-out.json"
+    },
+    "sha256:eebb0cc785d857f47c2f0f918486aac9aba6880b992f489bc077c0fb7b5efe97": {
+      "kind": "data_policy",
+      "media_type": "application/json",
+      "path": "data-policies/tasksmith-climb.json"
+    }
+  },
+  "schema_version": "techtree.catalog.v2"
+}
