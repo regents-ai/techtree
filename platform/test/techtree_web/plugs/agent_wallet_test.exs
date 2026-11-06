@@ -97,6 +97,10 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
     balances = json_response(send_to(conn, {:get, "/api/v1/account/balances", nil}), 200)
     assert %{"credits" => _, "spending_grant" => %{"site_allowed" => false}} = balances
 
+    # The board every reader shares is read by its producer, which tests do not run.
+    on_exit(fn -> Techtree.SharedReading.delete(Techtree.Points.Board.key()) end)
+    assert :ok = Techtree.Points.Board.read()
+
     assert %{"points" => "0", "entries" => [], "note" => "Earning Points is off on this site."} =
              json_response(send_to(conn, {:get, "/api/v1/account/points", nil}), 200)
 

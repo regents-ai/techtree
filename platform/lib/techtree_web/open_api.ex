@@ -25,7 +25,7 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "5",
+        "version" => "6",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
@@ -457,7 +457,7 @@ defmodule TechtreeWeb.OpenAPI do
         "get" =>
           signed_account_read(
             "getAccountPoints",
-            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing. points and earned_today are decimal text; daily_allowances gives name and remaining; each entry says who earned it and whether it counted. A note explains when earning is off."
+            "Current paired agent's canonical owner's Points: what it earned today and yesterday, its place, the actions still open, daily limits, the leaderboard by name or wallet, recent entries with who earned each and whether it counted, and period bonuses; reads award no Points and activate nothing. Points are decimal text. A note explains when earning is off."
           )
       },
       "/api/v1/account/credits/history" => %{

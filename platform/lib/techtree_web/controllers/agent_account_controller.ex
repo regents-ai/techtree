@@ -3,6 +3,8 @@ defmodule TechtreeWeb.AgentAccountController do
   use TechtreeWeb, :controller
 
   alias RegentPoints.Rules
+  alias Techtree.Points.Board
+  alias Techtree.SharedReading
   alias TechtreeWeb.{PointsEntries, UnexpectedFailure}
 
   @points_off "Earning Points is off on this site."
@@ -63,14 +65,19 @@ defmodule TechtreeWeb.AgentAccountController do
 
   defp cursor_error?(_error), do: false
 
-  # Points as decimal text, the same figures the Points page shows.
+  # Points as decimal text, the same figures the Points page shows. While the
+  # page would show the board as not read, the whole answer is unavailable.
   def points(conn, _params) do
-    case RegentPoints.summary(actor: conn.assigns.actor) do
-      {:ok, summary} ->
-        private_json(conn, with_note(PointsEntries.answer(summary), points_note(Rules.active())))
+    actor = conn.assigns.actor
 
-      {:error, error} ->
-        conn |> UnexpectedFailure.log(error) |> unavailable()
+    with {:ok, summary} <- RegentPoints.summary(actor: actor),
+         {:ok, %{reading: %{} = board}} <- SharedReading.fetch(Board.key()) do
+      earning = Rules.active()
+      answer = PointsEntries.answer(summary, board, actor.human_account_id, earning != [])
+      private_json(conn, with_note(answer, points_note(earning)))
+    else
+      {:error, error} -> conn |> UnexpectedFailure.log(error) |> unavailable()
+      _board_not_read -> unavailable(conn)
     end
   end
 

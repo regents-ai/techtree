@@ -79,7 +79,7 @@
       "operation_id": "getAccountPoints",
       "method": "GET",
       "path": "/api/v1/account/points",
-      "description": "Read the current paired canonical owner's Points; awards and activates nothing.",
+      "description": "Read the current paired canonical owner's Points, what they earned today and yesterday, their place, the actions still open, daily limits and the leaderboard by name or wallet; awards and activates nothing.",
       "authority": "paired_agent",
       "effect": "read",
       "webmcp": "account_points"

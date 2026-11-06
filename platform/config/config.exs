@@ -35,7 +35,6 @@ config :regent_points,
   adapters: %{
     "account.activated" => Techtree.Points.AccountActivated,
     "agent.activated" => Techtree.Points.PairedAgent,
-    "credits.purchase_settled" => Techtree.Points.CreditsPurchase,
     "social.farcaster" => Techtree.Points.LinkedSocial,
     "social.github" => Techtree.Points.LinkedSocial,
     "social.x" => Techtree.Points.LinkedSocial
@@ -157,7 +156,9 @@ config :techtree, Oban,
     crontab: [
       {"17 4 * * *", Techtree.ErrorPruner},
       # From the Points start, the one-time points for what accounts already had.
-      {"@hourly", RegentPoints.StartAwards}
+      {"@hourly", RegentPoints.StartAwards},
+      # One line for each kind of shared reading a producer rereads on notice.
+      {"* * * * *", Techtree.SharedReading.Heal, args: %{kind: "points_board"}}
     ]
   ],
   pruner: [max_age: {7, :days}],

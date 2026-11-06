@@ -2,9 +2,10 @@ defmodule TechtreeWeb.AccountShellLive do
   @moduledoc "One template account frame for profile, agents, Credits, Points, wallets and connections."
   use TechtreeWeb, :live_view
 
-  alias Techtree.Accounts
+  alias Techtree.{Accounts, SharedReading}
   alias Techtree.Accounts.LinkedIdentity.Providers
   alias Techtree.Actors.Human
+  alias Techtree.Points.Board
   alias TechtreeWeb.{AccountLive, CreditsHistoryLive, Read}
   import TechtreeWeb.Components.AccountControls, only: [credits_control: 1]
 
@@ -30,11 +31,13 @@ defmodule TechtreeWeb.AccountShellLive do
      socket
      |> assign(
        tabs: @tabs,
+       hearing_board?: false,
        verified_connections: %Read{},
        points: %Read{},
        credits_read: %Read{},
        credits_history: %Read{},
        points_bonus: %Read{},
+       points_board: %Read{},
        points_earning: [],
        verified_connections_notice: nil,
        connection_outcome: nil
@@ -49,6 +52,7 @@ defmodule TechtreeWeb.AccountShellLive do
     {:noreply,
      socket
      |> assign(page_title: route_spec.label, route_spec: route_spec)
+     |> hear_board(route_spec)
      |> load_points(route_spec)
      |> load_credits_history(route_spec)
      |> load_verified_connections(route_spec)}
@@ -117,6 +121,15 @@ defmodule TechtreeWeb.AccountShellLive do
 
   def handle_info(%{topic: "points:" <> _}, socket), do: {:noreply, socket}
 
+  # The board every signed-in reader shares was read again.
+  def handle_info(
+        {:shared_reading, {:points_board, _program}},
+        %{assigns: %{route_spec: %{route_id: :points}}} = socket
+      ),
+      do: {:noreply, read_points_board(socket)}
+
+  def handle_info({:shared_reading, {:points_board, _program}}, socket), do: {:noreply, socket}
+
   # The balance changed on this or any Regent site: a purchase, a gift, a spend.
   # The header, the Buy Credits panel, the Account page and the Credits history
   # follow.
@@ -176,6 +189,7 @@ defmodule TechtreeWeb.AccountShellLive do
           signed_out_reason={@signed_out_reason}
           account={current_account(@access_context)}
           points={@points}
+          board={@points_board}
           bonus={@points_bonus}
           earning={@points_earning}
         />
@@ -234,6 +248,23 @@ defmodule TechtreeWeb.AccountShellLive do
 
   defp subscribe_to_own_topics(_access_context), do: :ok
 
+  # The page hears the shared Points board while the Points page is open, and
+  # not elsewhere.
+  defp hear_board(socket, %{route_id: route}) do
+    hearing? = socket.assigns.hearing_board?
+    wanted? = route == :points
+
+    if connected?(socket) and hearing? != wanted? do
+      if wanted?,
+        do: SharedReading.subscribe(Board.key()),
+        else: SharedReading.unsubscribe(Board.key())
+
+      assign(socket, :hearing_board?, wanted?)
+    else
+      socket
+    end
+  end
+
   defp current_account(%{principal: {:human, account}}), do: account
   defp current_account(_access_context), do: nil
 
@@ -271,20 +302,23 @@ defmodule TechtreeWeb.AccountShellLive do
 
   defp load_credits_history(socket, _route_spec), do: Read.clear(socket, :credits_history)
 
-  # The NFT tier is read from Base once per page open, never on each award notice.
+  # The NFT tier is read from Base once per page open, never on each award
+  # notice, and not at all while nothing earns.
   defp load_points(socket, %{route_id: :points}) do
     socket
     |> assign(:points_earning, RegentPoints.Rules.active())
     |> read_points()
+    |> read_points_board()
     |> read_points_bonus()
   end
 
-  defp load_points(socket, _), do: socket |> Read.clear(:points) |> Read.clear(:points_bonus)
+  defp load_points(socket, _),
+    do: socket |> Read.clear(:points) |> Read.clear(:points_board) |> Read.clear(:points_bonus)
 
   defp read_points(socket) do
     case human_actor(socket) do
       %Human{} = actor ->
-        Read.start(socket, :points, actor.human_account_id, fn ->
+        Read.now(socket, :points, actor.human_account_id, fn ->
           RegentPoints.summary(actor: actor)
         end)
 
@@ -292,6 +326,30 @@ defmodule TechtreeWeb.AccountShellLive do
         Read.clear(socket, :points)
     end
   end
+
+  # The board every signed-in reader shares (Techtree.Points.Board). The
+  # reader's own row and place are found from it, and their own total, as the
+  # page renders.
+  defp read_points_board(socket) do
+    case human_actor(socket) do
+      %Human{} -> assign(socket, :points_board, board_read(SharedReading.fetch(Board.key())))
+      nil -> Read.clear(socket, :points_board)
+    end
+  end
+
+  # Loading until the board is first read, an error when that first read failed,
+  # and behind while the last read failed.
+  defp board_read(:error), do: %Read{state: :loading}
+  defp board_read({:ok, %{reading: nil}}), do: %Read{state: :error, error: :not_read}
+
+  defp board_read({:ok, %{reading: board, at: at, degraded?: true}}),
+    do: %Read{state: :stale, value: board, read_at: at, error: :not_read}
+
+  defp board_read({:ok, %{reading: board, at: at}}),
+    do: %Read{state: :ready, value: board, read_at: at}
+
+  defp read_points_bonus(%{assigns: %{points_earning: []}} = socket),
+    do: Read.clear(socket, :points_bonus)
 
   defp read_points_bonus(socket) do
     case human_actor(socket) do

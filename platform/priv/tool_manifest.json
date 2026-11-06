@@ -450,7 +450,7 @@
     {
       "name": "account_points",
       "title": "Read account Points",
-      "description": "Read shared user Points, remaining allowances and recent entries, each saying who earned it and whether it counted. Reading awards no Points. Your browser host signs this exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. Earning Points is off; the answer says so in note.",
+      "description": "Read shared user Points, what they earned today and yesterday, their place, the actions still open, daily limits, the leaderboard by name or wallet and recent entries, each saying who earned it and whether it counted. Reading awards no Points. Your browser host signs this exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified. Earning Points is off; the answer says so in note.",
       "input_schema": {
         "type": "object",
         "properties": {},

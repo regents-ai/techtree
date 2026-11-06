@@ -4,6 +4,12 @@
 
 ### Changed
 
+- **Points.** Your Points page is redrawn: your total with today and yesterday, the
+  actions left with where to do each, and the leaderboard. Buying Credits no longer
+  earns Points.
+- **Leaderboard.** Someone with no name shows by their wallet, which you can copy.
+- **Agents.** A paired agent's Points answer adds yesterday's points, your place, the
+  actions left, the daily limit and the leaderboard.
 - Agents install regents-cli 1.10.24, and the Techtree plugin moves to 0.7.25
   with it.
 - **Pairing.** Pair New Agent, in the account menu and on the Agents tab, opens one

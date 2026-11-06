@@ -8,7 +8,8 @@ defmodule TechtreeWeb.Read do
   read that fails keeps its last good value as `:stale`, or is `:error` when
   there was none; it never shows as zero or empty. Assign `%Read{}` under the
   read's name in `mount/3` and hand every result on with
-  `def handle_async({Read, _, _} = name, result, socket)`.
+  `def handle_async({Read, _, _} = name, result, socket)`. A read of the site's
+  own database uses `now/4` instead, so the first render already shows it.
   """
 
   import Phoenix.Component, only: [assign: 3]
@@ -30,6 +31,29 @@ defmodule TechtreeWeb.Read do
     socket
     |> assign(name, %{kept | state: :loading, owner: owner, error: nil, generation: generation})
     |> start_async({__MODULE__, name, generation}, fun)
+  end
+
+  @doc """
+  Reads `name` for `owner` inside the callback, for a read of the site's own
+  database that answers at once: the page's first render already carries the
+  answer, where `start` shows "Loading" until the page connects. It moves the
+  read to a new generation, so an earlier `start` still running is dropped.
+  """
+  def now(socket, name, owner, fun) do
+    read = Map.fetch!(socket.assigns, name)
+    kept = if read.owner == owner, do: read, else: %__MODULE__{}
+    read = %{kept | owner: owner, generation: read.generation + 1}
+
+    result =
+      try do
+        {:ok, fun.()}
+      rescue
+        # A database that refuses the read raises instead of answering; it ends
+        # the task in `start` the same way.
+        failure in [Postgrex.Error, DBConnection.ConnectionError] -> {:exit, failure}
+      end
+
+    assign(socket, name, landed(read, result))
   end
 
   @doc "Empties `name` when its owner leaves: navigation, sign-out or a wallet switch."
