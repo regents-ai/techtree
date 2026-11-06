@@ -7,6 +7,8 @@ defmodule Techtree.Accounts do
     resource Techtree.Accounts.HumanAccount do
       define :points_account, action: :points_account, args: [:id]
       define :get_by_privy_did, action: :by_privy_did, args: [:privy_did], not_found_error?: false
+      define :accounts_created_before, action: :created_before, args: [:at]
+      define :accounts_by_privy_dids, action: :by_privy_dids, args: [:privy_dids]
       define :get_human_account, action: :read_self, args: [:id]
 
       define :register_verified,
@@ -38,6 +40,7 @@ defmodule Techtree.Accounts do
         args: [:provider, :subject],
         not_found_error?: false
 
+      define :linked_identities_before, action: :linked_before, args: [:provider, :at]
       define :remove_linked_identity, action: :remove_verified
     end
   end

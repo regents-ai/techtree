@@ -6,6 +6,9 @@ defmodule Techtree.Points.AccountActivated do
   The shared account table keeps that time to the second, rounded, so for up
   to half a second after the sign-in it can be ahead of the clock; the check
   then runs again later rather than turning the award down.
+
+  `existing/2` lists the accounts made before the Points start, for
+  `RegentPoints.StartAwards`.
   """
 
   alias Techtree.Accounts
@@ -15,6 +18,13 @@ defmodule Techtree.Points.AccountActivated do
     case Accounts.points_account(String.to_integer(id), actor: %System{}) do
       {:ok, account} -> created(account)
       {:error, reason} -> {:retry, reason}
+    end
+  end
+
+  def existing("account.activated", starts_at) do
+    for account <- Accounts.accounts_created_before!(starts_at, actor: %System{}) do
+      {account.id,
+       %{source_app: "regents", source_kind: "account", source_event_key: to_string(account.id)}}
     end
   end
 

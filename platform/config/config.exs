@@ -144,8 +144,22 @@ config :techtree,
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
-  queues: [ens: 2, default: 1, sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
-  cron: [crontab: [{"17 4 * * *", Techtree.ErrorPruner}]],
+  queues: [
+    ens: 2,
+    default: 1,
+    points: 5,
+    points_chain: 2,
+    sprites: 10,
+    wallet_bench_judge: 3,
+    wallet_bench_funding: 1
+  ],
+  cron: [
+    crontab: [
+      {"17 4 * * *", Techtree.ErrorPruner},
+      # From the Points start, the one-time points for what accounts already had.
+      {"@hourly", RegentPoints.StartAwards}
+    ]
+  ],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]
 

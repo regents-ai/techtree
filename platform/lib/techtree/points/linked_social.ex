@@ -4,6 +4,9 @@ defmodule Techtree.Points.LinkedSocial do
   answers with what Points records. The provider and subject are the proof, so
   one social account earns once, whichever account links it; a link removed
   before the check earns nothing.
+
+  `existing/2` lists the links to the rule's provider made before the Points
+  start and still there, for `RegentPoints.StartAwards`.
   """
 
   alias Techtree.Accounts
@@ -16,6 +19,18 @@ defmodule Techtree.Points.LinkedSocial do
       {:ok, %{} = identity} -> {:ok, facts(identity, key)}
       {:ok, nil} -> {:error, :link_not_found}
       {:error, reason} -> {:retry, reason}
+    end
+  end
+
+  def existing("social." <> provider, starts_at) do
+    for identity <-
+          Accounts.linked_identities_before!(provider, starts_at, actor: %System{}) do
+      {identity.human_account_id,
+       %{
+         source_app: "regents",
+         source_kind: "linked_identity",
+         source_event_key: "#{identity.provider}:#{identity.subject}"
+       }}
     end
   end
 

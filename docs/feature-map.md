@@ -60,6 +60,7 @@ finger on a touch screen, 24 px for a mouse control.
 | Publish a Result and report a Climb | `publication_controller_test.exs`, `test/techtree/network/` |
 | Sign in with its wallet and use the three agent addresses (publications, Model Climb reports, `/api/v1/account`) only while acting as its person: unsigned 401, unpaired `agent_not_paired`, person not here `person_not_here`, and an unpairing during the request sends none of the person's data | `agent_wallet_test.exs` |
 | A new account, each linked social account and a paired agent offer their one-time Points award once, inside the save that earns it; a sign-in that changes nothing offers nothing, and an agent's award names its wallet | `sign_in_milestones_test.exs` |
+| An account, its linked social account and its paired agent from before the Points start earn their one-time Points at the start, once, through this site's own checks, and a later run offers nothing more | `start_awards_test.exs` |
 | A signed POST under `/api` keeps its exact bytes, so the sign-in service checks the digest of what the agent signed | `agent_wallet_test.exs` |
 | Use a page's signed browser tools through its own browser host (regents browser): each takes only its input, sends nothing with no signer or when the signer refuses, and sends exactly the bytes the signer signed, with the proof and no cookie | `page_tools.spec.ts` at 1280 |
 | Be known by one record per wallet, with the first World ID person it accepted kept for good | `agent_test.exs` (property) |

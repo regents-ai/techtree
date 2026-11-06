@@ -24,6 +24,9 @@
   answers are the same as on every other site, and `/tools/account` is gone.
 - **Points.** On the Points page, an entry that counted now says Counted, and an
   agent's entry names the agent by its wallet's newest pairing.
+- **Points.** When Points opens, what you already have counts: your account,
+  your linked X, GitHub and Farcaster accounts and your first paired agent each
+  earn their one-time points at the start, once.
 
 ## Website (2026-11-01)
 
