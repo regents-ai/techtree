@@ -125,13 +125,11 @@ defmodule TechtreeWeb.AccountShellLive do
   end
 
   # An agent paired, checked in or was unpaired, here or on another Regent site.
-  # The Agents tab lists the agents and holds the pairing box; the account menu
-  # follows on its own.
+  # The Agents tab lists the agents; the account menu and the pairing window
+  # follow on their own.
   def handle_info(:agents_changed, socket) do
-    if socket.assigns.route_spec.route_id == :account_agents do
-      send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
-      send_update(TechtreeWeb.PairingBox, id: "account-pairing-box", agents_changed: true)
-    end
+    if socket.assigns.route_spec.route_id == :account_agents,
+      do: send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
 
     {:noreply, socket}
   end
@@ -209,11 +207,11 @@ defmodule TechtreeWeb.AccountShellLive do
           <Regent.Primitives.button
             variant="quiet"
             type="button"
-            class="shell-credits-dialog__close"
+            class="shell-dialog-close"
             aria-label="Close"
             data-credits-close
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            <Regent.Icons.icon name="x" />
           </Regent.Primitives.button>
           <.live_component
             module={TechtreeWeb.CreditsPanel}

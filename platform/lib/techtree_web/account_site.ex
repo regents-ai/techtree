@@ -1,11 +1,12 @@
 defmodule TechtreeWeb.AccountSite do
   @moduledoc """
-  This site's own part of the Agents page: something beside each paired agent in
-  the list (`TechtreeWeb.AgentsPanel`), and a line under the pairing box once an
-  agent has paired (`TechtreeWeb.PairingBox`). The template has none, so it reads
-  nothing and both parts draw nothing. A site with its own, such as the Keys
-  Keyfleet's agents hold a shard of, keeps it in its copy of this module, and the
-  Agents page, its list and its pairing box stay the template's.
+  This site's own part of pairing and the Agents page: something beside each paired
+  agent in the list (`TechtreeWeb.AgentsPanel`), and a line under the pairing box,
+  in the pairing window, once an agent has paired (`TechtreeWeb.PairingBox`). The
+  template has none, so it reads nothing and both parts draw nothing. A site with
+  its own, such as the Keys Keyfleet's agents hold a shard of, keeps it in its copy
+  of this module, and the Agents page, its list and the pairing window stay the
+  template's.
 
   A site whose part changes while the page is open sends the agents list
   `site_changed: true` (`Phoenix.LiveView.send_update/3`), and it reads again.

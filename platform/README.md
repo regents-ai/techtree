@@ -327,9 +327,10 @@ local server refuses to start, because nobody could sign in. Other tasks run wit
 Every page can sign in. The header shows Sign in, or the person's picture and name,
 which open the account menu under it (`TechtreeWeb.AccountMenuLive`): their name and
 wallet, the three agents paired with the account that were active most recently with
-where each was last active, Pair New Agent, Manage Account and Sign out. Pairing itself
-is on the Agents page (`/account/agents#account-pairing`), in the layout every Regent site
-shares (`Regent.Account.agents_layout`). Each
+where each was last active, Pair New Agent, Manage Account and Sign out. Pair New Agent,
+there and on the Agents page (`/account/agents`), opens the pairing window the same
+LiveView holds (`#shell-pairing`), over whatever page is open, with the pairing box every
+Regent site shares (`Regent.Account.pairing`). Each
 agent's reading from the sign-in service is kept five minutes on the machine, and a
 failed read one minute (`Techtree.Agents.ActivityReading`); reads that give no reading
 are counted in `health.agent_activity_unread.total` by reason. The shared account lives at `/account`, with
