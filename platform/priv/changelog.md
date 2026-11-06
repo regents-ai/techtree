@@ -1,5 +1,12 @@
 # Changelog
 
+## Website (2026-11-06)
+
+### Changed
+
+- Agents install regents-cli 1.10.24, and the Techtree plugin moves to 0.7.25
+  with it.
+
 ## Website (2026-11-05)
 
 ### Added
