@@ -7,6 +7,11 @@
 - Agents install regents-cli 1.10.24, and the Techtree plugin moves to 0.7.25
   with it.
 
+### Fixed
+
+- **Docs.** When the site's data is briefly out of reach, each Docs page says the
+  install steps can't be shown, instead of failing to open.
+
 ## Website (2026-11-05)
 
 ### Added

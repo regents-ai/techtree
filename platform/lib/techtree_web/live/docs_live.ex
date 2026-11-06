@@ -22,24 +22,39 @@ defmodule TechtreeWeb.DocsLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {release, install} =
-      case Outage.read(&ReleaseInfo.current/0) do
-        {:ok, release} -> {release, :read}
-        :database_down -> {nil, :unreadable}
-      end
+    {:ok, socket |> assign(instruction: StartLive.instruction()) |> assign(release_reads())}
+  end
 
+  # The active release and the routes of the Climbs it names are read together, so a
+  # connection lost during any of them shows the outage note rather than failing the page.
+  defp release_reads do
+    case Outage.read(&read_release/0) do
+      {:ok, {release, frontier, introductory_routes, frontier_routes}} ->
+        [
+          release: release,
+          install: :read,
+          plugin_commands: plugin_commands(release),
+          introductory_routes: introductory_routes,
+          frontier: frontier,
+          frontier_routes: frontier_routes
+        ]
+
+      :database_down ->
+        [
+          release: nil,
+          install: :unreadable,
+          plugin_commands: nil,
+          introductory_routes: nil,
+          frontier: nil,
+          frontier_routes: nil
+        ]
+    end
+  end
+
+  defp read_release do
+    release = ReleaseInfo.current()
     frontier = release && ReleaseInfo.climb(release, "frontier-cs-open-ended-climb")
-
-    {:ok,
-     assign(socket,
-       release: release,
-       install: install,
-       instruction: StartLive.instruction(),
-       plugin_commands: plugin_commands(release),
-       introductory_routes: release && routes(release.introductory_reference),
-       frontier: frontier,
-       frontier_routes: routes(frontier)
-     )}
+    {release, frontier, release && routes(release.introductory_reference), routes(frontier)}
   end
 
   @impl true

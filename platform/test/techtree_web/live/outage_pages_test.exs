@@ -105,6 +105,42 @@ defmodule TechtreeWeb.OutagePagesTest do
     refute has_element?(docs, ".doc-section p", "no version of Techtree")
   end
 
+  # Regression (Sentinel, 5 Nov 09:45Z, /docs/data): the release was read, then the pool
+  # gave out before the Climb routes were read, and the page failed whole.
+  test "Docs says the install steps can't be shown when the connection goes after the release is read",
+       %{conn: conn} do
+    bring_back()
+    Ecto.Adapters.SQL.Sandbox.checkout(Techtree.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, {:shared, self()})
+    CatalogFixture.use_bundle(CatalogFixture.root())
+    Importer.import!(CatalogFixture.root())
+
+    test_pid = self()
+    handler = "docs-cut-after-release-#{System.unique_integer([:positive])}"
+
+    :ok =
+      :telemetry.attach(
+        handler,
+        [:techtree, :repo, :query],
+        fn
+          _event, _measurements, %{source: "bootstrap_releases"}, _config ->
+            :telemetry.detach(handler)
+            cut_database()
+            send(test_pid, :cut)
+
+          _event, _measurements, _metadata, _config ->
+            :ok
+        end,
+        nil
+      )
+
+    on_exit(fn -> :telemetry.detach(handler) end)
+
+    {:ok, docs, _html} = quietly(fn -> live(conn, ~p"/docs/install") end)
+    assert_received :cut
+    assert has_element?(docs, ".doc-section [role=status]", "install steps can't be shown")
+  end
+
   test "Results says it can't show Results and hides the filters", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/results") end)
 
