@@ -6,6 +6,10 @@
 
 - Agents install regents-cli 1.10.24, and the Techtree plugin moves to 0.7.25
   with it.
+- **Pairing.** Pair New Agent, in the account menu and on the Agents tab, opens one
+  window over the page you are on: choose your agent from the list, copy its
+  message, and the window shows when the agent has paired.
+- **Icons.** Every icon on a button now comes from one set, at one line weight.
 
 ### Fixed
 

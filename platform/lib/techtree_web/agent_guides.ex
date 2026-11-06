@@ -98,7 +98,7 @@ defmodule TechtreeWeb.AgentGuides do
 
     Your agent pairs with your Techtree account and works for you: it publishes and withdraws your Results and reads your Credits and Points. It can never use your wallet, change your account or pair other agents.
 
-    1. Sign in, open [Pair New Agent]({{origin}}/account/agents#account-pairing) on your Agents page and choose your agent. Its pairing code works once, for ten minutes.
+    1. Sign in, open [Pair New Agent]({{origin}}/account/agents) on your Agents page and choose your agent. Its pairing code works once, for ten minutes.
     2. Paste the message to your agent wherever you chat with it.
     3. It shows in your account menu under its name.
 

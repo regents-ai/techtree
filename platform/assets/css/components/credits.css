@@ -1,12 +1,9 @@
 @layer regents-product {
 /* Regent Credits: the header's balance and the Buy Credits dialog it opens. */
 
-/* The window is the shared cut-corner frame (Regent.Structure.dialog). The close
-   button sits in its top corner, as far in as the frame's own padding. */
+/* The window is the shared cut-corner frame (Regent.Structure.dialog). */
 .shell-credits-dialog {
   --rg-dialog-size: 30rem;
-  --shell-credits-pad-top: clamp(var(--space-2), 4vw, var(--space-4));
-  --shell-credits-pad-side: clamp(var(--space-2), 4vw, var(--space-4));
 }
 
 .shell-credits-dialog .credits-panel__head {

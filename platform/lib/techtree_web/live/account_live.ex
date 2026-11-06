@@ -2,7 +2,7 @@ defmodule TechtreeWeb.AccountLive do
   @moduledoc """
   The signed-in person's Account, one tab each: Account (their profile and their
   Credits, in the layout every Regent site shares, `Regent.Account.layout`),
-  Agents (the agents they paired and pairing a new one, `Regent.Account.agents_layout`),
+  Agents (the agents they paired, whose Pair New Agent opens the pairing window),
   Wallets (the wallets their sign-in verified) and Connections (the accounts they
   have connected). Points has its own tab (`TechtreeWeb.PointsLive`).
 
@@ -89,25 +89,13 @@ defmodule TechtreeWeb.AccountLive do
       account={@account}
       signed_out_reason={@signed_out_reason}
     >
-      <:tip>The agents you paired, and pairing a new one.</:tip>
-      <Regent.Account.agents_layout id="account">
-        <:agents>
-          <.live_component
-            module={TechtreeWeb.AgentsPanel}
-            id="account-agents"
-            lease={@lease}
-            account={@account}
-          />
-        </:agents>
-        <:pairing>
-          <.live_component
-            module={TechtreeWeb.PairingBox}
-            id="account-pairing-box"
-            lease={@lease}
-            account={@account}
-          />
-        </:pairing>
-      </Regent.Account.agents_layout>
+      <:tip>The agents you paired.</:tip>
+      <.live_component
+        module={TechtreeWeb.AgentsPanel}
+        id="account-agents"
+        lease={@lease}
+        account={@account}
+      />
     </.settings_page>
     """
   end
