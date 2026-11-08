@@ -134,6 +134,12 @@ _A declarative, extensible framework for building Elixir applications._
 ## ash:testing usage
 [ash:testing usage rules](deps/ash/usage-rules/testing.md)
 <!-- ash:testing-end -->
+<!-- ash_ai-start -->
+## ash_ai usage
+_Integrated LLM features for your Ash application._
+
+[ash_ai usage rules](deps/ash_ai/usage-rules.md)
+<!-- ash_ai-end -->
 <!-- ash_oban-start -->
 ## ash_oban usage
 _The extension for integrating Ash resources with Oban._

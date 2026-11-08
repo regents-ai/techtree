@@ -22,10 +22,11 @@ defmodule TechtreeWeb.PublicationBody do
   address it was sent to finds no bytes and refuses.
 
   `TechtreeWeb.PublicationAddress` decides which requests those are. Any other
-  POST or PATCH under `/api` may come from an agent too, signed over its exact
-  bytes, so the sign-in library's own reader keeps them, up to 8,192 bytes, and
-  marks them as the whole body; `TechtreeWeb.Plugs.AgentWallet` and
-  `RegentAgents.HTTP` check them there. Every other address uses the identity
+  POST or PATCH under `/api`, and each call to the hosted MCP server at
+  `POST /mcp`, may come from an agent too, signed over its exact bytes, so the
+  sign-in library's own reader keeps them, up to 8,192 bytes, and marks them as
+  the whole body; `TechtreeWeb.Plugs.AgentWallet` and `RegentAgents.HTTP` check
+  them there. Every other address uses the identity
   body reader as before.
   """
 
@@ -53,6 +54,8 @@ defmodule TechtreeWeb.PublicationBody do
       true -> RegentIdentity.BodyReader.read_body(conn, options)
     end
   end
+
+  defp signed?(%{method: "POST", path_info: ["mcp"]}), do: true
 
   defp signed?(%{method: method, path_info: path_info}) when method in ["POST", "PATCH"],
     do: match?(["api" | _], Enum.map(path_info, &URI.decode/1))

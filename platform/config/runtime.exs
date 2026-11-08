@@ -115,6 +115,62 @@ end
 # service (RegentAgents.Activity).
 config :regent_agents, :activity_read_token, System.get_env("SIWA_ACTIVITY_READ_TOKEN")
 
+# The Claude connector, behind one switch (Techtree.OAuth.enabled?/0): its
+# sign-in under /oauth and /.well-known/oauth-*, a connected app's token at /mcp
+# (TechtreeWeb.Plugs.McpAgent), Claude in the pairing box and the Claude guide
+# at /agents/claude, which /agents, the sitemap and /llms.txt then name. Unset
+# leaves all of it off, and /mcp serves only agents signing with their own
+# wallet; anything but true stops the boot. Switch it on only after the
+# migrations have run; bin/migrate never starts it. The connector's identities
+# are held by the same sign-in service, asked with this site's own key there.
+claude_connector? =
+  case System.get_env("TECHTREE_CLAUDE_CONNECTOR_ENABLED") do
+    nil -> false
+    "true" -> System.get_env("TECHTREE_RELEASE_COMMAND") != "migrate"
+    _other -> raise "TECHTREE_CLAUDE_CONNECTOR_ENABLED must be true or unset"
+  end
+
+hosted_signing_key = System.get_env("SIWA_HOSTED_SIGNING_KEY")
+
+if claude_connector? and
+     not (is_binary(hosted_signing_key) and
+            Regex.match?(~r/\A[A-Za-z0-9_-]{32,}\z/, hosted_signing_key)) do
+  raise "TECHTREE_CLAUDE_CONNECTOR_ENABLED is true, so SIWA_HOSTED_SIGNING_KEY must be " <>
+          "this site's hosted signing key from the sign-in service: 32 or more letters, " <>
+          "digits, - or _"
+end
+
+# The connector's sign-in answers at the site's own address and its MCP address
+# is under it: https://PHX_HOST in production, the endpoint's own address
+# elsewhere. Each code and token has these written on it as it is issued, and one
+# whose values differ from the running site's is refused.
+site_url =
+  if config_env() == :prod do
+    case String.trim(System.get_env("PHX_HOST", "")) do
+      "" -> nil
+      host -> "https://" <> host
+    end
+  else
+    url = Application.fetch_env!(:techtree, TechtreeWeb.Endpoint)[:url]
+    URI.to_string(%URI{scheme: url[:scheme] || "http", host: url[:host], port: url[:port]})
+  end
+
+config :techtree, Techtree.OAuth,
+  enabled?: claude_connector?,
+  issuer: site_url,
+  resource: site_url && site_url <> "/mcp"
+
+config :regent_mcp_agents, :config,
+  enabled?: claude_connector?,
+  hosted_signer: [
+    base_url: Application.fetch_env!(:regent_agents, :siwa)[:url],
+    key: hosted_signing_key
+  ]
+
+# Claude is offered in the pairing box, and accepted by the pair request, only
+# while its connector is on.
+config :regent_agents, hosted_pairing: if(claude_connector?, do: [:claude], else: [])
+
 # Without its Privy settings a local server answers every page while nobody can
 # sign in, so it refuses to start. Other mix tasks, such as migrations and code
 # generation, run without them.

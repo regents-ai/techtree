@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "faa538d4028732a6b187165ebc0187cb9c573193"
+  @elixir_utils_ref "d89c69df697f81d2a56a43124eada843d1682303"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "871c3fe69f2501e9deb5de5626c7c9e7a5941d5e"
 
@@ -71,7 +71,14 @@ defmodule Techtree.MixProject do
       # regent_identity names regent_privy by a sibling path; this pin replaces it.
       {:regent_privy,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
-      {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
+      {:regent_agent_access,
+       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access", override: true},
+      # regent_mcp_agents names regent_oauth, regent_agents and regent_agent_access
+      # by sibling paths; these pins replace them.
+      {:regent_oauth,
+       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "oauth", override: true},
+      # The Claude connector's identity tools at /mcp (Techtree.Agents.Connection).
+      {:regent_mcp_agents, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "mcp_agents"},
       {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
       {:regent_anthropic, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "anthropic"},
       # The wallet bench signs its funding sends with it.
@@ -115,6 +122,8 @@ defmodule Techtree.MixProject do
        override: true},
       {:ash, "~> 3.37"},
       {:ash_oban, "~> 0.10.3"},
+      # The hosted MCP server at /mcp runs the Ash actions its domains hand it.
+      {:ash_ai, "~> 1.5"},
       {:oban, "~> 2.24"},
       {:nebulex, "~> 3.0"},
       {:nebulex_local, "~> 3.0"},
@@ -222,9 +231,12 @@ defmodule Techtree.MixProject do
       "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
       # The reviewed account adoption adds five Ash resource/domain edges and
       # two session/header edges to the previous 19; the template's agent record
-      # adds one more (each Ash domain reads its resources at compile time).
-      # Keep this floor bounded.
-      "xref graph --label compile-connected --fail-above 27",
+      # adds one more (each Ash domain reads its resources at compile time). The
+      # hosted MCP server adds four: the agents domain reads its Connection
+      # resource and that resource its caller check, the router hands /mcp its
+      # tool-argument check, and the MCP plug keys its rate limits by client
+      # address. Keep this floor bounded.
+      "xref graph --label compile-connected --fail-above 30",
       "ash.codegen --check",
       "usage_rules.sync --check",
       "techtree.sync_openapi --check",

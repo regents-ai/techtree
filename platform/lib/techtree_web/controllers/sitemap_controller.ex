@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.SitemapController do
   @moduledoc """
-  Every public page a search engine should index: the fixed pages (with the
-  motion lab while the showcase is public), the blog and each of its posts once
+  Every public page a search engine should index: the fixed pages (with
+  Claude's page while its connector is on, and the motion lab while the
+  showcase is public), the blog and each of its posts once
   there is one, each Climb in the
   active release, and each published Result that has not been withdrawn.
 
@@ -15,6 +16,7 @@ defmodule TechtreeWeb.SitemapController do
   alias Techtree.Catalog
   alias Techtree.Network
   alias Techtree.Network.Projection
+  alias TechtreeWeb.AgentGuides
   alias TechtreeWeb.Blog
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.Showcase
@@ -22,8 +24,7 @@ defmodule TechtreeWeb.SitemapController do
   @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /about /privacy /terms
             /services/verify /services/verify/sample-report /services/cyber-assist
             /services/cyber-assist/sample-report) ++
-           Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++
-           TechtreeWeb.AgentGuides.paths()
+           Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
 
   # document/1 escapes every URL; the remaining values are ISO dates and fixed XML.
   # sobelow_skip ["XSS.SendResp"]
@@ -46,8 +47,12 @@ defmodule TechtreeWeb.SitemapController do
       Enum.map(standing_results(nil), &{Projection.entry_url(&1, origin), &1.accepted_at})
   end
 
-  # The motion lab is listed only while the showcase is public.
-  defp fixed, do: if(Showcase.public?(), do: @fixed ++ ["/animations"], else: @fixed)
+  # The agents' pages are read on each call, since Claude's is listed only while
+  # its connector is on; the motion lab only while the showcase is public.
+  defp fixed do
+    pages = @fixed ++ AgentGuides.paths()
+    if Showcase.public?(), do: pages ++ ["/animations"], else: pages
+  end
 
   defp blog([], _origin, _released_at), do: []
 

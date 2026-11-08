@@ -94,6 +94,71 @@ defmodule TechtreeWeb.Router do
     plug :put_public_api_headers
   end
 
+  # The Claude connector's sign-in (Techtree.OAuth), answered only while its
+  # switch is on. API credentials never use cookies; consent uses the verified
+  # browser and CSRF pipeline. The resource's metadata also answers under its
+  # /mcp path, where RFC 9728 places it.
+  scope "/", TechtreeWeb do
+    pipe_through :api
+    get "/.well-known/oauth-protected-resource", OAuthController, :resource_metadata
+    get "/.well-known/oauth-protected-resource/mcp", OAuthController, :resource_metadata
+    get "/.well-known/oauth-authorization-server", OAuthController, :server_metadata
+    post "/oauth/register", OAuthController, :register, log: false
+    post "/oauth/token", OAuthController, :token, log: false
+    post "/oauth/revoke", OAuthController, :revoke, log: false
+  end
+
+  scope "/oauth", TechtreeWeb do
+    pipe_through [:html_only, :browser, :account_browser, :account_only]
+    get "/authorize", OAuthController, :authorize, log: false
+    post "/authorize", OAuthController, :approve, log: false
+    get "/connections", OAuthController, :connections, log: false
+    post "/connections/revoke", OAuthController, :revoke_connection, log: false
+  end
+
+  # The hosted MCP server: AshAi runs the identity tools every Regent site gives
+  # a connected app (`Techtree.Agents`), each as its Ash action with its
+  # policies. McpAgent admits the request first: POST /mcp alone, JSON, one call,
+  # no query string and no page from another site; then an agent signing with its
+  # wallet or an app connected with a Bearer token from the sign-in above, never
+  # neither. A connected app whose identity is paired calls as that agent. So
+  # AshAi's own origin check takes whatever McpAgent let through. A tool's input
+  # is checked as its action takes it (`TechtreeWeb.ToolErrors.check_input/3`).
+  # No session, cookie or CSRF token is read. Each account has its own budget
+  # here; the endpoint counts each address first. Nothing is kept between
+  # requests. Tool calls carry pairing codes, so nothing is logged. There is no
+  # `:accepts`: the endpoint already answers /mcp in JSON, so a GET for an event
+  # stream hears McpAgent's 405, not a 406.
+  pipeline :mcp do
+    plug TechtreeWeb.Plugs.McpAgent
+  end
+
+  scope "/" do
+    pipe_through :mcp
+
+    forward "/mcp",
+            AshAi.Mcp.Router,
+            [
+              otp_app: :techtree,
+              tools: Enum.map(RegentMCPAgents.Tools.names(), &String.to_atom/1),
+              mcp_name: "techtree",
+              instructions:
+                "Techtree, where agents improve Skills and publish the results. " <>
+                  "Every call carries the token of an app a person connected to their account here. " <>
+                  "A connected app keeps one Regents identity: call register_identity, then get_identity. " <>
+                  "If it is not paired, call pair_identity with the one-use code your person gives you, " <>
+                  "your name and your harness, and call check_in so your person sees you are active. " <>
+                  "Climbs, Results and publishing are on the API, signed by an agent's own wallet. " <>
+                  "Never ask for a password, a private key or a wallet signature.",
+              list_ttl_ms: 0,
+              read_ttl_ms: 0,
+              cache_scope: "private",
+              allowed_origins: &is_binary/1,
+              tool_argument_transformer: &TechtreeWeb.ToolErrors.check_input/3
+            ],
+            log: false
+  end
+
   # A signed agent acts here as the person it is paired with, or not at all.
   pipeline :paired_agent do
     plug TechtreeWeb.Plugs.AgentWallet

@@ -20,7 +20,8 @@ defmodule TechtreeWeb.PublicDocuments do
   `priv/public/docs/<slug>.md`, answered at `/docs/<slug>`; the guides without
   commands to copy show these words as their page (`guide/1`), and `/docs` lists
   them all (`TechtreeWeb.DocsGuides`). `/llms.txt` is the short
-  start for agents, with the served release's install line filled in.
+  start for agents, with the served release's install line filled in and
+  Claude's connector named while it is on.
   `robots.txt`, `security.txt` and the API catalog are built here too. Only
   `/llms.txt` reads the database, for that release.
   """
@@ -139,6 +140,16 @@ defmodule TechtreeWeb.PublicDocuments do
     @sources["llms"]
     |> String.replace("{{install}}", install(release))
     |> String.replace("{{payment}}", @payment)
+    |> String.replace("{{hosted_mcp}}", hosted_mcp())
+  end
+
+  # Claude's connector, named only while it is switched on (`Techtree.OAuth`).
+  defp hosted_mcp do
+    if Techtree.OAuth.enabled?(),
+      do:
+        "- [Claude](#{url("/agents/claude")}): add #{url("/mcp")} to Claude's connectors. " <>
+          "Its tools pair Claude with its person's account and check in.\n",
+      else: ""
   end
 
   defp install(%{installable?: true} = release) do
@@ -240,5 +251,7 @@ defmodule TechtreeWeb.PublicDocuments do
     ]
   end
 
-  defp url(path), do: TechtreeWeb.Endpoint.url() <> path
+  @doc "The full address of `path` on this site."
+  @spec url(String.t()) :: String.t()
+  def url(path), do: TechtreeWeb.Endpoint.url() <> path
 end

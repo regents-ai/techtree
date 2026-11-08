@@ -70,6 +70,8 @@ finger on a touch screen, 24 px for a mouse control.
 | Be known by one record per wallet, with the first World ID person it accepted kept for good | `agent_test.exs` (property) |
 | Keep and read Model Climb reports only for its own person | `report_policy_test.exs`. **Gap:** no check sends a real signed proof through `POST /api/model-climb/v1/reports` |
 | Get a funded Wallet Bench test's money back to the funder even when a money test fails | `advance_test.exs` (the return turn is queued in the latest conversation; the attempt then stops with the money test's reason). **Gap:** the judge's 1, 2, 4 and 8 minute retries are not exercised |
+| Call the hosted MCP server at `/mcp` with its own signature: admitted as that agent with no Techtree tools yet; a query string, a page from another site, a batch, a body that is not JSON, two credentials, any other method or address and a 121st request in a minute are refused in the site's shape | `mcp_agent_test.exs` |
+| With the Claude connector switched on, a person approves a connected app and pairs it from Pair New Agent; each app pairs on its own with its own code and wallet, a look-alike app or another account's token stays itself, only a check-in moves last contact, and off, the guide, pairing choice and agent-guide lines are gone | `claude_connector_test.exs`, `tool_errors_test.exs`. **Gap:** no real Claude connection or hosted signing service is exercised |
 | Use the `regents techtree` commands | `make check-cli` (the command descriptions); **Gap:** commands not run end to end here |
 
 ## Development checks

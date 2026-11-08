@@ -268,6 +268,12 @@ config :techtree, Techtree.Agents.ActivityReading,
   gc_interval: :timer.minutes(10),
   max_size: 10_000
 
+# The hosted identity wallet of each account and connected app, which never changes
+# once the sign-in service has given it. One that leaves with a collected generation is asked for again.
+config :techtree, Techtree.Agents.HostedAddress,
+  gc_interval: :timer.hours(12),
+  max_size: 100_000
+
 config :techtree, :session_options,
   store: :cookie,
   key: "_techtree_key",
@@ -311,6 +317,32 @@ config :error_tracker,
   otp_app: :techtree,
   ignorer: Techtree.ErrorIgnorer,
   filter: Techtree.ErrorFilter
+
+# The Claude connector's sign-in, through the person's verified account
+# (Techtree.OAuth). The identity permission lets the app pair with the account
+# and check in; the agent permission lets it then work here as that paired
+# agent. config/runtime.exs switches it on and sets its issuer and resource from
+# the site's own address. Lifetimes are the library's, not set here: a Bearer
+# token lives at most an hour and a refresh token 30 days (RegentOAuth.configure/1).
+config :techtree, Techtree.OAuth,
+  brand: "techtree",
+  scope: "regent.identity.manage",
+  permission_description:
+    "pair with your account using a code you give it, and check in so you see it is active",
+  additional_scopes: %{
+    "techtree.agent" =>
+      "work here as the agent you paired, with the same rights as any agent you pair"
+  },
+  consent_note:
+    "This connection works here only as the agent you pair it with, with that agent's rights. Each app you connect here pairs on its own, with its own code from Pair New Agent. It cannot use your wallet, change your account or pair other agents."
+
+# The connector's identity tools (RegentMCPAgents): which site's signers they use
+# at the sign-in service, and the words a refused tool call ends with.
+# config/runtime.exs switches them on with the connector and gives the key.
+config :regent_mcp_agents, :config,
+  audience: "techtree",
+  refusal:
+    "Call get_identity to see where this connection stands. Not paired: ask your person for a new code from Pair New Agent on their Agents page. Asked to connect: your person connects this app to Techtree again."
 
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason

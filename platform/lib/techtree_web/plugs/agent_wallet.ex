@@ -99,13 +99,26 @@ defmodule TechtreeWeb.Plugs.AgentWallet do
   def accept(_conn, _data, _context), do: refused(:unsupported_principal)
 
   defp sign_in(conn, address, book) do
-    with {:ok, agent} <- Agents.sign_in_agent(address, actor: %System{}),
-         {:ok, actor} <- agent |> with_backing(book) |> actor() do
-      {:ok, conn |> assign(:actor, actor) |> recheck_before_send(actor)}
-    else
+    case actor_for(address, book) do
+      {:ok, actor} ->
+        {:ok, conn |> assign(:actor, actor) |> recheck_before_send(actor)}
+
       {:error, error} ->
         UnexpectedFailure.log(conn, error)
         refused(:agent_unavailable)
+    end
+  end
+
+  @doc """
+  The actor a wallet the sign-in service vouches for acts as here: the agent as
+  itself, or acting for its person while it is paired. `book` is the service's
+  World ID reading, or nil. The hosted MCP server uses it too, for the wallet of
+  a connected app's own identity (`TechtreeWeb.Plugs.McpAgent`).
+  """
+  @spec actor_for(String.t(), map() | nil) :: {:ok, Agent.t()} | {:error, term()}
+  def actor_for(address, book \\ nil) do
+    with {:ok, agent} <- Agents.sign_in_agent(address, actor: %System{}) do
+      agent |> with_backing(book) |> actor()
     end
   end
 
@@ -125,10 +138,15 @@ defmodule TechtreeWeb.Plugs.AgentWallet do
     end
   end
 
-  defp recheck_before_send(conn, %Agent{pairing: :active} = actor),
+  @doc """
+  Checks the agent's pairing again just before the answer leaves, and replaces
+  the answer when it changed during the request.
+  """
+  @spec recheck_before_send(Plug.Conn.t(), Agent.t()) :: Plug.Conn.t()
+  def recheck_before_send(conn, %Agent{pairing: :active} = actor),
     do: register_before_send(conn, &recheck(&1, actor))
 
-  defp recheck_before_send(conn, _actor), do: conn
+  def recheck_before_send(conn, _actor), do: conn
 
   # The request ran after the pairing was read. Before anything is sent, the
   # wallet's current pairing must still be this one, with the same person;

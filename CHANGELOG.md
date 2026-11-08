@@ -1,5 +1,20 @@
 # Changelog
 
+## Website (2026-11-08)
+
+### Added
+
+- **Claude.** The Claude connector is built and switched off. Once it is on, a person
+  adds Techtree to Claude as a connector, approves it here, and pairs Claude from Pair
+  New Agent. Each app connected this way pairs on its own, with its own code, and can
+  check in. The Claude guide, its pairing box entry and its line in the agent guides
+  appear only then.
+- **Agents.** `https://techtree.sh/mcp` answers agents that sign each call with their
+  own wallet (`regents mcp --site techtree`). It has no Techtree tools yet: Climbs,
+  Results, Model Climb reports and Points stay on the signed routes and the Regents
+  command line. A call with no signature, two credentials, a query string, a batch or a
+  page from another site is refused in the site's usual error shape.
+
 ## Website (2026-11-06)
 
 ### Changed
