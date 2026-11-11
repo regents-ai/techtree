@@ -34,6 +34,17 @@ defmodule Techtree.Accounts.HumanAccount do
       prepare build(load: [:display_name, :ens_name, :ens_avatar_url])
     end
 
+    # The accounts made before a moment, such as the Points start.
+    read :created_before do
+      argument :at, :utc_datetime_usec, allow_nil?: false
+      filter expr(created_at < ^arg(:at))
+    end
+
+    read :by_privy_dids do
+      argument :privy_dids, {:array, :string}, allow_nil?: false
+      filter expr(privy_user_id in ^arg(:privy_dids))
+    end
+
     read :read_self do
       get? true
       argument :id, :integer, allow_nil?: false
@@ -45,7 +56,16 @@ defmodule Techtree.Accounts.HumanAccount do
       accept [:privy_user_id, :wallet_address, :wallet_addresses]
       upsert? true
       upsert_identity :unique_privy_user_id
-      upsert_fields []
+      # A sign-in to an existing account writes nothing to it, and the account
+      # comes back marked as skipped.
+      upsert_condition expr(false)
+      return_skipped_upsert? true
+
+      emit Techtree.Accounts.Signals, :account_registered,
+        dynamic?: true,
+        description: "Only when the sign-in inserted the account."
+
+      change Techtree.Accounts.HumanAccount.AnnounceRegistration
       change load([:display_name])
     end
 
@@ -63,7 +83,9 @@ defmodule Techtree.Accounts.HumanAccount do
              :by_privy_did,
              :register_verified,
              :refresh_verified,
-             :points_account
+             :points_account,
+             :created_before,
+             :by_privy_dids
            ]) do
       authorize_if actor_attribute_equals(:role, :system)
     end

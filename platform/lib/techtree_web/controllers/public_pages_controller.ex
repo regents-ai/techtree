@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.PublicPagesController do
   @moduledoc """
-  About, Contact, Privacy, Terms and the two sample reports under `/services`
-  as pages, and the files agents and crawlers read first: the short start for
+  About, Privacy, Terms, the two sample reports under `/services` and the agents'
+  pages under `/agents` as pages, the Docs list as JSON at `/api/v1/docs`, and the
+  files agents and crawlers read first: the short start for
   agents at `/llms.txt`, the OpenAPI
   description, the tool manifest, `robots.txt`, `security.txt`, the API
   catalog, the Techtree skill at `/skill.md`, each agent's own skill at
@@ -28,6 +29,12 @@ defmodule TechtreeWeb.PublicPagesController do
     else
       raise TechtreeWeb.NotFoundError
     end
+  end
+
+  @doc "A public page as JSON, `{title, markdown}`."
+  def document(conn, _params) do
+    %{title: title, markdown: markdown} = PublicDocuments.document(conn.assigns.document)
+    json(conn, %{title: title, markdown: markdown})
   end
 
   @doc "The Techtree skill at `/skill.md`, the same file the skills index serves."

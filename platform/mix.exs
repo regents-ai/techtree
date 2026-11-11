@@ -4,9 +4,9 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "9da44bdc3c3fb6d62493f8cd8eabf066529fe5df"
+  @elixir_utils_ref "faa538d4028732a6b187165ebc0187cb9c573193"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "3134bab0a23452fb82d3248072327e1d0199cc9a"
+  @design_system_ref "871c3fe69f2501e9deb5de5626c7c9e7a5941d5e"
 
   def project do
     [
@@ -102,9 +102,9 @@ defmodule Techtree.MixProject do
        sparse: "credo_ash",
        only: [:dev, :test],
        runtime: false},
-      {:sobelow, "~> 0.16", only: [:dev, :test], runtime: false},
+      {:sobelow, "~> 0.18", only: [:dev, :test], runtime: false},
       # Test too: precommit runs in the test environment and checks the AGENTS.md block.
-      {:usage_rules, "~> 1.2.8", only: [:dev, :test], runtime: false},
+      {:usage_rules, "~> 1.3", only: [:dev, :test], runtime: false},
       {:ash_phoenix, "~> 2.3.26"},
       # ash_postgres main with #910 until a Hex release carries it: upserts use the
       # repo's prefix, which picks each site's schema on the shared database. It

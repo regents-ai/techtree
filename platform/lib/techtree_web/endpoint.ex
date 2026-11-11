@@ -93,7 +93,7 @@ defmodule TechtreeWeb.Endpoint do
   plug RegentAgentAccess.Plug,
     documents: &TechtreeWeb.PublicDocuments.document/1,
     guide: "/llms.txt",
-    json_prefixes: ["api", "tools"]
+    json_prefixes: ["api"]
 
   # After the error format is chosen, so a slash address is answered as any
   # address that names nothing.
@@ -113,7 +113,7 @@ defmodule TechtreeWeb.Endpoint do
   # meets the same refusal it would have met anyway. No address accepts more
   # than the publication cap (`Techtree.Network.maximum_body_bytes/0`).
   plug TechtreeWeb.Plugs.Parsers,
-    parsers: [:urlencoded, :json],
+    parsers: [Plug.Parsers.URLENCODED, Plug.Parsers.JSON],
     pass: ["*/*"],
     length: Application.compile_env!(:techtree, [Techtree.Network, :maximum_body_bytes]),
     body_reader: {TechtreeWeb.PublicationBody, :read_body, []},
@@ -144,7 +144,6 @@ defmodule TechtreeWeb.Endpoint do
   end
 
   defp counted?(["healthz"], _conn), do: true
-  defp counted?(["tools", "account" | _], _conn), do: true
   defp counted?([scores], _conn) when scores in ["wallet-bench.json", "wallet-bench.md"], do: true
   defp counted?(["wallet-bench", _id, "evidence" | _], _conn), do: true
   defp counted?(["wallet-bench", _id, "results.zip"], _conn), do: true

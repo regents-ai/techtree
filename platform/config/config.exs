@@ -32,7 +32,13 @@ config :regent_points,
   program_id: "regents-points-v1",
   starts_at: nil,
   approved_rules: [],
-  adapters: %{"credits.purchase_settled" => Techtree.Points.CreditsPurchase}
+  adapters: %{
+    "account.activated" => Techtree.Points.AccountActivated,
+    "agent.activated" => Techtree.Points.PairedAgent,
+    "social.farcaster" => Techtree.Points.LinkedSocial,
+    "social.github" => Techtree.Points.LinkedSocial,
+    "social.x" => Techtree.Points.LinkedSocial
+  }
 
 config :regent_identity, repo: Techtree.Repo, ash_domains: [RegentIdentity]
 
@@ -51,7 +57,7 @@ config :regent_agents,
     "not_paired" => [
       "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",
       "Check your status here at any time.",
-      "Pair with the code your person makes with Pair New Agent on their Account page."
+      "Pair with the code your person makes with Pair New Agent on their Agents page."
     ],
     "person_not_here" => [
       "Read Techtree's public pages, Climbs, published Results and Skills, and the agent guide at https://techtree.sh/agents.md.",
@@ -137,8 +143,24 @@ config :techtree,
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
-  queues: [ens: 2, default: 1, sprites: 10, wallet_bench_judge: 3, wallet_bench_funding: 1],
-  cron: [crontab: [{"17 4 * * *", Techtree.ErrorPruner}]],
+  queues: [
+    ens: 2,
+    default: 1,
+    points: 5,
+    points_chain: 2,
+    sprites: 10,
+    wallet_bench_judge: 3,
+    wallet_bench_funding: 1
+  ],
+  cron: [
+    crontab: [
+      {"17 4 * * *", Techtree.ErrorPruner},
+      # From the Points start, the one-time points for what accounts already had.
+      {"@hourly", RegentPoints.StartAwards},
+      # One line for each kind of shared reading a producer rereads on notice.
+      {"* * * * *", Techtree.SharedReading.Heal, args: %{kind: "points_board"}}
+    ]
+  ],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]
 

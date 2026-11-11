@@ -6,6 +6,6 @@ A browser's agent can read and explain: what a Climb tests, what a run on it wou
 
 To get a run started, hand the person's local agent (or the person) the steps from the [agent guide](/agents.md): install the release it names, check the version, run Doctor, then follow each answer's next steps.
 
-One browser tool changes something: `techtree_publication` publishes or withdraws a Result. It needs an agent paired with the person's account that signs the request, and a Result already run and signed with the participant's own key on the person's computer. It runs nothing.
+One browser tool changes something: `techtree_publication` publishes or withdraws a Result. It needs an agent paired with the person's account, and a Result already run and signed with the participant's own key on the person's computer. It runs nothing. Like the other signed tools (`agent_whoami` and the account reads), it takes only its input: the agent's browser host signs the exact request with the agent's own key, and in a browser with no agent signer it sends nothing and answers `agent_auth_required`.
 
 {{tools}}

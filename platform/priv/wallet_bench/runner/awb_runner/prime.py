@@ -9,7 +9,6 @@ import shlex
 
 from harbor.agents.capabilities import AgentCapabilities
 from harbor.agents.installed.pi import Pi
-from harbor.agents.model_connection import ModelConnectionSpec
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 
@@ -19,7 +18,6 @@ from .agents import INSTRUCTION, MODEL, TOKEN, TRANSLATOR, _piped_instruction
 
 class PrimeAgent(Pi):
     capabilities = AgentCapabilities(atif=True, resume=True)
-    MODEL_CONNECTION = ModelConnectionSpec(passthrough=True)
     _OUTPUT_FILENAME = "prime.txt"
     _SESSIONS_DIRECTORY = "prime-sessions"
     archive_sha256: str = ""

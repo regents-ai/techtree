@@ -6,8 +6,11 @@ defmodule TechtreeWeb.Telemetry do
   `[:techtree, :repo, :query]` (`queue_time` is the wait for a connection),
   `[:techtree, :chain, :failure]` for each chain request that got no answer
   (`Techtree.ChainClient`), `[:techtree, :wallet, :failure]` for each press the
-  browser reported as not sent or not confirmed (`wallet_failed/2`), and
-  agents' activity reads that gave no reading (`Techtree.Agents.ActivityReading`).
+  browser reported as not sent or not confirmed (`wallet_failed/2`),
+  agents' activity reads that gave no reading (`Techtree.Agents.ActivityReading`),
+  and the clock time the Points tally of finished periods last ran to its end
+  (`[:regent_points, :tally_periods, :finished]`), so a stalled tally shows as a
+  time that stops moving.
   Every request the router sends to a page or controller is timed by its route
   pattern (`[:phoenix, :router_dispatch, :stop]`), never by its path, and every
   query by its whole time (`total_time` of the same Ecto event). Background jobs
@@ -20,6 +23,10 @@ defmodule TechtreeWeb.Telemetry do
   each time a browser opens a Result's page (`TechtreeWeb.RunsLive.Show`); a
   page opened by following a link on the site never passes through the router,
   so the request series alone would miss it.
+  The figures every reader they admit sees alike (`Techtree.SharedReading`) report, for
+  each kind, how many keys are held, how many have never been read, how long ago
+  the oldest was read, the size of each reading offered as a percent of its kind's
+  limit, each reading that could not be taken and each one refused.
   The publication rate-limit table reports each sweep. The engine's memory, run
   queues and process counts come from telemetry_poller's default poller, every
   10 seconds (`config/config.exs`).
@@ -68,7 +75,10 @@ defmodule TechtreeWeb.Telemetry do
   def site_poller,
     do:
       {:telemetry_poller,
-       measurements: [{__MODULE__, :oldest_unfinished_jobs, []}],
+       measurements: [
+         {Techtree.SharedReading, :measure, []},
+         {__MODULE__, :oldest_unfinished_jobs, []}
+       ],
        period: 10_000,
        name: :techtree_site_poller}
 
@@ -172,6 +182,12 @@ defmodule TechtreeWeb.Telemetry do
         tags: [:method, :class, :chain_id, :scope],
         description: "Chain requests that got no answer"
       ),
+      last_value("health.points_tally_finished.seconds",
+        event_name: [:regent_points, :tally_periods, :finished],
+        measurement: fn _measurements -> System.system_time(:second) end,
+        description:
+          "When the Points tally of finished periods last ran to its end, in Unix seconds"
+      ),
       last_value("health.job.oldest_age.seconds",
         event_name: [:techtree, :jobs, :oldest_unfinished],
         measurement: :age_ms,
@@ -227,6 +243,54 @@ defmodule TechtreeWeb.Telemetry do
         event_name: [:techtree, :agents, :activity_unread],
         tags: [:reason],
         description: "Agents' activity reads from the sign-in service that gave no reading"
+      ),
+      last_value("health.shared_reading.oldest.seconds",
+        event_name: [:techtree, :shared_reading, :kind],
+        measurement: :oldest_seconds,
+        tags: [:kind],
+        description: "Seconds since the oldest shared reading of each kind was read"
+      ),
+      last_value("health.shared_reading.late.keys",
+        event_name: [:techtree, :shared_reading, :kind],
+        measurement: :late,
+        tags: [:kind],
+        description: "Keys of the kind last read longer ago than the kind's producer should allow"
+      ),
+      last_value("health.shared_reading.size.percent",
+        event_name: [:techtree, :shared_reading, :size],
+        measurement: &div(&1.bytes * 100, &1.limit),
+        tags: [:kind],
+        description:
+          "Size of the last reading each kind was offered, as a percent of the kind's limit; " <>
+            "past 100 it is refused and the last one held stays"
+      ),
+      last_value("health.shared_reading.never_read.keys",
+        event_name: [:techtree, :shared_reading, :kind],
+        measurement: :never_read,
+        tags: [:kind],
+        description: "Keys of the kind that have had no reading since the site started"
+      ),
+      counter("health.shared_reading.degraded.total",
+        event_name: [:techtree, :shared_reading, :degraded],
+        tags: [:kind],
+        description: "Shared readings that could not be taken"
+      ),
+      last_value("techtree.shared_reading.keys",
+        event_name: [:techtree, :shared_reading, :kind],
+        measurement: :keys,
+        tags: [:kind]
+      ),
+      last_value("techtree.shared_reading.table.bytes",
+        event_name: [:techtree, :shared_reading, :table],
+        measurement: :bytes
+      ),
+      counter("techtree.shared_reading.refused.total",
+        event_name: [:techtree, :shared_reading, :refused],
+        tags: [:kind, :reason]
+      ),
+      counter("techtree.shared_reading.woken.total",
+        event_name: [:techtree, :shared_reading, :woken],
+        tags: [:kind]
       ),
       last_value("vm.memory.total.bytes", event_name: [:vm, :memory], measurement: :total),
       last_value("vm.memory.processes.bytes",

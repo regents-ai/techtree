@@ -64,7 +64,7 @@ release = dict(line.split("=", 1) for line in open("/etc/os-release").read().spl
 print(json.dumps({
     "harness_id": sys.argv[1],
     "harness_version": sys.argv[2],
-    "translator": "litellm 1.104.3",
+    "translator": "litellm 1.108.0",
     "model": "claude-opus-5-5",
     "reasoning_effort": "high",
     "os": release.get("PRETTY_NAME", "").strip('"'),

@@ -75,7 +75,7 @@ defmodule TechtreeWeb.Layouts do
                 aria-label="Menu"
                 aria-current={pages_section(@current_path)}
               >
-                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" /></svg>
+                <Regent.Icons.icon name="menu" />
               </button>
               <span id="site-pages" class="masthead__menu-list" popover>
                 <a
@@ -110,9 +110,7 @@ defmodule TechtreeWeb.Layouts do
             <span class="masthead__github-label">Star</span>
             <span :if={@github_stars != :none} class="masthead__github-count">
               <span>{stars_shown(@github_stars)}</span>
-              <svg class="masthead__github-star" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z" />
-              </svg>
+              <Regent.Icons.icon name="star" class="masthead__github-star" />
             </span>
           </a>
         </nav>
@@ -265,6 +263,9 @@ defmodule TechtreeWeb.Layouts do
     end
   end
 
+  defp description_for_path("/agents" <> _rest = path),
+    do: TechtreeWeb.AgentGuides.description(path) || description_for_path("/")
+
   defp description_for_path("/changelog"),
     do: "Techtree release notes: new features, fixes, and the limits of each release."
 
@@ -272,10 +273,8 @@ defmodule TechtreeWeb.Layouts do
     do: "Inspect the fixed task contract for a published Techtree Climb."
 
   defp description_for_path("/about"),
-    do: "What Techtree is, who runs it, what makes it different, and its key facts."
-
-  defp description_for_path("/contact"),
-    do: "How to reach the people who run Techtree, and how to report a security problem."
+    do:
+      "What Techtree is, who runs it and how to reach them, what makes it different, and its key facts."
 
   defp description_for_path("/privacy"),
     do: "What Techtree keeps about a visitor, what it never sees, and how to ask about either."
@@ -337,7 +336,6 @@ defmodule TechtreeWeb.Layouts do
               <a href={~p"/llms.txt"}>A short start</a>
             </div>
           </span>
-          <a href={~p"/contact"}>Contact</a>
           <span class="regent-footer__legal">
             <a href={~p"/privacy"}>Privacy policy</a>
             <a href={~p"/terms"}>Terms of use</a>

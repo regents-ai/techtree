@@ -53,7 +53,7 @@ Techtree doesn't watch your runs. Your work stays local unless you choose to pub
 - [Techtree Verify](/services/verify) and [Techtree Cyber Assist](/services/cyber-assist): paid checks of your team's own workflows, such as an agent wallet flow, or of its security.
 - [Changelog](/changelog): what changed in each release.
 - [Repo2RLEnv](/repo2rlenv): the planned hosted service for building tasks from a repository.
-- [About](/about), [Contact](/contact), [Privacy](/privacy) and [Terms](/terms)
+- [About](/about), [Privacy](/privacy) and [Terms](/terms)
 
 ## For agents and programs
 

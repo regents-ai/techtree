@@ -91,34 +91,46 @@
 .account-picture[data-shown] img:first-child {
   visibility: hidden;
 }
-/* The Buy Credits dialog's close button, square in the dialog's top right
-   corner, and kept there while the dialog scrolls. Its margins give back the
-   room it takes, so the panel keeps its place. This file comes after the shared
-   primitives (app.css), so it wins over the shared button's padding. */
-.shell-credits-dialog__close {
+/* The close button of Techtree's windows, Buy Credits and Pair New Agent,
+   square in the window's top right corner, and kept there while the window
+   scrolls. Its margins give back the room it takes, so what is under it keeps
+   its place. This file comes after the shared primitives (app.css), so it wins
+   over the shared button's padding. The pad is the window frame's own. */
+:is(.shell-credits-dialog, .shell-pairing-dialog) {
+  --shell-dialog-pad: clamp(var(--space-2), 4vw, var(--space-4));
+}
+
+.shell-dialog-close {
   position: sticky;
-  inset-block-start: calc(-1 * var(--shell-credits-pad-top));
+  inset-block-start: calc(-1 * var(--shell-dialog-pad));
   z-index: var(--rg-layer-card);
   display: grid;
   place-items: center;
   width: 2.75rem;
   height: 2.75rem;
   min-height: 0;
-  margin-block: calc(-1 * var(--shell-credits-pad-top))
-    calc(var(--shell-credits-pad-top) - 2.75rem);
-  margin-inline: auto calc(-1 * var(--shell-credits-pad-side));
+  margin-block: calc(-1 * var(--shell-dialog-pad)) calc(var(--shell-dialog-pad) - 2.75rem);
+  margin-inline: auto calc(-1 * var(--shell-dialog-pad));
   padding: 0;
   border: 0;
   border-radius: 0 calc(1.25rem - 1px) 0 0.75rem;
 }
 
-.shell-credits-dialog__close svg {
+.shell-dialog-close svg {
   width: 1.5rem;
   height: 1.5rem;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
+}
+
+/* The pairing window every Pair New Agent opens. */
+.shell-pairing-dialog {
+  --rg-dialog-size: 30rem;
+}
+
+.shell-pairing-dialog h2 {
+  margin: 0 0 var(--space-3);
+  padding-inline-end: 3rem;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-headline-size);
 }
 
 .account-shell { min-width: 0; }
@@ -126,14 +138,10 @@
 /* The Account page's shared parts, in Techtree's page, which is 254px wide on a
    320px phone. A name that is the wallet, with its copy and explorer icons, goes
    under the picture when the row has no room for both, and its icons go under it
-   when it alone fills the row. Five agent pictures to a row fit when each keeps a
-   finger's 44px and no more. */
+   when it alone fills the row. */
 .account-shell .rg-account-identity__who { flex-wrap: wrap; }
 .account-shell .rg-account-identity__name h2 { min-inline-size: 0; }
 .account-shell .rg-account-identity__name h2 .rg-address { flex-wrap: wrap; }
-@media (max-width: 22.49rem) {
-  #account-pairing-box .rg-account__choice { padding: 1px; }
-}
 .account-shell__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-block-end: 2rem; }
 .account-shell__tabs { display: flex; flex-wrap: wrap; gap: .25rem; }
 .account-shell__controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }

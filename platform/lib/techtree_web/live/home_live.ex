@@ -101,10 +101,7 @@ defmodule TechtreeWeb.HomeLive do
         </div>
 
         <a class="hero__more" href="#skill-test" aria-label="How a Skill is tested">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="m6 5 6 6 6-6" />
-            <path d="m6 12 6 6 6-6" />
-          </svg>
+          <Regent.Icons.icon name="chevrons-down" />
         </a>
       </section>
 

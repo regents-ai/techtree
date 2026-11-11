@@ -1,6 +1,6 @@
 """The bench's own Harbor agent adapters.
 
-Harbor 0.24.0 has no adapter for oh-my-pi or DeepSeek Harness, and reaches Kilo Code only through its ACP bridge, so
+Harbor 0.25.0 has no adapter for oh-my-pi or DeepSeek Harness, and reaches Kilo Code only through its ACP bridge, so
 those three are written here, each from the 1 October survey's working recipe (pinned version, model wiring through
 the machine's translator, headless flags) and reusing Harbor's trajectory converter where the agent is a fork of one
 Harbor already reads (Kilo of OpenCode, oh-my-pi of Pi). Hermes and Cline use Harbor's adapters with the survey's
@@ -26,7 +26,6 @@ from harbor.agents.installed.hermes import Hermes
 from harbor.agents.installed.muse_code import MuseCode
 from harbor.agents.installed.opencode import OpenCode
 from harbor.agents.installed.pi import Pi
-from harbor.agents.model_connection import ModelConnectionSpec
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 from harbor.models.trajectories import (
@@ -142,7 +141,7 @@ class ClineAgent(ClineCli):
 
     def create_run_agent_commands(self, instruction: str) -> list[ExecInput]:
         setup, run = super().create_run_agent_commands(instruction)
-        signed_in = run.command.replace(" -P openai-compatible -k $API_KEY -m $MODELID", "")
+        signed_in = run.command.replace(' -P openai-compatible -k "$API_KEY" -m "$MODELID"', "")
         return [setup, ExecInput(command=signed_in.replace(" --yolo", " --auto-approve true"), env=run.env)]
 
 
@@ -153,7 +152,7 @@ class GrokBuildAgent(GrokBuild):
 
     Grok continues a conversation with `--resume <id>`; its `--session-id` only starts one."""
 
-    capabilities = AgentCapabilities(atif=True, resume=True)
+    capabilities = AgentCapabilities(base_url=True, atif=True, resume=True)
     _PATH_EXPORT = 'export PATH="$HOME/.local/bin:$PATH"'
     resume_session_id: str | None = None
 
@@ -383,7 +382,6 @@ class DeepSeekHarness(BaseInstalledAgent):
     ATIF trajectory here; the stream carries no times or model name, so neither does the trajectory."""
 
     capabilities = AgentCapabilities(atif=True, resume=True)
-    MODEL_CONNECTION = ModelConnectionSpec(passthrough=True)
     _OUTPUT_FILENAME = "dsh.txt"
     EXIT_CODE = re.compile(r"\[exit code: (\d+)\]\s*$")
     resume_session_id: str | None = None

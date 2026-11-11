@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli release readiness browser
+.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli check-siwa-latest release readiness browser
 
-check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-contracts check-formal
+check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-siwa-latest check-contracts check-formal
 
 check-plugin:
 	$(MAKE) -C plugin check
@@ -30,10 +30,16 @@ check-required-fixes:
 
 # The command description check is regents-cli's own checker at the commit pinned
 # here, run by uv straight from GitHub. Move the pin in a commit.
-REGENTS_CLI_REV := 0e3768f5b92fe8210fb00fea0053bcb5e9c2afaf
+REGENTS_CLI_REV := fd325437e29fc6b239955e6ce946168bea2fb4ef
 check-cli:
 	uv run --no-project --with "regents-cli[check] @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" \
 	  python -m regents_cli.check_commands cli/commands.json cli/openapi.json
+
+# Every site is on the newest SIWA: the newest regents-cli release on PyPI (the pin
+# above, the agent guide and the install lines) and the newest change to the SIWA
+# library in elixir-utils. Needs `gh auth login`.
+check-siwa-latest:
+	scripts/check-siwa-latest.sh $(REGENTS_CLI_REV)
 
 # The model of the Wallet Bench funding cap (formal/wallet_bench_funding/README.md):
 # its witness traces and random runs, in seconds, with no Java. formal-proof adds

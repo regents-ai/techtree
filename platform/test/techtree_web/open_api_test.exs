@@ -17,7 +17,7 @@ defmodule TechtreeWeb.OpenAPITest do
     routes =
       for %{verb: verb, path: path} <- TechtreeWeb.Router.__routes__(),
           path == "/healthz" or
-            String.starts_with?(path, ["/api/v1/", "/api/model-climb/v1/", "/tools/account/"]),
+            String.starts_with?(path, ["/api/v1/", "/api/model-climb/v1/"]),
           do: {Regex.replace(~r/:(\w+)/, path, "{\\1}"), Atom.to_string(verb)}
 
     # The agent requests are one mount, answering three requests.

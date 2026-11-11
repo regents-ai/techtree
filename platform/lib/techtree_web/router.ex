@@ -81,6 +81,7 @@ defmodule TechtreeWeb.Router do
       session: {TechtreeWeb.Live.Session, :render_context, []},
       on_mount: [{TechtreeWeb.Live.Session, :load_human}] do
       live "/account", AccountShellLive, :account
+      live "/account/agents", AccountShellLive, :account_agents
       live "/account/points", AccountShellLive, :points
       live "/account/credits", AccountShellLive, :credits
       live "/account/wallets", AccountShellLive, :wallets
@@ -126,9 +127,10 @@ defmodule TechtreeWeb.Router do
     live_session :public, session: {TechtreeWeb.Live.Session, :render_context, []} do
       live "/", HomeLive
       get "/about", PublicPagesController, :show
-      get "/contact", PublicPagesController, :show
       get "/privacy", PublicPagesController, :show
       get "/terms", PublicPagesController, :show
+      get "/agents", PublicPagesController, :show
+      get "/agents/:agent", PublicPagesController, :show
       get "/blog", BlogController, :index
       get "/blog/:slug", BlogController, :show
       live "/docs", DocsLive
@@ -196,6 +198,7 @@ defmodule TechtreeWeb.Router do
     pipe_through :api
 
     get "/health", HealthController, :status
+    get "/docs", PublicPagesController, :document, assigns: %{document: "/docs"}
     get "/bootstrap", BootstrapController, :show
     get "/catalog", CatalogController, :index
     get "/climbs/:slug", ClimbController, :show
@@ -228,10 +231,12 @@ defmodule TechtreeWeb.Router do
     get "/reports/:digest", ModelClimbReportController, :show
   end
 
-  scope "/tools/account", TechtreeWeb do
+  # A paired agent's reads of its person's Credits and Points, at the same
+  # paths on every site.
+  scope "/api/v1/account", TechtreeWeb do
     pipe_through [:api, :paired_agent]
     get "/balances", AgentAccountController, :balances
-    post "/credits/history", AgentAccountController, :history
+    post "/credits/history", AgentAccountController, :credits_history
     get "/points", AgentAccountController, :points
   end
 

@@ -17,7 +17,6 @@ defmodule TechtreeWeb.PublicMarkdownTest do
   @pages [
            "/",
            "/about",
-           "/contact",
            "/privacy",
            "/terms",
            "/docs",
@@ -34,7 +33,9 @@ defmodule TechtreeWeb.PublicMarkdownTest do
            "/climbs/hello-world-climb",
            "/examples/tdd",
            "/wallet-bench"
-         ] ++ Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
+         ] ++
+           Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++
+           TechtreeWeb.AgentGuides.paths()
 
   @moduletag :tmp_dir
 
@@ -69,6 +70,28 @@ defmodule TechtreeWeb.PublicMarkdownTest do
       assert html =~ ~s(rel="sitemap"), path
       assert html =~ ~s(rel="service-desc"), path
     end
+  end
+
+  test "the Docs list answers as JSON the same words it answers as Markdown", %{conn: conn} do
+    markdown = conn |> put_req_header("accept", "text/markdown") |> get("/docs") |> response(200)
+
+    assert %{"title" => "Docs", "markdown" => ^markdown} =
+             build_conn() |> get("/api/v1/docs") |> json_response(200)
+  end
+
+  test "each agent has a page, and the agents' list names every one", %{conn: conn} do
+    list = conn |> get("/agents") |> html_response(200)
+
+    for path <- TechtreeWeb.AgentGuides.paths() do
+      page = build_conn() |> get(path) |> html_response(200)
+
+      assert page =~ "data-brand", path
+      refute page =~ "{{", path
+      assert list =~ path, path
+    end
+
+    assert_error_sent 404, fn -> get(build_conn(), "/agents/nobody") end
+    assert_error_sent 404, fn -> get(build_conn(), "/agents/grok_bot") end
   end
 
   test "a page without Markdown does not claim one", %{conn: conn} do

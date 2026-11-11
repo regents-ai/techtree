@@ -209,7 +209,7 @@ async def _post_once(self, *args, **kwargs):
     return await _post(self, *args, **kwargs)
 
 
-AsyncHTTPHandler.single_connection_post_request = _not_sent_again
+AsyncHTTPHandler.single_connection_request = _not_sent_again
 AsyncHTTPHandler.post = _post_once
 # An Anthropic Messages request that Anthropic refuses for an invalid thinking block is sent again without thinking.
 BaseAnthropicMessagesConfig.max_retry_on_anthropic_messages_http_error = property(lambda self: 1)
