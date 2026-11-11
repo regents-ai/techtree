@@ -18,6 +18,12 @@ defmodule TechtreeWeb.Telemetry do
   available, running or retrying job in each running `queue`, 0 when there is
   none, every ten seconds. A paused queue keeps its jobs waiting on purpose, so it
   is not measured.
+  The site sends from its own wallet (the Wallet Bench's funder), so it names, as
+  `unconfirmed_sends` in `config :techtree, TechtreeWeb.Telemetry`, the function
+  that answers each of its fixed sending flows with when its oldest signed,
+  unconfirmed transaction was signed, or nil; every ten seconds
+  `[:techtree, :wallet, :unconfirmed_oldest]` carries that `age_ms` for each
+  `flow`, 0 when none waits.
   Each Result newly published (`Techtree.Network.Ingest`) is counted, and so is
   each time a browser opens a Result's page (`TechtreeWeb.RunsLive.Show`); a
   page opened by following a link on the site never passes through the router,
@@ -57,12 +63,23 @@ defmodule TechtreeWeb.Telemetry do
   def site_poller,
     do:
       {:telemetry_poller,
-       measurements: [
-         {Techtree.SharedReading, :measure, []},
-         {__MODULE__, :oldest_unfinished_jobs, []}
-       ],
+       measurements:
+         [
+           {Techtree.SharedReading, :measure, []},
+           {__MODULE__, :oldest_unfinished_jobs, []}
+         ] ++ unconfirmed_sends_step(),
        period: 10_000,
        name: :techtree_site_poller}
+
+  # Only a site that sends from its own wallet names its query. Without one the
+  # age is never published, so Sentinel never reads a steady 0 that only means
+  # nothing was asked.
+  defp unconfirmed_sends_step do
+    case Application.get_env(:techtree, __MODULE__)[:unconfirmed_sends] do
+      nil -> []
+      query -> [{__MODULE__, :oldest_unconfirmed_sends, [query]}]
+    end
+  end
 
   # The poller drops for good a measurement that raises or exits, and the row
   # would then keep its last number. So whatever stops this tick (a database
@@ -72,12 +89,38 @@ defmodule TechtreeWeb.Telemetry do
   def oldest_unfinished_jobs do
     measure_oldest_unfinished_jobs()
   rescue
-    error -> not_measured(Exception.message(error))
+    error -> not_measured("background job age", Exception.message(error))
   catch
-    :exit, reason -> not_measured(Exception.format_exit(reason))
+    :exit, reason -> not_measured("background job age", Exception.format_exit(reason))
   end
 
-  defp not_measured(why), do: Logger.warning("background job age not measured: #{why}")
+  # The site's query, `{module, function, args}`, answers `{flow, signed_at}`
+  # for each of its sending flows, `signed_at` nil when nothing waits. Logged
+  # and skipped like the job age.
+  @doc false
+  def oldest_unconfirmed_sends({module, function, args}) do
+    now = DateTime.utc_now()
+
+    for {flow, signed_at} <- apply(module, function, args) do
+      age_ms =
+        case signed_at do
+          nil -> 0
+          signed_at -> DateTime.diff(now, signed_at, :millisecond)
+        end
+
+      :telemetry.execute([:techtree, :wallet, :unconfirmed_oldest], %{age_ms: age_ms}, %{
+        flow: flow
+      })
+    end
+
+    :ok
+  rescue
+    error -> not_measured("unconfirmed send age", Exception.message(error))
+  catch
+    :exit, reason -> not_measured("unconfirmed send age", Exception.format_exit(reason))
+  end
+
+  defp not_measured(what, why), do: Logger.warning("#{what} not measured: #{why}")
 
   # Only running queues are measured: a paused queue holds its jobs on purpose,
   # and its age would only grow. Where no queue runs (tests), nothing is read.
@@ -177,6 +220,14 @@ defmodule TechtreeWeb.Telemetry do
         tags: [:queue],
         description:
           "Age of the oldest unfinished background job in the queue, counted from when it was added"
+      ),
+      last_value("health.wallet_unconfirmed_oldest.seconds",
+        event_name: [:techtree, :wallet, :unconfirmed_oldest],
+        measurement: :age_ms,
+        unit: {:millisecond, :second},
+        tags: [:flow],
+        description:
+          "Age of the oldest transaction the site's own wallet signed that is not yet confirmed"
       ),
       counter("techtree.jobs.finished.total",
         event_name: [:oban, :job, :stop],

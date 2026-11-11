@@ -80,6 +80,26 @@ defmodule Techtree.WalletBench.Funding do
   end
 
   @doc """
+  For Sentinel (`TechtreeWeb.Telemetry`): when the oldest funding send still
+  `signed` or `unknown` was signed, or nil when none waits.
+  """
+  @spec unconfirmed_sends() :: [{String.t(), DateTime.t() | nil}]
+  def unconfirmed_sends do
+    signed_at =
+      Payment
+      |> Ash.Query.filter(state in [:signed, :unknown])
+      |> Ash.Query.sort(inserted_at: :asc)
+      |> Ash.Query.limit(1)
+      |> Ash.read!()
+      |> case do
+        [payment] -> payment.inserted_at
+        [] -> nil
+      end
+
+    [{"wallet_bench_funding", signed_at}]
+  end
+
+  @doc """
   What became of an unknown send, read from Base without sending anything:
   `{:confirmed, block}` or `{:reverted, block}` from its receipt, or
   `:replaced` when another transaction used its nonce.

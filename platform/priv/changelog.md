@@ -17,6 +17,11 @@
   checked on every `make check`, with a test that funds five attempts at once
   against the database.
 
+### Changed
+
+- **Site health.** The site now reports how long its oldest unconfirmed Wallet
+  Bench payment has waited, so a payment stuck on Base is noticed.
+
 ### Fixed
 
 - **Wallet Bench funding.** A funding send whose outcome was lost is now

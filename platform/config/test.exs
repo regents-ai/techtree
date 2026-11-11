@@ -76,6 +76,10 @@ config :techtree, Techtree.Network,
 
 config :techtree, :privy, app_id: "test-app"
 
+# The site poller runs outside the test database's sandbox, so it never reads
+# the Wallet Bench's sends here; the tests call the query themselves.
+config :techtree, TechtreeWeb.Telemetry, unconfirmed_sends: nil
+
 config :techtree, Oban, testing: :manual
 
 # Agents' signed requests reach a stub of the sign-in service, never the real

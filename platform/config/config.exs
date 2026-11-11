@@ -212,6 +212,11 @@ config :techtree, TechtreeWeb.TddShowcase,
   repository_url: "https://github.com/regents-ai/techtree",
   export_revision: "808c280608a0599bbd5825e61534de8570992715"
 
+# Sentinel's age of the oldest unconfirmed send from the site's own wallet:
+# the Wallet Bench's funder (`TechtreeWeb.Telemetry`).
+config :techtree, TechtreeWeb.Telemetry,
+  unconfirmed_sends: {Techtree.WalletBench.Funding, :unconfirmed_sends, []}
+
 # Configure the endpoint
 config :techtree, TechtreeWeb.Endpoint,
   url: [host: "localhost"],

@@ -69,6 +69,7 @@ finger on a touch screen, 24 px for a mouse control.
 | Keep and read Model Climb reports only for its own person | `report_policy_test.exs`. **Gap:** no check sends a real signed proof through `POST /api/model-climb/v1/reports` |
 | Get a funded Wallet Bench test's money back to the funder even when a money test fails | `advance_test.exs` (the return turn is queued in the latest conversation; the attempt then stops with the money test's reason). **Gap:** the judge's 1, 2, 4 and 8 minute retries are not exercised |
 | Fund Wallet Bench tests without the funder ever sending more than the run's total, and settle a send whose outcome was lost from Base, where a lagging node can never make a send that landed look replaced | `funding_test.exs`, `funding_cap_concurrency_test.exs` (five at once on real Postgres), `funding_settled_test.exs` (each outcome, and a property for the pinned search), `make check-formal` (the model in `formal/wallet_bench_funding`). **Gap:** `settled/1` is checked against a fake Base node, not Base itself |
+| Sentinel's age of the oldest unconfirmed Wallet Bench payment: the oldest funding send still signed or unknown sets its age by flow, 0 when none waits, and a query that fails is logged and skipped; the test configuration names no query, so the site's poller never reads it there | `chain_numbers_test.exs`, `funding_test.exs` |
 | Use the `regents techtree` commands | `make check-cli` (the command descriptions); **Gap:** commands not run end to end here |
 
 ## Development checks

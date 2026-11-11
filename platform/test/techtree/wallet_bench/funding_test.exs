@@ -23,6 +23,40 @@ defmodule Techtree.WalletBench.FundingTest do
     assert Funding.admit(pair.(3)) == :ok
   end
 
+  # Sentinel's age of the oldest unconfirmed funding send (TechtreeWeb.Telemetry).
+  test "the oldest send still signed or unknown is the one waiting, and none waits once every send has ended" do
+    attempt = Ash.Seed.seed!(Attempt, %{harness_id: "H10", wallet_id: "W03", state: :sending})
+    now = DateTime.utc_now()
+
+    seed = fn nonce, state, seconds_ago ->
+      Ash.Seed.seed!(
+        Payment,
+        Map.merge(send(attempt, :usdc, 20_000, nonce), %{
+          state: state,
+          inserted_at: DateTime.add(now, -seconds_ago, :second)
+        })
+      )
+    end
+
+    assert Funding.unconfirmed_sends() == [{"wallet_bench_funding", nil}]
+
+    for {state, nonce} <- Enum.with_index([:confirmed, :reverted, :replaced]) do
+      seed.(nonce, state, 600)
+    end
+
+    assert Funding.unconfirmed_sends() == [{"wallet_bench_funding", nil}]
+
+    signed = seed.(3, :signed, 60)
+    unknown = seed.(4, :unknown, 300)
+
+    assert [{"wallet_bench_funding", signed_at}] = Funding.unconfirmed_sends()
+    assert DateTime.compare(signed_at, unknown.inserted_at) == :eq
+
+    Ash.Seed.update!(unknown, %{state: :replaced})
+    assert [{"wallet_bench_funding", signed_at}] = Funding.unconfirmed_sends()
+    assert DateTime.compare(signed_at, signed.inserted_at) == :eq
+  end
+
   defp send(attempt, token, amount, nonce) do
     %{
       attempt_id: attempt.id,
