@@ -4,6 +4,13 @@
 
 ### Added
 
+- **Techtree Formal.** A new page, /formal, explains in plain words what a
+  formal proof shows and what it doesn't, lists recent advances with the date
+  and source of each, shows a worked example (the Wallet Bench's funding cap,
+  proved, with the two ways past the total it found and how they were closed)
+  and says what to send to build@regents.sh to have code proved. The reply is
+  a scoped quote; the work is paid and priced once the scope is agreed.
+
 - A machine-checked model of the Wallet Bench funding total
   (`formal/wallet_bench_funding`): attempts funded at once never keep more
   than the run's total, and no more money moves on Base than the total. It is

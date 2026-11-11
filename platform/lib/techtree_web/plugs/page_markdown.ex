@@ -1,8 +1,8 @@
 defmodule TechtreeWeb.Plugs.PageMarkdown do
   @moduledoc """
-  The Markdown answer of the public pages built from the database or from
-  release files: Start, Results, each Result, each Climb, the Wallet Bench, the
-  two offers under `/services` and the tdd example. The database-free pages are answered before the router
+  The Markdown answer of the public pages built from the database, from
+  release files or from their LiveView's own data: Start, Results, each Result, each Climb, the Wallet Bench, the
+  two offers under `/services`, Techtree Formal and the tdd example. The database-free pages are answered before the router
   (`TechtreeWeb.PublicDocuments`); these wait for the router, so an HTML
   request reads nothing here and a Markdown one reads only what its page reads,
   through the same queries.
@@ -34,6 +34,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     TechtreeWeb.ClimbsLive.Show => :climb,
     TechtreeWeb.WalletBenchLive.Index => :wallet_bench,
     TechtreeWeb.ServiceLive => :offer,
+    TechtreeWeb.FormalLive => :formal,
     TechtreeWeb.TddShowcaseLive => :tdd
   }
 
@@ -110,6 +111,13 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     |> PublicDocuments.offer()
     |> String.replace("{{bench}}", TechtreeWeb.ServiceLive.bench_markdown(figures))
     |> String.replace("{{mailto}}", TechtreeWeb.ServiceLive.mailto(offer))
+  end
+
+  defp markdown(:formal, _conn) do
+    PublicDocuments.formal()
+    |> String.replace("{{frontier}}", TechtreeWeb.FormalLive.frontier_markdown())
+    |> String.replace("{{example}}", TechtreeWeb.FormalLive.example_url())
+    |> String.replace("{{mailto}}", TechtreeWeb.FormalLive.mailto())
   end
 
   defp start(%{installable?: true, introductory_reference: reference} = release) do

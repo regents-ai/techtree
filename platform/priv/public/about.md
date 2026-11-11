@@ -65,9 +65,9 @@ Techtree is built and run by Regents Labs, an agentic product lab whose products
 | Founder | Sean Brennan |
 | Website | [techtree.sh](https://techtree.sh) |
 | Core offering | With-and-without comparisons of a Skill, ending in a signed Result anyone can check offline |
-| Pricing | Free to use. Model costs are billed by the model provider you choose. Techtree Verify and Techtree Cyber Assist are paid checks. |
+| Pricing | Free to use. Model costs are billed by the model provider you choose. Techtree Verify, Techtree Cyber Assist and Techtree Formal are paid. |
 | Status | Working technical preview |
-| Services | Climbs, task building from a Skill, signed Results, publishing, and paid checks: [Techtree Verify](/services/verify) and [Techtree Cyber Assist](/services/cyber-assist) |
+| Services | Climbs, task building from a Skill, signed Results, publishing, and paid checks: [Techtree Verify](/services/verify), [Techtree Cyber Assist](/services/cyber-assist) and [Techtree Formal](/formal) |
 | Communication | [build@regents.sh](mailto:build@regents.sh) |
 | Social | [X @regents_sh](https://x.com/regents_sh) · [GitHub](https://github.com/regents-ai/techtree) · Founder: [X](https://x.com/seanwbren), [LinkedIn](https://www.linkedin.com/in/seanwbren) |
 | Token | REGENT, on Base |

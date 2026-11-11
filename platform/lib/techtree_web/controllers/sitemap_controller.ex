@@ -21,7 +21,7 @@ defmodule TechtreeWeb.SitemapController do
 
   @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /about /privacy /terms
             /services/verify /services/verify/sample-report /services/cyber-assist
-            /services/cyber-assist/sample-report) ++
+            /services/cyber-assist/sample-report /formal) ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++
            TechtreeWeb.AgentGuides.paths()
 
