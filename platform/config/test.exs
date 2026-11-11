@@ -24,15 +24,9 @@ nowhere = "http://127.0.0.1:9"
 
 config :req, default_options: [adapter: Techtree.OfflineHttp]
 
-config :regent_credits,
-  chains: %{
-    base: %{chain_id: 8453, name: "Base", rpc_url: nowhere},
-    ethereum: %{chain_id: 1, name: "Ethereum", rpc_url: nowhere}
-  }
-
 config :regent_agents, siwa: [url: nowhere, audience: "techtree"]
 config :techtree, Techtree.WalletBench, base_rpc: nowhere
-config :techtree, :chain_nodes, %{8453 => nowhere, 1 => nowhere}
+config :techtree, :chain_nodes, %{8453 => nowhere}
 config :techtree, :github_stars, api_url: nowhere, repository: "regents-ai/techtree"
 
 # The browser test server (assets/test/browser) answers real page loads, which

@@ -15,7 +15,7 @@ explicitly; neither a file list nor this map proves that every string was review
 | `repos/design-system/regent_ui/lib/regent/` and `regent_ui/assets/` | Shared account/profile/primitives copy, help, accessibility labels, tooltips and CSS-generated text | Each host's `regent_ui` pin; `mix regent_ui.assets`; copied `assets/vendor/regent_ui` and static assets |
 | `repos/elixir-utils/ash_components/agents/lib/regent_agents/pairing_message.ex`, `refusal.ex` | Pairing prompts and shared error/recovery wording | Host controllers, tool/CLI failures, start-page copy, product Skills |
 | `repos/elixir-utils/agent_access/` | Markdown/error behavior and signed browser-tool helper | `regent_agent_access.assets` copies, descriptions of proof/transport support |
-| `repos/elixir-utils/credits/`, `points/`, `privy/`, `siwa/` | Accounting/rate labels, package READMEs, module docs, identity/signing contracts | Shared UI, host adapters, CLI mapping, product onboarding, release sequence |
+| `repos/elixir-utils/points/`, `privy/`, `siwa/` | Accounting/rate labels, package READMEs, module docs, identity/signing contracts | Shared UI, host adapters, CLI mapping, product onboarding, release sequence |
 | `repos/siwa-server/priv/static/skill.md`, `lib/siwa_server_web/help.ex`, static signer pages | Maintained signing guidance and signer UI/help | CLI sign-in flow and error hints; product docs reference it instead of duplicating protocol instructions |
 
 ## Five sites and the CLI
@@ -27,7 +27,7 @@ Inspect these even when the changed file is only a backend action. Do not treat 
 
 | Repository | Specific authored sources beyond the common layout |
 |---|---|
-| `repos/regents` | `platform/priv/public/`; `platform/lib/regents_web/agent_start.ex`; account/agent/Credits/Points components; `platform/priv/tool_manifest.json`; `cli/COMMANDS.md`, `cli/commands.json`; contract and staking notices |
+| `repos/regents` | `platform/priv/public/`; `platform/lib/regents_web/agent_start.ex`; account/agent/Points components; `platform/priv/tool_manifest.json`; `cli/COMMANDS.md`, `cli/commands.json`; contract and staking notices |
 | `repos/autolaunch` | `platform/lib/autolaunch_web/public_documents/{agents,docs}.md`; `public_page.ex`, `controllers/public_pages_controller.ex` and page HTML; auction/launch/trade wallet explanations; `platform/priv/tool_manifest.json`; `cli/COMMANDS.md`, `cli/commands.json`; legacy `cli/src/commands.js` and `cli/docs/` must be labelled by actual support |
 | `repos/patchbay` | `skills/patchbay/SKILL.md`; `platform/lib/patchbay_web/forum/agent_pages.ex`; `controllers/agent_skills_controller.ex`; `platform/priv/public/`; `platform/priv/tool_manifest.json`; `platform/assets/js/webmcp/`; hosted MCP descriptions in application source; free/paid posting and refund recovery copy; site-directory/tool records authored at runtime |
 | `repos/techtree` | `platform/priv/public/`; release/bootstrap source under `platform/lib/techtree/release/`, `platform/lib/techtree_web/release_info.ex`; `platform/priv/release/skills/` and examples; `platform/priv/tool_manifest.json`; `cli/` descriptors; local-versus-hosted execution, publication ownership and installation version claims |

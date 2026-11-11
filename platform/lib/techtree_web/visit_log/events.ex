@@ -9,8 +9,6 @@ defmodule TechtreeWeb.VisitLog.Events do
     `x-regent-client`, else by its route; the outcome is `ok` or the error code
     the answer carried; `client` names the program that called.
   - `press`: an event a page or one of its components handled, as `View:event`.
-    A wallet step reports what the wallet answered: `sent`, `signed` or why
-    nothing was sent.
   - `action`: an Ash create, update, destroy or generic action, as
     `resource.action`, with its time.
   - `job`: a background job's run, by worker and how it ended.
@@ -23,9 +21,7 @@ defmodule TechtreeWeb.VisitLog.Events do
 
   alias TechtreeWeb.VisitLog
 
-  # The reasons the wallet hook reports (`Failure` in send_step.ts).
-  @wallet_failures ~w(step_unknown wallet_unavailable network_mismatch wallet_declined insufficient_funds send_unconfirmed)
-  @domain_apps [:techtree, :regent_identity, :regent_credits, :regent_agents, :regent_points]
+  @domain_apps [:techtree, :regent_identity, :regent_agents, :regent_points]
 
   @doc "Attaches every handler; called once at start."
   def attach,
@@ -121,7 +117,7 @@ defmodule TechtreeWeb.VisitLog.Events do
   end
 
   defp pressed(owner, ending, measurements, metadata) do
-    outcome = if ending == :exception, do: "failed", else: wallet(metadata.event, metadata.params)
+    outcome = if ending == :exception, do: "failed", else: "ok"
 
     VisitLog.record(
       "press",
@@ -161,12 +157,6 @@ defmodule TechtreeWeb.VisitLog.Events do
       _no_code -> "status_#{conn.status}"
     end
   end
-
-  defp wallet("step_sent", _params), do: "sent"
-  defp wallet("step_signed", _params), do: "signed"
-  defp wallet("step_failed", %{"reason" => reason}) when reason in @wallet_failures, do: reason
-  defp wallet("step_failed", _params), do: "other"
-  defp wallet(_event, _params), do: "ok"
 
   defp reply({:ok, %Finch.Response{status: status}}), do: Integer.to_string(status)
   defp reply({:ok, _streamed}), do: "ok"

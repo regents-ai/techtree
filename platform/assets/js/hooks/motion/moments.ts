@@ -153,8 +153,6 @@ export const countHook = (rolls: Record<string, Roll>): Hook => ({
   },
 })
 
-export const MotionCount = countHook(ROLLS)
-
 type RefusalHook = {el: HTMLElement; scope?: Scope; said?: string}
 
 /**

@@ -1,19 +1,17 @@
 defmodule TechtreeWeb.AccountShellLive do
-  @moduledoc "One template account frame for profile, agents, Credits, Points, wallets and connections."
+  @moduledoc "One template account frame for profile, agents, Points, wallets and connections."
   use TechtreeWeb, :live_view
 
   alias Techtree.{Accounts, SharedReading}
   alias Techtree.Accounts.LinkedIdentity.Providers
   alias Techtree.Actors.Human
   alias Techtree.Points.Board
-  alias TechtreeWeb.{AccountLive, CreditsHistoryLive, Read}
-  import TechtreeWeb.Components.AccountControls, only: [credits_control: 1]
+  alias TechtreeWeb.{AccountLive, Read}
 
   @tabs [
     %{route_id: :account, label: "Account", path: "/account"},
     %{route_id: :account_agents, label: "Agents", path: "/account/agents"},
     %{route_id: :points, label: "Points", path: "/account/points"},
-    %{route_id: :credits, label: "Credits", path: "/account/credits"},
     %{route_id: :wallets, label: "Wallets", path: "/account/wallets"},
     %{route_id: :connections, label: "Connections", path: "/account/connections"}
   ]
@@ -34,15 +32,12 @@ defmodule TechtreeWeb.AccountShellLive do
        hearing_board?: false,
        verified_connections: %Read{},
        points: %Read{},
-       credits_read: %Read{},
-       credits_history: %Read{},
        points_bonus: %Read{},
        points_board: %Read{},
        points_earning: [],
        verified_connections_notice: nil,
        connection_outcome: nil
-     )
-     |> read_credits()}
+     )}
   end
 
   @impl true
@@ -54,7 +49,6 @@ defmodule TechtreeWeb.AccountShellLive do
      |> assign(page_title: route_spec.label, route_spec: route_spec)
      |> hear_board(route_spec)
      |> load_points(route_spec)
-     |> load_credits_history(route_spec)
      |> load_verified_connections(route_spec)}
   end
 
@@ -89,25 +83,7 @@ defmodule TechtreeWeb.AccountShellLive do
      |> read_verified_connections()}
   end
 
-  def handle_event("credits_history_older", _params, socket) do
-    with %Read{value: %{more?: true} = history} <- socket.assigns.credits_history,
-         account when account != nil <- current_account(socket.assigns.access_context) do
-      actor = Techtree.Credits.person(account)
-
-      {:noreply,
-       Read.start(socket, :credits_history, account.privy_user_id, fn ->
-         CreditsHistoryLive.older(history, &RegentCredits.history(&1, actor: actor))
-       end)}
-    else
-      _no_more -> {:noreply, socket}
-    end
-  end
-
   @impl true
-  def handle_async({Read, :credits_read, _generation} = name, result, socket) do
-    {:noreply, Read.settle(socket, name, result)}
-  end
-
   def handle_async({Read, _name, _generation} = name, result, socket) do
     {:noreply, socket |> Read.settle(name, result) |> report_connection_outcome()}
   end
@@ -129,13 +105,6 @@ defmodule TechtreeWeb.AccountShellLive do
       do: {:noreply, read_points_board(socket)}
 
   def handle_info({:shared_reading, {:points_board, _program}}, socket), do: {:noreply, socket}
-
-  # The balance changed on this or any Regent site: a purchase, a gift, a spend.
-  # The header, the Buy Credits panel, the Account page and the Credits history
-  # follow.
-  def handle_info(:credits_changed, socket) do
-    {:noreply, socket |> read_credits() |> load_credits_history(socket.assigns.route_spec)}
-  end
 
   # An agent paired, checked in or was unpaired, here or on another Regent site.
   # The Agents tab lists the agents; the account menu and the pairing window
@@ -167,16 +136,12 @@ defmodule TechtreeWeb.AccountShellLive do
               {tab.label}
             </.link>
           </nav>
-          <div class="account-shell__controls">
-            <.credits_control :if={current_account(@access_context)} credits={@credits_read} />
-          </div>
         </div>
         <AccountLive.profile
           :if={@route_spec.route_id == :account}
           signed_out_reason={@signed_out_reason}
           account={current_account(@access_context)}
           account_control={@account_control}
-          credits_read={@credits_read}
         />
         <AccountLive.agents
           :if={@route_spec.route_id == :account_agents}
@@ -193,12 +158,6 @@ defmodule TechtreeWeb.AccountShellLive do
           bonus={@points_bonus}
           earning={@points_earning}
         />
-        <CreditsHistoryLive.page
-          :if={@route_spec.route_id == :credits}
-          signed_out_reason={@signed_out_reason}
-          account={current_account(@access_context)}
-          history={@credits_history}
-        />
         <AccountLive.wallets
           :if={@route_spec.route_id == :wallets}
           signed_out_reason={@signed_out_reason}
@@ -211,30 +170,6 @@ defmodule TechtreeWeb.AccountShellLive do
           verified_connections={@verified_connections}
           verified_connections_notice={@verified_connections_notice}
         />
-        <Regent.Structure.dialog
-          :if={current_account(@access_context)}
-          id="shell-credits"
-          class="shell-credits-dialog"
-          aria-label="Buy Credits"
-          phx-mounted={JS.ignore_attributes(["open"])}
-        >
-          <Regent.Primitives.button
-            variant="quiet"
-            type="button"
-            class="shell-dialog-close"
-            aria-label="Close"
-            data-credits-close
-          >
-            <Regent.Icons.icon name="x" />
-          </Regent.Primitives.button>
-          <.live_component
-            module={TechtreeWeb.CreditsPanel}
-            id="credits-panel"
-            lease={@session_lease}
-            account={current_account(@access_context)}
-            credits={@credits_read}
-          />
-        </Regent.Structure.dialog>
       </div>
     </Layouts.page>
     """
@@ -242,7 +177,6 @@ defmodule TechtreeWeb.AccountShellLive do
 
   defp subscribe_to_own_topics(%{principal: {:human, account}}) do
     Phoenix.PubSub.subscribe(Techtree.PubSub, "points:#{account.id}")
-    Phoenix.PubSub.subscribe(Techtree.PubSub, RegentCredits.topic(account.privy_user_id))
     Phoenix.PubSub.subscribe(Techtree.PubSub, RegentAgents.topic(account.privy_user_id))
   end
 
@@ -272,35 +206,6 @@ defmodule TechtreeWeb.AccountShellLive do
     do: Human.for_account(account)
 
   defp human_actor(_socket), do: nil
-
-  defp read_credits(socket) do
-    case current_account(socket.assigns.access_context) do
-      nil ->
-        Read.clear(socket, :credits_read)
-
-      account ->
-        Read.start(socket, :credits_read, account.privy_user_id, fn ->
-          {:ok, RegentCredits.balance(account.privy_user_id)}
-        end)
-    end
-  end
-
-  # The newest page of the account's Credits history, read again on each change.
-  defp load_credits_history(socket, %{route_id: :credits}) do
-    case current_account(socket.assigns.access_context) do
-      nil ->
-        Read.clear(socket, :credits_history)
-
-      account ->
-        actor = Techtree.Credits.person(account)
-
-        Read.start(socket, :credits_history, account.privy_user_id, fn ->
-          RegentCredits.history(%{}, actor: actor)
-        end)
-    end
-  end
-
-  defp load_credits_history(socket, _route_spec), do: Read.clear(socket, :credits_history)
 
   # The NFT tier is read from Base once per page open, never on each award
   # notice, and not at all while nothing earns.
@@ -361,8 +266,8 @@ defmodule TechtreeWeb.AccountShellLive do
     end
   end
 
-  # Base is read for the person's NFTs, counted against the same per-account
-  # allowance as the Buy panel's reads.
+  # Base is read for the person's NFTs, counted against the account's own
+  # allowance for wallet reads.
   defp points_bonus(id) do
     case Techtree.Limits.spend(:wallet_read, {:human, id}) do
       :ok -> RegentPoints.Bonus.current(id)

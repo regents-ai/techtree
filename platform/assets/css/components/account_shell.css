@@ -91,12 +91,12 @@
 .account-picture[data-shown] img:first-child {
   visibility: hidden;
 }
-/* The close button of Techtree's windows, Buy Credits and Pair New Agent,
-   square in the window's top right corner, and kept there while the window
-   scrolls. Its margins give back the room it takes, so what is under it keeps
-   its place. This file comes after the shared primitives (app.css), so it wins
-   over the shared button's padding. The pad is the window frame's own. */
-:is(.shell-credits-dialog, .shell-pairing-dialog) {
+/* The close button of the Pair New Agent window, square in the window's top
+   right corner, and kept there while the window scrolls. Its margins give back
+   the room it takes, so what is under it keeps its place. This file comes after
+   the shared primitives (app.css), so it wins over the shared button's padding.
+   The pad is the window frame's own. */
+.shell-pairing-dialog {
   --shell-dialog-pad: clamp(var(--space-2), 4vw, var(--space-4));
 }
 
@@ -144,7 +144,6 @@
 .account-shell .rg-account-identity__name h2 .rg-address { flex-wrap: wrap; }
 .account-shell__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-block-end: 2rem; }
 .account-shell__tabs { display: flex; flex-wrap: wrap; gap: .25rem; }
-.account-shell__controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
 .account-shell__tabs a { padding: .65rem .8rem; color: var(--color-fg-muted); text-decoration: none; border-bottom: 2px solid transparent; }
 .account-shell__tabs a[aria-current="page"] { color: var(--color-fg); border-bottom-color: currentColor; }
 .account-shell__tabs a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
@@ -165,29 +164,3 @@
 }
 @property --account-tabs-fade { syntax: "<length>"; inherits: false; initial-value: 0px; }
 @keyframes account-tabs-fade { from { --account-tabs-fade: 1.5rem; } to { --account-tabs-fade: 0px; } }
-
-.account-shell .shell-credits {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25em;
-  align-self: center;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  margin-inline-end: var(--space-1);
-  padding: 0.35rem 0.7rem;
-  border: 1px solid var(--color-border);
-  border-radius: 0;
-  background: transparent;
-  color: var(--color-fg);
-  font: inherit;
-  font-size: 0.85rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-  .account-shell .shell-credits:hover {
-    background: color-mix(in oklch, var(--color-fg) 6%, transparent);
-  }
-}

@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.AccountLive do
   @moduledoc """
-  The signed-in person's Account, one tab each: Account (their profile and their
-  Credits, in the layout every Regent site shares, `Regent.Account.layout`),
+  The signed-in person's Account, one tab each: Account (their profile, in the
+  layout every Regent site shares, `Regent.Account.layout`),
   Agents (the agents they paired, whose Pair New Agent opens the pairing window),
   Wallets (the wallets their sign-in verified) and Connections (the accounts they
   have connected). Points has its own tab (`TechtreeWeb.PointsLive`).
@@ -18,7 +18,6 @@ defmodule TechtreeWeb.AccountLive do
   attr :account, :map, default: nil
   attr :signed_out_reason, :atom, default: :signed_out
   attr :account_control, :map, required: true
-  attr :credits_read, TechtreeWeb.Read, default: %TechtreeWeb.Read{}
 
   def profile(assigns) do
     ~H"""
@@ -28,7 +27,7 @@ defmodule TechtreeWeb.AccountLive do
       account={@account}
       signed_out_reason={@signed_out_reason}
     >
-      <:tip>Your profile and your Credits.</:tip>
+      <:tip>Your profile.</:tip>
       <Regent.Account.layout id="account">
         <:identity>
           <Regent.Account.identity
@@ -47,20 +46,6 @@ defmodule TechtreeWeb.AccountLive do
             </:picture>
           </Regent.Account.identity>
         </:identity>
-        <:credits>
-          <Regent.Account.credits_summary
-            id="account-credits"
-            available={
-              @credits_read.value && RegentCredits.Amount.format(@credits_read.value.available)
-            }
-            held={@credits_read.value && RegentCredits.Amount.format(@credits_read.value.held)}
-            state={if @credits_read.state in [:idle, :empty], do: :loading, else: @credits_read.state}
-          >
-            <a href="https://regents.sh/account" class="account-credits__manage">
-              Manage Credits on regents.sh
-            </a>
-          </Regent.Account.credits_summary>
-        </:credits>
         <:profile>
           <section class="account-panel account-details" aria-labelledby="account-details-title">
             <h2 id="account-details-title">Profile</h2>

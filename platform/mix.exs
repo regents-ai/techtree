@@ -6,7 +6,7 @@ defmodule Techtree.MixProject do
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
   @elixir_utils_ref "faa538d4028732a6b187165ebc0187cb9c573193"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "871c3fe69f2501e9deb5de5626c7c9e7a5941d5e"
+  @design_system_ref "d3845c6d9fe34b7131937bafa051e6e04c9b09dd"
 
   def project do
     [
@@ -75,9 +75,7 @@ defmodule Techtree.MixProject do
       {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
       {:regent_anthropic, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "anthropic"},
       # The wallet bench signs its funding sends with it.
-      # regent_credits names regent_chain by a sibling path; this pin replaces it.
-      {:regent_chain,
-       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "chain", override: true},
+      {:regent_chain, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "chain"},
       # regent_anthropic names regent_http by a sibling path; this pin replaces it.
       {:regent_http, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "http", override: true},
       # The ref regent_agents already brings; the bench recovers signatures with it.
@@ -86,7 +84,6 @@ defmodule Techtree.MixProject do
        ref: @elixir_utils_ref,
        sparse: "siwa/siwa-elixir/apps/siwa",
        override: true},
-      {:regent_credits, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "credits"},
       {:regent_points, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "points"},
       {:regent_identity,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ash_components/identity"},
@@ -107,8 +104,7 @@ defmodule Techtree.MixProject do
       {:usage_rules, "~> 1.3", only: [:dev, :test], runtime: false},
       {:ash_phoenix, "~> 2.3.26"},
       # ash_postgres main with #910 until a Hex release carries it: upserts use the
-      # repo's prefix, which picks each site's schema on the shared database. It
-      # stands in for the Hex release that ash_money and ash_double_entry ask for.
+      # repo's prefix, which picks each site's schema on the shared database.
       {:ash_postgres,
        git: "https://github.com/ash-project/ash_postgres.git",
        ref: "55db7d449aad351d200c5f300fca2a83e0a8734c",

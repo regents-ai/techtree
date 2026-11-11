@@ -23,7 +23,7 @@ import {installCopyButtons} from "./copy_buttons"
 import {crownHook} from "./hooks/crown"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
-import {MotionList, MotionCount, MotionRefusal} from "./hooks/motion/moments"
+import {MotionList, MotionRefusal} from "./hooks/motion/moments"
 import {installPublicTools} from "./public_tools"
 import {installSiteMenu} from "./site_menu"
 import {installVisitLog} from "./visit_log"
@@ -98,15 +98,6 @@ if (!browserCsrfToken()) throw new Error("Missing CSRF token")
 // nothing links to, so they load only when that page is opened directly.
 const labHooks = document.querySelector("main.motion-lab")
   ? (await import("./motion_lab")).hooks : {}
-
-// The wallet code drives only the Approve and Buy buttons in the Buy Credits
-// window on the account pages. Those pages run in their own live session, so
-// reaching one always loads the page afresh and asks again. Every account page
-// loads it, signed in or not, since a sign-in can arrive on an open page
-// without a reload. It is loaded before the page connects, so it is ready
-// before either button can be pressed.
-const walletHooks = document.getElementById("account-shell")
-  ? {OnchainSteps: (await import("./hooks/onchain_steps")).OnchainSteps} : {}
 
 const Hooks: Record<string, object> = {
   Crown: crownHook(() => THEMES[showingTheme()].crownVariant),
@@ -243,7 +234,7 @@ Hooks.CopyCommandPageView = {
   },
 }
 
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell, MenuAgents, VerifiedConnections, ...walletHooks, MotionCount, MotionRefusal})
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell, MenuAgents, VerifiedConnections, MotionRefusal})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

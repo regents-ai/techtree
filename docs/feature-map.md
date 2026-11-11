@@ -43,13 +43,11 @@ finger on a touch screen, 24 px for a mouse control.
 | See their agents and Pair New Agent on the Agents tab (/account/agents), and their profile on the Account tab, at 1280, 390 and 320 wide, with nothing scrolling sideways | `signed_in.spec.ts`, `account_menu_live_test.exs` |
 | On a phone, see the open Menu over the page, with the page and footer out of reach until it closes; on a short phone screen the account menu ends inside the screen and reaches Sign out | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
-| Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens at desktop and phone width, both buttons show, everything in it fits a finger, and the wallet code loads on the account pages and on no other page |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
 | Rename a paired agent from its window on the Agents page, at both widths; a name with hidden characters is refused | `signed_in.spec.ts` |
 | See the three most recently active agents in the account menu | `menu_agents_test.exs` (property) |
 | Every agent kind the library knows, Claude Duet included, draws its picture in the agents list and the account menu, so an agent paired on another site never breaks a person's list here | `agent_pictures_test.exs` |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
-| Approve and Buy Credits on Base | **Gap:** needs a wallet and the chain; not run |
 | See your Points total, today, the actions left with where to do them, and your own place on the leaderboard in the first render; a person with no name shows by their wallet, whose copy icon copies it in full; two people with one name keep a picture each; a signed-out visitor gets nothing from the shared board | `points_page_test.exs` |
 | Wallets and Connections tabs with real data | **Gap:** read from the shared account service, which tests don't reach |
 

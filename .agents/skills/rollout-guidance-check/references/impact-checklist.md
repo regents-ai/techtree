@@ -7,7 +7,7 @@ diff never touches prose. This is an impact guide, not a second operation regist
 |---|---|
 | Endpoint, operation name, path or field | Router/controller/action → OpenAPI → manifest/capabilities → site `cli/commands.json` and `COMMANDS.md` → bundled CLI contracts → help/examples → public guides and copy buttons |
 | Actor, pairing, membership, ownership or wallet rule | Policy/actor construction → shared refusal → UI disabled reason → start/pair handoff → tool authority and availability → CLI refusal/next step → Skills and recovery docs |
-| Credits price, reservation, refund or budget | Accounting source → shared UI labels/help → tool effect/payment metadata → confirmation/purchase/refund explanations → CLI prompts/retry advice → accounting guide. Activation is a distinct decision. |
+| Price, payment terms or fee | Offer source → shared UI labels/help → tool effect/payment metadata → confirmation and receipt explanations → CLI prompts/retry advice → payments guide. Activation is a distinct decision. |
 | Points rate, milestone, allowance or eligibility | Catalog/version and committed evidence producer → source adapter → account display → explanatory tooltips/guide/Skill → capability notes. Check account-wide attribution and original event/rule snapshots; do not activate earning. |
 | Error, timeout, retry or idempotency | Status/code/payload → browser error UI → CLI error mapping/next_steps → manifest error schema → recovery docs. Repeating a payment is not a generic retry. |
 | CLI option, argument, output or release | Parser/descriptor → generated help/completion → output/JSON contract → docs/examples → product handoff strings → installation pin/hash/source commit → bundled site descriptors |

@@ -78,16 +78,12 @@ if config_env() != :test do
   end
 end
 
-# The server reads a chain through its own node when one is set, such as a
-# private node whose address carries a key; wallets still add the public address.
-# Credits purchases are checked through the Base and Ethereum ones. Tests read no
-# chain, whatever the shell sets.
+# The server reads Base through its own node when one is set, such as a private
+# node whose address carries a key; wallets still add the public address. Tests
+# read no chain, whatever the shell sets.
 if config_env() != :test do
   node_overrides =
-    for {chain_id, setting} <- [
-          {8453, "TECHTREE_BASE_NODE_URL"},
-          {1, "TECHTREE_ETHEREUM_NODE_URL"}
-        ],
+    for {chain_id, setting} <- [{8453, "TECHTREE_BASE_NODE_URL"}],
         node_url = System.get_env(setting),
         into: %{} do
       case URI.new(node_url) do

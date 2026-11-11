@@ -1,12 +1,10 @@
 @import "components/page_head.css";
-@import "components/credits.css";
-@import "components/onchain_steps.css";
 @import "components/account_auth_status.css";
 @import "pages/account.css";
 @import "../vendor/regent_ui/design_system_tokens.css";
 @import "../vendor/regent_ui/primitives.css";
-/* After the shared primitives, as the template's shell is, so the Credits close
-   button's own size and place win over the shared button's. */
+/* After the shared primitives, as the template's shell is, so the pairing
+   window's close button keeps its own size and place over the shared button's. */
 @import "components/account_shell.css";
 @import "./agent_versions.css";
 @import "./techtree_home.css";
@@ -516,7 +514,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
    44 pixels of height. The padding sits on the inline link, so the text it lies
    in doesn't move; only the pressable area grows. */
 @media (pointer: coarse) {
-  :is(p, li, dd, td, th) > a:only-child, .account-credits__manage { padding-block: .875rem; }
+  :is(p, li, dd, td, th) > a:only-child { padding-block: .875rem; }
 }
 
 /* The lime Sign in and Copy page buttons in light draw their whole cut outline

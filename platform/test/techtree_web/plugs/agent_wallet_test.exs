@@ -21,7 +21,7 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
   @doors [
     {:post, "/api/v1/publications", "{}"},
     {:get, "/api/model-climb/v1/reports", nil},
-    {:get, "/api/v1/account/balances", nil}
+    {:get, "/api/v1/account/points", nil}
   ]
 
   setup %{conn: conn} do
@@ -94,22 +94,17 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
     reports = send_to(conn, {:get, "/api/model-climb/v1/reports", nil})
     assert json_response(reports, 200)["reports"] == []
 
-    balances = json_response(send_to(conn, {:get, "/api/v1/account/balances", nil}), 200)
-    assert %{"credits" => _, "spending_grant" => %{"site_allowed" => false}} = balances
-
     # The board every reader shares is read by its producer, which tests do not run.
     on_exit(fn -> Techtree.SharedReading.delete(Techtree.Points.Board.key()) end)
     assert :ok = Techtree.Points.Board.read()
 
     assert %{"points" => "0", "entries" => [], "note" => "Earning Points is off on this site."} =
              json_response(send_to(conn, {:get, "/api/v1/account/points", nil}), 200)
-
-    assert send_to(conn, {:post, "/api/v1/account/credits/history", "{}"}).status == 200
   end
 
   # Every body the API takes keeps its exact bytes for the sign-in service, so
   # spacing the agent signed but a parser would drop still matches.
-  test "a signed account read sends the digest of the exact body bytes", %{conn: conn} do
+  test "a signed request sends the digest of the exact body bytes", %{conn: conn} do
     paired = NetworkFixture.paired_agent()
     test = self()
 
@@ -135,23 +130,12 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
     end)
 
     body = "{ }"
-    history = send_to(conn, {:post, "/api/v1/account/credits/history", body})
-
-    assert %{"entries" => []} = json_response(history, 200)
+    assert error_code(send_to(conn, {:post, "/api/v1/publications", body}), 400) != nil
 
     digest = Siwa.content_digest_for_body(body)
 
     assert_received {:proof_checked,
-                     %{"path" => "/api/v1/account/credits/history", "body_digest" => ^digest}}
-  end
-
-  test "a Credits history cursor that isn't one is refused", %{conn: conn} do
-    NetworkFixture.sign_as(NetworkFixture.paired_agent())
-
-    for body <- [~s({"after":"not-a-cursor"}), ~s({"after":7})] do
-      refused = send_to(conn, {:post, "/api/v1/account/credits/history", body})
-      assert error_code(refused, 422) == "invalid_cursor"
-    end
+                     %{"path" => "/api/v1/publications", "body_digest" => ^digest}}
   end
 
   describe "an unpairing while the request runs" do
@@ -160,7 +144,7 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
       NetworkFixture.sign_as(paired)
 
       conn =
-        build_conn(:get, "/api/v1/account/balances")
+        build_conn(:get, "/api/v1/account/points")
         |> NetworkFixture.signed()
         |> AgentWallet.call([])
 
@@ -173,7 +157,7 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
       {:ok, pairing} = RegentAgents.get_my_agent(paired.pairing_id, actor: person)
       :ok = RegentAgents.unpair_agent(pairing, actor: person)
 
-      sent = send_resp(conn, 200, ~s({"credits":"the person's balance"}))
+      sent = send_resp(conn, 200, ~s({"points":"the person's Points"}))
 
       assert sent.status == 403
 
@@ -182,10 +166,10 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
     end
 
     test "leaves the answer alone while the pairing holds", %{conn: conn} do
-      sent = send_resp(conn, 200, ~s({"credits":"the person's balance"}))
+      sent = send_resp(conn, 200, ~s({"points":"the person's Points"}))
 
       assert sent.status == 200
-      assert Jason.decode!(sent.resp_body) == %{"credits" => "the person's balance"}
+      assert Jason.decode!(sent.resp_body) == %{"points" => "the person's Points"}
     end
   end
 

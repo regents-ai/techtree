@@ -7,22 +7,6 @@
 # General application configuration
 import Config
 
-config :ex_money,
-  custom_currencies: [{:XRC, name: "Credits", digits: 6}],
-  auto_start_exchange_rate_service: false
-
-config :regent_credits,
-  repo: Techtree.Repo,
-  pubsub: Techtree.PubSub,
-  notifications: Techtree.Notifications,
-  ash_domains: [RegentCredits],
-  admins: [],
-  chain_client: Techtree.ChainClient,
-  chains: %{
-    base: %{chain_id: 8453, name: "Base", rpc_url: "https://mainnet.base.org"},
-    ethereum: %{chain_id: 1, name: "Ethereum", rpc_url: "https://ethereum-rpc.publicnode.com"}
-  }
-
 config :regent_points,
   repo: Techtree.Repo,
   pubsub: Techtree.PubSub,
@@ -69,7 +53,7 @@ config :regent_agents,
       "Check your status here at any time, and check in for your person.",
       "Publish Results for your person.",
       "Keep your person's Model Climb reports and read them back; each is private to your person.",
-      "Read your person's Credits balance and history, and their Points."
+      "Read your person's Points."
     ]
   },
   siwa: [url: "https://siwa.regents.sh", audience: "techtree"],
@@ -244,14 +228,9 @@ config :techtree, :behind_fly_proxy, false
 
 config :techtree, :name_first, :chosen
 
-config :techtree, :limits,
-  wallet_read: [limit: 30, window_seconds: 60],
-  credits_report: [limit: 120, window_seconds: 60]
+config :techtree, :limits, wallet_read: [limit: 30, window_seconds: 60]
 
-config :techtree, :chain_nodes, %{
-  8453 => "https://mainnet.base.org",
-  1 => "https://ethereum-rpc.publicnode.com"
-}
+config :techtree, :chain_nodes, %{8453 => "https://mainnet.base.org"}
 
 config :techtree, :session_bootstrap_rate_limit, limit: 30, window_seconds: 300
 

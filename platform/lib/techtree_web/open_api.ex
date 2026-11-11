@@ -25,7 +25,7 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "6",
+        "version" => "7",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
@@ -446,50 +446,11 @@ defmodule TechtreeWeb.OpenAPI do
           )
           |> update_in(["responses"], &Map.drop(&1, ["403"]))
       },
-      "/api/v1/account/balances" => %{
-        "get" =>
-          signed_account_read(
-            "getAccountBalances",
-            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note says what the person can do when the agent may not spend here."
-          )
-      },
       "/api/v1/account/points" => %{
         "get" =>
           signed_account_read(
             "getAccountPoints",
             "Current paired agent's canonical owner's Points: what it earned today and yesterday, its place, the actions still open, daily limits, the leaderboard by name or wallet, recent entries with who earned each and whether it counted, and period bonuses; reads award no Points and activate nothing. Points are decimal text. A note explains when earning is off."
-          )
-      },
-      "/api/v1/account/credits/history" => %{
-        "post" =>
-          Map.put(
-            signed_account_read(
-              "listCreditsHistory",
-              "Current paired agent's canonical owner's Credits history; a read-only cursor page. Entries group transfers into events with kind, direction and positive amount. pagination contains has_more and next_cursor."
-            ),
-            "requestBody",
-            %{
-              "required" => true,
-              "content" => %{
-                "application/json" => %{
-                  "schema" => %{
-                    "type" => "object",
-                    "properties" => %{"after" => %{"type" => "string"}},
-                    "additionalProperties" => false
-                  }
-                }
-              }
-            }
-          )
-          |> put_in(
-            ["responses", "200"],
-            json("The current owner's grouped Credits history.", ref("CreditsHistory"))
-          )
-          |> put_in(
-            ["responses", "422"],
-            error(
-              "Invalid after cursor (invalid_cursor). Use the previous pagination.next_cursor unchanged, or omit after for the newest entries; do not send null."
-            )
           )
       },
       "/api/model-climb/v1/reports" => %{
@@ -1296,93 +1257,6 @@ defmodule TechtreeWeb.OpenAPI do
             "type" => "array",
             "items" => %{"type" => "string"},
             "description" => "Verified linked wallet addresses; empty when none are available."
-          }
-        }
-      },
-      "CreditsHistory" => %{
-        "type" => "object",
-        "required" => ["entries", "pagination"],
-        "properties" => %{
-          "entries" => %{
-            "type" => "array",
-            "items" => %{
-              "type" => "object",
-              "required" => [
-                "id",
-                "kind",
-                "at",
-                "amount",
-                "direction",
-                "site",
-                "purpose",
-                "reason",
-                "agent_address",
-                "pairing_id",
-                "key",
-                "tool",
-                "request",
-                "note",
-                "chain",
-                "tx_hash",
-                "refund_status",
-                "refund_sent_at"
-              ],
-              "properties" => %{
-                "id" => %{"type" => "string"},
-                "kind" => %{
-                  "type" => "string",
-                  "enum" => [
-                    "bought",
-                    "gift",
-                    "refund",
-                    "set_aside",
-                    "returned",
-                    "spent",
-                    "received"
-                  ]
-                },
-                "at" => %{"type" => "string", "format" => "date-time"},
-                "amount" => %{
-                  "type" => "string",
-                  "description" => "Positive decimal Credits amount, summed for this event."
-                },
-                "direction" => %{"type" => "string", "enum" => ["in", "out", "none"]},
-                "site" => %{"type" => ["string", "null"]},
-                "purpose" => %{"type" => ["string", "null"]},
-                "reason" => %{"type" => ["string", "null"]},
-                "agent_address" => %{"type" => ["string", "null"]},
-                "pairing_id" => %{"type" => ["string", "null"]},
-                "key" => %{"type" => ["string", "null"]},
-                "tool" => %{"type" => ["string", "null"]},
-                "request" => %{
-                  "type" => ["string", "null"],
-                  "description" =>
-                    "Present only when allowed for this reader; an agent receives request text only for its own hold."
-                },
-                "note" => %{"type" => ["string", "null"]},
-                "chain" => %{"type" => ["string", "null"]},
-                "tx_hash" => %{"type" => ["string", "null"]},
-                "refund_status" => %{
-                  "type" => ["string", "null"],
-                  "enum" => ["locked", "sent", nil]
-                },
-                "refund_sent_at" => %{"type" => ["string", "null"], "format" => "date-time"}
-              },
-              "description" =>
-                "Grouped history event. Inapplicable facts are null; received payments do not identify the payer."
-            }
-          },
-          "pagination" => %{
-            "type" => "object",
-            "required" => ["has_more", "next_cursor"],
-            "properties" => %{
-              "has_more" => %{"type" => "boolean"},
-              "next_cursor" => %{
-                "type" => ["string", "null"],
-                "description" =>
-                  "Pass unchanged as after for the next page. Null when no further page exists."
-              }
-            }
           }
         }
       },

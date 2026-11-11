@@ -334,7 +334,7 @@ Regent site shares (`Regent.Account.pairing`). Each
 agent's reading from the sign-in service is kept five minutes on the machine, and a
 failed read one minute (`Techtree.Agents.ActivityReading`); reads that give no reading
 are counted in `health.agent_activity_unread.total` by reason. The shared account lives at `/account`, with
-Credits, Points, wallets and connections in the same frame. Sign-in uses the site's
+Points, wallets and connections in the same frame. Sign-in uses the site's
 own Privy settings and a revocable server session, so every page is served under the
 sign-in content policy. Pairing uses that verified account; publication still needs
 its independent proof. Points earning and money tests remain disabled.
@@ -350,13 +350,12 @@ answer leaves, so an unpairing during a request never sends the person's data.
 
 `ETHEREUM_READ_RPC_URL` optionally enables the template's ENS lookup at sign-in.
 It must be HTTPS and is ignored in tests. No lookup runs when it is absent.
-`TECHTREE_BASE_NODE_URL` and `TECHTREE_ETHEREUM_NODE_URL` optionally name the site's
-own Base and Ethereum nodes for Credits purchase checks; the public nodes are used
-without them.
+`TECHTREE_BASE_NODE_URL` optionally names the site's own Base node for the Points
+reads; the public node is used without it.
 
 The account migration adds three site-owned tables: session authorities, linked
 identities and ENS projections. It references the existing shared human-account
-table; it does not replace the shared identity, Credits, Agents or Points schemas.
+table; it does not replace the shared identity, Agents or Points schemas.
 
 `PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database
 connection when the local server does not use the defaults (`postgres`, `postgres`,
@@ -415,7 +414,7 @@ database. Future migrations and Ash snapshot changes need the imported schema as
 their baseline; do not regenerate or reset the existing publication sequence.
 This setting does not bootstrap a fresh namespaced database or change runtime grants.
 
-The release also checks every Agents, Credits and Points migration carried by its
+The release also checks every Agents and Points migration carried by its
 shared-library pin against that library's own ledger. Missing versions refuse the
 deployment and are listed together. This check applies nothing: shared migrations,
 including agent pictures (`regent_agents` version `20261014150000`), require separate
@@ -454,7 +453,7 @@ of these with stand-ins for `flyctl`, `curl` and `lockf`.
 
 ## Shared database changes
 
-A deploy never applies a change to the shared Identity, Agents, Credits or Points
+A deploy never applies a change to the shared Identity, Agents or Points
 database; it refuses to start while one its pinned libraries carry is missing.
 `bin/migrate-shared` runs `Techtree.Release.migrate_shared()` with the migration
 login, applies them and prints each one, or `none`. Every site carries this same

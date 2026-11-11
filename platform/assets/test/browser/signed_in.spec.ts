@@ -2,19 +2,6 @@ import type {Locator, Page} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
 import {layoutProblems, pairAgent, signIn, watchErrors} from "./support/visitor"
 
-// Whether any script the page loaded carries the wallet library, whatever file it
-// was bundled into. Every build of it names its own version as "viem@".
-function watchWalletCode(page: Page): () => boolean {
-  let seen = false
-  page.on("response", async response => {
-    if (response.request().resourceType() !== "script") return
-    try {
-      if ((await response.text()).includes("viem@")) seen = true
-    } catch {}
-  })
-  return () => seen
-}
-
 const menu = (page: Page) => page.locator("#account-menu")
 
 // Opened, and done dropping in, so what is measured is where it rests.
@@ -27,8 +14,7 @@ async function openMenu(page: Page, press: (target: Locator) => Promise<void> = 
 // The account menu the account's button opens on every page (TechtreeWeb.AccountMenuLive),
 // at 1280, 390 and 320 wide: the person's name, their agents with Manage, Pair New
 // Agent, Manage Account and Sign out; it hangs under its button inside the screen, the
-// page still fits, and Escape closes it with focus back on the button. Techtree's
-// header has no Credits balance, so the menu has no balance row at any width.
+// page still fits, and Escape closes it with focus back on the button.
 for (const width of [1280, 390, 320]) {
   test(`at ${width} wide, the account menu hangs under its button with the agents, Pair New Agent, Manage Account and Sign out`, async ({browser}) => {
     const hasTouch = width < 768
@@ -46,7 +32,6 @@ for (const width of [1280, 390, 320]) {
     await expect(menu(page).getByRole("button", {name: "Pair New Agent"})).toHaveAttribute("aria-controls", "shell-pairing")
     await expect(menu(page).getByRole("link", {name: "Manage Account"})).toHaveAttribute("href", "/account")
     await expect(menu(page).getByRole("button", {name: "Sign out"})).toBeVisible()
-    await expect(menu(page).locator(".rg-account-menu__balance")).toHaveCount(0)
 
     const chip = (await page.locator("#account-chip").boundingBox())!
     const box = (await menu(page).boundingBox())!
@@ -154,53 +139,6 @@ test("on a phone, the open Menu puts the page and footer out of reach, and the a
     await page.keyboard.press("Escape")
     await expect(menu(page)).toBeHidden()
   }
-  expect(errors).toEqual([])
-  expect(outside).toEqual([])
-  await context.close()
-})
-
-test("the wallet code loads on the account pages and nowhere else", async ({context, page}) => {
-  await signIn(context)
-  const errors = watchErrors(page)
-
-  let walletCode = watchWalletCode(page)
-  await page.goto("/docs", {waitUntil: "networkidle"})
-  expect(walletCode()).toBe(false)
-
-  await page.goto("/", {waitUntil: "networkidle"})
-  expect(walletCode()).toBe(false)
-
-  await page.goto("/account", {waitUntil: "networkidle"})
-  expect(walletCode()).toBe(true)
-  expect(errors).toEqual([])
-})
-
-test("signed in, Buy Credits opens with Approve and Buy wired to the wallet", async ({context, page}) => {
-  await signIn(context)
-  const errors = watchErrors(page)
-  await page.goto("/account", {waitUntil: "networkidle"})
-
-  await page.locator("#shell-credits-button").click()
-  await expect(page.locator("#shell-credits")).toBeVisible()
-  await expect(page.locator("#credits-panel[phx-hook='OnchainSteps']")).toBeVisible()
-  await expect(page.locator("[data-onchain-step='approve']")).toBeVisible()
-  await expect(page.locator("[data-onchain-step='buy']")).toBeVisible()
-  expect(await layoutProblems(page)).toEqual([])
-  expect(errors).toEqual([])
-})
-
-// Regression: Purchase History in Buy Credits was 24 px tall on a phone (Sentinel).
-test("on a phone, Buy Credits opens and everything in it fits a finger", async ({browser}) => {
-  const context = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true})
-  const outside = await keepOffline(context)
-  await signIn(context)
-  const page = await context.newPage()
-  const errors = watchErrors(page)
-  await page.goto("/account", {waitUntil: "networkidle"})
-  await page.locator("#shell-credits-button").click()
-  await expect(page.locator("#shell-credits")).toBeVisible()
-  await expect(page.locator("[data-onchain-step='approve']")).toBeVisible()
-  expect(await layoutProblems(page)).toEqual([])
   expect(errors).toEqual([])
   expect(outside).toEqual([])
   await context.close()

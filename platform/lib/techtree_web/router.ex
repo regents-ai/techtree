@@ -83,7 +83,6 @@ defmodule TechtreeWeb.Router do
       live "/account", AccountShellLive, :account
       live "/account/agents", AccountShellLive, :account_agents
       live "/account/points", AccountShellLive, :points
-      live "/account/credits", AccountShellLive, :credits
       live "/account/wallets", AccountShellLive, :wallets
       live "/account/connections", AccountShellLive, :connections
     end
@@ -231,12 +230,9 @@ defmodule TechtreeWeb.Router do
     get "/reports/:digest", ModelClimbReportController, :show
   end
 
-  # A paired agent's reads of its person's Credits and Points, at the same
-  # paths on every site.
+  # A paired agent's read of its person's Points, at the same path on every site.
   scope "/api/v1/account", TechtreeWeb do
     pipe_through [:api, :paired_agent]
-    get "/balances", AgentAccountController, :balances
-    post "/credits/history", AgentAccountController, :credits_history
     get "/points", AgentAccountController, :points
   end
 

@@ -5,8 +5,7 @@ defmodule TechtreeWeb.Telemetry do
   watch reads the `health.*` series from every site: Ecto's
   `[:techtree, :repo, :query]` (`queue_time` is the wait for a connection),
   `[:techtree, :chain, :failure]` for each chain request that got no answer
-  (`Techtree.ChainClient`), `[:techtree, :wallet, :failure]` for each press the
-  browser reported as not sent or not confirmed (`wallet_failed/2`),
+  (`Techtree.ChainClient`),
   agents' activity reads that gave no reading (`Techtree.Agents.ActivityReading`),
   and the clock time the Points tally of finished periods last ran to its end
   (`[:regent_points, :tally_periods, :finished]`), so a stalled tally shows as a
@@ -44,10 +43,6 @@ defmodule TechtreeWeb.Telemetry do
 
   require Logger
 
-  # The reasons the wallet hook reports (`Failure` in send_step.ts). Only these
-  # are counted, so a label never holds whatever a browser chose to send.
-  @wallet_failures ~w(step_unknown wallet_unavailable network_mismatch wallet_declined insufficient_funds send_unconfirmed)
-
   @reporter :techtree_prometheus
 
   def child_spec(_arg) do
@@ -57,19 +52,6 @@ defmodule TechtreeWeb.Telemetry do
   @doc "Every measurement as Prometheus text, as the metrics listener answers it."
   def scrape,
     do: @reporter |> Peep.get_all_metrics() |> Peep.Prometheus.export() |> IO.iodata_to_binary()
-
-  @doc """
-  Counts one press the browser reported as not sent or not confirmed, for the
-  wallet-button component `flow`. A reason the hook never sends is not counted.
-  """
-  def wallet_failed(flow, reason) when reason in @wallet_failures do
-    :telemetry.execute([:techtree, :wallet, :failure], %{count: 1}, %{
-      flow: flow,
-      reason: reason
-    })
-  end
-
-  def wallet_failed(_flow, _reason), do: :ok
 
   @doc "The poller for the measurements the site takes itself, started after Oban."
   def site_poller,
@@ -305,12 +287,7 @@ defmodule TechtreeWeb.Telemetry do
       last_value("vm.total_run_queue_lengths.cpu"),
       last_value("vm.system_counts.process_count"),
       last_value("vm.system_counts.atom_count"),
-      last_value("vm.system_counts.port_count"),
-      counter("health.wallet_send_failures.total",
-        event_name: [:techtree, :wallet, :failure],
-        tags: [:flow, :reason],
-        description: "Wallet presses the browser reported as not sent or not confirmed"
-      )
+      last_value("vm.system_counts.port_count")
     ]
   end
 end

@@ -31,8 +31,6 @@ defmodule TechtreeWeb.AgentsController do
   ```sh
   regents auth login --site techtree
   regents techtree agents whoami --json
-  regents techtree account balances --json
-  regents techtree account credits-history --json
   regents techtree account points --json
   ```
 
@@ -56,8 +54,8 @@ defmodule TechtreeWeb.AgentsController do
   Keep the code out of command arguments, shell history and project files.
   Codes are private, expire and work once. One pairing works on every Regent
   site, and one owner may pair at most 100 active agents across them.
-  Revocation stops protected work; re-pairing creates a new episode and
-  restores no previous spending grant. `GET /api/agents/v1/whoami` only reads;
+  Revocation stops protected work; re-pairing creates a new episode.
+  `GET /api/agents/v1/whoami` only reads;
   `GET /api/agents/v1/me` records a check-in and returns the paired account's
   names and verified wallet fields, and grants no wallet authority. The
   [agent sign-in guide](https://siwa.regents.sh/skill.md) covers the client,
@@ -68,16 +66,11 @@ defmodule TechtreeWeb.AgentsController do
   https://techtree.sh/agents/claude-code/skill.md.
 
   Signed account reads require a current pairing and the owner's existing
-  canonical account. `account_balances`, `account_credits_history` and
-  `account_points` read GET /api/v1/account/balances, POST
-  /api/v1/account/credits/history and GET /api/v1/account/points. Account IDs or
-  wallets submitted as inputs never select an owner. Spending starts disabled and only the owner
-  manages grants, pairing controls and account security. Credits permission
-  grants no access to wallet funds. Techtree does not activate Points or award
-  Points for reads. Points and Credits answers carry a `note` when earning
-  Points is off or you may not spend your person's Credits on this site. An invalid
-  Credits-history cursor returns `invalid_cursor` (422): read the first page
-  without `after`, then use its `pagination.next_cursor` unchanged.
+  canonical account. `account_points` reads GET /api/v1/account/points. Account
+  IDs or wallets submitted as inputs never select an owner. Only the owner
+  manages pairing controls and account security. Techtree does not activate
+  Points or award Points for reads. Points answers carry a `note` when earning
+  Points is off.
 
   Hosted publication and withdrawal additionally require the participant's
   independent signed proof. The SIWA identity does not replace that key. Both use
@@ -91,8 +84,7 @@ defmodule TechtreeWeb.AgentsController do
   browser; `techtree_publication` passes the original JSON bytes through
   unchanged. Do not claim success from discovery, preparation or an unsigned
   refusal. The owner pairs agents with Pair New Agent on their Agents page, sees
-  and unpairs them at /account/agents, and uses /account/credits for Credits
-  history, /account/points for Points, /account/wallets for verified wallets,
+  and unpairs them at /account/agents, and uses /account/points for Points, /account/wallets for verified wallets,
   and /account/connections for linked identities. Human-backed registry attributes are optional and do not grant
   authority.
 

@@ -9,8 +9,8 @@ defmodule Techtree do
   @site Application.compile_env!(:techtree, :site)
 
   @doc """
-  The name this site goes by in the shared Regent libraries: the site Credits
-  holds are placed under, and the app a Points event comes from.
+  The name this site goes by in the shared Regent libraries: the app a Points
+  event comes from.
   """
   def site, do: @site
 end

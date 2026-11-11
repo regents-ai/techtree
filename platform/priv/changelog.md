@@ -1,5 +1,15 @@
 # Changelog
 
+## Website (2026-11-11)
+
+### Removed
+
+- **Credits.** The Credits balance, Buy Credits and their history are gone from
+  Techtree, along with the Credits tab on your account.
+- **Agents.** A paired agent no longer reads your Credits balance or Credits
+  history; it still reads your Points. Its window on the Agents page no longer
+  shows what it has spent.
+
 ## Website (2026-11-06)
 
 ### Changed

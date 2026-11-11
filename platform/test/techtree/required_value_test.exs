@@ -2,7 +2,7 @@ defmodule Techtree.RequiredValueTest do
   # Regression: the shared ash_required helper in public was version 6, which runs
   # with an empty search path and cannot find ash_raise_error, so a missing required
   # value raised "function does not exist" instead of Ash's error. On a fresh
-  # database the Credits library's first migration installed that copy again after
+  # database a shared library's first migration installed that copy again after
   # the site's version 7.
 
   use ExUnit.Case, async: true

@@ -8,8 +8,7 @@ defmodule TechtreeWeb.AgentsPanel do
   name, which the person may change, and Unpair.
 
   Pairing immediately lets an agent do what `TechtreeWeb.Capabilities.may/0`
-  lists, which the list's tip and the agent's view show the person, and the
-  agent's view adds what it has spent of their Credits. Beside each agent is this
+  lists, which the list's tip and the agent's view show the person. Beside each agent is this
   site's own part of it, if it has one (`TechtreeWeb.AccountSite`). World ID is optional. It never touches their wallet (`TechtreeWeb.Plugs.AgentWallet`).
   Pairing is shared by every Regent site, so an agent paired on another one is
   listed here too.
@@ -26,7 +25,6 @@ defmodule TechtreeWeb.AgentsPanel do
   alias Regent.Primitives, as: P
   alias RegentAgents.{Harness, HumanBacking, PairedAgent, Person}
   alias Techtree.Agents.ActivityReading
-  alias Techtree.Credits
   alias TechtreeWeb.AccountSite
   alias TechtreeWeb.Capabilities
   alias TechtreeWeb.Live.Session
@@ -61,8 +59,7 @@ defmodule TechtreeWeb.AgentsPanel do
     do:
       assign(socket,
         account: account,
-        person: %Person{privy_user_id: account.privy_user_id},
-        credits: Credits.person(account)
+        person: %Person{privy_user_id: account.privy_user_id}
       )
 
   @impl true
@@ -138,20 +135,6 @@ defmodule TechtreeWeb.AgentsPanel do
     end
   end
 
-  # What the open agent has spent, landing only while that agent is still open.
-  def handle_async({:agent_spent, id}, result, socket) do
-    case socket.assigns.detail do
-      %{agent: %{id: ^id}} = detail ->
-        {:noreply, assign(socket, detail: %{detail | spent: spent(result)})}
-
-      _moved_on ->
-        {:noreply, socket}
-    end
-  end
-
-  defp spent({:ok, {:ok, amount}}), do: RegentCredits.Amount.format(amount)
-  defp spent(_failed), do: :unavailable
-
   defp activity_read(detail, {:ok, {:ok, reading}}),
     do: %{detail | activity: reading.days, listing: reading.listing}
 
@@ -211,7 +194,6 @@ defmodule TechtreeWeb.AgentsPanel do
             same_person_count={HumanBacking.describe(@detail.agent).same_person_agent_count}
             same_person={same_person(@agents, @detail.agent)}
             may={Capabilities.may()}
-            spent={@detail.spent}
             activity={activity(@detail.activity)}
             notice={@notice}
             target={@myself}
@@ -345,9 +327,8 @@ defmodule TechtreeWeb.AgentsPanel do
   defp site(_account, :unavailable), do: %{}
 
   # Where the agent has been active and its registry listing come from its
-  # shared reading in the background, and what it has spent from the person's
-  # Credits. What is already on screen for this agent stays until the new
-  # reading lands.
+  # shared reading in the background. What is already on screen for this agent
+  # stays until the new reading lands.
   defp show_agent(socket, id) do
     with {:ok, id} <- Ecto.UUID.cast(id),
          {:ok, %PairedAgent{} = agent} <-
@@ -358,7 +339,7 @@ defmodule TechtreeWeb.AgentsPanel do
 
         _other ->
           socket
-          |> assign(detail: %{agent: agent, activity: :loading, listing: nil, spent: :loading})
+          |> assign(detail: %{agent: agent, activity: :loading, listing: nil})
           |> read_detail(agent)
       end
     else
@@ -367,11 +348,7 @@ defmodule TechtreeWeb.AgentsPanel do
   end
 
   defp read_detail(socket, agent) do
-    credits = socket.assigns.credits
-
-    socket
-    |> start_async({:agent_activity, agent.id}, fn -> ActivityReading.read(agent) end)
-    |> start_async({:agent_spent, agent.id}, fn -> Credits.spent_by(credits, agent.wallet) end)
+    start_async(socket, {:agent_activity, agent.id}, fn -> ActivityReading.read(agent) end)
   end
 
   # When the day's first and last request came, or the one time when they share

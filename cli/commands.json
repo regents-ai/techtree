@@ -4,7 +4,7 @@
   "platform": "techtree",
   "base_url": "https://techtree.sh",
   "notes": [
-    "Owner controls and grants stay owner-only; account reads activate no Points and spend no funds."
+    "Owner controls stay owner-only; account reads activate no Points and spend no funds."
   ],
   "commands": [
     {
@@ -43,34 +43,6 @@
           "type": "string",
           "description": "What the agent runs on, one of: hermes, grok_bot, muse, openclaw, nemoclaw, ironclaw, pi, claude_code, codex, cursor, gemini_cli, dots, other. Send other if yours is not listed.",
           "required": true
-        }
-      ]
-    },
-    {
-      "command": "account balances",
-      "operation_id": "getAccountBalances",
-      "method": "GET",
-      "path": "/api/v1/account/balances",
-      "description": "Read the current paired owner's Credits balance and episode-bound spending grant.",
-      "authority": "paired_agent",
-      "effect": "read",
-      "webmcp": "account_balances"
-    },
-    {
-      "command": "account credits-history",
-      "operation_id": "listCreditsHistory",
-      "method": "POST",
-      "path": "/api/v1/account/credits/history",
-      "description": "Read one page of the current paired owner's Credits history.",
-      "authority": "paired_agent",
-      "effect": "read",
-      "webmcp": "account_credits_history",
-      "stdin_fields": [
-        {
-          "field": "after",
-          "type": "string",
-          "description": "Cursor from the preceding history page.",
-          "required": false
         }
       ]
     },

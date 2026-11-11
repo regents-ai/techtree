@@ -9,7 +9,7 @@ defmodule TechtreeWeb.RouterTest do
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "writes are limited to publication, agent pairing, account history, sign-in, private profile actions, private Model Climb reports and the browser's visit reports" do
+  test "writes are limited to publication, agent pairing, sign-in, private profile actions, private Model Climb reports and the browser's visit reports" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
@@ -20,7 +20,6 @@ defmodule TechtreeWeb.RouterTest do
              "delete /auth/privy/session",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
-             "post /api/v1/account/credits/history",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",
@@ -46,7 +45,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /account",
              "get /account/agents",
              "get /account/connections",
-             "get /account/credits",
              "get /account/points",
              "get /account/wallets",
              "get /agents",
@@ -56,7 +54,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /animations",
              "get /api/model-climb/v1/reports",
              "get /api/model-climb/v1/reports/:digest",
-             "get /api/v1/account/balances",
              "get /api/v1/account/points",
              "get /api/v1/bootstrap",
              "get /api/v1/catalog",
@@ -107,7 +104,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /wallet-bench/:id/results.zip",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
-             "post /api/v1/account/credits/history",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",

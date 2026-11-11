@@ -49,7 +49,7 @@ defmodule TechtreeWeb.Capabilities do
   @doc "The actions a paired agent may take on its person's behalf."
   def may do
     [
-      "Read your Credits balance, Credits history and Points",
+      "Read your Points",
       "Publish benchmark results with an independent publication proof",
       "Submit and read your Model Climb proofs"
     ]
