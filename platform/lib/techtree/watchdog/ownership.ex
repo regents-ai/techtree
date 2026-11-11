@@ -19,9 +19,11 @@ defmodule Techtree.Watchdog.Ownership do
   one of the addresses just checked, never resolving the name again, and keeps
   the host's name for the `Host` header, TLS SNI and certificate verification,
   so a name that changes its answer between the check and the connection
-  cannot point the request inward. It follows no redirects, retries nothing,
-  gives up quickly and reads only a small, bounded amount, so a customer host
-  cannot use the check to reach anything else or to hand back an unbounded body.
+  cannot point the request inward. The fetch is one request on its own
+  connection (`Techtree.Watchdog.Ownership.SingleRequest`), closed afterwards.
+  It follows no redirects, retries nothing, gives up quickly and reads only a
+  small, bounded amount, so a customer host cannot use the check to reach
+  anything else or to hand back an unbounded body.
 
   `verify/1` tells a missing proof apart from a check that could not be made:
   only `{:error, :proof_missing}` says the proof is positively not there (the
@@ -30,14 +32,16 @@ defmodule Techtree.Watchdog.Ownership do
 
   Every request is a `Req` request built with `request_options/0`, so tests
   drive both methods with `Req.Test` and the real resolver and site are never
-  reached.
+  reached. The file fetch's adapter is `SingleRequest` unless `:file_adapter`
+  is configured, as the test configuration does to stay on this machine.
   """
+
+  alias Techtree.Watchdog.Ownership.SingleRequest
 
   @resolver "https://dns.google/resolve"
   @well_known_path "/.well-known/techtree-watchdog.txt"
   @record_prefix "techtree-watchdog-verification="
   @timeout 5_000
-  @max_body_bytes 4_096
   @max_answers 50
 
   @doc "The path a well-known proof file is published at."
@@ -99,9 +103,10 @@ defmodule Techtree.Watchdog.Ownership do
 
   defp verify_well_known(host) do
     with {:ok, address} <- guard_public(host) do
-      options = Keyword.merge([url: address_url(address), into: cap()], request_options())
+      options = Keyword.merge([url: address_url(address)], request_options())
 
       request(hostname: host.origin)
+      |> Req.merge(adapter: file_adapter())
       |> Req.get(options)
       |> file_result(record_value(host))
     end
@@ -126,18 +131,6 @@ defmodule Techtree.Watchdog.Ownership do
 
   defp ok_or_empty({:ok, decoded}), do: decoded
   defp ok_or_empty(_error), do: %{}
-
-  # Reads a well-known file only up to the cap, cancelling the moment a host
-  # returns more, so an oversized body cannot be pulled into memory.
-  defp cap do
-    fn {:data, data}, {req, resp} ->
-      body = resp.body <> data
-
-      if byte_size(body) > @max_body_bytes,
-        do: {:halt, {req, %{resp | body: binary_part(body, 0, @max_body_bytes)}}},
-        else: {:cont, {req, %{resp | body: body}}}
-    end
-  end
 
   # A JSON DNS answer lists each record under "Answer"; a TXT value arrives
   # wrapped in quotes and may be split into several quoted strings, which join.
@@ -253,6 +246,9 @@ defmodule Techtree.Watchdog.Ownership do
       decode_body: false
     )
   end
+
+  defp file_adapter,
+    do: Application.get_env(:techtree, __MODULE__, [])[:file_adapter] || SingleRequest
 
   @doc "Req options tests override to answer both methods without a network."
   @spec request_options() :: keyword()

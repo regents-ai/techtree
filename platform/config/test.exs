@@ -24,6 +24,10 @@ nowhere = "http://127.0.0.1:9"
 
 config :req, default_options: [adapter: Techtree.OfflineHttp]
 
+# Watchdog's proof-file fetch brings its own adapter; tests keep it on this
+# machine too.
+config :techtree, Techtree.Watchdog.Ownership, file_adapter: Techtree.OfflineHttp
+
 config :regent_credits,
   chains: %{
     base: %{chain_id: 8453, name: "Base", rpc_url: nowhere},

@@ -32,9 +32,13 @@ defmodule Techtree.WatchdogFixture do
   resolver nor any customer site is reached.
   """
   def stub_ownership(fun, resolver \\ fn _origin -> [{1, 1, 1, 1}] end) do
-    Application.put_env(:techtree, Techtree.Watchdog.Ownership,
-      req_options: [plug: {Req.Test, Techtree.Watchdog.Ownership}],
-      resolver: resolver
+    Application.put_env(
+      :techtree,
+      Techtree.Watchdog.Ownership,
+      Keyword.merge(Application.get_env(:techtree, Techtree.Watchdog.Ownership, []),
+        req_options: [plug: {Req.Test, Techtree.Watchdog.Ownership}],
+        resolver: resolver
+      )
     )
 
     Req.Test.stub(Techtree.Watchdog.Ownership, fun)

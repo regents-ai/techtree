@@ -110,6 +110,21 @@ defmodule Techtree.WatchdogTest do
       assert Ash.get!(Host, proven.id, actor: owner).ownership_state == :verified
     end
 
+    test "Check again on a proven host keeps it proven and queues the re-check",
+         %{owner: owner} do
+      proven = owner |> add_host!() |> prove!(owner)
+      {:ok, rechecking} = Watchdog.request_host_verification(proven, actor: owner)
+
+      assert rechecking.ownership_state == :verified
+
+      assert_enqueued(
+        worker: Techtree.Watchdog.Host.Workers.Reverify,
+        args: %{"primary_key" => %{"id" => proven.id}}
+      )
+
+      refute_enqueued(worker: Techtree.Watchdog.Host.Workers.CheckOwnership)
+    end
+
     test "a daily re-check that finds the proof gone revokes the host", %{owner: owner} do
       proven = owner |> add_host!() |> prove!(owner)
 

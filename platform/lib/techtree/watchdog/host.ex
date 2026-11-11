@@ -11,10 +11,10 @@ defmodule Techtree.Watchdog.Host do
   Only the person who added a host reads or changes it, enforced by policy on
   `human_account_id`. Each check is run by an AshOban trigger so the request
   happens outside any transaction and retries on a hiccup; a daily sweep
-  re-reads proven hosts so a withdrawn proof is noticed, and a sweep that
-  cannot reach the proof keeps the host proven until a later one can. The only
-  request made about a host is the ownership check, which reaches nothing else
-  of the site's.
+  re-reads proven hosts so a withdrawn proof is noticed, and a sweep (or a
+  check the person asks for on a proven host) that cannot reach the proof keeps
+  the host proven until a later one can. The only request made about a host is
+  the ownership check, which reaches nothing else of the site's.
   """
 
   use Ash.Resource,
@@ -50,9 +50,10 @@ defmodule Techtree.Watchdog.Host do
         worker_module_name(Techtree.Watchdog.Host.Workers.CheckOwnership)
       end
 
-      # Once a day, re-read every proven host's proof, so a withdrawn proof is
-      # noticed and the host drops to revoked. A sweep that cannot read the
-      # proof retries and then gives up with the host still proven.
+      # Once a day, and when the person presses Check on a proven host, re-read
+      # its proof, so a withdrawn proof is noticed and the host drops to
+      # revoked. A check that cannot read the proof retries and then gives up
+      # with the host still proven.
       trigger :reverify do
         action :check_ownership
         where expr(ownership_state == :verified)
@@ -87,9 +88,18 @@ defmodule Techtree.Watchdog.Host do
               message: "You've reached the most sites we keep for one account."}
     end
 
+    # A proven host is re-checked as the daily sweep does it, staying proven
+    # unless its proof is gone; any other host waits as pending for its check.
     update :request_verification do
-      change set_attribute(:ownership_state, :pending)
-      change run_oban_trigger(:check_ownership)
+      require_atomic? false
+
+      change run_oban_trigger(:reverify), where: attribute_equals(:ownership_state, :verified)
+
+      change set_attribute(:ownership_state, :pending),
+        where: attribute_does_not_equal(:ownership_state, :verified)
+
+      change run_oban_trigger(:check_ownership),
+        where: attribute_equals(:ownership_state, :pending)
     end
 
     update :check_ownership do
