@@ -1,0 +1,792 @@
+{
+  "digest": "sha256:28822aaa93ecc5fa26f8b415c9ab809636d9ba54866e66d0ff01a5d7391e2e3e",
+  "kind": "Comparison",
+  "operational": {
+    "cost_usd": "14.20",
+    "duration_seconds": 2530,
+    "finished_at": "2026-11-11T08:15:00Z",
+    "host": "prime-hosted-training",
+    "started_at": "2026-11-11T07:32:50Z"
+  },
+  "schema_version": "techtree.train.v1alpha1",
+  "spec": {
+    "arms": [
+      {
+        "change": "none",
+        "name": "baseline",
+        "skill_digest": null
+      },
+      {
+        "adapter": "techtree/payment-terms-lora-step-50",
+        "change": "rl",
+        "name": "trained",
+        "skill_digest": null
+      }
+    ],
+    "environment": {
+      "id": "regents/payment-terms",
+      "seed": 0,
+      "split": "held_out",
+      "task_count": 64,
+      "taskset_digest": "sha256:d0bb0d25bb441994392cc209c7330b97ca048cf606adc496829dd8d3aa49d03f",
+      "version": "0.1.0"
+    },
+    "model": {
+      "family": "Nemotron 3.5 Lightning",
+      "name": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
+      "provider": "prime-intellect",
+      "weights_digest": "sha256:6fa4fe2cd074f4d3ca666a87d1bc1c971b998a536d4dc88b1b98a3f02738f6fe"
+    },
+    "results": {
+      "arms": [
+        {
+          "mean_reward": 0.640625,
+          "name": "baseline",
+          "solved": 27,
+          "tokens": {
+            "completion": 9830,
+            "prompt": 41216
+          }
+        },
+        {
+          "mean_reward": 0.7890625,
+          "name": "trained",
+          "solved": 37,
+          "tokens": {
+            "completion": 11034,
+            "prompt": 93696
+          }
+        }
+      ],
+      "outcome": "uplift",
+      "paired": {
+        "ci95": [
+          0.0609,
+          0.2359
+        ],
+        "losses": 8,
+        "mean_difference": 0.1484375,
+        "method": "paired bootstrap, 10000 resamples, seed 0",
+        "ties": 38,
+        "wins": 18
+      },
+      "per_task": [
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-000"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-001"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-002"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-003"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-004"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-005"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-006"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-007"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-008"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-009"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-010"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-011"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-012"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-013"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-014"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-015"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-016"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-017"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-018"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-019"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-020"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-021"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-022"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-023"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-024"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-025"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-026"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-027"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-028"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-029"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-030"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-031"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-032"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-033"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-034"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-035"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-036"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-037"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-038"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-039"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-040"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-041"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-042"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-043"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-044"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-045"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-046"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-047"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-048"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-049"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-050"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-051"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-052"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-053"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-054"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-055"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-056"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-057"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-058"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-059"
+        },
+        {
+          "rewards": [
+            0.25,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ],
+          "task_id": "payment-terms-060"
+        },
+        {
+          "rewards": [
+            1.0,
+            0.5
+          ],
+          "solved": [
+            true,
+            false
+          ],
+          "task_id": "payment-terms-061"
+        },
+        {
+          "rewards": [
+            0.5,
+            0.5
+          ],
+          "solved": [
+            false,
+            false
+          ],
+          "task_id": "payment-terms-062"
+        },
+        {
+          "rewards": [
+            1.0,
+            1.0
+          ],
+          "solved": [
+            true,
+            true
+          ],
+          "task_id": "payment-terms-063"
+        }
+      ]
+    },
+    "sampling": {
+      "max_tokens": 512,
+      "temperature": 0.0,
+      "thinking": false
+    },
+    "software": {
+      "techtree_lab": "0.1.0",
+      "verifiers": "0.4.1"
+    },
+    "title": "RL on Nemotron 3.5 Lightning",
+    "traces_digest": "sha256:b2430d264499cfe8411a56d0c307effcf8ff553b8f6375e85c009641fd7d980a"
+  }
+}

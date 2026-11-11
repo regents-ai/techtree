@@ -48,8 +48,7 @@ defmodule TechtreeWeb.TrainLive.Parts do
         :for={task <- @tasks}
         class={["train-strip__task", "train-strip__task--#{task.result}"]}
         title={"#{task.id}: #{Copy.result(task.result)}"}
-      >
-      </span>
+      ></span>
     </div>
     """
   end

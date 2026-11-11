@@ -116,7 +116,7 @@ defmodule TechtreeWeb.TrainLive.Index do
         <.link navigate={~p"/train/#{@comparison.slug}"} class="rg-button rg-button--primary">
           Details
         </.link>
-        <.link navigate={~p"/train/#{@comparison.slug}#settings"} class="text-link">
+        <.link navigate={~p"/train/#{@comparison.slug}" <> "#settings"} class="text-link">
           Settings <span aria-hidden="true">→</span>
         </.link>
       </div>

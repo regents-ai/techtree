@@ -81,3 +81,10 @@
   .train-paired { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .train-figures > div { padding-inline: var(--space-2); }
 }
+
+/* On a touch screen each comparison's name and each copy icon get a finger's 44
+   pixels. */
+@media (pointer: coarse) {
+  .train-list__name a { display: flex; align-items: center; min-height: 2.75rem; }
+  .train-copyable .rg-copy--icon { inline-size: 2.75rem; block-size: 2.75rem; min-block-size: 2.75rem; }
+}

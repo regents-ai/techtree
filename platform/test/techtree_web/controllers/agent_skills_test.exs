@@ -91,7 +91,8 @@ defmodule TechtreeWeb.AgentSkillsTest do
     tools =
       Map.new(json_response(get(conn, ~p"/capabilities.json"), 200)["tools"], &{&1["name"], &1})
 
-    for name <- ~w(results_bundle skills_show wallet_bench_list wallet_bench_show train_comparisons train_report) do
+    for name <-
+          ~w(results_bundle skills_show wallet_bench_list wallet_bench_show train_comparisons train_report) do
       assert %{"annotations" => %{"readOnlyHint" => true}} = tool = tools[name]
       assert tool["requires"] == "none"
       assert tool["state_changing"] == false

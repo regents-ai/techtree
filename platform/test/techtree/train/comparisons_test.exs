@@ -91,12 +91,18 @@ defmodule Techtree.Train.ComparisonsTest do
       assert [{"other-traces", {:error, :traces}}, {"shown", {:ok, _}}] =
                Comparisons.read_all(folder)
 
-      assert refused(folder, "other-traces") =~ "Train comparison other-traces refused: traces mismatch"
+      assert refused(folder, "other-traces") =~
+               "Train comparison other-traces refused: traces mismatch"
     end
 
     test "counts a report gives that its tasks do not bear out are not read", %{tmp_dir: folder} do
       TrainFixture.write!(folder, "miscounted")
-      rewrite_report!(folder, "miscounted", &put_in(&1, ["spec", "results", "paired", "wins"], 31))
+
+      rewrite_report!(
+        folder,
+        "miscounted",
+        &put_in(&1, ["spec", "results", "paired", "wins"], 31)
+      )
 
       assert_raise MatchError, fn -> Comparisons.list(folder) end
     end
@@ -124,7 +130,10 @@ defmodule Techtree.Train.ComparisonsTest do
   end
 
   test "the test folder's reports both check out" do
-    assert [{"nemotron-lightning-rl", {:ok, %{change: :rl}}}, {"nemotron-nano-skill", {:ok, %{change: :skill}}}] =
+    assert [
+             {"nemotron-lightning-rl", {:ok, %{change: :rl}}},
+             {"nemotron-nano-skill", {:ok, %{change: :skill}}}
+           ] =
              Comparisons.read_all(Comparisons.folder())
   end
 

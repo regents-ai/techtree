@@ -10,7 +10,8 @@ defmodule TechtreeWeb.TrainControllerTest do
   alias Techtree.Catalog.Digest
   alias Techtree.Train.Comparisons
 
-  defp committed(slug, extension), do: File.read!(Path.join(Comparisons.folder(), slug <> extension))
+  defp committed(slug, extension),
+    do: File.read!(Path.join(Comparisons.folder(), slug <> extension))
 
   test "/train.json lists every comparison, newest first, with its addresses", %{conn: conn} do
     conn = get(conn, ~p"/train.json")
@@ -23,7 +24,12 @@ defmodule TechtreeWeb.TrainControllerTest do
              "change" => "rl",
              "arms" => [
                %{"name" => "baseline", "change" => "none", "adapter" => nil},
-               %{"name" => "trained", "change" => "rl", "skill_digest" => nil, "adapter" => "techtree/" <> _}
+               %{
+                 "name" => "trained",
+                 "change" => "rl",
+                 "skill_digest" => nil,
+                 "adapter" => "techtree/" <> _
+               }
              ]
            } = rl
 
@@ -32,7 +38,10 @@ defmodule TechtreeWeb.TrainControllerTest do
              "change" => "skill",
              "outcome" => "uplift",
              "paired" => %{"wins" => 30, "ties" => 28, "losses" => 6, "ci95" => [low, high]},
-             "arms" => [%{"name" => "baseline"}, %{"name" => "skill", "skill_digest" => "sha256:" <> _}]
+             "arms" => [
+               %{"name" => "baseline"},
+               %{"name" => "skill", "skill_digest" => "sha256:" <> _}
+             ]
            } = skill
 
     assert low < high

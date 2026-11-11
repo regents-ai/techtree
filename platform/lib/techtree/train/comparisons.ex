@@ -402,7 +402,10 @@ defmodule Techtree.Train.Comparisons do
        }) do
     {:ok, started_at, _offset} = DateTime.from_iso8601(started_at)
     {:ok, finished_at, _offset} = DateTime.from_iso8601(finished_at)
-    true = is_binary(host) and host != "" and is_binary(cost_usd) and Regex.match?(@cost, cost_usd)
+
+    true =
+      is_binary(host) and host != "" and is_binary(cost_usd) and Regex.match?(@cost, cost_usd)
+
     true = is_number(duration_seconds) and duration_seconds >= 0
 
     %{

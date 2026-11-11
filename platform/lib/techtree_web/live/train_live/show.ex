@@ -89,10 +89,18 @@ defmodule TechtreeWeb.TrainLive.Show do
                 <:fact term="Prompt tokens">{Copy.number(arm.tokens.prompt)}</:fact>
                 <:fact term="Completion tokens">{Copy.number(arm.tokens.completion)}</:fact>
                 <:fact :if={arm.skill_digest} term="Skill">
-                  <.copyable id={"arm-#{arm.name}-skill"} value={arm.skill_digest} label="Copy Skill digest" />
+                  <.copyable
+                    id={"arm-#{arm.name}-skill"}
+                    value={arm.skill_digest}
+                    label="Copy Skill digest"
+                  />
                 </:fact>
                 <:fact :if={arm.adapter} term="Adapter">
-                  <.copyable id={"arm-#{arm.name}-adapter"} value={arm.adapter} label="Copy adapter name" />
+                  <.copyable
+                    id={"arm-#{arm.name}-adapter"}
+                    value={arm.adapter}
+                    label="Copy adapter name"
+                  />
                 </:fact>
               </.definition_list>
             </Regent.Structure.panel>
@@ -150,7 +158,9 @@ defmodule TechtreeWeb.TrainLive.Show do
               <.definition_list>
                 <:fact term="Temperature">{@comparison.sampling.temperature}</:fact>
                 <:fact term="Max tokens">{Copy.number(@comparison.sampling.max_tokens)}</:fact>
-                <:fact term="Thinking">{if @comparison.sampling.thinking, do: "On", else: "Off"}</:fact>
+                <:fact term="Thinking">
+                  {if @comparison.sampling.thinking, do: "On", else: "Off"}
+                </:fact>
               </.definition_list>
             </div>
             <div>
@@ -192,7 +202,11 @@ defmodule TechtreeWeb.TrainLive.Show do
               <.copyable id="digest-report" value={@comparison.digest} label="Copy report digest" />
             </:fact>
             <:fact term="Traces">
-              <.copyable id="digest-traces" value={@comparison.traces_digest} label="Copy traces digest" />
+              <.copyable
+                id="digest-traces"
+                value={@comparison.traces_digest}
+                label="Copy traces digest"
+              />
             </:fact>
             <:fact term="Tasks">
               <.copyable

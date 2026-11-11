@@ -41,7 +41,11 @@ defmodule TechtreeWeb.TrainLiveTest do
       assert has_element?(view, "#task-#{task.id}")
     end
 
-    assert view |> element(".train-strip") |> render() |> String.split("train-strip__task--") |> length() ==
+    assert view
+           |> element(".train-strip")
+           |> render()
+           |> String.split("train-strip__task--")
+           |> length() ==
              comparison.environment.task_count + 1
   end
 

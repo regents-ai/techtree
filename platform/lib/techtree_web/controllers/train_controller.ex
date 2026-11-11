@@ -79,5 +79,8 @@ defmodule TechtreeWeb.TrainController do
   end
 
   defp paired(%{ci95: {low, high}} = paired),
-    do: paired |> Map.put(:ci95, [low, high]) |> Map.new(fn {key, value} -> {Atom.to_string(key), value} end)
+    do:
+      paired
+      |> Map.put(:ci95, [low, high])
+      |> Map.new(fn {key, value} -> {Atom.to_string(key), value} end)
 end

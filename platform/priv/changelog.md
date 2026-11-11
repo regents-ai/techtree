@@ -1,5 +1,19 @@
 # Changelog
 
+## Website (2026-11-11)
+
+### Added
+
+- **Train.** A new Train page shows NVIDIA Nemotron models scored before and after
+  one change, a Skill or RL training on Prime Intellect, on the same held-out tasks
+  with the same settings. Each comparison has its own page with both scores side by
+  side, every task's result, the exact settings, and its report and traces to
+  download.
+- **Private.** Bespoke RL training on your own tasks: write to build@regents.sh
+  from the Train page.
+- Agents can read the Train comparisons as JSON at /train.json, one report in full,
+  and each Train page as Markdown.
+
 ## Website (2026-11-06)
 
 ### Changed

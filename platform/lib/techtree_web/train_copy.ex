@@ -67,7 +67,8 @@ defmodule TechtreeWeb.TrainCopy do
   @doc "The paired results in one line: \"30 wins · 28 ties · 6 losses\"."
   @spec paired(%{wins: integer(), ties: integer(), losses: integer()}) :: String.t()
   def paired(%{wins: wins, ties: ties, losses: losses}),
-    do: "#{count(wins, "win", "wins")} · #{count(ties, "tie", "ties")} · #{count(losses, "loss", "losses")}"
+    do:
+      "#{count(wins, "win", "wins")} · #{count(ties, "tie", "ties")} · #{count(losses, "loss", "losses")}"
 
   @doc "How many tasks an arm solved: \"26 of 64 solved\"."
   @spec solved(Comparisons.arm(), pos_integer()) :: String.t()
@@ -87,7 +88,7 @@ defmodule TechtreeWeb.TrainCopy do
     |> String.reverse()
   end
 
-  @doc "A run's length: \"42 min\" or \"2 h 5 min\"."
+  @doc ~s(A run's length: "42 min" or "2 h 5 min".)
   @spec duration(number()) :: String.t()
   def duration(seconds) do
     minutes = round(seconds / 60)
@@ -112,7 +113,9 @@ defmodule TechtreeWeb.TrainCopy do
   @spec private_mailto() :: String.t()
   def private_mailto do
     body = Enum.join(["Company:", "Your tasks:", "Model:", "How a result is scored:"], "\r\n")
-    "mailto:build@regents.sh?" <> URI.encode_query([subject: "Techtree Private Training", body: body], :rfc3986)
+
+    "mailto:build@regents.sh?" <>
+      URI.encode_query([subject: "Techtree Private Training", body: body], :rfc3986)
   end
 
   defp count(1, one, _many), do: "1 #{one}"

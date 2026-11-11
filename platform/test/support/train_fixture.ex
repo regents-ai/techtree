@@ -60,7 +60,11 @@ defmodule Techtree.TrainFixture do
       "traces_digest" => Digest.hash_bytes(traces)
     }
 
-    named = %{"schema_version" => "techtree.train.v1alpha1", "kind" => "Comparison", "spec" => spec}
+    named = %{
+      "schema_version" => "techtree.train.v1alpha1",
+      "kind" => "Comparison",
+      "spec" => spec
+    }
 
     {:ok, finished_at, 0} =
       opts |> Keyword.get(:finished_at, "2026-11-10T09:42:10Z") |> DateTime.from_iso8601()
