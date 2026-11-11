@@ -3,9 +3,9 @@ defmodule Techtree.WalletBench.Payment.Changes.Settle do
   Settles an unknown send from Base itself (`Techtree.WalletBench.Funding.settled/1`),
   read before the transaction opens: its receipt makes it `confirmed` or
   `reverted` at that block, and with no receipt it is `replaced` only once the
-  funder's nonce at the latest block has passed it. While that nonce is unused,
-  the stored bytes can still land, so the send stays unknown and funding stays
-  paused.
+  block where the funder's nonce passed it holds another transaction at that
+  nonce, read pinned to that block. While that nonce is unused, the stored bytes
+  can still land, so the send stays unknown and funding stays paused.
   """
 
   use Ash.Resource.Change

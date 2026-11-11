@@ -2,7 +2,8 @@ defmodule Techtree.WalletBench.BaseRpc do
   @moduledoc """
   The bench's calls to Base, through the address set as `base_rpc` in
   `:techtree, Techtree.WalletBench`: Base's public RPC, or a local copy of Base
-  when testing. One call, one answer; nothing here retries.
+  when testing. One call, one answer; nothing here retries. Tests add Req
+  options, such as a `Req.Test` plug, under `:req_options` in the same settings.
   """
 
   @usdc "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
@@ -15,7 +16,7 @@ defmodule Techtree.WalletBench.BaseRpc do
 
   @doc "Where the bench reads Base."
   @spec url() :: String.t()
-  def url, do: Application.fetch_env!(:techtree, Techtree.WalletBench)[:base_rpc]
+  def url, do: config()[:base_rpc]
 
   @spec call(String.t(), list()) :: {:ok, term()} | {:error, term()}
   def call(method, params) do
@@ -54,12 +55,17 @@ defmodule Techtree.WalletBench.BaseRpc do
   end
 
   defp request(method, params) do
-    Req.post(url(),
-      json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
-      retry: false,
-      receive_timeout: 30_000
+    Req.post(
+      url(),
+      [
+        json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
+        retry: false,
+        receive_timeout: 30_000
+      ] ++ Keyword.get(config(), :req_options, [])
     )
   end
+
+  defp config, do: Application.fetch_env!(:techtree, Techtree.WalletBench)
 
   @doc "An address's USDC balance at a block tag, in units of 0.000001 USDC."
   @spec usdc_balance(String.t(), String.t()) :: {:ok, non_neg_integer()} | {:error, term()}

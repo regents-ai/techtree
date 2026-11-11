@@ -2,7 +2,7 @@
 
 .PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli check-siwa-latest release readiness browser
 
-check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-siwa-latest check-contracts
+check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-siwa-latest check-contracts check-formal
 
 check-plugin:
 	$(MAKE) -C plugin check
@@ -40,6 +40,16 @@ check-cli:
 # library in elixir-utils. Needs `gh auth login`.
 check-siwa-latest:
 	scripts/check-siwa-latest.sh $(REGENTS_CLI_REV)
+
+# The model of the Wallet Bench funding cap (formal/wallet_bench_funding/README.md):
+# its witness traces and random runs, in seconds, with no Java. formal-proof adds
+# Apalache's proof for every depth, which needs Java 17 or later on PATH.
+.PHONY: check-formal formal-proof
+check-formal:
+	formal/wallet_bench_funding/check.sh
+
+formal-proof:
+	formal/wallet_bench_funding/check.sh proof
 
 .PHONY: check-contracts
 check-contracts:
