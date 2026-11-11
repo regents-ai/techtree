@@ -35,10 +35,10 @@ defmodule Techtree.WalletBench.FundingSettledTest do
     assert Funding.settled(payment()) == {:ok, {:reverted, 640}}
   end
 
-  test "no receipt, and the nonce unused at the latest block: the send stays unknown" do
+  test "no receipt, and the nonce unused at the finalized block: the send stays unknown" do
     node = base(receipts: [nil], latest: 1_000, passed: nil)
     assert {:error, error} = Funding.settled(payment())
-    assert error =~ "was still unused at block 1000"
+    assert error =~ "was still unused at Base's finalized block 1000"
     assert count_blocks(node) == [1_000]
   end
 
@@ -160,7 +160,7 @@ defmodule Techtree.WalletBench.FundingSettledTest do
 
   defp payment(nonce \\ @nonce), do: %Payment{from: @funder, nonce: nonce, hash: @hash}
 
-  # A Base address: its `latest` block number, pinned reads only up to `head`, the funder's nonce passing
+  # A Base address: its finalized block number `latest`, pinned reads only up to `head`, the funder's nonce passing
   # `nonce` in block `passed` (never when nil) unless `counts` gives the answers in turn, and each receipt read
   # answered from `receipts` in turn.
   defp base(chain) do
@@ -184,8 +184,8 @@ defmodule Techtree.WalletBench.FundingSettledTest do
   defp answer("eth_getTransactionReceipt", [@hash], _chain, _head, node),
     do: %{"result" => next(node, :receipts)}
 
-  defp answer("eth_blockNumber", [], chain, _head, _node),
-    do: %{"result" => BaseRpc.hex(chain.latest)}
+  defp answer("eth_getBlockByNumber", ["finalized", false], chain, _head, _node),
+    do: %{"result" => %{"number" => BaseRpc.hex(chain.latest)}}
 
   defp answer("eth_getTransactionCount", [@funder, tag], chain, head, node) do
     block = BaseRpc.integer(tag)

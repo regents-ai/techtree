@@ -87,8 +87,8 @@ defmodule Techtree.WalletBench.Funding do
   Base's address can answer each read from a different node, some behind
   others, so a missing receipt proves nothing: only a receipt, or a read
   pinned to one block, decides. With no receipt, the funder's nonce is read at
-  Base's latest block number; while it has not passed the send's nonce the
-  send can still land and stays unknown. Once it has, the block where it first
+  Base's finalized block, which no reorganisation can undo; while it has not
+  passed the send's nonce there, the send stays unknown. Once it has, the block where it first
   passed is found by halving, every read pinned to a block, and that block's
   transaction from the funder at the send's nonce decides: another hash is
   `:replaced`; this send's hash means it landed, and its receipt decides, the
@@ -99,8 +99,8 @@ defmodule Techtree.WalletBench.Funding do
           {:ok, {:confirmed | :reverted, non_neg_integer()} | :replaced} | {:error, term()}
   def settled(payment) do
     with {:ok, nil} <- receipt(payment),
-         {:ok, latest} <- call("eth_blockNumber", []),
-         {:ok, block} <- nonce_passed_in(payment, integer(latest)),
+         {:ok, final} <- finalized(),
+         {:ok, block} <- nonce_passed_in(payment, final),
          {:ok, transaction} <- at_nonce(payment, block) do
       if same?(transaction["hash"], payment.hash),
         do: landed(payment, block),
@@ -108,15 +108,23 @@ defmodule Techtree.WalletBench.Funding do
     end
   end
 
+  defp finalized do
+    case call("eth_getBlockByNumber", ["finalized", false]) do
+      {:ok, %{"number" => number}} -> {:ok, integer(number)}
+      {:ok, nil} -> {:error, "Base has not answered with its finalized block."}
+      {:error, error} -> {:error, error}
+    end
+  end
+
   # The first block whose funder nonce, read pinned to that block, is past the send's.
-  defp nonce_passed_in(payment, latest) do
-    with {:ok, passed} <- passed?(payment, latest) do
+  defp nonce_passed_in(payment, final) do
+    with {:ok, passed} <- passed?(payment, final) do
       if passed,
-        do: halve(payment, 0, latest),
+        do: halve(payment, 0, final),
         else:
           {:error,
            "Base has no receipt for #{payment.hash}, and the funder's nonce #{payment.nonce} was still unused " <>
-             "at block #{latest}, so the send can still land. It stays unknown until that nonce is used on Base."}
+             "at Base's finalized block #{final}. It stays unknown until that nonce is used in a finalized block."}
     end
   end
 

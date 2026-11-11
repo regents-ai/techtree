@@ -28,7 +28,7 @@ In plain words, for the design as built:
 2. **The money that really moved never passes the total** (`MoneyCapHolds`).
    This rests on a send that landed on Base never being marked replaced
    (`LandedNeverReplaced`). `settled/1` reads the receipt first; with none, it
-   reads the funder's nonce at Base's latest block number, finds the block where
+   reads the funder's nonce at Base's finalized block, finds the block where
    the nonce passed the send's by halving, every read pinned to a block, and looks at the
    funder's transaction there at that nonce. Only another hash there makes the
    send replaced; this send's hash means it landed, and its receipt decides.
@@ -70,7 +70,7 @@ The model also shows what breaks each one:
 | The proof can fail | the same `quint verify` on `repeatable_read`, `receipt_first` and `nonce_first` | `CodeInductive` is not kept by any of the broken designs, so the proof is not true of everything |
 | Random runs | `quint run`, 100,000 runs of 40 steps | The design as built |
 | The code | ExUnit, real Postgres | Five attempts keeping their sends at once, on five connections, with room for two |
-| `settled/1` | ExUnit and a property test, with a fake Base node | Each outcome, a lagging node's missing receipt, a node without the pinned block, and the search finding the block in at most about log2 of the latest block number in reads, all pinned |
+| `settled/1` | ExUnit and a property test, with a fake Base node | Each outcome, a lagging node's missing receipt, a node without the pinned block, and the search finding the block in at most about log2 of the finalized block number in reads, all pinned |
 
 The file `funding.qnt` holds the parametric model `funding` and four instances:
 
@@ -163,10 +163,9 @@ model; if it were ever set to repeatable read, the cap would break as above.
 - Signing, gas, fees, balances and nonce choice are left out: they decide
   whether an attempt is refused before the transaction, not how many sends are
   kept.
-- Base never reorganises an included block. `settled/1` starts its pinned reads
-  at Base's latest block number, so a replaced send can rest on a block not yet
-  final on Ethereum; Base's one sequencer makes such a reorganisation rare, and
-  the model does not cover it. A node
+- Base never reorganises a finalized block. `settled/1` starts its pinned reads
+  at Base's finalized block, so a replaced send rests only on blocks final on
+  Ethereum; a send waits unknown until then. A node
   behind the chain refuses a pinned block it does not have, or shows an older
   state; no node answers with a block or a nonce that is not Base's. The tests
   check `settled/1` against a fake node, not Base itself.
