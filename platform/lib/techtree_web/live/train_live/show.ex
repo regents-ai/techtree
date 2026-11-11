@@ -211,14 +211,14 @@ defmodule TechtreeWeb.TrainLive.Show do
           </.definition_list>
           <div class="train-downloads">
             <a
-              class="rg-button rg-button--primary"
+              class="rg-button rg-button--primary rg-button--no-arrow"
               href={~p"/train/#{@comparison.slug}/report.json"}
               download={"#{@comparison.slug}.json"}
             >
               <Regent.Icons.icon name="download" /> Report
             </a>
             <a
-              class="rg-button"
+              class="rg-button rg-button--no-arrow"
               href={~p"/train/#{@comparison.slug}/traces.jsonl"}
               download={"#{@comparison.slug}.traces.jsonl"}
             >

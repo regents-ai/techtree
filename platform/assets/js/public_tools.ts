@@ -79,6 +79,7 @@ const requests: Record<string, Request> = {
   wallet_bench_list: (_input, read) => read("/wallet-bench.json", "json"),
   wallet_bench_show: (input, read) => read(`/wallet-bench/${encodeURIComponent(input.id)}/results.json`, "json"),
   train_comparisons: (_input, read) => read("/train.json", "json"),
+  train_report: (input, read) => read(`/train/${encodeURIComponent(input.slug)}/report.json`, "json"),
 }
 
 // Every call names its tool and this visit, so the site's log can put the call

@@ -3,23 +3,26 @@ defmodule Techtree.TrainFixture do
   Train reports made for the tests, in the exact shape the runner writes
   (`Techtree.Train.Comparisons`), with their digests worked out the same way.
 
-  `test/support/fixtures/train` holds two of them, written with `write!/3`:
-  `nemotron-nano-skill` (a Skill comparison) and `nemotron-lightning-rl` (RL
-  training), the reports the pages and browser walk read in the test
-  environment.
+  `test/support/fixtures/train` holds two of them, the reports the pages and
+  the browser walk read in the test environment, written with `write!/3`:
+
+      write!(folder, "nemotron-nano-skill")
+      write!(folder, "nemotron-lightning-rl",
+        change: :rl, finished_at: "2026-11-11T08:15:00Z", results: {18, 38, 8})
   """
 
   alias Techtree.Canonical
   alias Techtree.Catalog.Digest
 
   @tasks 64
+  @duration 2530
 
   @doc """
   The bytes of one report and its traces.
 
   Options: `:change` (`:skill` or `:rl`, default `:skill`), `:finished_at`
-  (an ISO 8601 time), `:title`, `:results` (`{wins, ties, losses}`, adding up
-  to 64) and `:outcome`.
+  (an ISO 8601 time in UTC; the run started 2530 seconds before), `:title`,
+  `:results` (`{wins, ties, losses}`, adding up to 64) and `:outcome`.
   """
   @spec files(keyword()) :: {binary(), binary()}
   def files(opts \\ []) do
@@ -59,14 +62,17 @@ defmodule Techtree.TrainFixture do
 
     named = %{"schema_version" => "techtree.train.v1alpha1", "kind" => "Comparison", "spec" => spec}
 
+    {:ok, finished_at, 0} =
+      opts |> Keyword.get(:finished_at, "2026-11-10T09:42:10Z") |> DateTime.from_iso8601()
+
     report =
       Map.merge(named, %{
         "operational" => %{
-          "started_at" => "2026-11-10T09:00:00Z",
-          "finished_at" => Keyword.get(opts, :finished_at, "2026-11-10T09:42:10Z"),
+          "started_at" => finished_at |> DateTime.add(-@duration) |> DateTime.to_iso8601(),
+          "finished_at" => DateTime.to_iso8601(finished_at),
           "host" => if(change == :rl, do: "prime-hosted-training", else: "local"),
           "cost_usd" => if(change == :rl, do: "14.20", else: "0.00"),
-          "duration_seconds" => 2530
+          "duration_seconds" => @duration
         },
         "digest" => named |> Canonical.encode!() |> Digest.hash_bytes()
       })

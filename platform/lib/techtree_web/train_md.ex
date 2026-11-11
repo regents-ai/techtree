@@ -5,6 +5,8 @@ defmodule TechtreeWeb.TrainMD do
   (`TechtreeWeb.Plugs.PageMarkdown`).
   """
 
+  use TechtreeWeb, :verified_routes
+
   alias TechtreeWeb.TrainCopy, as: Copy
 
   @doc "`/train`: every comparison, newest first, then Private."
@@ -22,7 +24,7 @@ defmodule TechtreeWeb.TrainMD do
     """
     # Train
 
-    NVIDIA Nemotron models before and after one change, on the same held-out tasks with the same settings. The same list as JSON: [/train.json](/train.json).
+    NVIDIA Nemotron models before and after one change, on the same held-out tasks with the same settings. The same list as JSON: #{url(~p"/train.json")}.
 
     #{listed}
     ## Private
@@ -47,8 +49,8 @@ defmodule TechtreeWeb.TrainMD do
     [before, changed] = Enum.map(comparison.arms, &Copy.arm_label(comparison, &1))
 
     tasks =
-      Enum.map_join(comparison.tasks, "\n", fn %{rewards: {low, high}} = task ->
-        "| `#{task.id}` | #{Copy.reward(low)} | #{Copy.reward(high)} | #{Copy.result(task.result)} |"
+      Enum.map_join(comparison.tasks, "\n", fn %{rewards: {before, changed}} = task ->
+        "| `#{task.id}` | #{Copy.reward(before)} | #{Copy.reward(changed)} | #{Copy.result(task.result)} |"
       end)
 
     """
@@ -83,8 +85,8 @@ defmodule TechtreeWeb.TrainMD do
 
     ## Evidence
 
-    - Report: `#{comparison.digest}`, [download](/train/#{comparison.slug}/report.json)
-    - Traces: `#{comparison.traces_digest}`, [download](/train/#{comparison.slug}/traces.jsonl)
+    - Report: `#{comparison.digest}`, [download](#{url(~p"/train/#{comparison.slug}/report.json")})
+    - Traces: `#{comparison.traces_digest}`, [download](#{url(~p"/train/#{comparison.slug}/traces.jsonl")})
     - Tasks: `#{environment.taskset_digest}`
     - Weights: `#{model.weights_digest}`
     """
@@ -98,7 +100,7 @@ defmodule TechtreeWeb.TrainMD do
     - Outcome: #{Copy.outcome(comparison.outcome)}, #{Copy.paired(comparison.paired)}, 95% interval #{Copy.interval(comparison.paired.ci95)} points, on #{comparison.environment.task_count} held-out tasks
     - Model: NVIDIA #{comparison.model.family}, `#{comparison.model.name}`
     - Finished: #{Copy.date(comparison.operational.finished_at)}
-    - [Details](/train/#{comparison.slug}), [report](/train/#{comparison.slug}/report.json), [traces](/train/#{comparison.slug}/traces.jsonl)
+    - [Details](#{url(~p"/train/#{comparison.slug}")}), [report](#{url(~p"/train/#{comparison.slug}/report.json")}), [traces](#{url(~p"/train/#{comparison.slug}/traces.jsonl")})
     """
   end
 

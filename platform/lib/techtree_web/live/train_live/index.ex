@@ -61,7 +61,7 @@ defmodule TechtreeWeb.TrainLive.Index do
           >
             <li
               :for={comparison <- @comparisons}
-              id={"train-#{comparison.slug}"}
+              id={"comparison-#{comparison.slug}"}
               class="train-list__item"
             >
               <div class="train-list__name">

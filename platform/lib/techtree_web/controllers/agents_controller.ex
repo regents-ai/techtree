@@ -255,7 +255,8 @@ defmodule TechtreeWeb.AgentsController do
     the same settings, read https://techtree.sh/train.json or call
     `train_comparisons`: each comparison's mean rewards, paired wins, ties and
     losses, the 95% interval and the outcome, with its report and traces to
-    download. Each page answers Markdown too, at https://techtree.sh/train.
+    download. `train_report` reads one comparison's report with every task's
+    result. Each page answers Markdown too, at https://techtree.sh/train.
     Bespoke RL training on a team's own tasks is private: to ask for it, the
     person writes to build@regents.sh.
 

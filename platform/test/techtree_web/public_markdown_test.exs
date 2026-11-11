@@ -32,7 +32,9 @@ defmodule TechtreeWeb.PublicMarkdownTest do
            "/results/" <> NetworkFixture.bundle_digest(),
            "/climbs/hello-world-climb",
            "/examples/tdd",
-           "/wallet-bench"
+           "/wallet-bench",
+           "/train",
+           "/train/nemotron-nano-skill"
          ] ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++
            TechtreeWeb.AgentGuides.paths()
