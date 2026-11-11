@@ -256,6 +256,9 @@ defmodule TechtreeWeb.Layouts do
   defp description_for_path("/formal"),
     do:
       "Techtree Formal: what formal verification proves and what it doesn't, recent advances with their sources, and how to send code to be proved."
+  defp description_for_path("/services/watchdog"),
+    do:
+      "Techtree Watchdog: a monthly watch on the sites you own, proven ownership, agreed limits, reproduced findings with fixes and a retest."
 
   defp description_for_path("/docs"),
     do: "Install Techtree, test a Skill, check and publish a Result, and connect an agent."

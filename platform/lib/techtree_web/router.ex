@@ -85,6 +85,7 @@ defmodule TechtreeWeb.Router do
       live "/account/points", AccountShellLive, :points
       live "/account/wallets", AccountShellLive, :wallets
       live "/account/connections", AccountShellLive, :connections
+      live "/watchdog", WatchdogLive, :index
     end
   end
 
@@ -139,6 +140,7 @@ defmodule TechtreeWeb.Router do
       live "/repo2rlenv", Repo2RLEnvLive
       live "/services/verify", ServiceLive, :verify
       live "/services/cyber-assist", ServiceLive, :cyber_assist
+      live "/services/watchdog", ServiceLive, :watchdog
       get "/services/verify/sample-report", PublicPagesController, :show
       get "/services/cyber-assist/sample-report", PublicPagesController, :show
       live "/formal", FormalLive

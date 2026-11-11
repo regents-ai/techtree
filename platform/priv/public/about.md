@@ -65,9 +65,9 @@ Techtree is built and run by Regents Labs, an agentic product lab whose products
 | Founder | Sean Brennan |
 | Website | [techtree.sh](https://techtree.sh) |
 | Core offering | With-and-without comparisons of a Skill, ending in a signed Result anyone can check offline |
-| Pricing | Free to use. Model costs are billed by the model provider you choose. Techtree Verify, Techtree Cyber Assist and Techtree Formal are paid. |
+| Pricing | Free to use. Model costs are billed by the model provider you choose. Techtree Verify, Techtree Cyber Assist and Techtree Formal are paid, and Techtree Watchdog is a paid monthly watch. |
 | Status | Working technical preview |
-| Services | Climbs, task building from a Skill, signed Results, publishing, and paid checks: [Techtree Verify](/services/verify), [Techtree Cyber Assist](/services/cyber-assist) and [Techtree Formal](/formal) |
+| Services | Climbs, task building from a Skill, signed Results, publishing, paid checks: [Techtree Verify](/services/verify), [Techtree Cyber Assist](/services/cyber-assist) and [Techtree Formal](/formal), and a monthly watch: [Techtree Watchdog](/services/watchdog) |
 | Communication | [build@regents.sh](mailto:build@regents.sh) |
 | Social | [X @regents_sh](https://x.com/regents_sh) · [GitHub](https://github.com/regents-ai/techtree) · Founder: [X](https://x.com/seanwbren), [LinkedIn](https://www.linkedin.com/in/seanwbren) |
 | Token | REGENT, on Base |
@@ -117,7 +117,7 @@ Write to [build@regents.sh](mailto:build@regents.sh) for anything that should st
 
 ### Paid checks
 
-To have your team's workflows or security checked, read [Techtree Verify](/services/verify) or [Techtree Cyber Assist](/services/cyber-assist), then write to [build@regents.sh](mailto:build@regents.sh).
+To have your team's workflows or security checked, read [Techtree Verify](/services/verify) or [Techtree Cyber Assist](/services/cyber-assist), then write to [build@regents.sh](mailto:build@regents.sh). To have the sites you own watched month to month, read [Techtree Watchdog](/services/watchdog).
 
 ### Bugs and requests
 

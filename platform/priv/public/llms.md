@@ -22,5 +22,6 @@ Techtree runs on the person's own computer, through regents-cli. Nothing you rea
 - [Results](https://techtree.sh/results), [Wallet Bench](https://techtree.sh/wallet-bench) and [About](https://techtree.sh/about).
 - [Techtree Verify](https://techtree.sh/services/verify) and [Techtree Cyber Assist](https://techtree.sh/services/cyber-assist): paid checks of a team's own workflows, such as an agent wallet flow, or of its security. Each page has a sample report and says what to send to build@regents.sh.
 - [Techtree Formal](https://techtree.sh/formal): what formal verification proves, recent advances with their sources, and how to send code to be proved, by email to build@regents.sh.
+- [Techtree Watchdog](https://techtree.sh/services/watchdog): a monthly watch on the sites a team owns, for security weaknesses, inside agreed limits. The page says what to send to build@regents.sh.
 
 Every page answers `Accept: text/markdown` with Markdown.

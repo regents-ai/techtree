@@ -28,6 +28,7 @@ defmodule TechtreeWeb.PublicMarkdownTest do
            "/services/cyber-assist",
            "/services/cyber-assist/sample-report",
            "/formal",
+           "/services/watchdog",
            "/start",
            "/results",
            "/results/" <> NetworkFixture.bundle_digest(),

@@ -2,7 +2,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   @moduledoc """
   The Markdown answer of the public pages built from the database, from
   release files or from their LiveView's own data: Start, Results, each Result, each Climb, the Wallet Bench, the
-  two offers under `/services`, Techtree Formal and the tdd example. The database-free pages are answered before the router
+  three offers under `/services`, Techtree Formal and the tdd example. The database-free pages are answered before the router
   (`TechtreeWeb.PublicDocuments`); these wait for the router, so an HTML
   request reads nothing here and a Markdown one reads only what its page reads,
   through the same queries.

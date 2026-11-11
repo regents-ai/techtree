@@ -1,12 +1,15 @@
 defmodule TechtreeWeb.ServiceLive do
   @moduledoc """
-  The two paid offers, Techtree Verify at `/services/verify` and Techtree Cyber
-  Assist at `/services/cyber-assist`: the Agent Wallet Bench result first, then
-  what the buyer gets, how an engagement runs, a sample of the report and the way
-  to start a conversation, an email whose body already asks for what we need
-  (`mailto/1`). Each page links to the other offer. Each page's Markdown is
-  `priv/public/services/<offer>.md`, the same facts in words, and its sample
-  report is a public document (`TechtreeWeb.PublicDocuments`).
+  The paid offers: Techtree Verify at `/services/verify` and Techtree Cyber
+  Assist at `/services/cyber-assist`, which lead with the Agent Wallet Bench
+  result, then what the buyer gets, how an engagement runs, a sample of the
+  report and the way to start a conversation; and Techtree Watchdog at
+  `/services/watchdog`, the monthly subscription that watches sites a team
+  proves it owns, with its own shape (how it works, the rules, what you get and
+  the price). Every page starts an email whose body already asks for what we
+  need (`mailto/1`). Each page's Markdown is `priv/public/services/<offer>.md`,
+  the same facts in words, and the Verify and Cyber Assist sample reports are
+  public documents (`TechtreeWeb.PublicDocuments`).
 
   The bench figures are counted from the published scores
   (`TechtreeWeb.WalletBenchScores.figures/0`, the grids `/wallet-bench.json`
@@ -90,6 +93,38 @@ defmodule TechtreeWeb.ServiceLive do
         "Write to build@regents.sh with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.",
       subject: "Techtree Cyber Assist",
       body: ["Company:", "Product:", "Parts for a second look:", "Place to try it:"]
+    },
+    watchdog: %{
+      name: "Techtree Watchdog",
+      promise: "Keep watch on the sites you own.",
+      lede:
+        "A monthly subscription for teams. You list the web addresses you own, prove they're yours, and we safely test them for security weaknesses the way a careful attacker would, inside limits you agree, and nothing else.",
+      steps: [
+        {"List", "You add the web addresses you want watched, each one a site you own."},
+        {"Prove",
+         "You prove each site is yours: a short DNS record, or a small file at a set address. No proof, no testing."},
+        {"Watch", "We test the proven addresses for weaknesses, inside the limits you agreed."},
+        {"Report",
+         "You get only the weaknesses we reproduced, each with a fix, and we retest after you fix."}
+      ],
+      rules: [
+        "Only sites you've proven you own.",
+        "Only the addresses you list, nothing beyond them.",
+        "A rate you agree, and never anything that deletes or changes your data.",
+        "Test accounts you make for us, never a real person's login.",
+        "We stop the moment you ask."
+      ],
+      deliverables: [
+        {"Reproduced findings",
+         "Only weaknesses we could show again, each with how serious it is."},
+        {"A fix for each", "Clear repair advice, most urgent first."},
+        {"A retest", "After you fix, we check the weakness is gone."}
+      ],
+      price: "Monthly, per site. Ask us for the price.",
+      start_line:
+        "Write to build@regents.sh with your company, the sites you want watched, and who we contact. We reply with a proposed scope; the price is set once the scope is agreed.",
+      subject: "Techtree Watchdog",
+      body: ["Company:", "Sites:", "Contact:"]
     }
   }
 
@@ -107,7 +142,7 @@ defmodule TechtreeWeb.ServiceLive do
   end
 
   @doc "The email an offer starts: to build@regents.sh, with its subject and the lines its body asks for."
-  @spec mailto(:verify | :cyber_assist) :: String.t()
+  @spec mailto(:verify | :cyber_assist | :watchdog) :: String.t()
   def mailto(offer) do
     %{subject: subject, body: lines} = Map.fetch!(@offers, offer)
     query = URI.encode_query([subject: subject, body: Enum.join(lines, "\r\n")], :rfc3986)
@@ -163,6 +198,75 @@ defmodule TechtreeWeb.ServiceLive do
   defp date(day, format), do: Calendar.strftime(day, format)
 
   @impl true
+  def render(%{live_action: :watchdog} = assigns) do
+    ~H"""
+    <Layouts.page wide>
+      <article class="service-offer" aria-labelledby="service-title">
+        <header class="editorial-heading">
+          <p class="eyebrow">{@offer.name}</p>
+          <h1 id="service-title">{@offer.promise}</h1>
+          <p class="lede">{@offer.lede}</p>
+          <div class="service-offer__actions">
+            <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
+          </div>
+          <p class="service-offer__other">
+            For a one-off check instead, see <a href={~p"/services/verify"}>Techtree Verify</a>
+            and <a href={~p"/services/cyber-assist"}>Techtree Cyber Assist</a>.
+          </p>
+        </header>
+
+        <section class="service-offer__flow" aria-labelledby="watchdog-how-title">
+          <p class="eyebrow">Process</p>
+          <h2 id="watchdog-how-title">How it works</h2>
+          <ol class="service-flow">
+            <li :for={{{title, detail}, index} <- Enum.with_index(@offer.steps, 1)}>
+              <span>0{index}</span><strong>{title}</strong><small>{detail}</small>
+            </li>
+          </ol>
+        </section>
+
+        <section class="service-offer__part" aria-labelledby="watchdog-rules-title">
+          <div>
+            <p class="eyebrow">Limits</p>
+            <h2 id="watchdog-rules-title">The rules we follow</h2>
+          </div>
+          <ul class="service-rules">
+            <li :for={rule <- @offer.rules}>{rule}</li>
+          </ul>
+        </section>
+
+        <section class="service-offer__part" aria-labelledby="watchdog-get-title">
+          <div>
+            <p class="eyebrow">Deliverables</p>
+            <h2 id="watchdog-get-title">You get</h2>
+          </div>
+          <dl class="service-deliverables">
+            <div :for={{title, detail} <- @offer.deliverables}>
+              <dt>{title}</dt>
+              <dd>{detail}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="service-offer__part" aria-labelledby="watchdog-price-title">
+          <div>
+            <p class="eyebrow">Price</p>
+            <h2 id="watchdog-price-title">Cost</h2>
+          </div>
+          <p>{@offer.price}</p>
+        </section>
+
+        <Regent.Structure.panel class="service-offer__start rg-panel__body rg-support-panel">
+          <p class="eyebrow">Start</p>
+          <h2>Contact</h2>
+          <p>{@offer.start_line}</p>
+          <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
+        </Regent.Structure.panel>
+      </article>
+    </Layouts.page>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.page wide>
@@ -177,6 +281,7 @@ defmodule TechtreeWeb.ServiceLive do
           </div>
           <p class="service-offer__other">
             {@offer.other.lead} <a href={@offer.other.path}>{@offer.other.name}</a>.
+            For ongoing watching of sites you own, see <a href={~p"/services/watchdog"}>Techtree Watchdog</a>.
           </p>
         </header>
 

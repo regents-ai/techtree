@@ -2,7 +2,7 @@
 
 Find and fix the security weaknesses that matter. For applications and agent integrations: we validate each weakness, show how to reproduce it, rank the repairs and check that each fix holds.
 
-To check that your workflows work, see [Techtree Verify](/services/verify).
+To check that your workflows work, see [Techtree Verify](/services/verify). For ongoing watching of sites you own, see [Techtree Watchdog](/services/watchdog).
 
 ## Wallet Bench
 
