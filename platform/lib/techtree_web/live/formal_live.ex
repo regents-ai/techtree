@@ -212,8 +212,8 @@ defmodule TechtreeWeb.FormalLive do
           <div>
             <p class="service-kicker">
               <span class="eyebrow">Worked example</span>
-              <Regent.Primitives.status tone="neutral" class="badge">
-                In progress
+              <Regent.Primitives.status tone="success" class="badge">
+                Proved
               </Regent.Primitives.status>
             </p>
             <h2 id="formal-example-title">Funding Cap</h2>
@@ -226,18 +226,32 @@ defmodule TechtreeWeb.FormalLive do
             <div>
               <dt>Property</dt>
               <dd>
-                For each token, the payments counted, and the money that really moves on Base, never pass the run's total.
+                For each token, the payments the bench keeps, and the money that really moves on Base, never pass the run's total.
               </dd>
             </div>
             <div>
               <dt>Model</dt>
               <dd>
-                The design of the funding step, written in Quint, not the code itself. It assumes Base never undoes a payment it has included, and that reads from Base agree.
+                The design of the funding step, written in Quint, not the code itself. It assumes Base never undoes a finalized block, and that a Base server that is behind shows an older record, never a false one.
               </dd>
             </div>
             <div>
-              <dt>Status</dt>
-              <dd>The model is still being written, so no result is claimed yet.</dd>
+              <dt>Proof</dt>
+              <dd>
+                Apalache proves both rules hold for runs of any length within the model's limits: three tests funded at once, a total of two payments of each token, and one retry each.
+              </dd>
+            </div>
+            <div>
+              <dt>Found</dt>
+              <dd>
+                Two ways past the total. If the database ran at repeatable read, three tests could each keep a payment against a total of two; a test on Postgres shows the same, and Techtree runs at read committed. And a Base server that is behind could make a lost payment look replaced, freeing room past the total; Techtree now reads Base at its finalized block, and the model was checked again.
+              </dd>
+            </div>
+            <div>
+              <dt>Code</dt>
+              <dd>
+                The proof covers the design, not the code. A test on Postgres and tests against a stand-in Base server tie the two together.
+              </dd>
             </div>
           </dl>
         </section>

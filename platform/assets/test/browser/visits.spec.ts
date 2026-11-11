@@ -31,7 +31,7 @@ for (const width of ["desktop", "phone"] as const) {
     const errors = watchErrors(page)
     const press = (target: Locator) => (hasTouch ? target.tap() : target.click())
 
-    await page.goto("/account")
+    await page.goto("/account/agents")
     await expect(page.locator("[data-phx-main].phx-connected")).toBeAttached()
     await press(page.getByRole("button", {name: `See ${agent}’s actions`}))
     const agentWindow = page.getByRole("dialog", {name: agent})
@@ -44,10 +44,10 @@ for (const width of ["desktop", "phone"] as const) {
     const told = visitLines(visit)
     const steps = told.map(step)
 
-    expect(steps[0]).toBe("request /account")
+    expect(steps[0]).toBe("request /account/agents")
     const order = [
-      "request /account",
-      "page /account",
+      "request /account/agents",
+      "page /account/agents",
       "action paired_agent.rename",
       "press AgentsPanel:rename_agent",
     ].map(wanted => steps.indexOf(wanted))

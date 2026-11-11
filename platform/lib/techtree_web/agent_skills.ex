@@ -35,12 +35,12 @@ defmodule TechtreeWeb.AgentSkills do
   }
 
   paths = Path.wildcard(@pattern)
-  @paths_hash :erlang.md5(paths)
+  @paths_hash :erlang.phash2(paths)
   files = Enum.filter(paths, &File.regular?/1)
   for file <- files, do: @external_resource(file)
 
   # A file added to or removed from a served skill rebuilds this module.
-  def __mix_recompile__?, do: :erlang.md5(Path.wildcard(@pattern)) != @paths_hash
+  def __mix_recompile__?, do: :erlang.phash2(Path.wildcard(@pattern)) != @paths_hash
 
   skills =
     for name <- @names do

@@ -27,11 +27,13 @@ Recent advances, newest first.
 
 ## Example
 
-Funding Cap, in progress. The Wallet Bench pays each agent it tests a small amount of USDC, and ETH for fees. This model describes how those payments stay within each run's total while several tests run at once, a failed try is retried, or a payment's result on Base is not known yet.
+Funding Cap, proved. The Wallet Bench pays each agent it tests a small amount of USDC, and ETH for fees. This model describes how those payments stay within each run's total while several tests run at once, a failed try is retried, or a payment's result on Base is not known yet.
 
-- Property: for each token, the payments counted, and the money that really moves on Base, never pass the run's total.
-- Model: the design of the funding step, written in Quint, not the code itself. It assumes Base never undoes a payment it has included, and that reads from Base agree.
-- Status: the model is still being written, so no result is claimed yet.
+- Property: for each token, the payments the bench keeps, and the money that really moves on Base, never pass the run's total.
+- Model: the design of the funding step, written in Quint, not the code itself. It assumes Base never undoes a finalized block, and that a Base server that is behind shows an older record, never a false one.
+- Proof: Apalache proves both rules hold for runs of any length within the model's limits: three tests funded at once, a total of two payments of each token, and one retry each.
+- Found: two ways past the total. If the database ran at repeatable read, three tests could each keep a payment against a total of two; a test on Postgres shows the same, and Techtree runs at read committed. And a Base server that is behind could make a lost payment look replaced, freeing room past the total; Techtree now reads Base at its finalized block, and the model was checked again.
+- Code: the proof covers the design, not the code. A test on Postgres and tests against a stand-in Base server tie the two together.
 
 [See the files on GitHub]({{example}}).
 

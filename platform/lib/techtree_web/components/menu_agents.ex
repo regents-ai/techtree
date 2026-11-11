@@ -5,7 +5,7 @@ defmodule TechtreeWeb.MenuAgents do
   shared short list (`Regent.Account.agents_brief`): each agent's picture and name
   over the Regent site it was last active on and how long ago. Pairing is shared by every
   Regent site, so an agent paired on another one is listed too. Manage beside the
-  heading opens the agents on this site's own Account page, where every agent is
+  heading opens this site's own Agents page, where every agent is
   listed.
 
   Where each agent was last active comes from its shared reading
@@ -67,7 +67,7 @@ defmodule TechtreeWeb.MenuAgents do
     <div id={"#{@id}-reader"} phx-hook="MenuAgents">
       <Regent.Account.agents_brief
         id={@id}
-        manage_href="/account#account-agents"
+        manage_href="/account/agents"
         agents={rows(@agents, @last_actions, @now)}
       />
     </div>

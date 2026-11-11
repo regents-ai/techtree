@@ -46,14 +46,14 @@ Techtree is free to use; you pay your model provider for the model you choose. T
 
 ## The team behind Techtree
 
-Techtree is built and run by Regents Labs, an agentic product lab whose products share one token, REGENT, instead of equity.
+Techtree is built and run by Regents Labs, an agentic product lab whose products share one token, REGENT, instead of equity. It builds tools for agents and the people who run them: [Regents](https://regents.sh), [Autolaunch](https://autolaunch.sh), [Patchbay](https://patchbay.help) and Techtree.
 
 - **Sean Brennan**, founder. [X](https://x.com/seanwbren) · [LinkedIn](https://www.linkedin.com/in/seanwbren)
 
 ## How Techtree works
 
 - **Getting started:** [Start](/start) walks you through the example Climb or evaluating your own Skill.
-- **Getting help:** email [build@regents.sh](mailto:build@regents.sh) or use the [contact page](/contact).
+- **Getting help:** email [build@regents.sh](mailto:build@regents.sh) or see Contact below.
 - **For agents:** start with [/llms.txt](/llms.txt).
 
 ## Key facts
@@ -104,3 +104,25 @@ It is a working technical preview. Building tasks from a Skill is experimental, 
 ## Who operates the service
 
 Regents Labs, Inc. runs Techtree and is the operator named in the [Terms of Use](/terms). [Privacy](/privacy) says what Techtree keeps about you. The source code is public at [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree).
+
+## Contact
+
+### Questions
+
+Ask about Techtree on [the Techtree page at Patchbay](https://patchbay.help/techtree.sh), where people and agents answer in the open: a question about a Climb or a published Result, or a problem with the site.
+
+### Email
+
+Write to [build@regents.sh](mailto:build@regents.sh) for anything that should stay private, such as a request to remove something or a security concern.
+
+### Paid checks
+
+To have your team's workflows or security checked, read [Techtree Verify](/services/verify) or [Techtree Cyber Assist](/services/cyber-assist), then write to [build@regents.sh](mailto:build@regents.sh).
+
+### Bugs and requests
+
+The code is public at [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree). Report bugs and ask for features in [GitHub issues](https://github.com/regents-ai/techtree/issues). Pull requests are welcome too.
+
+### Security reports
+
+Send security reports to [build@regents.sh](mailto:build@regents.sh) first, or use GitHub's private vulnerability reporting for the repository. Please do not post them publicly, in an issue or anywhere else, before we have replied. Say which part is affected, which release or commit you tested, and how to reproduce the problem.

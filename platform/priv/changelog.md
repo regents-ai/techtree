@@ -1,15 +1,83 @@
 # Changelog
 
-## Website (2026-10-29)
+## Website (2026-11-11)
 
 ### Added
 
 - **Techtree Formal.** A new page, /formal, explains in plain words what a
   formal proof shows and what it doesn't, lists recent advances with the date
-  and source of each, describes a worked example in progress (the Wallet
-  Bench's funding cap) and says what to send to build@regents.sh to have code
-  proved. The reply is a scoped quote; the work is paid and priced once the
-  scope is agreed.
+  and source of each, shows a worked example (the Wallet Bench's funding cap,
+  proved, with the two ways past the total it found and how they were closed)
+  and says what to send to build@regents.sh to have code proved. The reply is
+  a scoped quote; the work is paid and priced once the scope is agreed.
+
+## Website (2026-11-06)
+
+### Changed
+
+- **Points.** Your Points page is redrawn: your total with today and yesterday, the
+  actions left with where to do each, and the leaderboard. Buying Credits no longer
+  earns Points.
+- **Leaderboard.** Someone with no name shows by their wallet, which you can copy.
+- **Agents.** A paired agent's Points answer adds yesterday's points, your place, the
+  actions left, the daily limit and the leaderboard.
+- Agents install regents-cli 1.10.24, and the Techtree plugin moves to 0.7.25
+  with it.
+- **Pairing.** Pair New Agent, in the account menu and on the Agents tab, opens one
+  window over the page you are on: choose your agent from the list, copy its
+  message, and the window shows when the agent has paired.
+- **Icons.** Every icon on a button now comes from one set, at one line weight.
+
+### Fixed
+
+- **Docs.** When the site's data is briefly out of reach, each Docs page says the
+  install steps can't be shown, instead of failing to open.
+
+## Website (2026-11-05)
+
+### Added
+
+- **Agents.** Each agent you can pair now has its own page at /agents: how to
+  set it up, common questions and where to get help.
+- Agents can read the Docs list as JSON at /api/v1/docs.
+
+## Website (2026-11-04)
+
+### Changed
+
+- **Contact.** How to reach us is now part of the About page.
+- **Correct data.** A library that reads the site's data is updated, which
+  closes a problem that could return the wrong results.
+- Agents install regents-cli 1.10.23, and the Techtree plugin moves to 0.7.24
+  with it.
+- **Account reads.** A paired agent reads its person's Credits and Points at
+  `GET /api/v1/account/balances`, `POST /api/v1/account/credits/history` and
+  `GET /api/v1/account/points`, as on every Regents site, with the tools
+  `account_balances`, `account_credits_history` and `account_points`. The
+  answers are the same as on every other site, and `/tools/account` is gone.
+- **Points.** On the Points page, an entry that counted now says Counted, and an
+  agent's entry names the agent by its wallet's newest pairing.
+- **Points.** When Points opens, what you already have counts: your account,
+  your linked X, GitHub and Farcaster accounts and your first paired agent each
+  earn their one-time points at the start, once.
+
+## Website (2026-11-01)
+
+### Changed
+
+- **Agents.** Your agents and Pair New Agent have their own tab, Agents, at
+  /account/agents. Your Account tab keeps your profile and your Credits, and
+  Pair New Agent in the account menu takes you to the Agents tab.
+- Signed requests name the site they are for, so a proof made for another site
+  is refused here.
+- A page's signed browser tools take only their input: the agent's own browser
+  signs each request with the agent's key, and `prepare_agent_request` is gone.
+  In a browser with no agent signer they send nothing and answer
+  `agent_auth_required`.
+- Agents install regents-cli 1.10.22, which signs requests the new way, and the
+  Techtree plugin moves to 0.7.23 with it.
+
+## Website (2026-10-29)
 
 ### Changed
 

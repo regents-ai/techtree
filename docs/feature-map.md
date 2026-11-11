@@ -38,17 +38,20 @@ finger on a touch screen, 24 px for a mouse control.
 | What a person can do | Proved by |
 | --- | --- |
 | Open the account menu from their name on every page: their agents with Manage, Pair New Agent, Manage Account and Sign out; it hangs under the button inside the screen at 1280, 390 and 320 wide, the page still fits, a press outside or Escape closes it with focus back on the button, and with less motion it appears at once | `signed_in.spec.ts`, `account_menu_live_test.exs` |
-| Pair New Agent in the account menu, and in the Agents list, lands on the Account page's pairing box with the keyboard on the agent choice, every press; Manage Account opens the Account page; both close the menu; pairing is on the Account page only | `signed_in.spec.ts`, `account_menu_live_test.exs` |
+| Pair New Agent in the account menu, and in the Agents list, opens the pairing window over the page they are on, every press, with the keyboard on the agent dropdown and the list of agents open; the menu closes first; Close, the backdrop or Escape close it, Escape closing an open list first; closed, focus goes back to what opened it; Manage Account opens the Account page and closes the menu; every signed-in page holds the one window | `signed_in.spec.ts`, `pairing.spec.ts`, `account_menu_live_test.exs` |
+| Choose an agent in the pairing window and copy its message; the window keeps one height whatever is chosen; each agent keeps its own code until a new one is asked for; a form sent back with nothing chosen leaves the box as it is | `pairing.spec.ts` |
+| See their agents and Pair New Agent on the Agents tab (/account/agents), and their profile on the Account tab, at 1280, 390 and 320 wide, with nothing scrolling sideways | `signed_in.spec.ts`, `account_menu_live_test.exs` |
 | On a phone, see the open Menu over the page, with the page and footer out of reach until it closes; on a short phone screen the account menu ends inside the screen and reaches Sign out | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
 | Open the Buy Credits window and reach Approve and Buy | `signed_in.spec.ts`: the window opens at desktop and phone width, both buttons show, everything in it fits a finger, and the wallet code loads on the account pages and on no other page |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
-| Rename a paired agent from its window on the Account page, at both widths; a name with hidden characters is refused | `signed_in.spec.ts` |
+| Rename a paired agent from its window on the Agents page, at both widths; a name with hidden characters is refused | `signed_in.spec.ts` |
 | See the three most recently active agents in the account menu | `menu_agents_test.exs` (property) |
 | Every agent kind the library knows, Claude Duet included, draws its picture in the agents list and the account menu, so an agent paired on another site never breaks a person's list here | `agent_pictures_test.exs` |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
 | Approve and Buy Credits on Base | **Gap:** needs a wallet and the chain; not run |
-| Points, Wallets and Connections tabs with real data | **Gap:** read from the shared account service, which tests don't reach |
+| See your Points total, today, the actions left with where to do them, and your own place on the leaderboard in the first render; a person with no name shows by their wallet, whose copy icon copies it in full; two people with one name keep a picture each; a signed-out visitor gets nothing from the shared board | `points_page_test.exs` |
+| Wallets and Connections tabs with real data | **Gap:** read from the shared account service, which tests don't reach |
 
 ## Agents and machines
 
@@ -57,7 +60,13 @@ finger on a touch screen, 24 px for a mouse control.
 | Read `/agents.md`, `/llms.txt`, `/openapi.json` and the bootstrap | `agents_controller_test.exs`, `bootstrap_controller_test.exs`, `open_api_test.exs` |
 | Read the catalog, Climbs, objects and publications | `catalog_controller_test.exs`, `climb_controller_test.exs`, `object_controller_test.exs`, `publication_*_test.exs` |
 | Publish a Result and report a Climb | `publication_controller_test.exs`, `test/techtree/network/` |
-| Sign in with its wallet and use the three agent addresses (publications, Model Climb reports, `/tools/account`) only while acting as its person: unsigned 401, unpaired `agent_not_paired`, person not here `person_not_here`, and an unpairing during the request sends none of the person's data | `agent_wallet_test.exs` |
+| Sign in with its wallet and use the three agent addresses (publications, Model Climb reports, `/api/v1/account`) only while acting as its person: unsigned 401, unpaired `agent_not_paired`, person not here `person_not_here`, and an unpairing during the request sends none of the person's data | `agent_wallet_test.exs` |
+| A new account, each linked social account and a paired agent offer their one-time Points award once, inside the save that earns it; a sign-in that changes nothing offers nothing, and an agent's award names its wallet | `sign_in_milestones_test.exs` |
+| An account, its linked social account and its paired agent from before the Points start earn their one-time Points at the start, once, through this site's own checks, and a later run offers nothing more | `start_awards_test.exs` |
+| Read its person's Points with the same figures the page shows, and nothing at all while the shared board is not read | `points_page_test.exs` |
+| The board every signed-in reader shares: a refused reading keeps the one held, every reading offered reports its size against the limit, a failed first read is marked, an unchanged reading wakes no page, the kind holds one key, and measuring survives the table being away | `shared_reading_test.exs` |
+| A signed POST under `/api` keeps its exact bytes, so the sign-in service checks the digest of what the agent signed | `agent_wallet_test.exs` |
+| Use a page's signed browser tools through its own browser host (regents browser): each takes only its input, sends nothing with no signer or when the signer refuses, and sends exactly the bytes the signer signed, with the proof and no cookie | `page_tools.spec.ts` at 1280 |
 | Be known by one record per wallet, with the first World ID person it accepted kept for good | `agent_test.exs` (property) |
 | Keep and read Model Climb reports only for its own person | `report_policy_test.exs`. **Gap:** no check sends a real signed proof through `POST /api/model-climb/v1/reports` |
 | Get a funded Wallet Bench test's money back to the funder even when a money test fails | `advance_test.exs` (the return turn is queued in the latest conversation; the attempt then stops with the money test's reason). **Gap:** the judge's 1, 2, 4 and 8 minute retries are not exercised |

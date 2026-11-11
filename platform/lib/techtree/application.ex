@@ -13,6 +13,7 @@ defmodule Techtree.Application do
     # `:public_key.cacerts_get/0`, so it is loaded before anything connects.
     :ok = :public_key.cacerts_load(CAStore.file_path())
     :ok = TechtreeWeb.UnexpectedFailure.attach_jobs()
+    :ok = RegentHttp.ErrorSaving.attach()
     :ok = TechtreeWeb.VisitLog.Events.attach()
 
     children =
@@ -22,6 +23,11 @@ defmodule Techtree.Application do
         Techtree.Repo,
         {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Techtree.PubSub},
+        # The figures every reader it admits sees alike, then the readers that
+        # keep them. Each reader stores its first reading as it starts, so every
+        # key is there before the endpoint below serves a page.
+        Techtree.SharedReading,
+        points_board_child(),
         {Oban,
          AshOban.config(
            Application.fetch_env!(:techtree, :ash_domains),
@@ -54,9 +60,16 @@ defmodule Techtree.Application do
 
   # Metrics are served beside the site, never by a process that only runs a task.
   defp metrics_child do
-    if Phoenix.Endpoint.server?(:techtree, TechtreeWeb.Endpoint),
-      do: TechtreeWeb.Metrics
+    if serving?(), do: TechtreeWeb.Metrics
   end
+
+  # The Points board is read only where pages are served, so a task or a test
+  # never reads the database before it asks to.
+  defp points_board_child do
+    if serving?(), do: Techtree.Points.Board
+  end
+
+  defp serving?, do: Phoenix.Endpoint.server?(:techtree, TechtreeWeb.Endpoint)
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.

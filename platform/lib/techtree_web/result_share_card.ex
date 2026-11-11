@@ -115,10 +115,10 @@ defmodule TechtreeWeb.ResultShareCard do
     verdict = ResultAssessment.verdict_label(entry.assessment)
     lede = withdrawn(entry) <> "#{tasks(entry.task_count)}, with and without the Skill."
 
-    site = layer("TECHTREE.SH", :mono, 17, @muted)
-    eyebrow = fit(eyebrow, :mono, 17, @muted, @words_w - 24)
-    lines = wrap(verdict, :pixel, @h1_size, @ink, @words_w)
-    lede = layer(lede, :regular, 25, @muted, width: @lede_w)
+    site = layer("TECHTREE.SH", :label, 17, @muted)
+    eyebrow = fit(eyebrow, :label, 17, @muted, @words_w - 24)
+    lines = wrap(verdict, :words, @h1_size, @ink, @words_w)
+    lede = layer(lede, :words, 25, @muted, width: @lede_w)
 
     h1_top = @eyebrow_top + Image.height(eyebrow) + @h1_gap
     lede_top = h1_top + length(lines) * @h1_line + 24
@@ -142,8 +142,8 @@ defmodule TechtreeWeb.ResultShareCard do
     |> tiles()
     |> Enum.with_index()
     |> Enum.flat_map(fn {{count, words, count_color, color}, index} ->
-      count = layer(count, :pixel, 36, count_color)
-      words = layer(words, :regular, 20, color)
+      count = layer(count, :words, 36, count_color)
+      words = layer(words, :words, 20, color)
       {top, height} = tile(index)
 
       count_top =
@@ -223,64 +223,60 @@ defmodule TechtreeWeb.ResultShareCard do
   # The words as lines no wider than `max`, broken between words: a word
   # joins the last line while the two still fit, and starts the next line
   # when they do not.
-  defp wrap(words, weight, size, color, max) do
+  defp wrap(words, kind, size, color, max) do
     [first | rest] = String.split(words, " ")
 
     rest
     |> Enum.reduce([first], fn word, [line | done] ->
       longer = line <> " " <> word
 
-      if Image.width(layer(longer, weight, size, color)) <= max,
+      if Image.width(layer(longer, kind, size, color)) <= max,
         do: [longer | done],
         else: [word, line | done]
     end)
     |> Enum.reverse()
-    |> Enum.map(&layer(&1, weight, size, color))
+    |> Enum.map(&layer(&1, kind, size, color))
   end
 
   # The words on one line no wider than `max`, cut short with an ellipsis
   # where they run over. The first cut keeps the share of the words that fits,
   # so a long name takes a few drawings, not one for each letter it loses.
-  defp fit(words, weight, size, color, max) do
-    layer = layer(words, weight, size, color)
+  defp fit(words, kind, size, color, max) do
+    layer = layer(words, kind, size, color)
 
     if Image.width(layer) <= max do
       layer
     else
       graphemes = String.graphemes(words)
       keep = min(div(length(graphemes) * max, Image.width(layer)), length(graphemes) - 1)
-      cut(graphemes, keep, {weight, size, color, max})
+      cut(graphemes, keep, {kind, size, color, max})
     end
   end
 
-  defp cut(graphemes, keep, {weight, size, color, max} = style) do
+  defp cut(graphemes, keep, {kind, size, color, max} = style) do
     shown = (graphemes |> Enum.take(keep) |> Enum.join() |> String.trim_trailing()) <> "…"
-    layer = layer(shown, weight, size, color)
+    layer = layer(shown, kind, size, color)
 
     if Image.width(layer) <= max or keep <= 1,
       do: layer,
       else: cut(graphemes, keep - 1, style)
   end
 
-  # The mono words are spaced 0.14 of their size apart, as on the site.
-  defp layer(words, weight, size, color, opts \\ []) do
-    {face, file} = font(weight)
-    spacing = if weight == :mono, do: ~s| letter_spacing="#{round(size * 0.14 * 1024)}"|, else: ""
+  # The label words are spaced 0.14 of their size apart, as on the site.
+  defp layer(words, kind, size, color, opts \\ []) do
+    spacing = if kind == :label, do: ~s| letter_spacing="#{round(size * 0.14 * 1024)}"|, else: ""
 
     {layer, _flags} =
       Operation.text!(
         ~s|<span foreground="#{color}"#{spacing}>#{escape(words)}</span>|,
-        [font: "#{face} #{size}", fontfile: file, rgba: true, dpi: 72] ++ opts
+        [font: "Geist Serif #{size}", fontfile: font_file(), rgba: true, dpi: 72] ++ opts
       )
 
     layer
   end
 
-  defp font(:regular), do: {"Geist", share_file("Geist-Regular.ttf")}
-  defp font(:mono), do: {"Geist Mono", share_file("GeistMono-Regular.ttf")}
-  defp font(:pixel), do: {"Geist Pixel Square", share_file("GeistPixel-Square.ttf")}
-
-  defp share_file(name), do: Application.app_dir(:techtree, ["priv", "share_card", name])
+  defp font_file,
+    do: Application.app_dir(:techtree, ["priv", "share_card", "GeistSerif-Regular.ttf"])
 
   defp escape(words), do: words |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
 

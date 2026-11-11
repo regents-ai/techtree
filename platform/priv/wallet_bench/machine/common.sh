@@ -44,7 +44,8 @@ as_bench() {
 }
 
 # The bench's runner (runner/), as root: it drives the tested agent through its Harbor adapter, running the agent's
-# own commands as `bench`. See runner/awb_runner/__main__.py for its commands.
+# own commands as `bench`. Harbor loads LiteLLM for every agent; LiteLLM keeps to the price list in the pinned package
+# rather than fetching the latest one. See runner/awb_runner/__main__.py for its commands.
 runner() {
-  sudo env PYTHONPATH="$W/bin/runner" PYTHONDONTWRITEBYTECODE=1 AWB_HARNESS_CONFIG="$W/harness.json" "$RUNNER_ENV/bin/python" -m awb_runner "$@"
+  sudo env PYTHONPATH="$W/bin/runner" PYTHONDONTWRITEBYTECODE=1 LITELLM_LOCAL_MODEL_COST_MAP=True AWB_HARNESS_CONFIG="$W/harness.json" "$RUNNER_ENV/bin/python" -m awb_runner "$@"
 }

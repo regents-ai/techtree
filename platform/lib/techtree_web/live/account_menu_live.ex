@@ -8,8 +8,10 @@ defmodule TechtreeWeb.AccountMenuLive do
   name, which open the account menu (`Regent.Account.menu`) hanging under it: the
   person's picture, name and wallet, the three agents paired with the account that
   were active most recently (`TechtreeWeb.MenuAgents`), Pair New Agent, Manage
-  Account and Sign out. Pairing itself and everything else about the account are
-  on the Account page. The browser opens and closes the menu (`popover`), so the
+  Account and Sign out. Pair New Agent, here and on the Agents page, opens the one
+  pairing window (`TechtreeWeb.PairingBox`), which this LiveView holds so it is on
+  every page; the agents are on the Agents page, and everything else about the
+  account is on the Account page. The browser opens and closes the menu (`popover`), so the
   server never stores whether it is open; following a link in it closes it
   (`assets/js/hooks/account_menu.ts`).
   """
@@ -30,6 +32,7 @@ defmodule TechtreeWeb.AccountMenuLive do
   @impl true
   def handle_info(:agents_changed, socket) do
     send_update(TechtreeWeb.MenuAgents, id: "shell-agents", agents_changed: true)
+    send_update(TechtreeWeb.PairingBox, id: "shell-pairing-box", agents_changed: true)
 
     {:noreply, socket}
   end
@@ -46,7 +49,7 @@ defmodule TechtreeWeb.AccountMenuLive do
         wallet={@account_control.wallet}
         ens_name={@account_control.ens_name}
         manage_href={~p"/account"}
-        pair_href={~p"/account#account-pairing"}
+        pair_window="shell-pairing"
       >
         <:picture>
           <.account_picture
@@ -65,6 +68,30 @@ defmodule TechtreeWeb.AccountMenuLive do
           />
         </:agents>
       </Regent.Account.menu>
+      <Regent.Structure.dialog
+        :if={current_account(@access_context)}
+        id="shell-pairing"
+        class="shell-pairing-dialog"
+        aria-labelledby="shell-pairing-title"
+        phx-mounted={JS.ignore_attributes(["open", "data-settled"])}
+      >
+        <Regent.Primitives.button
+          variant="quiet"
+          type="button"
+          class="shell-dialog-close"
+          aria-label="Close"
+          data-pair-close
+        >
+          <Regent.Icons.icon name="x" />
+        </Regent.Primitives.button>
+        <h2 id="shell-pairing-title">Pair New Agent</h2>
+        <.live_component
+          module={TechtreeWeb.PairingBox}
+          id="shell-pairing-box"
+          lease={@session_lease}
+          account={current_account(@access_context)}
+        />
+      </Regent.Structure.dialog>
     </div>
     """
   end

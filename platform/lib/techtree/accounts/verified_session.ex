@@ -104,12 +104,23 @@ defmodule Techtree.Accounts.VerifiedSession do
     with {:ok, current} <-
            Accounts.get_linked_identity_by_subject(provider, subject, actor: @actor),
          :ok <- subject_available(current, account_id),
-         {:ok, _identity} <- Accounts.upsert_linked_identity(identity, actor: @actor) do
+         {:ok, _identity} <- save_social(current, identity) do
       :ok
     else
       {:error, :already_linked} -> :conflict
       {:error, error} -> conflict_or_error(error, provider, subject, account_id)
     end
+  end
+
+  # A subject new to the account links it; the same subject again refreshes it.
+  defp save_social(nil, identity), do: Accounts.upsert_linked_identity(identity, actor: @actor)
+
+  defp save_social(current, identity) do
+    Accounts.refresh_linked_identity(
+      current,
+      Map.take(identity, [:username, :display_name, :verified_at, :metadata]),
+      actor: @actor
+    )
   end
 
   defp subject_available(nil, _account_id), do: :ok

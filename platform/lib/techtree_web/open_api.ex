@@ -25,7 +25,7 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "4",
+        "version" => "6",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
@@ -75,6 +75,18 @@ defmodule TechtreeWeb.OpenAPI do
           "responses" => %{
             "200" => json("A catalog release is being served.", ref("Health")),
             "503" => error("The site is up but is not serving a catalog release (unavailable).")
+          }
+        }
+      },
+      "/api/v1/docs" => %{
+        "get" => %{
+          "operationId" => "getDocs",
+          "summary" => "Read the documentation",
+          "description" =>
+            "The documentation list's title and its Markdown, the text GET /docs serves " <>
+              "as Markdown. Anyone may read it; no sign-in.",
+          "responses" => %{
+            "200" => json("The documentation list.", ref("PublicDocument"))
           }
         }
       },
@@ -384,7 +396,7 @@ defmodule TechtreeWeb.OpenAPI do
           "summary" => "Pair an agent with its person's Regent account",
           "description" =>
             "The agent sends the pairing code its person made with Pair New Agent on their " <>
-              "Account page, a name and what it runs on, signed with its own key. One pairing works on every Regent " <>
+              "Agents page, a name and what it runs on, signed with its own key. One pairing works on every Regent " <>
               "site. A code works once and expires ten minutes after it was made.",
           "security" => [%{"AgentSignature" => []}],
           "requestBody" => %{
@@ -434,25 +446,25 @@ defmodule TechtreeWeb.OpenAPI do
           )
           |> update_in(["responses"], &Map.drop(&1, ["403"]))
       },
-      "/tools/account/balances" => %{
+      "/api/v1/account/balances" => %{
         "get" =>
           signed_account_read(
-            "account_balances",
-            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note explains when approving new grants is off; existing grants are not revoked by that flag."
+            "getAccountBalances",
+            "Current paired agent's shared Credits balance and episode-bound spending budget; no grants may be changed. The budget includes remaining_24h, site_allowed and grant_approvals_available. A note says what the person can do when the agent may not spend here."
           )
       },
-      "/tools/account/points" => %{
+      "/api/v1/account/points" => %{
         "get" =>
           signed_account_read(
-            "points_balance",
-            "Current paired agent's canonical owner's Points summary; reads award no Points and activate nothing. points and earned_today are decimal text; daily_allowances gives scope and remaining. A note explains when earning is off."
+            "getAccountPoints",
+            "Current paired agent's canonical owner's Points: what it earned today and yesterday, its place, the actions still open, daily limits, the leaderboard by name or wallet, recent entries with who earned each and whether it counted, and period bonuses; reads award no Points and activate nothing. Points are decimal text. A note explains when earning is off."
           )
       },
-      "/tools/account/credits/history" => %{
+      "/api/v1/account/credits/history" => %{
         "post" =>
           Map.put(
             signed_account_read(
-              "credits_history",
+              "listCreditsHistory",
               "Current paired agent's canonical owner's Credits history; a read-only cursor page. Entries group transfers into events with kind, direction and positive amount. pagination contains has_more and next_cursor."
             ),
             "requestBody",
@@ -705,6 +717,11 @@ defmodule TechtreeWeb.OpenAPI do
 
   defp schemas do
     %{
+      "PublicDocument" => %{
+        "type" => "object",
+        "required" => ["title", "markdown"],
+        "properties" => %{"title" => %{"type" => "string"}, "markdown" => %{"type" => "string"}}
+      },
       "Health" => %{
         "type" => "object",
         "required" => ["status"],
