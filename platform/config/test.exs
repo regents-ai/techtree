@@ -68,6 +68,10 @@ config :techtree, TechtreeWeb.TddShowcase,
   folder: Path.expand("../test/support/fixtures/tdd-showcase", __DIR__),
   export_revision: "1234567890abcdef1234567890abcdef12345678"
 
+# The Train pages read test reports, made for the tests and checked like real ones.
+config :techtree, Techtree.Train.Comparisons,
+  folder: Path.expand("../test/support/fixtures/train", __DIR__)
+
 # Every test request comes from one address, so the suite would spend the
 # request budget within a minute.
 config :techtree, :request_rate_limit, limit: 1_000_000, window_seconds: 60

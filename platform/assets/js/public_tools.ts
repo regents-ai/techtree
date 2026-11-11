@@ -78,6 +78,7 @@ const requests: Record<string, Request> = {
   skills_show: (input, read) => read(`/api/v1/skills/${encodeURIComponent(input.root_digest)}`, "json"),
   wallet_bench_list: (_input, read) => read("/wallet-bench.json", "json"),
   wallet_bench_show: (input, read) => read(`/wallet-bench/${encodeURIComponent(input.id)}/results.json`, "json"),
+  train_comparisons: (_input, read) => read("/train.json", "json"),
 }
 
 // Every call names its tool and this visit, so the site's log can put the call

@@ -228,6 +228,10 @@ config :techtree, TechtreeWeb.TddShowcase,
   repository_url: "https://github.com/regents-ai/techtree",
   export_revision: "808c280608a0599bbd5825e61534de8570992715"
 
+# The Train comparisons at /train: each a report and its traces, committed as
+# the runner wrote them. See `Techtree.Train.Comparisons`.
+config :techtree, Techtree.Train.Comparisons, folder: {:priv, "train"}
+
 # Configure the endpoint
 config :techtree, TechtreeWeb.Endpoint,
   url: [host: "localhost"],

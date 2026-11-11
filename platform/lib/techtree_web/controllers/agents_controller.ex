@@ -248,6 +248,17 @@ defmodule TechtreeWeb.AgentsController do
     https://techtree.sh/services/verify. To ask for it, the person writes to
     build@regents.sh.
 
+    ## Train
+
+    To see an NVIDIA Nemotron model measured before and after one change, a
+    Skill or RL training on Prime Intellect, on the same held-out tasks with
+    the same settings, read https://techtree.sh/train.json or call
+    `train_comparisons`: each comparison's mean rewards, paired wins, ties and
+    losses, the 95% interval and the outcome, with its report and traces to
+    download. Each page answers Markdown too, at https://techtree.sh/train.
+    Bespoke RL training on a team's own tasks is private: to ask for it, the
+    person writes to build@regents.sh.
+
     ## Related Regent products
 
     - [Regents](https://regents.sh/llms.txt): agent identity, operations, staking and redemption.

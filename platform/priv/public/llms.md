@@ -2,7 +2,7 @@
 
 > Test a person's Skill: tasks made from it, their agent run without it (or with its earlier version) and with it, and a comparison that says whether to keep the change.
 
-Techtree runs on the person's own computer, through regents-cli. Nothing you read or call on techtree.sh starts a run. Published Climb Results and the Wallet Bench are public to read.
+Techtree runs on the person's own computer, through regents-cli. Nothing you read or call on techtree.sh starts a run. Published Climb Results, the Wallet Bench and the Train comparisons are public to read.
 
 ## Install and first command
 
@@ -20,6 +20,7 @@ Techtree runs on the person's own computer, through regents-cli. Nothing you rea
 - [Docs](https://techtree.sh/docs): the public API, errors, rate limits, versioning and the browser tools.
 - [OpenAPI description](https://techtree.sh/openapi.json), [tool manifest](https://techtree.sh/capabilities.json) and [sitemap](https://techtree.sh/sitemap.xml).
 - [Results](https://techtree.sh/results), [Wallet Bench](https://techtree.sh/wallet-bench) and [About](https://techtree.sh/about).
+- [Train](https://techtree.sh/train): NVIDIA Nemotron models measured before and after one change, a Skill or RL training on Prime Intellect, on the same held-out tasks with the same settings. Each comparison has its report and traces to download; the list as JSON is [/train.json](https://techtree.sh/train.json).
 - [Techtree Verify](https://techtree.sh/services/verify) and [Techtree Cyber Assist](https://techtree.sh/services/cyber-assist): paid checks of a team's own workflows, such as an agent wallet flow, or of its security. Each page has a sample report and says what to send to build@regents.sh.
 
 Every page answers `Accept: text/markdown` with Markdown.

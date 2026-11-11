@@ -149,6 +149,8 @@ defmodule TechtreeWeb.Router do
       live "/wallet-bench/:id", WalletBenchLive.Show
       get "/wallet-bench/:id/evidence/:turn/:file", WalletBenchEvidenceController, :show
       get "/wallet-bench/:id/results.zip", WalletBenchEvidenceController, :results
+      live "/train", TrainLive.Index
+      live "/train/:slug", TrainLive.Show
 
       # The addresses release documents already point at, unchanged.
       live "/start", StartLive
@@ -177,6 +179,7 @@ defmodule TechtreeWeb.Router do
 
     get "/wallet-bench.json", WalletBenchController, :scores
     get "/wallet-bench/:id/results.json", WalletBenchEvidenceController, :summary
+    get "/train.json", TrainController, :index
   end
 
   scope "/", TechtreeWeb do
@@ -187,6 +190,8 @@ defmodule TechtreeWeb.Router do
     get "/agents.md", AgentsController, :show
     get "/agents/:agent/skill.md", PublicPagesController, :agent_skill_guide
     get "/wallet-bench.md", WalletBenchController, :markdown
+    get "/train/:slug/report.json", TrainController, :report
+    get "/train/:slug/traces.jsonl", TrainController, :traces
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities.json", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security

@@ -1,0 +1,13 @@
+[project]
+name = "payment-terms"
+version = "0.1.0"
+description = "payment-terms: read a paid offer written in words and answer with its x402 payment requirements (single-turn, field-by-field reward)."
+requires-python = ">=3.11"
+dependencies = ["verifiers>=0.4.1"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["payment_terms"]
