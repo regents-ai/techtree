@@ -5,13 +5,16 @@ defmodule Techtree.Watchdog.Host do
   (`Techtree.Watchdog.Host.CheckOwnership`), in whichever way they chose
   (`ownership_method`): a DNS TXT record, or a file at a well-known address.
   A host that was proven and later stops publishing its proof drops to
-  `:revoked` on its next check.
+  `:revoked` on its next check; a check that cannot read the proof at all
+  leaves the host as it was.
 
   Only the person who added a host reads or changes it, enforced by policy on
   `human_account_id`. Each check is run by an AshOban trigger so the request
   happens outside any transaction and retries on a hiccup; a daily sweep
-  re-reads proven hosts so a withdrawn proof is noticed. The only request made
-  about a host is the ownership check, which reaches nothing else of the site's.
+  re-reads proven hosts so a withdrawn proof is noticed, and a sweep that
+  cannot reach the proof keeps the host proven until a later one can. The only
+  request made about a host is the ownership check, which reaches nothing else
+  of the site's.
   """
 
   use Ash.Resource,
@@ -48,14 +51,13 @@ defmodule Techtree.Watchdog.Host do
       end
 
       # Once a day, re-read every proven host's proof, so a withdrawn proof is
-      # noticed and the host drops to revoked.
+      # noticed and the host drops to revoked. A sweep that cannot read the
+      # proof retries and then gives up with the host still proven.
       trigger :reverify do
         action :check_ownership
         where expr(ownership_state == :verified)
         queue(:watchdog)
         max_attempts(3)
-        on_error(:check_failed)
-        on_error_fails_job?(true)
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)

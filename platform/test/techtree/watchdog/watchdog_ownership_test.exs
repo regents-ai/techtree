@@ -1,15 +1,29 @@
 defmodule Techtree.Watchdog.OwnershipTest do
   @moduledoc """
   The ownership check: both proof methods against a stubbed resolver and site
-  (`Req.Test`), and the guard that refuses to fetch from anything but a public
-  address, so the one request Watchdog makes can never reach inward.
+  (`Req.Test`), the guard that refuses to fetch from anything but a public
+  address, and the fetch going to the address that was checked, so the one
+  request Watchdog makes can never reach inward. Only a proof that is
+  positively missing reads as `:proof_missing`; a check that could not be made
+  says so.
   """
 
   use ExUnit.Case, async: false
 
   alias Techtree.Watchdog.Ownership
+  alias Techtree.WatchdogFixture
 
   @env Techtree.Watchdog.Ownership
+
+  # Answers a request with the proof and hands the request it was given back
+  # to the test, which runs in the same process.
+  defmodule CaptureAdapter do
+    def run(request) do
+      send(self(), {:fetched, request})
+      body = "techtree-watchdog-verification=tok-123"
+      {request, Req.Response.new(status: 200, body: body)}
+    end
+  end
 
   setup do
     on_exit(fn -> Application.delete_env(:techtree, @env) end)
@@ -31,35 +45,42 @@ defmodule Techtree.Watchdog.OwnershipTest do
   test "a DNS TXT record that matches proves the host" do
     stub(fn conn ->
       assert conn.host == "dns.google"
-
-      Req.Test.json(conn, %{
-        "Answer" => [%{"type" => 16, "data" => ~s("techtree-watchdog-verification=tok-123")}]
-      })
+      Req.Test.json(conn, WatchdogFixture.dns_answer(["techtree-watchdog-verification=tok-123"]))
     end)
 
     assert Ownership.verify(host(:dns_txt)) == :ok
   end
 
-  test "a DNS answer without the record is not proof" do
-    stub(fn conn ->
-      Req.Test.json(conn, %{"Answer" => [%{"type" => 16, "data" => ~s("v=spf1 -all")}]})
-    end)
+  test "a DNS answer without the record is a missing proof" do
+    stub(fn conn -> Req.Test.json(conn, WatchdogFixture.dns_answer(["v=spf1 -all"])) end)
+    assert Ownership.verify(host(:dns_txt)) == {:error, :proof_missing}
+  end
 
-    assert Ownership.verify(host(:dns_txt)) == {:error, :record_not_found}
+  test "a name with no DNS records at all is a missing proof" do
+    stub(fn conn -> Req.Test.json(conn, %{"Status" => 3}) end)
+    assert Ownership.verify(host(:dns_txt)) == {:error, :proof_missing}
   end
 
   test "the DNS check reads the resolver, never the customer's host" do
     stub(fn conn ->
       assert conn.host == "dns.google"
-      Req.Test.json(conn, %{"Answer" => []})
+      Req.Test.json(conn, WatchdogFixture.dns_answer([]))
     end)
 
-    assert Ownership.verify(host(:dns_txt)) == {:error, :record_not_found}
+    assert Ownership.verify(host(:dns_txt)) == {:error, :proof_missing}
+  end
+
+  test "a failed lookup or an unreachable resolver is not a missing proof" do
+    stub(fn conn -> Req.Test.json(conn, %{"Status" => 2}) end)
+    assert Ownership.verify(host(:dns_txt)) == {:error, :resolver_failed}
+
+    stub(fn conn -> Req.Test.transport_error(conn, :timeout) end)
+    assert Ownership.verify(host(:dns_txt)) == {:error, :resolver_unreachable}
   end
 
   test "a well-known file that matches proves the host" do
     stub(fn conn ->
-      assert conn.host == "proven.example"
+      assert conn.host == "1.1.1.1"
       assert conn.request_path == "/.well-known/techtree-watchdog.txt"
       Req.Test.text(conn, "techtree-watchdog-verification=tok-123\n")
     end)
@@ -67,14 +88,42 @@ defmodule Techtree.Watchdog.OwnershipTest do
     assert Ownership.verify(host(:well_known_file)) == :ok
   end
 
-  test "a well-known file with the wrong contents is not proof" do
-    stub(fn conn -> Req.Test.text(conn, "nope") end)
-    assert Ownership.verify(host(:well_known_file)) == {:error, :record_not_found}
+  test "the file is fetched from the checked address under the host's own name" do
+    for {address, url_host} <- [
+          {{93, 184, 216, 34}, "93.184.216.34"},
+          {{0x2606, 0x2800, 0, 0, 0, 0, 0, 1}, "2606:2800::1"}
+        ] do
+      Application.put_env(:techtree, @env,
+        resolver: fn "proven.example" -> [address] end,
+        req_options: [adapter: CaptureAdapter]
+      )
+
+      assert Ownership.verify(host(:well_known_file)) == :ok
+      assert_received {:fetched, request}
+      assert request.url.host == url_host
+      assert request.url.path == "/.well-known/techtree-watchdog.txt"
+      assert request.options.connect_options[:hostname] == "proven.example"
+      assert request.options.redirect == false
+      assert request.options.retry == false
+    end
   end
 
-  test "a well-known file that is missing is not proof" do
+  test "a well-known file with the wrong contents is a missing proof" do
+    stub(fn conn -> Req.Test.text(conn, "nope") end)
+    assert Ownership.verify(host(:well_known_file)) == {:error, :proof_missing}
+  end
+
+  test "a well-known file that is missing is a missing proof" do
     stub(fn conn -> conn |> Plug.Conn.put_status(404) |> Req.Test.text("not found") end)
-    assert Ownership.verify(host(:well_known_file)) == {:error, {:file_status, 404}}
+    assert Ownership.verify(host(:well_known_file)) == {:error, :proof_missing}
+  end
+
+  test "a site that errors or cannot be reached is not a missing proof" do
+    stub(fn conn -> conn |> Plug.Conn.put_status(503) |> Req.Test.text("busy") end)
+    assert Ownership.verify(host(:well_known_file)) == {:error, {:file_status, 503}}
+
+    stub(fn conn -> Req.Test.transport_error(conn, :timeout) end)
+    assert Ownership.verify(host(:well_known_file)) == {:error, :host_unreachable}
   end
 
   test "a private or local host is refused before any request is sent" do

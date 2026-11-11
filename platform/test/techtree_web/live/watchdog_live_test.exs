@@ -56,9 +56,7 @@ defmodule TechtreeWeb.WatchdogLiveTest do
     {:ok, host} = Watchdog.add_host("proven.example", %{ownership_method: :dns_txt}, actor: actor)
 
     WatchdogFixture.stub_ownership(fn req ->
-      Req.Test.json(req, %{
-        "Answer" => [%{"type" => 16, "data" => ~s("#{Ownership.record_value(host)}")}]
-      })
+      Req.Test.json(req, WatchdogFixture.dns_answer([Ownership.record_value(host)]))
     end)
 
     {:ok, _proven} = Ash.update(host, %{}, action: :check_ownership, actor: actor)

@@ -13,11 +13,20 @@ defmodule Techtree.Watchdog.Ownership do
       (`well_known_path/0`) whose contents are that same string. We fetch it over
       HTTPS. This is the single request Watchdog sends to a customer host.
 
-  Before any well-known fetch the host is held to `public_host?/1`: a loopback,
-  link-local, private, unique-local or otherwise non-public address is refused
-  and nothing is sent. The fetch follows no redirects, retries nothing, gives up
-  quickly and reads only a small, bounded amount, so a customer host cannot use
-  the check to reach anything else or to hand back an unbounded body.
+  Before any well-known fetch the host is resolved once and held to
+  `public_host?/1`: a loopback, link-local, private, unique-local or otherwise
+  non-public address is refused and nothing is sent. The fetch then connects to
+  one of the addresses just checked, never resolving the name again, and keeps
+  the host's name for the `Host` header, TLS SNI and certificate verification,
+  so a name that changes its answer between the check and the connection
+  cannot point the request inward. It follows no redirects, retries nothing,
+  gives up quickly and reads only a small, bounded amount, so a customer host
+  cannot use the check to reach anything else or to hand back an unbounded body.
+
+  `verify/1` tells a missing proof apart from a check that could not be made:
+  only `{:error, :proof_missing}` says the proof is positively not there (the
+  TXT record is absent or different, or the file is missing or different).
+  Every other error means the proof could not be read this time.
 
   Every request is a `Req` request built with `request_options/0`, so tests
   drive both methods with `Req.Test` and the real resolver and site are never
@@ -52,15 +61,18 @@ defmodule Techtree.Watchdog.Ownership do
   def well_known_url(%{origin: origin}), do: "https://" <> origin <> @well_known_path
 
   @doc """
-  Checks a host's published proof: `:ok` when it is there and matches, or
-  `{:error, reason}` when it is missing, wrong, or the host may not be reached.
+  Checks a host's published proof: `:ok` when it is there and matches,
+  `{:error, :proof_missing}` when the record or file is absent or says something
+  else, or `{:error, reason}` when the proof could not be read (the resolver or
+  the host could not be reached or answered with an error, or the host is not
+  public).
   """
   @spec verify(%{
           :ownership_method => :dns_txt | :well_known_file,
           :origin => String.t(),
           :verification_token => String.t(),
           optional(any()) => any()
-        }) :: :ok | {:error, atom()}
+        }) :: :ok | {:error, :proof_missing | term()}
   def verify(%{ownership_method: :dns_txt} = host), do: verify_dns(host)
   def verify(%{ownership_method: :well_known_file} = host), do: verify_well_known(host)
 
@@ -69,25 +81,42 @@ defmodule Techtree.Watchdog.Ownership do
       [url: @resolver, params: [name: txt_name(host), type: "TXT"]]
       |> Keyword.merge(request_options())
 
-    request() |> Req.get(options) |> dns_result(record_value(host))
+    request([]) |> Req.get(options) |> dns_result(record_value(host))
   end
 
   defp dns_result({:ok, %{status: 200, body: body}}, expected),
-    do: if(expected in txt_answers(decode(body)), do: :ok, else: {:error, :record_not_found})
+    do: body |> decode() |> dns_answer(expected)
 
   defp dns_result({:ok, %{status: status}}, _expected), do: {:error, {:resolver_status, status}}
   defp dns_result({:error, _exception}, _expected), do: {:error, :resolver_unreachable}
 
+  # The resolver's own status: 0 is an answer and 3 is a name that does not
+  # exist, both a real finding; anything else (a failed lookup) is not.
+  defp dns_answer(%{"Status" => status} = answer, expected) when status in [0, 3],
+    do: if(expected in txt_answers(answer), do: :ok, else: {:error, :proof_missing})
+
+  defp dns_answer(_answer, _expected), do: {:error, :resolver_failed}
+
   defp verify_well_known(host) do
-    with :ok <- guard_public(host) do
-      options = Keyword.merge([url: well_known_url(host), into: cap()], request_options())
-      request() |> Req.get(options) |> file_result(record_value(host))
+    with {:ok, address} <- guard_public(host) do
+      options = Keyword.merge([url: address_url(address), into: cap()], request_options())
+
+      request(hostname: host.origin)
+      |> Req.get(options)
+      |> file_result(record_value(host))
     end
   end
 
-  defp file_result({:ok, %{status: 200, body: body}}, expected),
-    do: if(String.trim(to_string(body)) == expected, do: :ok, else: {:error, :record_not_found})
+  # The well-known URL with the checked address in place of the name.
+  defp address_url(address) do
+    host = to_string(:inet.ntoa(address))
+    URI.to_string(%URI{scheme: "https", host: host, path: @well_known_path})
+  end
 
+  defp file_result({:ok, %{status: 200, body: body}}, expected),
+    do: if(String.trim(to_string(body)) == expected, do: :ok, else: {:error, :proof_missing})
+
+  defp file_result({:ok, %{status: 404}}, _expected), do: {:error, :proof_missing}
   defp file_result({:ok, %{status: status}}, _expected), do: {:error, {:file_status, status}}
   defp file_result({:error, _exception}, _expected), do: {:error, :host_unreachable}
 
@@ -141,7 +170,7 @@ defmodule Techtree.Watchdog.Ownership do
   def public_host?(%{origin: origin}), do: public_host?(origin)
 
   def public_host?(origin) when is_binary(origin) do
-    guard_public(%{origin: origin}) == :ok
+    match?({:ok, _address}, guard_public(%{origin: origin}))
   end
 
   defp guard_public(%{origin: origin}) do
@@ -158,7 +187,8 @@ defmodule Techtree.Watchdog.Ownership do
 
   # An address literal is judged directly; a name is resolved and every address
   # it maps to over IPv4 and IPv6 must be public, so a name that points inward
-  # is refused before any request is built.
+  # is refused before any request is built. The first checked address is the
+  # one the fetch connects to.
   defp guard_addresses(origin) do
     case :inet.parse_address(String.to_charlist(origin)) do
       {:ok, address} -> judge([address])
@@ -168,8 +198,11 @@ defmodule Techtree.Watchdog.Ownership do
 
   defp judge([]), do: {:error, :host_unresolved}
 
-  defp judge(addresses),
-    do: if(Enum.all?(addresses, &public_address?/1), do: :ok, else: {:error, :host_not_public})
+  defp judge([first | _rest] = addresses) do
+    if Enum.all?(addresses, &public_address?/1),
+      do: {:ok, first},
+      else: {:error, :host_not_public}
+  end
 
   defp resolver do
     Application.get_env(:techtree, __MODULE__, [])[:resolver] || (&default_resolve/1)
@@ -211,12 +244,12 @@ defmodule Techtree.Watchdog.Ownership do
   defp mapped(a, b),
     do: {Bitwise.bsr(a, 8), Bitwise.band(a, 0xFF), Bitwise.bsr(b, 8), Bitwise.band(b, 0xFF)}
 
-  defp request do
+  defp request(connect_options) do
     Req.new(
       redirect: false,
       retry: false,
       receive_timeout: @timeout,
-      connect_options: [timeout: @timeout],
+      connect_options: [timeout: @timeout] ++ connect_options,
       decode_body: false
     )
   end

@@ -22,9 +22,7 @@ defmodule Techtree.WatchdogTest do
 
   defp prove!(host, actor) do
     WatchdogFixture.stub_ownership(fn conn ->
-      Req.Test.json(conn, %{
-        "Answer" => [%{"type" => 16, "data" => ~s("#{Ownership.record_value(host)}")}]
-      })
+      Req.Test.json(conn, WatchdogFixture.dns_answer([Ownership.record_value(host)]))
     end)
 
     {:ok, proven} = Ash.update(host, %{}, action: :check_ownership, actor: actor)
@@ -90,11 +88,41 @@ defmodule Techtree.WatchdogTest do
       assert proven.verified_at
 
       WatchdogFixture.stub_ownership(fn conn ->
-        Req.Test.json(conn, %{"Answer" => []})
+        Req.Test.json(conn, WatchdogFixture.dns_answer([]))
       end)
 
       {:ok, revoked} = Ash.update(proven, %{}, action: :check_ownership, actor: owner)
       assert revoked.ownership_state == :revoked
+    end
+
+    test "a daily re-check that cannot reach the proof keeps the host proven and retries",
+         %{owner: owner} do
+      proven = owner |> add_host!() |> prove!(owner)
+
+      WatchdogFixture.stub_ownership(fn conn -> Req.Test.transport_error(conn, :timeout) end)
+
+      assert_raise Ash.Error.Invalid, ~r/the proof could not be read/, fn ->
+        perform_job(Techtree.Watchdog.Host.Workers.Reverify, %{
+          "primary_key" => %{"id" => proven.id}
+        })
+      end
+
+      assert Ash.get!(Host, proven.id, actor: owner).ownership_state == :verified
+    end
+
+    test "a daily re-check that finds the proof gone revokes the host", %{owner: owner} do
+      proven = owner |> add_host!() |> prove!(owner)
+
+      WatchdogFixture.stub_ownership(fn conn ->
+        Req.Test.json(conn, WatchdogFixture.dns_answer(["something else"]))
+      end)
+
+      assert {:ok, _revoked} =
+               perform_job(Techtree.Watchdog.Host.Workers.Reverify, %{
+                 "primary_key" => %{"id" => proven.id}
+               })
+
+      assert Ash.get!(Host, proven.id, actor: owner).ownership_state == :revoked
     end
 
     test "requesting a check marks it pending and enqueues the check job", %{owner: owner} do

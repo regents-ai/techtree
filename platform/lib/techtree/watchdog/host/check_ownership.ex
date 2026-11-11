@@ -1,9 +1,12 @@
 defmodule Techtree.Watchdog.Host.CheckOwnership do
   @moduledoc """
   Reads a host's published proof and records what it found, outside any
-  transaction. A proof that matches makes the host proven; one that does not
-  leaves a first check unproven and drops a previously proven host to revoked,
-  so a host that stops publishing its proof stops counting as owned.
+  transaction. A proof that matches makes the host proven. A proof that is
+  positively missing or different leaves a first check unproven and drops a
+  previously proven host to revoked, so a host that stops publishing its proof
+  stops counting as owned. A check that could not read the proof at all (a
+  network error, a timeout, a failed lookup) records nothing and fails the
+  action, so the job retries and a proven host stays proven.
 
   The only request this makes is the ownership check itself
   (`Techtree.Watchdog.Ownership`); it reaches nothing else of the customer's.
@@ -26,11 +29,14 @@ defmodule Techtree.Watchdog.Host.CheckOwnership do
             last_checked_at: now
           })
 
-        {:error, _reason} ->
+        {:error, :proof_missing} ->
           Ash.Changeset.force_change_attributes(changeset, %{
             ownership_state: failed_state(changeset.data.ownership_state),
             last_checked_at: now
           })
+
+        {:error, reason} ->
+          Ash.Changeset.add_error(changeset, "the proof could not be read: #{inspect(reason)}")
       end
     end)
   end
