@@ -16,9 +16,11 @@ module funding {
   const MAX_RETRIES: int
   // The database isolation level: "read_committed" or "repeatable_read".
   const ISOLATION: str
-  // settled/1's order of reads: "nonce_first" (the code) or "receipt_first".
+  // settled/1's reads: "pinned" (the code: the receipt, then reads pinned to one
+  // block), "nonce_first" (the nonce at the latest block, then the receipt) or
+  // "receipt_first" (the receipt, then the nonce at the latest block).
   const SETTLE_ORDER: str
-  // Whether a receipt read may come from a node behind the one that answered the nonce read.
+  // Whether a read may come from a node behind the one that answered the read before it.
   const STALE_RECEIPTS: bool
 
   type Attempt = int
@@ -76,6 +78,14 @@ module funding {
   def hasReceipt(p: Pay): bool = Set(IncludedOk, IncludedReverted).contains(chain.get(p))
 
   def nonceUsed(p: Pay): bool = chain.get(p) != Pending
+
+  // What a payment's status becomes from Base's own record of it.
+  pure def onBase(c: Chain): Status = match c {
+    | Pending => Unknown
+    | IncludedOk => Confirmed
+    | IncludedReverted => Reverted
+    | Displaced => Replaced
+  }
 
   // ---- attempts --------------------------------------------------------------
 
@@ -211,7 +221,7 @@ module funding {
     statusOnly(status.set(p, Unknown), settle),
   }
 
-  // settled/1, first read.
+  // settled/1, first read: the nonce under "nonce_first", else the receipt.
   action settleFirst(p: Pay, stale: bool): bool = {
     val firstAnswer = if (SETTLE_ORDER == "nonce_first") nonceUsed(p) else hasReceipt(p) and not(STALE_RECEIPTS and stale)
     all {
@@ -221,17 +231,30 @@ module funding {
     }
   }
 
-  // settled/1, second read, then the decision: a receipt decides; no receipt and
-  // a used nonce is replaced; otherwise the payment stays unknown.
+  // settled/1, second read, then the decision.
+  //
+  // "pinned": a receipt decides. With none, reads pinned to one block, at or
+  // below Base's latest block number, find the block where the funder's nonce
+  // passed and the transaction there at the payment's nonce; that block's
+  // transaction and, when it is this payment, its receipt decide. The model
+  // takes those reads as Base's own record (the search itself is checked by the
+  // ExUnit tests of settled/1). A node behind the chain refuses a block it does
+  // not have, or answers for an older one, where the nonce is still unused or
+  // the receipt still missing, so the payment stays unknown.
+  //
+  // Otherwise: a receipt decides; no receipt and a used nonce is replaced;
+  // else the payment stays unknown.
   action settleSecond(p: Pay, stale: bool): bool = {
     val first = match settle.get(p) {
       | Idle => false
       | FirstRead(answer) => answer
     }
-    val receiptSeen = if (SETTLE_ORDER == "nonce_first") hasReceipt(p) and not(STALE_RECEIPTS and stale) else first
+    val lagging = STALE_RECEIPTS and stale
+    val receiptSeen = if (SETTLE_ORDER == "nonce_first") hasReceipt(p) and not(lagging) else first
     val nonceSeen = if (SETTLE_ORDER == "nonce_first") first else nonceUsed(p)
     val settled =
-      if (receiptSeen) (if (chain.get(p) == IncludedOk) Confirmed else Reverted)
+      if (SETTLE_ORDER == "pinned") (if (first or not(lagging)) onBase(chain.get(p)) else Unknown)
+      else if (receiptSeen) (if (chain.get(p) == IncludedOk) Confirmed else Reverted)
       else if (nonceSeen) Replaced
       else Unknown
     all {
@@ -289,9 +312,10 @@ module funding {
 
   // ---- the proof for every depth --------------------------------------------------
   //
-  // An inductive invariant for the design as built (read committed, nonce read
-  // first, consistent reads): it holds initially and every step keeps it, so it
-  // holds in every reachable state however long the run, and it implies Safe.
+  // An inductive invariant for the design as built (read committed, the receipt
+  // and then reads pinned to one block, any read possibly from a lagging node):
+  // it holds initially and every step keeps it, so it holds in every reachable
+  // state however long the run, and it implies Safe.
 
   // Every variable within its type: the proof starts from any such state.
   val TypeOK = and {
@@ -326,9 +350,9 @@ module funding {
     status.get(p) == Replaced implies chain.get(p) == Displaced,
   })
 
-  // Between settled/1's reads: still unknown, and a used nonce stays used.
+  // Between settled/1's reads: still unknown, and a receipt seen stays on Base.
   val SettleReads = PAYS.forall(p => settle.get(p) != Idle implies status.get(p) == Unknown) and
-    PAYS.forall(p => settle.get(p) == FirstRead(true) implies chain.get(p) != Pending)
+    PAYS.forall(p => settle.get(p) == FirstRead(true) implies hasReceipt(p))
 
   // Under read committed, the room the holder read is still there when it commits:
   // only the holder adds payments, and every other change only removes them from the count.
@@ -347,11 +371,12 @@ module funding {
   }
 }
 
-// The design as built: read committed, nonce read first, one consistent Base node.
+// The design as built: read committed, the receipt and then reads pinned to one
+// block, and any read possibly answered by a node behind the chain.
 module code {
   import funding(
     N_ATTEMPTS = 3, CAP = 2, MAX_RETRIES = 1,
-    ISOLATION = "read_committed", SETTLE_ORDER = "nonce_first", STALE_RECEIPTS = false
+    ISOLATION = "read_committed", SETTLE_ORDER = "pinned", STALE_RECEIPTS = true
   ).*
 
   // Three attempts sign at once; the third finds the cap reached under the lock
@@ -367,8 +392,8 @@ module code {
       .then(retry(3)).then(prepare(3))
       .expect(phase.get(3) == Refused and Safe)
 
-  // A send lands between settled/1's two reads: the nonce read first saw it
-  // unused, so the receipt read decides, and the send is confirmed.
+  // A send lands between settled/1's two reads: the receipt read first found
+  // none, and the pinned reads find this send at its nonce, so it is confirmed.
   run landsBetweenReadsTest =
     init
       .then(prepare(1)).then(update(1)).then(lock(1)).then(read(1)).then(insert(1)).then(commit(1))
@@ -378,13 +403,48 @@ module code {
       .then(land((2, "usdc"), IncludedOk))
       .then(settleSecond((2, "usdc"), false))
       .expect(status.get((2, "usdc")) == Confirmed and Safe)
+
+  // The run that broke the nonce-first order: attempt 2's USDC send lands and
+  // the reads reach a node that has not seen its block. It stays unknown, which
+  // pauses funding, and a later read confirms it, so the third attempt finds no room.
+  run laggingNodeTest =
+    init
+      .then(prepare(1)).then(update(1)).then(lock(1)).then(read(1)).then(insert(1)).then(commit(1))
+      .then(prepare(2)).then(update(2)).then(lock(2)).then(read(2)).then(insert(2)).then(commit(2))
+      .then(land((1, "usdc"), IncludedOk))
+      .then(land((2, "eth"), IncludedReverted)).then(receipt((2, "eth")))
+      .then(lose((2, "usdc")))
+      .then(land((2, "usdc"), IncludedOk))
+      .then(settleFirst((2, "usdc"), true))
+      .then(settleSecond((2, "usdc"), true))
+      .expect(status.get((2, "usdc")) == Unknown and Safe)
+      .then(settleFirst((2, "usdc"), false))
+      .then(settleSecond((2, "usdc"), false))
+      .expect(status.get((2, "usdc")) == Confirmed and Safe)
+      .then(prepare(3))
+      .expect(phase.get(3) == Refused and Safe)
+
+  // Another transaction used the nonce: the send is replaced, and the room it
+  // frees funds a third attempt within the total.
+  run replacedTest =
+    init
+      .then(prepare(1)).then(update(1)).then(lock(1)).then(read(1)).then(insert(1)).then(commit(1))
+      .then(prepare(2)).then(update(2)).then(lock(2)).then(read(2)).then(insert(2)).then(commit(2))
+      .then(lose((2, "usdc"))).then(land((2, "usdc"), Displaced))
+      .then(land((2, "eth"), IncludedReverted)).then(receipt((2, "eth")))
+      .then(settleFirst((2, "usdc"), false))
+      .then(settleSecond((2, "usdc"), false))
+      .expect(status.get((2, "usdc")) == Replaced and Safe)
+      .then(prepare(3)).then(update(3)).then(lock(3)).then(read(3)).then(insert(3)).then(commit(3))
+      .then(land((1, "usdc"), IncludedOk)).then(land((3, "usdc"), IncludedOk))
+      .expect(phase.get(3) == Committed and Safe)
 }
 
 // The same design if the database ran repeatable read.
 module repeatable_read {
   import funding(
     N_ATTEMPTS = 3, CAP = 2, MAX_RETRIES = 1,
-    ISOLATION = "repeatable_read", SETTLE_ORDER = "nonce_first", STALE_RECEIPTS = false
+    ISOLATION = "repeatable_read", SETTLE_ORDER = "pinned", STALE_RECEIPTS = true
   ).*
 
   // Each transaction's snapshot is fixed at its own update, before it waits for
@@ -425,8 +485,9 @@ module receipt_first {
       .expect(CapHolds and not(MoneyCapHolds))
 }
 
-// The code's order, but the receipt read may reach a node behind the nonce read's.
-module stale_receipts {
+// settled/1 reading the nonce at the latest block first, when the receipt read
+// may reach a node behind the nonce read's.
+module nonce_first {
   import funding(
     N_ATTEMPTS = 3, CAP = 2, MAX_RETRIES = 1,
     ISOLATION = "read_committed", SETTLE_ORDER = "nonce_first", STALE_RECEIPTS = true

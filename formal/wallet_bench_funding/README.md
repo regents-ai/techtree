@@ -2,9 +2,10 @@
 
 A model, in [Quint](https://quint-lang.org), of how the Wallet Bench keeps its
 funding sends within the run's total, checked by machine. It is a model of the
-design, not of the Elixir code: it says the design is right, and the test in
-`platform/test/techtree/wallet_bench/funding_cap_concurrency_test.exs` ties it to
-the code.
+design, not of the Elixir code: it says the design is right, and the tests in
+`platform/test/techtree/wallet_bench/funding_cap_concurrency_test.exs` and
+`platform/test/techtree/wallet_bench/funding_settled_test.exs` tie it to the
+code.
 
 ## What it proves
 
@@ -15,8 +16,8 @@ database transaction that keeps them, takes one lock for the whole funder, adds
 up every send kept so far and keeps its own only if they still fit
 (`Funding.admit/1` in `platform/lib/techtree/wallet_bench/funding.ex`, called from
 `platform/lib/techtree/wallet_bench/attempt/changes/sign_funding.ex`). A send
-whose outcome was lost is settled later by asking Base for its nonce, then its
-receipt (`Funding.settled/1`).
+whose outcome was lost is settled later from its receipt on Base or, with none,
+from reads pinned to one block (`Funding.settled/1`).
 
 In plain words, for the design as built:
 
@@ -26,13 +27,19 @@ In plain words, for the design as built:
    for each token.
 2. **The money that really moved never passes the total** (`MoneyCapHolds`).
    This rests on a send that landed on Base never being marked replaced
-   (`LandedNeverReplaced`), which holds because `settled/1` reads the nonce
-   before the receipt: a send that lands between the two reads is seen by its
-   receipt.
+   (`LandedNeverReplaced`). `settled/1` reads the receipt first; with none, it
+   reads the funder's nonce at Base's latest block number, finds the block where
+   the nonce passed the send's by halving, every read pinned to a block, and looks at the
+   funder's transaction there at that nonce. Only another hash there makes the
+   send replaced; this send's hash means it landed, and its receipt decides.
+   The model takes those pinned reads as giving Base's own record, or, from a
+   node behind the chain, an older one: it assumes this, it does not prove it.
+   The search, the sender and hash checks and the bound on reads are checked by
+   the ExUnit tests of `settled/1`, which fail when any of them is broken.
 
 Both are proven for every run length, not just short ones, for three attempts
-running at once, a total of two sends of each token and one retry each, when
-the two reads of Base agree with each other (see the third point below).
+running at once, a total of two sends of each token and one retry each, with
+any read of Base answered by a node behind the others.
 
 The model also shows what breaks each one:
 
@@ -42,16 +49,17 @@ The model also shows what breaks each one:
   any of them commits all see no sends kept, so all three keep theirs: three
   sends against a total of two. Under read committed, the default, the sum is
   read after the lock is taken and sees every send committed before it.
-- **Reading the receipt first breaks 2.** If `settled/1` read the receipt
-  before the nonce, a send landing between the two reads would look like no
-  receipt and a used nonce, be marked replaced, and free room for another
-  attempt: three sends really moved against a total of two.
-- **A lagging Base node breaks 2, even in the code's order.** The nonce-first
-  order assumes the receipt read sees at least what the nonce read saw. The
-  bench reads Base through one address (`base_rpc`, Base's public endpoint),
-  which may answer from different nodes. If the nonce read reaches a node that
-  has seen the send's block and the receipt read reaches one that has not, the
-  send is marked replaced although it moved. See Limits.
+- **The receipt, then the nonce at the latest block, breaks 2.** A send
+  landing between the two reads looks like no receipt and a used nonce, is
+  marked replaced, and frees room for another attempt: three sends really moved
+  against a total of two.
+- **The nonce at the latest block, then the receipt, breaks 2 with a lagging
+  node.** That order assumes the receipt read sees at least what the nonce read
+  saw. The bench reads Base through one address (`base_rpc`, Base's public
+  endpoint), which may answer from different nodes. If the nonce read reaches a
+  node that has seen the send's block and the receipt read reaches one that has
+  not, the send is marked replaced although it moved. This is why `settled/1`
+  decides only from a receipt or from reads pinned to one block.
 
 ## How it is checked
 
@@ -59,18 +67,19 @@ The model also shows what breaks each one:
 | --- | --- | --- |
 | Proof for every run length | `quint verify` (Apalache 0.62.4) with `CodeInductive` | An inductive invariant that holds at the start, is kept by every step, and implies `CapHolds`, `MoneyCapHolds` and `LandedNeverReplaced` |
 | Counterexamples | `quint test`, one trace per model | The exact runs above, each replayed step by step and checked to break (or, for the design as built, to keep) the property |
-| The proof can fail | the same `quint verify` on `repeatable_read` and `receipt_first` | `CodeInductive` is not kept by either broken design, so the proof is not true of everything |
+| The proof can fail | the same `quint verify` on `repeatable_read`, `receipt_first` and `nonce_first` | `CodeInductive` is not kept by any of the broken designs, so the proof is not true of everything |
 | Random runs | `quint run`, 100,000 runs of 40 steps | The design as built |
 | The code | ExUnit, real Postgres | Five attempts keeping their sends at once, on five connections, with room for two |
+| `settled/1` | ExUnit and a property test, with a fake Base node | Each outcome, a lagging node's missing receipt, a node without the pinned block, and the search finding the block in at most about log2 of the latest block number in reads, all pinned |
 
 The file `funding.qnt` holds the parametric model `funding` and four instances:
 
-| Model | Isolation | `settled/1` order | Base reads |
+| Model | Isolation | `settled/1` reads | Base reads |
 | --- | --- | --- | --- |
-| `code` (the design as built) | read committed | nonce first | consistent |
-| `repeatable_read` | repeatable read | nonce first | consistent |
-| `receipt_first` | read committed | receipt first | consistent |
-| `stale_receipts` | read committed | nonce first | the receipt read may lag |
+| `code` (the design as built) | read committed | receipt, then pinned to one block | any read may lag |
+| `repeatable_read` | repeatable read | receipt, then pinned to one block | any read may lag |
+| `receipt_first` | read committed | receipt, then nonce at the latest block | consistent |
+| `nonce_first` | read committed | nonce at the latest block, then receipt | the receipt read may lag |
 
 ### The model
 
@@ -91,8 +100,10 @@ The file `funding.qnt` holds the parametric model `funding` and four instances:
   passed over when its nonce is used by another transaction. A ghost
   "really moved on Base" is true for a send included without reverting.
 - **Outcomes**: a receipt makes a signed send confirmed or reverted; a missing
-  one makes it unknown; settling reads the nonce and the receipt in two steps
-  with Base free to act in between.
+  one makes it unknown; settling reads in two steps with Base free to act in
+  between. In `code`, the first is the receipt and the second the pinned reads,
+  which see Base's record of the send at its nonce, or, from a node behind the
+  chain, an older one where the nonce is unused or the receipt missing.
 
 ## Rerun
 
@@ -109,11 +120,14 @@ and Rust evaluator into `~/.quint` the first time. On Sean's Mac, Java is
 Temurin 21 from mise:
 `mise exec java@temurin-21.0.13+9.0.LTS -- make formal-proof`.
 
-## Results (29 October 2026)
+## Results (11 November 2026)
 
 - `code`: `CodeInductive` is inductive and implies `Safe`; no violation
-  (Apalache, about 16 seconds). `CapHolds`, `MoneyCapHolds` and
-  `LandedNeverReplaced` hold for every run length. Random runs: no violation.
+  (Apalache, about 22 seconds), with lagging nodes allowed. `CapHolds`,
+  `MoneyCapHolds` and `LandedNeverReplaced` hold for every run length. Random
+  runs: no violation. Its traces replay a send landing between the two reads,
+  the lagging-node run that breaks `nonce_first` (the send stays unknown, then
+  is confirmed), and a replaced send whose room funds a third attempt.
 - `repeatable_read`: `CapHolds` broken, in an 18-step run: all three attempts
   sign, all three update their rows, then each in turn locks, reads an empty
   view, inserts and commits. `CodeInductive` fails here too. Apalache's own
@@ -123,7 +137,7 @@ Temurin 21 from mise:
 - `receipt_first`: `MoneyCapHolds` broken while `CapHolds` still holds: the
   bench's books stay within the total while Base moved three sends.
   `CodeInductive` fails here too.
-- `stale_receipts`: the same as `receipt_first`, in the code's own order.
+- `nonce_first`: the same as `receipt_first`, from a lagging node.
 - The code: five attempts at once keep exactly two pairs and refuse three
   (read committed). The same test with `SET TRANSACTION ISOLATION LEVEL
   REPEATABLE READ` as each transaction's first statement keeps all five, which
@@ -149,9 +163,13 @@ model; if it were ever set to repeatable read, the cap would break as above.
 - Signing, gas, fees, balances and nonce choice are left out: they decide
   whether an attempt is refused before the transaction, not how many sends are
   kept.
-- Base never reorganises an included block, and reads of Base are consistent
-  unless `STALE_RECEIPTS` says otherwise. The public endpoint gives no such
-  promise, so the lagging-node case is real for the code as written.
+- Base never reorganises an included block. `settled/1` starts its pinned reads
+  at Base's latest block number, so a replaced send can rest on a block not yet
+  final on Ethereum; Base's one sequencer makes such a reorganisation rare, and
+  the model does not cover it. A node
+  behind the chain refuses a pinned block it does not have, or shows an older
+  state; no node answers with a block or a nonce that is not Base's. The tests
+  check `settled/1` against a fake node, not Base itself.
 - The funder lock is modelled as exclusive. In Postgres it is an advisory lock
   on one number, in a database other sites share; another site taking the same
   number would make attempts wait, never let two through.

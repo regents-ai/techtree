@@ -10,6 +10,14 @@
   checked on every `make check`, with a test that funds five attempts at once
   against the database.
 
+### Fixed
+
+- **Wallet Bench funding.** A funding send whose outcome was lost is now
+  settled only from its receipt or from Base's record of the block where the
+  funder's nonce moved past it. Before, a slow Base node could make a send that
+  really landed look replaced, which freed room for more than the run's total to
+  leave the funder.
+
 ### Changed
 
 - **Account menu.** Your picture and name at the top right now open a small

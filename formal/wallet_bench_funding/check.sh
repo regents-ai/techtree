@@ -9,7 +9,7 @@ quint() { npx --yes @informalsystems/quint@0.33.1 "$@"; }
 
 quint typecheck funding.qnt
 
-for model in code repeatable_read receipt_first stale_receipts; do
+for model in code repeatable_read receipt_first nonce_first; do
   quint test --main="$model" funding.qnt
 done
 

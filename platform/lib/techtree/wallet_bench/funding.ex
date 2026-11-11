@@ -82,27 +82,104 @@ defmodule Techtree.WalletBench.Funding do
   @doc """
   What became of an unknown send, read from Base without sending anything:
   `{:confirmed, block}` or `{:reverted, block}` from its receipt, or
-  `:replaced` when there is no receipt and the funder's nonce at the latest
-  block has passed it. The nonce is read first, so a send included between the
-  two reads is seen by its receipt, never taken as replaced.
+  `:replaced` when another transaction used its nonce.
+
+  Base's address can answer each read from a different node, some behind
+  others, so a missing receipt proves nothing: only a receipt, or a read
+  pinned to one block, decides. With no receipt, the funder's nonce is read at
+  Base's latest block number; while it has not passed the send's nonce the
+  send can still land and stays unknown. Once it has, the block where it first
+  passed is found by halving, every read pinned to a block, and that block's
+  transaction from the funder at the send's nonce decides: another hash is
+  `:replaced`; this send's hash means it landed, and its receipt decides, the
+  send staying unknown while no node answering has that receipt. Any failed
+  read leaves the send unknown.
   """
   @spec settled(struct()) ::
-          {:ok, {:confirmed | :reverted, non_neg_integer()} | :replaced} | {:error, String.t()}
+          {:ok, {:confirmed | :reverted, non_neg_integer()} | :replaced} | {:error, term()}
   def settled(payment) do
-    with {:ok, nonce} <- call("eth_getTransactionCount", [payment.from, "latest"]),
-         {:ok, receipt} <- call("eth_getTransactionReceipt", [payment.hash]) do
-      cond do
-        receipt != nil ->
-          {:ok, outcome(receipt)}
+    with {:ok, nil} <- receipt(payment),
+         {:ok, latest} <- call("eth_blockNumber", []),
+         {:ok, block} <- nonce_passed_in(payment, integer(latest)),
+         {:ok, transaction} <- at_nonce(payment, block) do
+      if same?(transaction["hash"], payment.hash),
+        do: landed(payment, block),
+        else: {:ok, :replaced}
+    end
+  end
 
-        integer(nonce) > payment.nonce ->
-          {:ok, :replaced}
-
-        true ->
+  # The first block whose funder nonce, read pinned to that block, is past the send's.
+  defp nonce_passed_in(payment, latest) do
+    with {:ok, passed} <- passed?(payment, latest) do
+      if passed,
+        do: halve(payment, 0, latest),
+        else:
           {:error,
-           "Base has no receipt for #{payment.hash}, and the funder's nonce #{payment.nonce} is still unused, " <>
-             "so the send can still land. It stays unknown until that nonce is used on Base."}
-      end
+           "Base has no receipt for #{payment.hash}, and the funder's nonce #{payment.nonce} was still unused " <>
+             "at block #{latest}, so the send can still land. It stays unknown until that nonce is used on Base."}
+    end
+  end
+
+  # The nonce had not passed at `low` (no funder nonce is used at block 0) and has at `high`. Nodes that disagree
+  # can leave a block without the transaction; the block's transaction at the nonce still decides.
+  defp halve(_payment, low, high) when high - low <= 1, do: {:ok, high}
+
+  defp halve(payment, low, high) do
+    middle = div(low + high, 2)
+
+    with {:ok, passed} <- passed?(payment, middle) do
+      if passed, do: halve(payment, low, middle), else: halve(payment, middle, high)
+    end
+  end
+
+  defp passed?(payment, block) do
+    with {:ok, count} <- call("eth_getTransactionCount", [payment.from, BaseRpc.hex(block)]) do
+      {:ok, integer(count) > payment.nonce}
+    end
+  end
+
+  # The funder's transaction at the send's nonce, in the block where the nonce passed it.
+  defp at_nonce(payment, block) do
+    case call("eth_getBlockByNumber", [BaseRpc.hex(block), true]) do
+      {:ok, %{"transactions" => transactions}} ->
+        case Enum.find(transactions, &at_nonce?(&1, payment)) do
+          nil ->
+            {:error,
+             "Base's block #{block} has no transaction from the funder at nonce #{payment.nonce}, " <>
+               "though the funder's nonce passed it there."}
+
+          transaction ->
+            {:ok, transaction}
+        end
+
+      {:ok, nil} ->
+        {:error, "Base has not answered with its block #{block} yet."}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  defp at_nonce?(transaction, payment),
+    do:
+      same?(transaction["from"], payment.from) and integer(transaction["nonce"]) == payment.nonce
+
+  defp same?(hex, other), do: String.downcase(hex) == String.downcase(other)
+
+  defp landed(payment, block) do
+    with {:ok, nil} <- receipt(payment) do
+      {:error,
+       "The send #{payment.hash} landed in Base's block #{block}, but Base has no receipt for it yet. " <>
+         "Settle it again once Base serves its receipt."}
+    end
+  end
+
+  # The send's outcome from its receipt, or nil while the node answering has none.
+  defp receipt(payment) do
+    case call("eth_getTransactionReceipt", [payment.hash]) do
+      {:ok, nil} -> {:ok, nil}
+      {:ok, receipt} -> {:ok, outcome(receipt)}
+      {:error, error} -> {:error, error}
     end
   end
 
