@@ -1729,6 +1729,7 @@ dependencies = [
     { name = "payment-terms" },
     { name = "rfc8785" },
     { name = "rich" },
+    { name = "tomli-w" },
     { name = "verifiers" },
 ]
 
@@ -1748,6 +1749,7 @@ requires-dist = [
     { name = "payment-terms", editable = "environments/payment_terms" },
     { name = "rfc8785", specifier = "==0.1.4" },
     { name = "rich", specifier = ">=15.0.0,<16" },
+    { name = "tomli-w", specifier = ">=1.2.0,<2" },
     { name = "verifiers", specifier = "==0.4.1" },
 ]
 

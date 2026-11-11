@@ -2,6 +2,7 @@
 name = "payment-terms"
 version = "0.1.0"
 description = "payment-terms: read a paid offer written in words and answer with its x402 payment requirements (single-turn, field-by-field reward)."
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["verifiers>=0.4.1"]
 

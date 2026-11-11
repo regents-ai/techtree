@@ -2,7 +2,7 @@
 
 .PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli check-siwa-latest release readiness browser
 
-check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-siwa-latest check-contracts
+check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-siwa-latest check-contracts check-lab
 
 check-plugin:
 	$(MAKE) -C plugin check
@@ -44,6 +44,11 @@ check-siwa-latest:
 .PHONY: check-contracts
 check-contracts:
 	cd contracts && forge fmt --check && forge build --offline && forge test --offline
+
+# The lab: the payment-terms environment, its runner and the Train report checks.
+.PHONY: check-lab
+check-lab:
+	$(MAKE) -C lab check
 
 # The release checks and builds exactly the committed tree, so every change must
 # be committed first. A failing gate stops it before anything is built.

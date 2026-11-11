@@ -1,0 +1,29 @@
+mode = "rl"
+name = "payment-terms-nemotron-3.5-lightning"
+max_steps = 50
+
+[model]
+name = "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+
+[deployment]
+type = "single_node"
+num_train_gpus = 4
+num_infer_gpus = 4
+
+[inference]
+
+[trainer.model.lora]
+rank = 16
+alpha = 32
+
+[orchestrator]
+batch_size = 256
+rollouts_per_example = 8
+
+[orchestrator.train.source.taskset]
+id = "regents/payment-terms"
+split = "train"
+seed = 0
+
+[orchestrator.train.source.agent.harness]
+id = "null"
