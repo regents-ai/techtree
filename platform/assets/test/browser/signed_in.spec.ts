@@ -42,8 +42,8 @@ for (const width of [1280, 390, 320]) {
 
     await expect(menu(page)).toHaveAccessibleName(await page.locator("#account-chip .account-name").innerText())
     await expect(menu(page).locator("#shell-agents").getByRole("heading", {name: "Your agents"})).toBeVisible()
-    await expect(menu(page).getByRole("link", {name: "Manage your agents"})).toHaveAttribute("href", "/account#account-agents")
-    await expect(menu(page).getByRole("link", {name: "Pair New Agent"})).toHaveAttribute("href", "/account#account-pairing")
+    await expect(menu(page).getByRole("link", {name: "Manage your agents"})).toHaveAttribute("href", "/account/agents")
+    await expect(menu(page).getByRole("button", {name: "Pair New Agent"})).toHaveAttribute("aria-controls", "shell-pairing")
     await expect(menu(page).getByRole("link", {name: "Manage Account"})).toHaveAttribute("href", "/account")
     await expect(menu(page).getByRole("button", {name: "Sign out"})).toBeVisible()
     await expect(menu(page).locator(".rg-account-menu__balance")).toHaveCount(0)
@@ -88,39 +88,32 @@ test("Manage Account in the account menu opens the Account page and the menu clo
   await openMenu(page)
   await menu(page).getByRole("link", {name: "Manage Account"}).click()
   await expect(page).toHaveURL(/\/account$/)
-  await expect(page.locator("#account-agents")).toBeVisible()
+  await expect(page.locator("#account-identity")).toBeVisible()
   await expect(menu(page)).toBeHidden()
   expect(errors).toEqual([])
 })
 
-test("Pair New Agent in the account menu lands on the Account page's pairing box, every press", async ({context, page}) => {
+// Pair New Agent opens the pairing window over the page the person is on, as in
+// ash-template's account_menu.spec.ts: the menu closes first, the keyboard starts on
+// the agent dropdown, and closed, focus goes back to the account button.
+test("Pair New Agent in the account menu opens the pairing window over the page, every press", async ({context, page}) => {
   await signIn(context)
   const errors = watchErrors(page)
   await page.goto("/docs", {waitUntil: "networkidle"})
   await openMenu(page)
-  await menu(page).getByRole("link", {name: "Pair New Agent"}).click()
-  await expect(page).toHaveURL(/\/account#account-pairing$/)
-  await expect(page.locator("[data-phx-main].phx-connected")).toBeAttached()
+  await menu(page).getByRole("button", {name: "Pair New Agent"}).click()
   await expect(menu(page)).toBeHidden()
-  const pairing = page.locator("#account-pairing")
-  await expect(pairing).toBeInViewport()
-  // The keyboard starts on the agent choice.
-  await expect(pairing.getByRole("radio").first()).toBeFocused()
+  const pairing = page.locator("#shell-pairing")
+  await expect(pairing).toBeVisible()
+  await expect(page).toHaveURL(/\/docs$/)
+  await expect(pairing.locator("summary")).toBeFocused()
 
-  // Pressed again from the same address after scrolling away, it moves there again.
-  await page.evaluate(() => window.scrollTo({top: 0}))
-  await expect(pairing.getByRole("heading", {name: "Pair New Agent"})).not.toBeInViewport()
+  await pairing.getByRole("button", {name: "Close"}).click()
+  await expect(pairing).toBeHidden()
+  await expect(page.locator("#account-chip")).toBeFocused()
   await openMenu(page)
-  await menu(page).getByRole("link", {name: "Pair New Agent"}).click()
-  await expect(menu(page)).toBeHidden()
-  await expect(pairing).toBeInViewport()
-  await expect(pairing.getByRole("radio").first()).toBeFocused()
-
-  // The Agents list's own Pair New Agent leads to the same box.
-  await page.evaluate(() => window.scrollTo({top: 0}))
-  await page.locator("#account-agents").getByRole("link", {name: "Pair New Agent"}).click()
-  await expect(pairing).toBeInViewport()
-  await expect(pairing.getByRole("radio").first()).toBeFocused()
+  await menu(page).getByRole("button", {name: "Pair New Agent"}).click()
+  await expect(pairing).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -213,45 +206,31 @@ test("on a phone, Buy Credits opens and everything in it fits a finger", async (
   await context.close()
 })
 
-// A reconnecting page sends the pairing form back with no agent picked, and a
-// submit can come before a choice. Neither may crash the Account page's pairing box
-// (Sentinel, 23 Oct 2026, from Patchbay's error mail; ash-template 13379ab). Each
-// agent then keeps its own code until it expires.
-test("the pairing form with nothing chosen leaves the box as it is", async ({context, page}) => {
-  await signIn(context)
-  const errors = watchErrors(page)
-  const crashes: string[] = []
-  page.on("websocket", socket =>
-    socket.on("framereceived", frame => {
-      if (String(frame.payload).includes('"phx_error"')) crashes.push(String(frame.payload).slice(0, 120))
-    }),
-  )
-  await page.goto("/account", {waitUntil: "networkidle"})
-  const form = page.locator("form#account-pairing-box")
-  const message = page.locator("#account-pairing-box pre")
-  await expect(form.getByRole("radio", {checked: true})).toHaveCount(0)
+// The Agents tab holds the agents and Pair New Agent, and the Account tab the
+// profile, at 1280, 390 and 320 wide.
+for (const width of [1280, 390, 320]) {
+  test(`at ${width} wide, the Agents tab holds the agents and Pair New Agent, and the Account tab the profile`, async ({browser}) => {
+    const hasTouch = width < 768
+    const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
+    const outside = await keepOffline(context)
+    await signIn(context)
+    const page = await context.newPage()
+    const errors = watchErrors(page)
 
-  await form.getByRole("radio").first().dispatchEvent("input")
-  await form.evaluate(element => (element as HTMLFormElement).requestSubmit())
+    await page.goto("/account/agents", {waitUntil: "networkidle"})
+    await expect(page.locator(".account-shell__tabs").getByRole("link", {name: "Agents"})).toHaveAttribute("aria-current", "page")
+    await expect(page.locator("#account-agents")).toBeVisible()
+    await expect(page.locator("#account-agents").getByRole("button", {name: "Pair New Agent"})).toHaveAttribute("aria-controls", "shell-pairing")
+    expect(await layoutProblems(page)).toEqual([])
 
-  // The box still answers: choosing an agent shows its code, and coming back to it
-  // shows the same code.
-  const choose = async (agent: string) => {
-    const radio = form.getByRole("radio", {name: agent, exact: true})
-    await radio.locator("xpath=ancestor::label").click()
-    await expect(radio).toBeChecked()
-  }
-  await choose("Dots")
-  await expect(message).toContainText(/Pairing code:\s*\S{12,}/)
-  expect(crashes).toEqual([])
-
-  const first = await message.innerText()
-  await choose("Hermes")
-  await expect(message).not.toHaveText(first)
-  await choose("Dots")
-  await expect(message).toHaveText(first)
-  expect(errors).toEqual([])
-})
+    await page.goto("/account", {waitUntil: "networkidle"})
+    await expect(page.locator("#account-identity")).toBeVisible()
+    expect(await layoutProblems(page)).toEqual([])
+    expect(errors).toEqual([])
+    expect(outside).toEqual([])
+    await context.close()
+  })
+}
 
 // An agent's window renames it, as ash-template's does (agents.spec.ts), at desktop
 // and phone widths, each with an agent of its own. A name with a hidden character
@@ -270,7 +249,7 @@ for (const width of ["desktop", "phone"] as const) {
     const page = await context.newPage()
     const errors = watchErrors(page)
     const press = (target: Locator) => (hasTouch ? target.tap() : target.click())
-    await page.goto("/account", {waitUntil: "networkidle"})
+    await page.goto("/account/agents", {waitUntil: "networkidle"})
     await press(page.getByRole("button", {name: `See ${agent}’s actions`}))
 
     const agentWindow = page.getByRole("dialog", {name: agent})

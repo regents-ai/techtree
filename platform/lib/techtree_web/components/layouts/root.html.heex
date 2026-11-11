@@ -53,20 +53,13 @@
     <link rel="icon" type="image/svg+xml" href={~p"/favicon.svg"} />
     <link rel="icon" type="image/png" sizes="32x32" href={~p"/favicon-32.png"} />
     <link rel="apple-touch-icon" href={~p"/apple-touch-icon.png"} />
-    <%!-- The heading and body faces load with the stylesheet, so text is first drawn in them and nothing moves when they arrive. --%>
+    <%!-- The face loads with the stylesheet, so text is first drawn in it and nothing moves when it arrives. --%>
     <link
-      :for={
-        font <- [
-          ~p"/fonts/regent-ui/GeistPixel-Square.woff2",
-          ~p"/fonts/regent-ui/Geist-Regular.woff2",
-          ~p"/fonts/regent-ui/Geist-SemiBold.woff2"
-        ]
-      }
       rel="preload"
       as="font"
       type="font/woff2"
       crossorigin
-      href={font}
+      href={~p"/fonts/regent-ui/GeistSerif-Regular.woff2"}
     />
     <link
       phx-track-static

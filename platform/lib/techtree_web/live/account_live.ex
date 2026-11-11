@@ -1,9 +1,10 @@
 defmodule TechtreeWeb.AccountLive do
   @moduledoc """
-  The signed-in person's Account, one tab each: Account (their profile, their
-  Credits, the agents they paired and pairing a new one, in the layout every
-  Regent site shares, `Regent.Account.layout`), Wallets (the wallets their sign-in
-  verified) and Connections (the accounts they have connected). Points has its own tab (`TechtreeWeb.PointsLive`).
+  The signed-in person's Account, one tab each: Account (their profile and their
+  Credits, in the layout every Regent site shares, `Regent.Account.layout`),
+  Agents (the agents they paired, whose Pair New Agent opens the pairing window),
+  Wallets (the wallets their sign-in verified) and Connections (the accounts they
+  have connected). Points has its own tab (`TechtreeWeb.PointsLive`).
 
   Everything here is read from the sign-in the shell already holds; nothing on
   the page asks the visitor to sign in again.
@@ -14,7 +15,6 @@ defmodule TechtreeWeb.AccountLive do
   import TechtreeWeb.Components.PageHead, only: [page_head: 1]
   import TechtreeWeb.Components.VerifiedConnections
 
-  attr :lease, :map, required: true
   attr :account, :map, default: nil
   attr :signed_out_reason, :atom, default: :signed_out
   attr :account_control, :map, required: true
@@ -28,7 +28,7 @@ defmodule TechtreeWeb.AccountLive do
       account={@account}
       signed_out_reason={@signed_out_reason}
     >
-      <:tip>Your profile, your Credits and your agents.</:tip>
+      <:tip>Your profile and your Credits.</:tip>
       <Regent.Account.layout id="account">
         <:identity>
           <Regent.Account.identity
@@ -47,22 +47,6 @@ defmodule TechtreeWeb.AccountLive do
             </:picture>
           </Regent.Account.identity>
         </:identity>
-        <:agents>
-          <.live_component
-            module={TechtreeWeb.AgentsPanel}
-            id="account-agents"
-            lease={@lease}
-            account={@account}
-          />
-        </:agents>
-        <:pairing>
-          <.live_component
-            module={TechtreeWeb.PairingBox}
-            id="account-pairing-box"
-            lease={@lease}
-            account={@account}
-          />
-        </:pairing>
         <:credits>
           <Regent.Account.credits_summary
             id="account-credits"
@@ -89,6 +73,29 @@ defmodule TechtreeWeb.AccountLive do
           </section>
         </:profile>
       </Regent.Account.layout>
+    </.settings_page>
+    """
+  end
+
+  attr :lease, :map, required: true
+  attr :account, :map, default: nil
+  attr :signed_out_reason, :atom, default: :signed_out
+
+  def agents(assigns) do
+    ~H"""
+    <.settings_page
+      id="account-agents-page"
+      title="Agents"
+      account={@account}
+      signed_out_reason={@signed_out_reason}
+    >
+      <:tip>The agents you paired.</:tip>
+      <.live_component
+        module={TechtreeWeb.AgentsPanel}
+        id="account-agents"
+        lease={@lease}
+        account={@account}
+      />
     </.settings_page>
     """
   end

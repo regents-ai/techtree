@@ -91,8 +91,7 @@ a:not(.rg-button):hover { color: var(--rg-local-ink, var(--color-link)); }
   outline: 2px solid var(--color-focus);
   outline-offset: 4px;
 }
-strong, b { font-weight: 600; }
-code, kbd, samp, pre, .digest { font-family: var(--font-family-mono); }
+code, kbd, samp, pre { font-family: var(--font-family-mono); }
 code { font-size: .9em; }
 .lede { max-width: var(--measure); color: var(--color-fg-muted); font-size: 1rem; }
 .eyebrow { font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; }
@@ -131,15 +130,15 @@ code { font-size: .9em; }
   min-height: 2.75rem; padding: var(--space-1) var(--space-2);
   border: 1px solid var(--hairline-strong); margin: 0 -1px -1px 0; text-decoration: none;
 }
-.masthead__selector a[aria-current="page"] { border-bottom: 3px solid currentColor; font-weight: 600; background: var(--color-surface); }
+.masthead__selector a[aria-current="page"] { border-bottom: 3px solid currentColor; background: var(--color-surface); }
 .masthead__menu { position: relative; display: inline-flex; }
 .masthead__menu-button {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 2.75rem; min-height: 2.75rem; padding: 0; margin: 0 -1px -1px 0;
   border: 1px solid var(--hairline-strong); background: none; color: inherit; font: inherit; cursor: pointer;
 }
-.masthead__menu-button svg { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
-.masthead__menu-button[aria-current="page"] { border-bottom: 3px solid currentColor; font-weight: 600; background: var(--color-surface); }
+.masthead__menu-button svg { width: 1.25rem; height: 1.25rem; }
+.masthead__menu-button[aria-current="page"] { border-bottom: 3px solid currentColor; background: var(--color-surface); }
 /* The page list is a popover the Menu button opens and closes; it sits under the
    header, against the right edge. */
 .masthead__menu-list {
@@ -163,8 +162,7 @@ code { font-size: .9em; }
 .masthead__github {
   display: inline-flex; align-items: center; gap: var(--space-1);
   min-height: 2.75rem; padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--hairline-strong); background: var(--color-surface);
-  font-weight: 600; text-decoration: none;
+  border: 1px solid var(--hairline-strong); background: var(--color-surface); text-decoration: none;
 }
 .masthead__github-logo { width: 1.5rem; height: 1.5rem; fill: currentColor; flex: 0 0 auto; }
 .masthead__github-count {
@@ -173,7 +171,7 @@ code { font-size: .9em; }
   border-left: 1px solid var(--hairline-strong); font-variant-numeric: tabular-nums;
 }
 .masthead__github-count[hidden] { display: none; }
-.masthead__github-star { width: 1rem; height: 1rem; fill: #eab308; flex: 0 0 auto; }
+.masthead__github-star { width: 1rem; height: 1rem; fill: #eab308; stroke: #eab308; flex: 0 0 auto; }
 .masthead__github:hover { background: var(--color-surface-elevated); }
 .theme-toggle { justify-self: end; }
 .page { min-width: 0; width: 100%; padding: var(--space-6) var(--rg-panel-padding); }
@@ -282,7 +280,7 @@ html[data-theme="light"] .hero__crown-still { background-image: url("/images/cro
 .home-setup h2 { margin-top: var(--space-2); font-size: clamp(1.5rem, 2.5vw, 2rem); }
 .home-setup .text-link { margin-top: var(--space-3); }
 .hero__more { grid-column: 1 / -1; display: grid; place-items: center; min-height: 4rem; border-top: 1px solid var(--rg-page-rule); }
-.hero__more svg { width: 1.5rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.hero__more svg { width: 1.5rem; height: 1.5rem; }
 .installer { margin-top: var(--space-4); }
 .release-state, .compatibility, .release-coordinate, .installer__doctor-note { margin-top: var(--space-2); font-size: .875rem; }
 .home-section { margin-inline: calc(-1 * var(--rg-panel-padding)); padding: var(--space-6) var(--rg-panel-padding); border-top: 1px solid var(--rg-page-rule); }
@@ -313,7 +311,7 @@ html[data-theme="light"] .hero__crown-still { background-image: url("/images/cro
 /* Docs keep their own optional rail; all in-document links remain available. */
 .docs-layout { display: grid; grid-template-columns: var(--rg-rail-width) minmax(0, 1fr); gap: var(--rg-track-gap); align-items: start; }
 .docs-nav { grid-column: 1; grid-row: 1; min-width: 0; padding-right: var(--space-2); }
-.docs-nav__group a[aria-current="page"] { color: var(--color-fg); font-weight: 600; text-decoration: underline; text-underline-offset: .25em; }
+.docs-nav__group a[aria-current="page"] { color: var(--color-fg); text-decoration: underline; text-underline-offset: .25em; }
 .docs-nav__version { padding-bottom: var(--space-2); border-bottom: 1px solid var(--hairline); font-size: .8125rem; }
 .docs-nav__group { margin-top: var(--space-3); }
 .docs-nav__group > p { font-size: 1rem; }
@@ -323,7 +321,6 @@ html[data-theme="light"] .hero__crown-still { background-image: url("/images/cro
 .docs-index__group + .docs-index__group { margin-top: var(--space-5); }
 .docs-index__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr)); gap: var(--space-2); margin-top: var(--space-2); }
 .docs-index__link { display: grid; gap: var(--space-1); height: 100%; padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); text-decoration: none; }
-.docs-index__link span { font-weight: 600; }
 .docs-index__link small { color: var(--color-fg-muted); font-size: .875rem; }
 .docs-index__link:hover span, .docs-index__link:focus-visible span { text-decoration: underline; text-underline-offset: .25em; }
 .docs-pager { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin-top: var(--space-6); padding-top: var(--space-3); border-top: 1px solid var(--hairline); }
@@ -355,7 +352,7 @@ html[data-theme="light"] .hero__crown-still { background-image: url("/images/cro
 /* Names and addresses stay whole; the description column keeps a readable measure and the table scrolls instead. */
 .docs-prose td code { overflow-wrap: normal; white-space: nowrap; }
 .docs-prose td:last-child { min-width: 18rem; }
-/* About, Contact, Privacy and Terms: a long value in a table's last column wraps to fit a phone. */
+/* About, Privacy and Terms: a long value in a table's last column wraps to fit a phone. */
 .public-document td:last-child { overflow-wrap: anywhere; }
 .docs-code, .prompt__block { max-width: 100%; margin-block: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline); background: var(--color-surface); white-space: pre-wrap; overflow-wrap: anywhere; font-size: .875rem; }
 
@@ -427,7 +424,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 .github-link svg { width: 1rem; height: 1rem; flex: 0 0 auto; fill: currentColor; }
 .tasks__filters { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-3); }
 .tasks__filter { min-height: 2.75rem; font-size: .875rem; }
-.tasks__filter[aria-pressed="true"] { border-bottom: 3px solid currentColor; font-weight: 600; }
+.tasks__filter[aria-pressed="true"] { border-bottom: 3px solid currentColor; }
 .tasks { position: relative; max-width: 100%; margin-top: var(--space-3); padding: var(--space-1); overflow-x: auto; }
 .tasks__row { display: grid; min-width: 32rem; grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--hairline); font-size: .875rem; }
 .tasks__head { font-size: .75rem; text-transform: uppercase; }

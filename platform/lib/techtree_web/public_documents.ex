@@ -3,16 +3,17 @@ defmodule TechtreeWeb.PublicDocuments do
   The pages Techtree publishes to people and to agents at the same address.
 
   Each is committed Markdown in `priv/public`, and the changelog is
-  `priv/changelog.md`, the same file the Changelog page shows. An agent that
-  asks `/`, `/docs`, `/about`, `/contact`, `/privacy`, `/terms`, `/verify`,
-  `/repo2rlenv`, `/changelog` or a sample report under `/services` for
+  `priv/changelog.md`, the same file the Changelog page shows; each agent's page
+  under `/agents` is `TechtreeWeb.AgentGuides`. An agent that
+  asks `/`, `/docs`, `/about`, `/privacy`, `/terms`, `/verify`,
+  `/repo2rlenv`, `/changelog`, `/agents` or a sample report under `/services` for
   `text/markdown` receives it with one closing line, answered before the
   router by `RegentAgentAccess.Plug`. Pages built from
   the database or from release files answer Markdown in the router instead
   (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line; the three
   offers under `/services` are among them, their words kept here (`offer/1`)
   with the bench figures filled in there (Watchdog has none). About,
-  Contact, Privacy and Terms show the same words as pages, so the two never say
+  Privacy and Terms show the same words as pages, so the two never say
   different things; so do the two sample reports under `/services`. The other
   pages' own designs are their LiveViews, and their Markdown is the same facts
   in words. Each Docs guide is
@@ -24,13 +25,14 @@ defmodule TechtreeWeb.PublicDocuments do
   `/llms.txt` reads the database, for that release.
   """
 
+  alias TechtreeWeb.AgentGuides
   alias TechtreeWeb.ReleaseInfo
 
   @directory Application.app_dir(:techtree, "priv/public")
   @guides Enum.map(TechtreeWeb.DocsGuides.slugs(), &("docs/" <> &1))
   @offers ~w(services/verify services/cyber-assist services/watchdog)
   @sample_reports ~w(services/verify-sample-report services/cyber-assist-sample-report)
-  @names ~w(home about contact privacy terms verify repo2rlenv llms) ++
+  @names ~w(home about privacy terms verify repo2rlenv llms) ++
            @guides ++ @offers ++ @sample_reports
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
   @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
@@ -59,7 +61,6 @@ defmodule TechtreeWeb.PublicDocuments do
            end)
   @pages %{
     "/about" => "about",
-    "/contact" => "contact",
     "/privacy" => "privacy",
     "/terms" => "terms",
     "/services/verify/sample-report" => "services/verify-sample-report",
@@ -87,14 +88,26 @@ defmodule TechtreeWeb.PublicDocuments do
   # each last changed. security.txt expires a year after it.
   @released_at DateTime.utc_now() |> DateTime.truncate(:second)
 
-  @doc "The public document at `path` as `%{markdown: text}`, or nil for every other address."
-  @spec document(String.t()) :: %{markdown: String.t()} | nil
+  @doc "The public document at `path` as `%{title: text, markdown: text}`, or nil for every other address."
+  @spec document(String.t()) :: %{title: String.t(), markdown: String.t()} | nil
+  def document("/agents" = path), do: agent_document(path)
+  def document("/agents/" <> _slug = path), do: agent_document(path)
+
   def document(path) do
     case @paths do
-      %{^path => name} -> %{markdown: @sources[name] <> @trailer}
+      %{^path => name} -> %{title: title(@sources[name]), markdown: @sources[name] <> @trailer}
       _other -> nil
     end
   end
+
+  defp agent_document(path) do
+    case AgentGuides.document(path) do
+      %{} = document -> %{document | markdown: document.markdown <> @trailer}
+      nil -> nil
+    end
+  end
+
+  defp title("# " <> rest), do: rest |> String.split("\n", parts: 2) |> hd()
 
   @doc """
   An offer's Markdown, `verify` or `cyber_assist`, with `{{bench}}` where the
@@ -108,7 +121,7 @@ defmodule TechtreeWeb.PublicDocuments do
 
   @doc "Whether `path` is one of the documents above."
   @spec document?(String.t()) :: boolean()
-  def document?(path), do: Map.has_key?(@paths, path)
+  def document?(path), do: document(path) != nil
 
   @doc "The line every Markdown page ends with."
   @spec trailer() :: String.t()
@@ -149,8 +162,8 @@ defmodule TechtreeWeb.PublicDocuments do
   end
 
   @doc """
-  About, Contact, Privacy, Terms or a sample report split for its page layout:
-  the title, the one-paragraph lede under it, and the rest rendered as HTML.
+  About, Privacy, Terms, a sample report or an agent's page split for its page
+  layout: the title, the one-paragraph lede under it, and the rest rendered as HTML.
   """
   @spec page(String.t()) :: %{title: String.t(), lede: String.t(), body_html: String.t()}
   for {path, name} <- @pages do
@@ -159,6 +172,14 @@ defmodule TechtreeWeb.PublicDocuments do
 
     def page(unquote(path)),
       do: %{title: unquote(title), lede: unquote(lede), body_html: unquote(body_html)}
+  end
+
+  # An agent's page names this site's own address, so it is rendered when asked for.
+  def page("/agents" <> _rest = path) do
+    %{markdown: markdown} = AgentGuides.document(path)
+    ["# " <> title, lede, body] = String.split(markdown, "\n\n", parts: 3)
+    {body_html, _contents} = RegentBlog.markdown(body)
+    %{title: title, lede: lede, body_html: body_html}
   end
 
   @doc "A Docs guide's heading, first line and the rest as HTML."
@@ -188,7 +209,7 @@ defmodule TechtreeWeb.PublicDocuments do
     Expires: #{@released_at |> DateTime.shift(year: 1) |> DateTime.to_iso8601()}
     Preferred-Languages: en
     Canonical: #{url("/.well-known/security.txt")}
-    Policy: #{url("/contact")}
+    Policy: #{url("/about")}
     """
   end
 

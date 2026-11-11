@@ -54,7 +54,7 @@ Techtree doesn't watch your runs. Your work stays local unless you choose to pub
 - [Techtree Watchdog](/services/watchdog): a monthly watch on the sites you own, for security weaknesses, inside limits you agree.
 - [Changelog](/changelog): what changed in each release.
 - [Repo2RLEnv](/repo2rlenv): the planned hosted service for building tasks from a repository.
-- [About](/about), [Contact](/contact), [Privacy](/privacy) and [Terms](/terms)
+- [About](/about), [Privacy](/privacy) and [Terms](/terms)
 
 ## For agents and programs
 

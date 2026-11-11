@@ -36,7 +36,7 @@ founder is asked to approve anything. Do it in that order.
 | Machine | shared CPU, 1 vCPU, 512 MB | the site serves files it already has and a handful of small reads. 256 MB is under what the BEAM plus a 10-connection pool wants during a release command; 512 MB is the next size up and leaves headroom without paying for a second core |
 | Internal port | 8080 | `PORT` in `fly.toml`, `internal_port` in `[http_service]`, Bandit binds it |
 | Health check | `GET /healthz` | it answers `ok` only when there is an active, completed release, so an unimported machine is correctly not sent traffic |
-| Image | `Dockerfile` at the repository root | Elixir 1.19.5 / OTP 28.2 / Debian trixie, matching this repository's toolchain |
+| Image | `Dockerfile` at the repository root | Elixir 1.20.5 / OTP 29.1.2 / Debian trixie, matching this repository's toolchain |
 
 ## Before you start
 

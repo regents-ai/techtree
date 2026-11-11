@@ -48,9 +48,9 @@
     },
     {
       "command": "account balances",
-      "operation_id": "account_balances",
+      "operation_id": "getAccountBalances",
       "method": "GET",
-      "path": "/tools/account/balances",
+      "path": "/api/v1/account/balances",
       "description": "Read the current paired owner's Credits balance and episode-bound spending grant.",
       "authority": "paired_agent",
       "effect": "read",
@@ -58,13 +58,13 @@
     },
     {
       "command": "account credits-history",
-      "operation_id": "credits_history",
+      "operation_id": "listCreditsHistory",
       "method": "POST",
-      "path": "/tools/account/credits/history",
+      "path": "/api/v1/account/credits/history",
       "description": "Read one page of the current paired owner's Credits history.",
       "authority": "paired_agent",
       "effect": "read",
-      "webmcp": "credits_history",
+      "webmcp": "account_credits_history",
       "stdin_fields": [
         {
           "field": "after",
@@ -76,13 +76,13 @@
     },
     {
       "command": "account points",
-      "operation_id": "points_balance",
+      "operation_id": "getAccountPoints",
       "method": "GET",
-      "path": "/tools/account/points",
-      "description": "Read the current paired canonical owner's Points; awards and activates nothing.",
+      "path": "/api/v1/account/points",
+      "description": "Read the current paired canonical owner's Points, what they earned today and yesterday, their place, the actions still open, daily limits and the leaderboard by name or wallet; awards and activates nothing.",
       "authority": "paired_agent",
       "effect": "read",
-      "webmcp": "points_balance"
+      "webmcp": "account_points"
     },
     {
       "command": "model-climb reports",

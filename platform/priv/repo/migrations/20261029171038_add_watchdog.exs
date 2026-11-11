@@ -31,7 +31,8 @@ defmodule Techtree.Repo.Migrations.AddWatchdog do
             name: "watchdog_hosts_human_account_id_fkey",
             type: :bigint,
             prefix: "regent_names"
-          ), null: false
+          ),
+          null: false
     end
 
     create unique_index(:watchdog_hosts, [:human_account_id, :origin],
@@ -59,7 +60,8 @@ defmodule Techtree.Repo.Migrations.AddWatchdog do
             type: :uuid,
             prefix: "public",
             on_delete: :delete_all
-          ), null: false
+          ),
+          null: false
 
       add :human_account_id,
           references(:platform_human_users,
@@ -67,7 +69,8 @@ defmodule Techtree.Repo.Migrations.AddWatchdog do
             name: "watchdog_routes_human_account_id_fkey",
             type: :bigint,
             prefix: "regent_names"
-          ), null: false
+          ),
+          null: false
     end
   end
 

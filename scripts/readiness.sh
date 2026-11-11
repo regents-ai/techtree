@@ -44,7 +44,7 @@ done
 
 node --input-type=module - "$base" <<'CHECKS'
 const base = process.argv[2];
-const pages = ["/", "/docs", "/about", "/contact", "/privacy", "/terms"];
+const pages = ["/", "/docs", "/about", "/privacy", "/terms"];
 let failed = 0;
 
 const check = (name, ok, detail = "") => {

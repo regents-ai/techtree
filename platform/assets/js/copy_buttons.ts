@@ -9,8 +9,9 @@ const timers = new WeakMap<HTMLElement, number>()
 
 /**
  * Every `Regent.Primitives.copy_button` on every page, LiveView or not, from one
- * listener on the document. A press copies the button's `data-copy-text`, or the
- * text of the element `data-copy-target` names, then for a moment the button
+ * listener on the document. A press copies the button's `data-copy-text`, the
+ * text of the element `data-copy-target` names, or the page at `data-copy-url`,
+ * fetched only when pressed because it is long. Then for a moment the button
  * says "Copied", or "Couldn't copy" with a shake when the browser refuses, and
  * its polite status says the same for screen readers. When the browser refuses
  * and there is a target, the target's text is selected for the person to copy
@@ -29,7 +30,9 @@ async function copy(button: HTMLButtonElement) {
   const target = targetId ? document.getElementById(targetId) : null
   let outcome: Outcome = "copied"
   try {
-    await navigator.clipboard.writeText(target ? textOf(target) : (button.dataset.copyText ?? ""))
+    const url = button.dataset.copyUrl
+    if (url) await navigator.clipboard.write([new ClipboardItem({"text/plain": fetched(url)})])
+    else await navigator.clipboard.writeText(target ? textOf(target) : (button.dataset.copyText ?? ""))
   } catch {
     outcome = target ? select(target) : "failed"
   }
@@ -39,6 +42,14 @@ async function copy(button: HTMLButtonElement) {
   if (outcome === "failed") deny(button)
   window.clearTimeout(timers.get(button))
   timers.set(button, window.setTimeout(() => answer(button, undefined), SHOWN_MS))
+}
+
+// Handed to the clipboard unfinished: a browser only allows a write begun by the
+// press itself, and the fetch finishes after it.
+async function fetched(url: string): Promise<Blob> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`${url} answered ${response.status}`)
+  return new Blob([await response.text()], {type: "text/plain"})
 }
 
 function textOf(target: HTMLElement): string {

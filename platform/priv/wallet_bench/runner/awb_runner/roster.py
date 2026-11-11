@@ -51,7 +51,7 @@ ROSTER = {
     "H01": Harness("Muse Code", MuseCodeAgent, "meta/claude-opus-5-5", "muse-code.jsonl", {"base_url": GATE}),
     "H02": Harness(
         "Grok Build", GrokBuildAgent, "anthropic/claude-opus-5-5", "grok-build.txt",
-        {"grok_config": {"model": {"claude-opus-5-5": {"base_url": TRANSLATOR}}}},
+        {"base_url": TRANSLATOR, "disable_web_search": True},
         package="@xai-official/grok",
     ),
     "H04": Harness("Hermes Agent", HermesAgent, "openai/claude-opus-5-5", "hermes.txt"),
