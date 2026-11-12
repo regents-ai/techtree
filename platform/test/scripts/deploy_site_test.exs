@@ -2,10 +2,12 @@ defmodule Techtree.DeploySiteScriptTest do
   @moduledoc """
   scripts/deploy_site.sh refuses to deploy unless it can name the live image
   (whose files the new release keeps) and the live page's script, and fails
-  unless that script still answers after the deploy, which it runs under the
-  release lock every site shares. Each case runs the real script in a throwaway
-  pushed checkout, with stand-ins for flyctl, curl, rsync and lockf on its PATH,
-  so nothing reaches Fly or the site and no other site's release is waited for.
+  unless that script still answers after the deploy. The whole run holds
+  Techtree's own deploy lock; the image is built under no shared lock, and only
+  the switch to it takes one of the two places on the database every site
+  shares. Each case runs the real script in a throwaway pushed checkout, with
+  stand-ins for flyctl, curl, rsync and lockf on its PATH, so nothing reaches
+  Fly or the site and no other release is waited for.
   """
   use ExUnit.Case, async: true
 
@@ -41,9 +43,11 @@ defmodule Techtree.DeploySiteScriptTest do
     repo
   end
 
-  # Stand-ins: flyctl answers `image show` from image.json and records `deploy`;
-  # curl answers the home page from home.html and the old script with its status;
-  # lockf records the lock it was given and runs the command.
+  # Stand-ins: flyctl answers `image show` from image.json and records each
+  # `deploy`, the build and the switch each with its own status; curl answers
+  # the home page from home.html and the old script with its status; lockf
+  # records each lock it holds and runs the command, and its try-once probe of
+  # the first database place finds it free or taken as the scenario says.
   defp fakes(dir, scenario) do
     bin = Path.join(dir, "bin")
     File.mkdir_p!(bin)
@@ -58,7 +62,12 @@ defmodule Techtree.DeploySiteScriptTest do
     stand_in.("flyctl", """
     case "$1" in
       image) #{if scenario[:image_fails], do: "exit 1", else: ~s(cat "$FAKE_DIR/image.json")} ;;
-      deploy) echo "$@" >> "$FAKE_DIR/deploys"; exit #{scenario[:deploy_exit] || 0} ;;
+      deploy)
+        echo "$@" >> "$FAKE_DIR/deploys"
+        case "$*" in
+          *--build-only*) exit #{scenario[:build_exit] || 0} ;;
+          *) exit #{scenario[:switch_exit] || 0} ;;
+        esac ;;
     esac
     """)
 
@@ -71,7 +80,19 @@ defmodule Techtree.DeploySiteScriptTest do
     """)
 
     stand_in.("rsync", "exit 0\n")
-    stand_in.("lockf", ~s(echo "$2" >> "$FAKE_DIR/locks"; shift 2; exec "$@"\n))
+
+    stand_in.("lockf", """
+    probe=""
+    while [[ "$1" == -* ]]; do
+      case "$1" in
+        -t) probe=yes; shift 2 ;;
+        *) shift ;;
+      esac
+    done
+    if [[ -n "$probe" ]]; then exit #{if scenario[:place_taken], do: 75, else: 0}; fi
+    echo "$1" >> "$FAKE_DIR/locks"; shift; exec "$@"
+    """)
+
     bin
   end
 
@@ -93,15 +114,36 @@ defmodule Techtree.DeploySiteScriptTest do
 
   defp deployed(dir), do: File.read(Path.join(dir, "deploys"))
 
-  test "the live image is passed to the build, and the old script is asked for after", %{
-    tmp_dir: dir
-  } do
+  defp locks(dir), do: dir |> Path.join("locks") |> File.read!() |> String.split("\n", trim: true)
+
+  test "the image is built over the live one, then switched to, and the old script is asked for after",
+       %{tmp_dir: dir} do
     assert {output, 0} = deploy(dir, %{})
     assert {:ok, deploys} = deployed(dir)
-    assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
-    assert File.read!(Path.join(dir, "locks")) == "/tmp/regent-shared-db-release.lock\n"
+    assert [build, switch] = String.split(deploys, "\n", trim: true)
+
+    assert build =~ "--build-only --push"
+    assert build =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+    assert [_label, tag] = Regex.run(~r/--image-label (main-[0-9a-f]{12})\b/, build)
+    assert switch =~ "--image registry.fly.io/techtree-sh:#{tag} --ha=false"
+    refute switch =~ "--build-only"
+
+    assert locks(dir) == [
+             "/tmp/regent-release-techtree-sh.lock",
+             "/tmp/regent-shared-db-release.lock"
+           ]
+
     assert File.read!(Path.join(dir, "asked")) =~ "https://techtree.sh/assets/js/site-0123abcd.js"
     assert output =~ "The previous release's /assets/js/site-0123abcd.js still answers."
+  end
+
+  test "the switch takes the second database place when the first is taken", %{tmp_dir: dir} do
+    assert {_output, 0} = deploy(dir, %{place_taken: true})
+
+    assert locks(dir) == [
+             "/tmp/regent-release-techtree-sh.lock",
+             "/tmp/regent-shared-db-release-2.lock"
+           ]
   end
 
   test "no deploy when the live image can't be read", %{tmp_dir: dir} do
@@ -167,8 +209,18 @@ defmodule Techtree.DeploySiteScriptTest do
   end
 
   # The build pulls the previous image; when that fails, so does the deploy.
-  test "a failed build stops the script before any after-check", %{tmp_dir: dir} do
-    assert {output, status} = deploy(dir, %{deploy_exit: 1})
+  test "a failed build stops the script before the switch and any after-check", %{tmp_dir: dir} do
+    assert {output, status} = deploy(dir, %{build_exit: 1})
+    assert status != 0
+    assert {:ok, deploys} = deployed(dir)
+    assert [_build] = String.split(deploys, "\n", trim: true)
+    assert locks(dir) == ["/tmp/regent-release-techtree-sh.lock"]
+    refute output =~ "still answers"
+    refute File.exists?(Path.join(dir, "asked"))
+  end
+
+  test "a failed switch stops the script before any after-check", %{tmp_dir: dir} do
+    assert {output, status} = deploy(dir, %{switch_exit: 1})
     assert status != 0
     refute output =~ "still answers"
     refute File.exists?(Path.join(dir, "asked"))

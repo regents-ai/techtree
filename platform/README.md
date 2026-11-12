@@ -442,10 +442,16 @@ replacing a file of the new release. `make release` builds over the live image
 the same way, signing Docker in to Fly's registry first
 (`flyctl auth docker`).
 
-Every Regent site shares one production database, and a release briefly
-doubles a site's connections, so the build and release run under
-`lockf -k /tmp/regent-shared-db-release.lock`, the lock every site's deploy on
-this machine takes; a deploy waits while another site's release holds it.
+The whole run holds Techtree's own deploy lock,
+`/tmp/regent-release-techtree-sh.lock`, so two Techtree deploys take turns and
+another site's deploy never waits on this one. The image is built and pushed
+first (`--build-only --push`, labelled `main-<commit>`) under no shared lock.
+Every Regent site shares one production database, and the switch to a new image
+runs the migrations and briefly adds a second machine's connections, which fits
+two switches at once: so only the switch (`flyctl deploy --image`) takes a
+place, `/tmp/regent-shared-db-release.lock` when it is free and
+`/tmp/regent-shared-db-release-2.lock` otherwise. Never wrap the script in
+`lockf` yourself.
 
 The script refuses to deploy, saying why, when the tree is not clean or not
 pushed, when the live image can't be read or the machines run different
