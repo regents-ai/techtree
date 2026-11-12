@@ -30,12 +30,14 @@ import {MotionList, MotionRefusal} from "./hooks/motion/moments"
 import {MotionCascade} from "./hooks/motion/reveals"
 import {installPublicTools} from "./public_tools"
 import {installSiteMenu} from "./site_menu"
+import {marketingHooks, mountEntrance} from "./marketing"
 import {showingTheme, syncTheme} from "./theme"
 import {installVisitLog} from "./visit_log"
 
 // First, so an error anywhere below is reported too.
 installVisitLog()
 mountMotion(document)
+mountEntrance(document)
 installPublicTools()
 installCopyButtons()
 installAgentMessage()
@@ -61,6 +63,8 @@ const Hooks: Record<string, object> = {
   ThemeSwitch,
   // The home page's product cards.
   ValueCard,
+  // The home page's moving pictures, Results, figures and loops.
+  ...marketingHooks,
   ...labHooks,
 }
 
