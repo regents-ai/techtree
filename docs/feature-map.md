@@ -16,7 +16,10 @@ finger on a touch screen, 24 px for a mouse control.
 same page checks at 1280 and 390 wide, signed out, plus the commit it runs, that
 its migrations are all applied, its public documents and the browser tools its
 home page offers, and the header's theme switch
-(`platform/assets/test/live/live.spec.ts`). It writes nothing.
+(`platform/assets/test/live/live.spec.ts`); then, signed with this Mac's own
+agent key through the regents command line, who the agent is and that it is
+paired (`agents whoami`), and its person's Points (`account points`). It writes
+nothing; the signed reads change only the time the site last saw the agent.
 
 ## Public pages (signed out)
 
@@ -80,7 +83,7 @@ home page offers, and the header's theme switch
 | A new account, each linked social account and a paired agent offer their one-time Points award once, inside the save that earns it; a sign-in that changes nothing offers nothing, and an agent's award names its wallet | `sign_in_milestones_test.exs` |
 | An account, its linked social account and its paired agent from before the Points start earn their one-time Points at the start, once, through this site's own checks, and a later run offers nothing more | `start_awards_test.exs` |
 | Read the Train comparisons as data (`/train.json`, or the browser tool `train_comparisons`), each page as Markdown at its own address, and download a comparison's report and traces with their digests as entity tags | `train_controller_test.exs`, `page_tools.spec.ts`, `agent_skills_test.exs`, `public_markdown_test.exs`, `sitemap_controller_test.exs` |
-| Read its person's Points with the same figures the page shows, and nothing at all while the shared board is not read | `points_page_test.exs` |
+| Read its person's Points with the same figures the page shows, and nothing at all while the shared board is not read | `points_page_test.exs`; the live check reads them as this Mac's paired agent after a release |
 | The board every signed-in reader shares: a refused reading keeps the one held, every reading offered reports its size against the limit, a failed first read is marked, an unchanged reading wakes no page, the kind holds one key, and measuring survives the table being away | `shared_reading_test.exs` |
 | A signed POST under `/api` keeps its exact bytes, so the sign-in service checks the digest of what the agent signed | `agent_wallet_test.exs` |
 | Use a page's signed browser tools through its own browser host (regents browser): each takes only its input, sends nothing with no signer or when the signer refuses, and sends exactly the bytes the signer signed, with the proof and no cookie | `page_tools.spec.ts` at 1280 |
