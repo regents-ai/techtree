@@ -41,7 +41,7 @@ check-required-fixes:
 REGENTS_CLI_REV := fd325437e29fc6b239955e6ce946168bea2fb4ef
 check-cli:
 	uv run --no-project --with "regents-cli[check] @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" \
-	  python -m regents_cli.check_commands cli/commands.json cli/openapi.json
+	  python -m regents_cli.check_commands cli/commands.json platform/priv/public/openapi.json
 
 # Every site is on the newest SIWA: the newest regents-cli release on PyPI (the pin
 # above, the agent guide and the install lines) and the newest change to the SIWA

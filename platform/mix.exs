@@ -240,7 +240,6 @@ defmodule Techtree.MixProject do
       "xref graph --label compile-connected --fail-above 34",
       "ash.codegen --check",
       "usage_rules.sync --check",
-      "techtree.sync_openapi --check",
       "cmd --cd assets npm run typecheck",
       "test",
       # The main pages in headless Chromium at desktop and phone widths, against a

@@ -25,6 +25,11 @@ defmodule TechtreeWeb.PublicDocuments do
   Claude's connector named while it is on.
   `robots.txt`, `security.txt` and the API catalog are built here too. Only
   `/llms.txt` reads the database, for that release.
+
+  The API's description is one committed file, `priv/public/openapi.json`: the
+  site serves it with its own address added (`openapi/0`) and `make check-cli`
+  reads it as it is. A route goes in it by hand, in the same commit as the
+  router's line.
   """
 
   alias TechtreeWeb.AgentGuides
@@ -37,6 +42,9 @@ defmodule TechtreeWeb.PublicDocuments do
   @names ~w(home about privacy terms verify repo2rlenv llms formal) ++
            @guides ++ @offers ++ @sample_reports
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
+  @openapi_file Path.join(@directory, "openapi.json")
+  @external_resource @openapi_file
+  @openapi @openapi_file |> File.read!() |> Jason.decode!()
   @changelog_file Application.app_dir(:techtree, "priv/changelog.md")
   @external_resource @changelog_file
   @request_rate_limit Application.compile_env!(:techtree, :request_rate_limit)
@@ -235,6 +243,14 @@ defmodule TechtreeWeb.PublicDocuments do
     Canonical: #{url("/.well-known/security.txt")}
     Policy: #{url("/about")}
     """
+  end
+
+  @doc "The OpenAPI document, naming this site's address and where its documentation is."
+  @spec openapi() :: map()
+  def openapi do
+    @openapi
+    |> Map.put("servers", [%{"url" => url("")}])
+    |> Map.put("externalDocs", %{"url" => url("/docs")})
   end
 
   @doc "The RFC 9727 API catalog: a linkset naming the API, its description and its documentation."

@@ -1,18 +1,18 @@
 defmodule TechtreeWeb.OpenAPITest do
   @moduledoc """
-  The OpenAPI document is written by hand beside the router, so a route added
-  to one and not the other would drift silently. Every API route the router
-  answers must be described, with an operation id.
+  The OpenAPI document is one file written by hand, `priv/public/openapi.json`,
+  so a route added to the router and not to the file would drift silently, and
+  so would the request budget the file states. Every API route the router
+  answers must be described, with an operation id, and the budget must be
+  production's.
   """
 
   use ExUnit.Case, async: true
 
+  alias TechtreeWeb.PublicDocuments
+
   test "every API route, account tool, agent request and /healthz is described with an operation id" do
-    paths =
-      TechtreeWeb.OpenAPI.document(
-        TechtreeWeb.Endpoint.url(),
-        Application.fetch_env!(:techtree, :request_rate_limit)
-      )["paths"]
+    paths = PublicDocuments.openapi()["paths"]
 
     routes =
       for %{verb: verb, path: path} <- TechtreeWeb.Router.__routes__(),
@@ -41,5 +41,24 @@ defmodule TechtreeWeb.OpenAPITest do
     ids = for {_path, operations} <- paths, {_verb, op} <- operations, do: op["operationId"]
     assert length(ids) == length(Enum.uniq(ids))
     assert length(ids) == length(routes)
+  end
+
+  test "the request budget the document states is production's" do
+    [limit: limit, window_seconds: window] =
+      "config/config.exs"
+      |> Config.Reader.read!(env: :prod, target: :host)
+      |> get_in([:techtree, :request_rate_limit])
+
+    headers = PublicDocuments.openapi()["components"]["headers"]
+
+    assert headers["RateLimitPolicy"]["example"] == ~s("default";q=#{limit};w=#{window})
+    assert headers["RateLimit"]["example"] == ~s("default";r=#{limit - 1};t=42)
+  end
+
+  test "the document names the address it is served from" do
+    document = PublicDocuments.openapi()
+
+    assert document["servers"] == [%{"url" => TechtreeWeb.Endpoint.url()}]
+    assert document["externalDocs"] == %{"url" => TechtreeWeb.Endpoint.url() <> "/docs"}
   end
 end

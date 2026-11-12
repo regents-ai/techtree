@@ -7,7 +7,7 @@ defmodule TechtreeWeb.PublicPagesController do
   description, the tool manifest, `robots.txt`, `security.txt`, the API
   catalog, the Techtree skill at `/skill.md`, each agent's own skill at
   `/agents/SLUG/skill.md` and the skills index under `/.well-known/agent-skills`.
-  All of them come from `TechtreeWeb.PublicDocuments`, `TechtreeWeb.OpenAPI`,
+  All of them come from `TechtreeWeb.PublicDocuments`,
   `Techtree.Capabilities`, `TechtreeWeb.AgentSkills` and
   `TechtreeWeb.AgentGuides`; only `/llms.txt` reads the
   database, for the install line of the release being served. The pages'
@@ -79,14 +79,7 @@ defmodule TechtreeWeb.PublicPagesController do
   end
 
   def openapi(conn, _params) do
-    body =
-      Jason.encode!(
-        TechtreeWeb.OpenAPI.document(
-          TechtreeWeb.Endpoint.url(),
-          Application.fetch_env!(:techtree, :request_rate_limit)
-        )
-      )
-
+    body = Jason.encode!(PublicDocuments.openapi())
     conn |> cached(body) |> put_resp_content_type("application/json") |> send_resp(200, body)
   end
 
