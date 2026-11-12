@@ -1,0 +1,175 @@
+/* The light and dark theme switch (TechtreeWeb.Components.ThemeSwitch,
+   hooks/theme_switch.ts).
+
+   The button is the whole press. Inside it sits the still face the server draws,
+   a flat square track and a square knob with the moon or the sun in tiny square
+   blocks, and the canvas where the GPU draws the glass knob, the same blocks and
+   its light once a first frame has landed. Everything glassy is inside that
+   canvas; the still face is flat and square and is a whole working switch on its
+   own. The canvas never takes a press and reaches only above and below the
+   button, never past its sides, so it never lies over a neighbour and never
+   changes the size of anything round it.
+
+   The knob's place is --theme-switch-p: 0 at night on the left, 1 by day on the
+   right. Before the script runs it follows the theme showing; after, the script
+   writes it as the knob moves. */
+.theme-switch {
+  --theme-switch-p: 0;
+  --theme-switch-lens: var(--space-4);
+  --theme-switch-track: var(--space-3);
+  --theme-switch-travel: var(--space-3);
+  --theme-switch-press: var(--space-5);
+  --theme-switch-gutter: var(--space-1);
+  --theme-switch-spill: var(--space-1);
+  /* The beam, in Techtree's own greens: the tree's green by day and the brand's
+     lime at night. */
+  --theme-switch-day: var(--color-accent-secondary);
+  --theme-switch-night: var(--brand-accent);
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+:root[data-theme="light"] .theme-switch {
+  --theme-switch-p: 1;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .theme-switch {
+    --theme-switch-p: 1;
+  }
+}
+
+/* Touch screens: the press is at least 44px tall, as every press here. */
+@media (hover: none), (pointer: coarse) {
+  .theme-switch {
+    --theme-switch-press: 2.75rem;
+  }
+}
+
+.theme-switch .theme-switch__button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--theme-switch-lens) + var(--theme-switch-travel) + 2 * var(--theme-switch-gutter));
+  height: var(--theme-switch-press);
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-fg);
+  cursor: pointer;
+  /* A sideways drag is the knob's; an upward or downward one still scrolls the page. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-switch .theme-switch__button:focus-visible {
+  outline: var(--rg-ring-width) solid var(--color-focus);
+  outline-offset: var(--rg-ring-offset);
+}
+
+.theme-switch__still {
+  display: block;
+}
+
+.theme-switch__track {
+  position: relative;
+  display: block;
+  width: calc(var(--theme-switch-lens) + var(--theme-switch-travel));
+  height: var(--theme-switch-track);
+  border: 1px solid var(--color-fg-muted);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+}
+
+.theme-switch__knob {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: -1px;
+  display: grid;
+  place-items: center;
+  width: var(--theme-switch-lens);
+  height: var(--theme-switch-lens);
+  border: 1px solid var(--color-fg);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  transform: translate(calc(var(--theme-switch-p) * var(--theme-switch-travel)), -50%);
+}
+
+/* The blocks fill as much of the knob as they do behind the glass. */
+.theme-switch__moon,
+.theme-switch__sun {
+  grid-area: 1 / 1;
+  width: calc(var(--theme-switch-lens) * 0.65);
+  height: calc(var(--theme-switch-lens) * 0.65);
+  fill: currentColor;
+}
+
+/* The moon until the knob is halfway across, the sun from there. */
+.theme-switch__moon {
+  opacity: clamp(0, calc((0.5 - var(--theme-switch-p)) * 100000), 1);
+}
+
+.theme-switch__sun {
+  opacity: clamp(0, calc((var(--theme-switch-p) - 0.49999) * 100000), 1);
+}
+
+.theme-switch__canvas {
+  position: absolute;
+  inset: calc(-1 * var(--theme-switch-spill)) 0;
+  width: 100%;
+  height: calc(100% + 2 * var(--theme-switch-spill));
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* A first frame has landed: the GPU's switch replaces the still face. */
+.theme-switch[data-theme-switch-ready="true"] .theme-switch__canvas {
+  visibility: visible;
+}
+
+.theme-switch[data-theme-switch-ready="true"] .theme-switch__still {
+  visibility: hidden;
+}
+
+/* Less motion, on the page or on the device, and forced colours keep the still face. */
+[data-motion="reduced"] .theme-switch .theme-switch__canvas {
+  visibility: hidden;
+}
+
+[data-motion="reduced"] .theme-switch .theme-switch__still {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch .theme-switch__canvas {
+    visibility: hidden;
+  }
+
+  .theme-switch .theme-switch__still {
+    visibility: visible;
+  }
+}
+
+@media (forced-colors: active) {
+  .theme-switch .theme-switch__canvas {
+    visibility: hidden;
+  }
+
+  .theme-switch .theme-switch__still {
+    visibility: visible;
+  }
+
+  .theme-switch__track,
+  .theme-switch__knob {
+    border-color: ButtonText;
+    background: Canvas;
+  }
+}

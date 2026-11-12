@@ -11,9 +11,9 @@ import "../vendor/regent_ui/confirm.mjs"
 import "../vendor/regent_ui/pill_select.mjs"
 
 // The pages are read-only documents. This bundle keeps the live connection,
-// copies published commands, remembers the reader's color preference, reads
-// the repository's public star count, and plays the standard motion. It never
-// runs a command or sends the color preference anywhere.
+// copies published commands, turns the light and dark theme switch, reads the
+// repository's public star count, and plays the standard motion. It never runs
+// a command or sends the theme chosen anywhere.
 
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
@@ -22,12 +22,14 @@ import {installAgentMessage} from "./agent_message"
 import {mountPageCopyButton, type CopyHook} from "./copy_feedback"
 import {installCopyButtons} from "./copy_buttons"
 import {crownHook} from "./hooks/crown"
+import {ThemeSwitch} from "./hooks/theme_switch"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionRefusal} from "./hooks/motion/moments"
 import {MotionCascade} from "./hooks/motion/reveals"
 import {installPublicTools} from "./public_tools"
 import {installSiteMenu} from "./site_menu"
+import {showingTheme, syncTheme} from "./theme"
 import {installVisitLog} from "./visit_log"
 
 // First, so an error anywhere below is reported too.
@@ -38,62 +40,11 @@ installCopyButtons()
 installAgentMessage()
 installSiteMenu()
 
-// The colour theme. Until the visitor chooses, the page carries no theme and the
-// shared colours follow the device, dark unless it asks for light. A press
-// chooses the opposite of the theme showing and writes it to the cookie the
-// server reads, so the next page is drawn in it. The switch names the theme
-// showing by itself; only the crown is redrawn from here.
-const THEME_COOKIE = "techtree_theme"
-const THEME_MAX_AGE = 60 * 60 * 24 * 365
-const THEMES = {
-  light: {crownVariant: 2, browserColor: "#F3F5EF"},
-  dark: {crownVariant: 4, browserColor: "#0D1611"},
-} as const
-type Theme = keyof typeof THEMES
-const lightDevice = window.matchMedia("(prefers-color-scheme: light)")
-
-function chosenTheme(): Theme | undefined {
-  const prefix = `${THEME_COOKIE}=`
-  const value = document.cookie
-    .split("; ")
-    .find(cookie => cookie.startsWith(prefix))
-    ?.slice(prefix.length)
-
-  return value === "light" || value === "dark" ? value : undefined
-}
-
-const showingTheme = (): Theme => chosenTheme() ?? (lightDevice.matches ? "light" : "dark")
-
-// Live navigation keeps the document, so each page restates its theme: the
-// visitor's choice, or none so the device decides.
-function syncTheme() {
-  const root = document.documentElement
-  const chosen = chosenTheme()
-  if (chosen) root.dataset.theme = chosen
-  else delete root.dataset.theme
-  document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", chosen ?? "dark light")
-  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach(meta => {
-    meta.content = THEMES[chosen ?? (meta.media.includes("light") ? "light" : "dark")].browserColor
-  })
-
-  document.dispatchEvent(new CustomEvent("techtree:themechange", {
-    detail: {theme: showingTheme()},
-  }))
-}
-
-document.addEventListener("click", event => {
-  if (!(event.target instanceof Element) || !event.target.closest("[data-theme-toggle]")) return
-
-  const theme: Theme = showingTheme() === "dark" ? "light" : "dark"
-  const secure = window.location.protocol === "https:" ? "; Secure" : ""
-  document.cookie = `${THEME_COOKIE}=${theme}; Path=/; Max-Age=${THEME_MAX_AGE}; SameSite=Lax${secure}`
-  syncTheme()
-})
-
+// Live navigation keeps the document, and Back may bring a kept page, so each
+// page restates the theme (theme.ts).
 window.addEventListener("phx:page-loading-stop", syncTheme)
-lightDevice.addEventListener("change", syncTheme)
-syncTheme()
-
+window.addEventListener("popstate", syncTheme)
+window.addEventListener("pageshow", syncTheme)
 
 if (!browserCsrfToken()) throw new Error("Missing CSRF token")
 
@@ -103,8 +54,10 @@ const labHooks = document.querySelector("main.motion-lab")
   ? (await import("./motion_lab")).hooks : {}
 
 const Hooks: Record<string, object> = {
-  Crown: crownHook(() => THEMES[showingTheme()].crownVariant),
+  // Each theme has its own crown.
+  Crown: crownHook(() => (showingTheme() === "light" ? 2 : 4)),
   MotionList,
+  ThemeSwitch,
   ...labHooks,
 }
 

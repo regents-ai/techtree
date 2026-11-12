@@ -72,6 +72,11 @@ type IslandKind<Renderer extends IslandRenderer> = {
   readonly motionSensitive: boolean
   /** A picture that keeps moving by itself never runs out of frames to settle in. */
   readonly continuous: boolean
+  /**
+   * The sharpest the picture is drawn, in device pixels per CSS pixel. A small
+   * picture may go past the usual ceiling; the pixel budget still holds.
+   */
+  readonly maxDevicePixelRatio?: number
   /** Listeners the island keeps for as long as it is watching. */
   interact?(island: IslandInteraction<Renderer>): () => void
 }
@@ -102,8 +107,9 @@ export function drawingBufferSize(
   width: number,
   height: number,
   devicePixelRatio: number,
+  maxDevicePixelRatio: number = MAX_DEVICE_PIXEL_RATIO,
 ): readonly [number, number] {
-  const ratio = Math.min(MAX_DEVICE_PIXEL_RATIO, Math.max(1, devicePixelRatio))
+  const ratio = Math.min(maxDevicePixelRatio, Math.max(1, devicePixelRatio))
   const requested = width * height * ratio * ratio
   const fit =
     requested > MAX_DRAWING_BUFFER_PIXELS ? Math.sqrt(MAX_DRAWING_BUFFER_PIXELS / requested) : 1
@@ -167,9 +173,13 @@ export const createCanvasIsland = <Renderer extends IslandRenderer>(
 
   const motionPermits = () => !kind.motionSensitive || !motion.matches
 
+  /**
+   * The canvas's own box from layout. A transform round the island, such as a panel
+   * growing in, changes how big it looks for a moment, never how big it is drawn.
+   */
   const measure = (): readonly [number, number] => {
-    const {width, height} = canvas().getBoundingClientRect()
-    return drawingBufferSize(width, height, devicePixelRatio())
+    const view = canvas()
+    return drawingBufferSize(view.clientWidth, view.clientHeight, devicePixelRatio(), kind.maxDevicePixelRatio)
   }
 
   const stopFrame = () => {

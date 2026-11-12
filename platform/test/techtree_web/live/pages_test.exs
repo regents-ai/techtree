@@ -150,7 +150,7 @@ defmodule TechtreeWeb.PagesTest do
           assert attributes =~ ~s|type="button"|, "#{page} has a button that could submit"
 
           assert attributes =~ "rg-copy" or attributes =~ "copycommand" or
-                   attributes =~ "data-theme-toggle" or
+                   attributes =~ ~s|role="switch"| or
                    attributes =~ ~s|data-account-target="sign-in"| or
                    attributes =~ "masthead__menu-button" or
                    attributes =~ "regent-footer__guide" or

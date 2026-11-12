@@ -9,8 +9,9 @@
 # Headless Chromium at 1280 and 390 wide, signed out (platform/assets/test/live):
 # the live commit from /capabilities.json, every public page, the public
 # documents, the browser tools the home page offers and every public read among
-# them, and the Agent Message window. It writes nothing: no form is sent, no
-# signed tool is called, and the pages start no visit (Global Privacy Control).
+# them, the Agent Message window, and the header's theme switch from a light-set
+# and a dark-set device. It writes nothing: no form is sent, no signed tool is
+# called, and the pages start no visit (Global Privacy Control).
 # Run it from a checkout of the live commit, or of the release record on top of
 # it: the pages and tools are checked against this checkout's page list and tool
 # manifest.

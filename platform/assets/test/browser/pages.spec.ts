@@ -34,7 +34,7 @@ test("on a phone, Menu opens the pages and one of them opens", async ({browser})
   const results = page.locator("#site-pages a[href='/results']")
   await expect(results).toBeHidden()
   // The header is one row: the name, Menu, theme switch and Sign in side by side.
-  const boxes = await page.locator(".masthead__name, .masthead__menu-button, #site-theme-toggle, [data-account-target='sign-in']")
+  const boxes = await page.locator(".masthead__name, .masthead__menu-button, #site-theme-switch, [data-account-target='sign-in']")
     .evaluateAll(els => els.map(e => e.getBoundingClientRect()).map(r => ({left: r.left, right: r.right, top: r.top, bottom: r.bottom})))
   expect(boxes).toHaveLength(4)
   for (const [a, b] of boxes.slice(1).map((box, i) => [boxes[i], box])) {

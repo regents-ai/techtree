@@ -305,9 +305,9 @@ defmodule TechtreeWeb.HomeLiveTest do
         assert html =~ ~r|href="/start" aria-current="page">\s*Start\s*</a>|
       end
 
-      assert html =~ ~r|</nav>\s*<button[^>]*id="site-theme-toggle"|s
-      assert html =~ ~s|rg-button--secondary theme-toggle|
-      assert html =~ ~s|class="theme-toggle__cube"|
+      # Signed out, the header carries the one theme switch, a real switch.
+      assert [_one] = Regex.scan(~r/<button[^>]*role="switch"[^>]*aria-label="Light theme"/, html)
+      assert html =~ ~r|<div id="site-theme-switch"[^>]*phx-hook="ThemeSwitch"|
       assert has_element?(live, "main")
 
       assert html =~

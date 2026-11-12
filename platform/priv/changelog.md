@@ -42,6 +42,9 @@
 
 ### Changed
 
+- **Theme.** The light and dark switch is now in your account menu: slide it, press
+  it or use Space or Enter. A small moon and sun made of tiny blocks show which
+  theme is on. Signed out, it sits at the top of the page beside Sign in.
 - Unpairing an agent and removing a Watchdog site ask first in the site's own
   window, with a button named for what it does, in place of the browser's box.
 - In the Pair New Agent window the list of agents drops in and leaves with a

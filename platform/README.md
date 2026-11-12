@@ -342,7 +342,16 @@ local server refuses to start, because nobody could sign in. Other tasks run wit
 Every page can sign in. The header shows Sign in, or the person's picture and name,
 which open the account menu under it (`TechtreeWeb.AccountMenuLive`): their name and
 wallet, the three agents paired with the account that were active most recently with
-where each was last active, Pair New Agent, Manage Account and Sign out. Pair New Agent,
+where each was last active, Pair New Agent, the light and dark theme switch, Manage
+Account and Sign out. Signed out, the switch sits in the header beside Sign in; a page
+never has two (`TechtreeWeb.Components.ThemeSwitch`). It is a real switch, on for
+light: a press, Space, Enter or a drag turns it. The browser keeps the choice in the
+`techtree_theme` cookie the server reads on the next page (`assets/js/theme.ts` is the
+one place it is read and written), and until someone chooses, the device decides. The
+server draws a flat, square switch with a moon and a sun made of tiny blocks, which
+works on its own; where the browser can, a picture of a glass knob with the same blocks
+takes its place (`assets/js/hooks/theme_switch.ts`, `assets/js/theme_switch/`), and it
+is left out for anyone who asks for less motion. Pair New Agent,
 there and on the Agents page (`/account/agents`), opens the pairing window the same
 LiveView holds (`#shell-pairing`), over whatever page is open, with the pairing box every
 Regent site shares (`Regent.Account.pairing`). Each
@@ -480,7 +489,9 @@ signed out in headless Chromium at 1280 and 390 wide
 runs this checkout's commit with every migration applied, every public page opens with no error, no sideways
 scrolling and no press target too small, the public documents answer in their
 own type, the home page offers exactly this checkout's browser tools and every
-public read among them answers, and the Agent Message window opens. It writes
+public read among them answers, the Agent Message window opens, and the header's
+theme switch turns the theme once a press on two pages, from a light-set and a
+dark-set device, with the choice held over a reload. It writes
 nothing and starts no visit. Once the release record is committed on top, name
 the released commit: `make live-check COMMIT=<commit>`. It does not sign in as a
 person or call a signed tool as an agent; those are proved by the local browser

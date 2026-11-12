@@ -31,10 +31,6 @@ interface Document {
   readonly modelContext: ModelContext
 }
 
-interface DocumentEventMap {
-  "techtree:themechange": CustomEvent<{theme: "light" | "dark"}>
-}
-
 interface Window {
   liveSocket: import("phoenix_live_view").LiveSocket
 }

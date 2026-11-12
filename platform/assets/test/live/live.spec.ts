@@ -7,8 +7,9 @@ import {layoutProblems, watchErrors} from "../browser/support/visitor"
 // (skills/regent-workflow, "Live checks"): it runs the commit this checkout is at,
 // every public page opens and fits the screen, the documents answer in their own
 // type, the home page offers exactly this checkout's browser tools and every public
-// read that takes no input answers, and the Agent Message window opens. Nothing is
-// written: no form is sent and no signed tool is called.
+// read that takes no input answers, the Agent Message window opens, and the theme
+// switch turns the theme. Nothing is written: no form is sent and no signed tool is
+// called.
 const checkout = process.env.CHECKOUT_COMMIT
 if (!checkout) throw new Error("Set CHECKOUT_COMMIT to the commit the site should run. Run it through make live-check.")
 
@@ -119,6 +120,51 @@ test("the Agent Message window opens with its three texts and no form", async ({
   expect(await layoutProblems(page)).toEqual([])
   expect(errors).toEqual([])
 })
+
+// The header's theme switch, signed out, from a device set to light and from one set
+// to dark: a press turns the theme once, on the home page and on a second page, and
+// the choice holds over a reload. The choice is a cookie in the check's own browser;
+// the site keeps nothing.
+for (const device of ["light", "dark"] as const) {
+  test.describe(`on a ${device}-set device`, () => {
+    test.use({colorScheme: device})
+
+    test("the theme switch turns once a press on two pages, and the choice holds over a reload", async ({page}, info) => {
+      const errors = watchErrors(page)
+      const other = device === "light" ? "dark" : "light"
+      const toggle = page.getByRole("switch", {name: "Light theme"})
+      const press = () => (info.project.name === "phone" ? toggle.tap() : toggle.click())
+      // The account control beside the page is ready, and the one switch says what shows.
+      const says = async (theme: "light" | "dark") => {
+        await expect(page.locator(".masthead__account.phx-connected")).toBeAttached()
+        await expect(toggle).toHaveCount(1)
+        await expect(toggle).toHaveAttribute("aria-checked", String(theme === "light"))
+      }
+      const shows = async (theme: "light" | "dark") => {
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme)
+        await says(theme)
+      }
+
+      // Until a choice is made the page carries no theme and the device decides.
+      await page.goto("/", {waitUntil: "networkidle"})
+      expect(await page.locator("html").getAttribute("data-theme")).toBeNull()
+      await says(device)
+      await press()
+      await shows(other)
+      await page.reload({waitUntil: "networkidle"})
+      await shows(other)
+
+      await page.goto("/docs", {waitUntil: "networkidle"})
+      await shows(other)
+      await press()
+      await shows(device)
+      await page.reload({waitUntil: "networkidle"})
+      await shows(device)
+      expect(await layoutProblems(page)).toEqual([])
+      expect(errors).toEqual([])
+    })
+  })
+}
 
 // The tools are the same at every width, so they are read once, from the desktop.
 test("the home page offers this checkout's tools and every public read answers", async ({page}, info) => {

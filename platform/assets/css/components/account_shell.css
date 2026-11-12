@@ -1,10 +1,29 @@
-.account-control,
-.theme-control {
+.account-control {
   position: relative;
 }
 
-/* The account control and its menu, at the right end of the header's one row. */
-.masthead__account { grid-row: 1; grid-column: 4; justify-self: end; min-width: 0; }
+/* The account control and its menu, at the right end of the header's one row.
+   Signed out, the theme switch sits beside Sign in; signed in, it is a row of
+   the account menu. */
+.masthead__account { grid-row: 1; grid-column: 3; justify-self: end; min-width: 0; }
+.account-menu-control { display: flex; align-items: center; gap: var(--space-1); }
+/* On the narrowest phones the header's switch is at its smallest, so the header
+   keeps its one row. */
+@media (max-width: 24rem) {
+  #site-theme-switch {
+    --theme-switch-lens: var(--space-3);
+    --theme-switch-track: var(--space-2);
+    --theme-switch-travel: var(--space-2);
+    --theme-switch-gutter: calc(var(--space-1) / 2);
+  }
+}
+/* In the menu the switch is a size up. */
+#account-menu .theme-switch {
+  --theme-switch-lens: var(--space-5);
+  --theme-switch-track: var(--space-4);
+  --theme-switch-travel: var(--space-4);
+  --theme-switch-press: var(--space-6);
+}
 
 /* The template's account-control border token, mixed from Techtree's own ink. */
 .account-shell,
@@ -53,12 +72,6 @@
 }
 
 .account-chip { min-height: 2.75rem; }
-
-/* The shared prism control draws its own box and hover; the bar only centres it. */
-.theme-control {
-  display: flex;
-  align-items: center;
-}
 
 .account-avatar {
   width: 1.75rem;

@@ -15,7 +15,7 @@ finger on a touch screen, 24 px for a mouse control.
 `make live-check` is the one check that reads the live site, after a release: the
 same page checks at 1280 and 390 wide, signed out, plus the commit it runs, that
 its migrations are all applied, its public documents and the browser tools its
-home page offers
+home page offers, and the header's theme switch
 (`platform/assets/test/live/live.spec.ts`). It writes nothing.
 
 ## Public pages (signed out)
@@ -25,6 +25,7 @@ home page offers
 | Read the home page, with the headline's ending turning and holding still under reduced motion | `pages.spec.ts`, `headline.spec.ts`, `home_live_test.exs` |
 | Choose where to start, and copy the install steps when a release is published | `start_live_test.exs`, `release_copy_test.exs`; `pages.spec.ts` checks the page with no release. **Gap:** no browser check with a release published |
 | Read the docs | `pages.spec.ts`, `docs_live_test.exs` |
+| Turn the light and dark theme with the switch in the header, by press, Space or Enter, once a press, from a device set to light or to dark; the choice holds over a reload; the header keeps one row at 320 wide | `theme_switch.spec.ts`, `pages.spec.ts`, `home_live_test.exs`; `pages_test.exs` (the first page is drawn in a saved theme, and carries none until one is chosen). **Gap:** dragging the knob, and the drawn picture, are looked at by hand only (the test browser draws the flat switch) |
 | Browse and filter published Results | `runs_live_test.exs`; `pages.spec.ts` checks the page with no Results. **Gap:** no browser check with Results to filter |
 | Open one Result | `result.spec.ts` (desktop and phone), `runs_live_test.exs` |
 | Share a Result's link and see its own picture, while every other page shows the site's | `result.spec.ts` (the page names its picture, which answers as a 1200 by 630 PNG, at desktop and phone widths), `result_share_card_controller_test.exs` (a withdrawal moves the picture's address; an unpublished Result has none; drawing it counts against the request budget). **Gap:** the drawn words are checked by eye, and on the Mac the drawing library draws every word in the system typeface, not the site's |
@@ -49,6 +50,7 @@ home page offers
 | What a person can do | Proved by |
 | --- | --- |
 | Open the account menu from their name on every page: their agents with Manage, Pair New Agent, Manage Account and Sign out; it hangs under the button inside the screen at 1280, 390 and 320 wide, the page still fits, a press outside or Escape closes it with focus back on the button, and with less motion it appears at once | `signed_in.spec.ts`, `account_menu_live_test.exs` |
+| Turn the light and dark theme with the switch in the account menu, at 1280 and 320 wide, by press, Space or Enter; opening the menu moves nothing on the page, turning the switch never changes the menu's size, the choice holds over a reload and a live page change, and there is no second switch in the header | `theme_switch.spec.ts` |
 | Pair New Agent in the account menu, and in the Agents list, opens the pairing window over the page they are on, every press, with the keyboard on the agent dropdown and the list of agents open; the menu closes first; Close, the backdrop or Escape close it, Escape closing an open list first; closed, focus goes back to what opened it; Manage Account opens the Account page and closes the menu; every signed-in page holds the one window | `signed_in.spec.ts`, `pairing.spec.ts`, `account_menu_live_test.exs` |
 | Choose an agent in the pairing window and copy its message; the window keeps one height whatever is chosen; the agent's picture sits in a low band and choosing moves nothing under it; the list drops in and leaves with a short move, a press during it counts, and with less motion it opens and closes at once; each agent keeps its own code until a new one is asked for; a form sent back with nothing chosen leaves the box as it is | `pairing.spec.ts` |
 | See their agents and Pair New Agent on the Agents tab (/account/agents), and their profile on the Account tab, at 1280, 390 and 320 wide, with nothing scrolling sideways | `signed_in.spec.ts`, `account_menu_live_test.exs` |

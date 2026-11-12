@@ -1,8 +1,8 @@
 defmodule TechtreeWeb.Layouts do
   @moduledoc """
   The frame every page is read inside: a name, the primary site sections, the
-  project source, a local color control, and one line at the bottom saying whose
-  project this is.
+  project source, the account control with the theme switch, and one line at the
+  bottom saying whose project this is.
   """
 
   use TechtreeWeb, :html
@@ -32,7 +32,7 @@ defmodule TechtreeWeb.Layouts do
   end
 
   attr(:current_path, :string, default: "/")
-  slot(:inner_block, required: true, doc: "the account control and its menu")
+  slot(:inner_block, required: true, doc: "the account control, its menu and the theme switch")
 
   defp masthead(assigns) do
     assigns =
@@ -119,7 +119,6 @@ defmodule TechtreeWeb.Layouts do
             </span>
           </a>
         </nav>
-        <Regent.ThemeToggle.button id="site-theme-toggle" data-theme-toggle />
         {render_slot(@inner_block)}
       </div>
     </header>

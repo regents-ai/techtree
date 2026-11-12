@@ -20,8 +20,8 @@ browser:
 	cd platform/assets && npm run test:browser
 
 # The live site, signed out, in headless Chromium at 1280 and 390 wide: the commit
-# it runs, every public page and document, the browser tools the home page offers
-# and the Agent Message window (scripts/live-check.sh). It writes nothing. Run it
+# it runs, every public page and document, the browser tools the home page offers,
+# the Agent Message window and the theme switch (scripts/live-check.sh). It writes nothing. Run it
 # after each release; COMMIT=<commit> names the released commit once the release
 # record sits on top of it.
 live-check:

@@ -7,6 +7,7 @@ import {
 } from "../canvas_island"
 import type {CrownRenderer} from "../crown"
 import type {CrownVariant} from "../crown/crown-types"
+import {watchTheme} from "../theme"
 
 export type CrownOptions = CanvasIslandOptions<CrownRenderer> & {
   /** The crown for the theme the page is showing now. */
@@ -115,7 +116,7 @@ export const createCrownController = (
 
       if (!calm.matches) follow()
       calm.addEventListener("change", onCalmChange)
-      document.addEventListener("techtree:themechange", onThemeChange)
+      const unwatchTheme = watchTheme(onThemeChange)
       onReady(() => {
         // The theme may have changed while this crown was on its way.
         if (renderer()!.variant !== options.variant()) return restyle()
@@ -126,7 +127,7 @@ export const createCrownController = (
 
       return () => {
         calm.removeEventListener("change", onCalmChange)
-        document.removeEventListener("techtree:themechange", onThemeChange)
+        unwatchTheme()
         unfollow()
       }
     },

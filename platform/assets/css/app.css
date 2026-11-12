@@ -13,6 +13,7 @@
 @import "./wallet_bench.css";
 @import "./train.css";
 @import "./components/motion.css";
+@import "./components/theme_switch.css";
 @import "./animations.css";
 
 /* Palette, type, cut skins and interaction sweeps come from Regent UI.
@@ -114,8 +115,7 @@ code { font-size: .9em; }
 .masthead { position: relative; z-index: var(--rg-layer-header); border-bottom: 1px solid var(--rg-page-rule); }
 .masthead__inner {
   min-height: 6rem; padding: var(--space-2) var(--rg-panel-padding);
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto;
-  /* The prism sits .5rem inside its press target, so an 8px column gap leaves 16px beside it. */
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center; gap: var(--space-3) var(--space-1);
 }
 .masthead__name { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 2.75rem; white-space: nowrap; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
@@ -173,7 +173,6 @@ code { font-size: .9em; }
 .masthead__github-count[hidden] { display: none; }
 .masthead__github-star { width: 1rem; height: 1rem; fill: #eab308; stroke: #eab308; flex: 0 0 auto; }
 .masthead__github:hover { background: var(--color-surface-elevated); }
-.theme-toggle { justify-self: end; }
 .page { min-width: 0; width: 100%; padding: var(--space-6) var(--rg-panel-padding); }
 .page--flush { padding-top: 0; padding-bottom: 0; }
 .page > *, .docs-content, .hero > *, .hero__stage > *, .climb-contract > *, .facts > * { min-width: 0; }
@@ -453,7 +452,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 
 @media (max-width: 63.99rem) {
   /* Narrow screens: one row of the name, Menu, GitHub, the theme switch and the account. */
-  .masthead__inner { min-height: 4rem; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: var(--space-1); }
+  .masthead__inner { min-height: 4rem; grid-template-columns: minmax(0, 1fr) auto auto; gap: var(--space-1); }
   .masthead__nav { gap: var(--space-1); }
   .masthead__github { display: none; }
   .setup-page__plans { grid-template-columns: minmax(0, 1fr); }
@@ -502,7 +501,7 @@ ul.verification-summary { display: grid; gap: var(--space-2); list-style: square
 @media print {
   .hero__crown { display: none; }
   .hero__stage { min-height: 0; }
-  .masthead__nav, .theme-toggle, .skip-link, .pagecopy, .command__copy, .docs-nav { display: none; }
+  .masthead__nav, .theme-switch, .skip-link, .pagecopy, .command__copy, .docs-nav { display: none; }
   .rg-frame { width: 100%; margin: 0; }
   .page { padding: 1rem; }
   .docs-layout, .hero { display: block; }

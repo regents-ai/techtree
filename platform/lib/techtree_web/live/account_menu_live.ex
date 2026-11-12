@@ -4,11 +4,14 @@ defmodule TechtreeWeb.AccountMenuLive do
   on every page. The root layout renders it beside the page's own LiveView, so it
   stays as it is while the person moves between pages.
 
-  Signed out, it is the Sign in button. Signed in, it is the person's picture and
-  name, which open the account menu (`Regent.Account.menu`) hanging under it: the
-  person's picture, name and wallet, the three agents paired with the account that
-  were active most recently (`TechtreeWeb.MenuAgents`), Pair New Agent, Manage
-  Account and Sign out. Pair New Agent, here and on the Agents page, opens the one
+  Signed out, it is the light and dark theme switch and the Sign in button. Signed
+  in, it is the person's picture and name, which open the account menu
+  (`Regent.Account.menu`) hanging under it: the person's picture, name and wallet,
+  the three agents paired with the account that were active most recently
+  (`TechtreeWeb.MenuAgents`), Pair New Agent, the theme switch
+  (`TechtreeWeb.Components.ThemeSwitch`), Manage Account and Sign out. The switch
+  is drawn once: in the header signed out, in the menu signed in. Pair New Agent,
+  here and on the Agents page, opens the one
   pairing window (`TechtreeWeb.PairingBox`), which this LiveView holds so it is on
   every page; the agents are on the Agents page, and everything else about the
   account is on the Account page. The browser opens and closes the menu (`popover`), so the
@@ -18,6 +21,7 @@ defmodule TechtreeWeb.AccountMenuLive do
   use TechtreeWeb, :live_view
 
   import TechtreeWeb.Components.AccountControls, only: [account_control: 1, account_picture: 1]
+  import TechtreeWeb.Components.ThemeSwitch, only: [theme_switch: 1]
 
   on_mount {TechtreeWeb.Live.Session, :load_visitor}
 
@@ -41,6 +45,7 @@ defmodule TechtreeWeb.AccountMenuLive do
   def render(assigns) do
     ~H"""
     <div id="account-menu-control" class="account-menu-control" phx-hook="AccountMenu">
+      <.theme_switch :if={!current_account(@access_context)} id="site-theme-switch" />
       <.account_control account_control={@account_control} />
       <Regent.Account.menu
         :if={current_account(@access_context)}
@@ -67,6 +72,10 @@ defmodule TechtreeWeb.AccountMenuLive do
             account={current_account(@access_context)}
           />
         </:agents>
+        <:theme>
+          <span aria-hidden="true">Light theme</span>
+          <.theme_switch id="account-menu-theme" />
+        </:theme>
       </Regent.Account.menu>
       <Regent.Structure.dialog
         :if={current_account(@access_context)}
