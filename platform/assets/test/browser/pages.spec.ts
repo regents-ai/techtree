@@ -5,7 +5,7 @@ import {layoutProblems, watchErrors} from "./support/visitor"
 // live connection joins where it has one, nothing errors, nothing scrolls
 // sideways and every press target is big enough to hit.
 const pages = ["/", "/start", "/docs", "/docs/install", "/docs/test-a-skill", "/docs/api", "/results",
-  "/wallet-bench", "/verify", "/changelog",
+  "/wallet-bench", "/train", "/train/nemotron-nano-skill", "/verify", "/changelog",
   "/examples/tdd", "/repo2rlenv", "/services/verify", "/services/verify/sample-report",
   "/services/cyber-assist", "/services/cyber-assist/sample-report", "/formal", "/services/watchdog", "/account", "/account/agents", "/agents", "/agents/hermes", "/about", "/privacy", "/terms"]
 

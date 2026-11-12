@@ -1,8 +1,10 @@
 defmodule TechtreeWeb.Plugs.PageMarkdown do
   @moduledoc """
   The Markdown answer of the public pages built from the database, from
-  release files or from their LiveView's own data: Start, Results, each Result, each Climb, the Wallet Bench, the
-  three offers under `/services`, Techtree Formal and the tdd example. The database-free pages are answered before the router
+  release files or from their LiveView's own data: Start, Results, each Result,
+  each Climb, the Wallet Bench, the three offers under `/services`, Techtree
+  Formal, the tdd example, and Train with each of its comparisons. The
+  database-free pages are answered before the router
   (`TechtreeWeb.PublicDocuments`); these wait for the router, so an HTML
   request reads nothing here and a Markdown one reads only what its page reads,
   through the same queries.
@@ -20,12 +22,14 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
   alias Techtree.Catalog.Query, as: Catalog
   alias Techtree.Network.Query
+  alias Techtree.Train.Comparisons
   alias TechtreeWeb.CampaignFacts
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.TddShowcase
+  alias TechtreeWeb.TrainMD
 
   @pages %{
     TechtreeWeb.StartLive => :start,
@@ -35,7 +39,9 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     TechtreeWeb.WalletBenchLive.Index => :wallet_bench,
     TechtreeWeb.ServiceLive => :offer,
     TechtreeWeb.FormalLive => :formal,
-    TechtreeWeb.TddShowcaseLive => :tdd
+    TechtreeWeb.TddShowcaseLive => :tdd,
+    TechtreeWeb.TrainLive.Index => :train,
+    TechtreeWeb.TrainLive.Show => :train_comparison
   }
 
   @doc """
@@ -102,6 +108,15 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   end
 
   defp markdown(:tdd, _conn), do: tdd(TddShowcase.load!(TddShowcase.folder()))
+
+  defp markdown(:train, _conn), do: TrainMD.index(Comparisons.list())
+
+  defp markdown(:train_comparison, %{path_params: %{"slug" => slug}}) do
+    case Comparisons.fetch(slug) do
+      {:ok, comparison} -> TrainMD.show(comparison)
+      :error -> raise TechtreeWeb.NotFoundError, "no Train comparison has that name"
+    end
+  end
 
   defp markdown(:offer, %{private: %{phoenix_live_view: {_view, opts, _session}}}) do
     offer = Keyword.fetch!(opts, :action)

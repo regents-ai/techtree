@@ -4,11 +4,13 @@ defmodule TechtreeWeb.SitemapController do
   Claude's page while its connector is on, and the motion lab while the
   showcase is public), the blog and each of its posts once
   there is one, each Climb in the
-  active release, and each published Result that has not been withdrawn.
+  active release, each published Result that has not been withdrawn, and each
+  Train comparison.
 
   Each entry says when it last changed: the fixed pages and the blog change
   only with a release, so theirs is the release time; a Climb's is when its
-  catalog entry last changed; a Result's is when it was published.
+  catalog entry last changed; a Result's is when it was published; a Train
+  comparison's is when its run finished.
   """
 
   use TechtreeWeb, :controller
@@ -16,12 +18,13 @@ defmodule TechtreeWeb.SitemapController do
   alias Techtree.Catalog
   alias Techtree.Network
   alias Techtree.Network.Projection
+  alias Techtree.Train.Comparisons
   alias TechtreeWeb.AgentGuides
   alias TechtreeWeb.Blog
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.Showcase
 
-  @fixed ~w(/ /start /results /verify /docs /changelog /repo2rlenv /about /privacy /terms
+  @fixed ~w(/ /start /results /train /verify /docs /changelog /repo2rlenv /about /privacy /terms
             /services/verify /services/verify/sample-report /services/cyber-assist
             /services/cyber-assist/sample-report /formal /services/watchdog) ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
@@ -44,7 +47,11 @@ defmodule TechtreeWeb.SitemapController do
         Catalog.Query.list_climbs(),
         &{origin <> "/climbs/" <> &1.projection["slug"], &1.updated_at}
       ) ++
-      Enum.map(standing_results(nil), &{Projection.entry_url(&1, origin), &1.accepted_at})
+      Enum.map(standing_results(nil), &{Projection.entry_url(&1, origin), &1.accepted_at}) ++
+      Enum.map(
+        Comparisons.list(),
+        &{origin <> "/train/" <> &1.slug, &1.operational.finished_at}
+      )
   end
 
   # The agents' pages are read on each call, since Claude's is listed only while

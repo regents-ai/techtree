@@ -14,6 +14,16 @@
   Results, Model Climb reports and Points stay on the signed routes and the Regents
   command line. A call with no signature, two credentials, a query string, a batch or a
   page from another site is refused in the site's usual error shape.
+- **Train.** A new Train page shows an NVIDIA Nemotron model scored without and
+  with one change on the same held-out tasks with the same settings. The first
+  comparison is a Skill, and the page says what it shows: the Skill teaches the
+  answer format the tasks are scored on. Each comparison has its own page with
+  both scores side by side, every task's result, the exact settings, and its
+  report and traces to download. No training run is published yet.
+- **Private.** Training on your own tasks, scored the same way before and after:
+  write to build@regents.sh from the Train page.
+- Agents can read the Train comparisons as JSON at /train.json, one report in
+  full, and each Train page as Markdown.
 
 ## Website (2026-11-11)
 

@@ -14,6 +14,16 @@ defmodule TechtreeWeb.SitemapControllerTest do
     end
   end
 
+  test "Train and each of its comparisons have a sitemap entry", %{conn: conn} do
+    sitemap = conn |> get(~p"/sitemap.xml") |> response(200)
+
+    assert sitemap =~ "/train<"
+
+    for comparison <- Techtree.Train.Comparisons.list() do
+      assert sitemap =~ "/train/#{comparison.slug}<"
+    end
+  end
+
   test "the motion lab is gone from the site and the sitemap with the showcase off", %{conn: conn} do
     previous = Application.fetch_env!(:techtree, :showcase)
     Application.put_env(:techtree, :showcase, :off)
