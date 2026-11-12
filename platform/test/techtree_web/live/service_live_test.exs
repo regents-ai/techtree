@@ -165,6 +165,29 @@ defmodule TechtreeWeb.ServiceLiveTest do
     assert String.split(body, "\r\n") == ["Company:", "Sites:", "Contact:"]
   end
 
+  test "the Watchdog page and Markdown link a booking address only when one is set", %{conn: conn} do
+    address = "https://calendar.example/techtree"
+
+    markdown = fn ->
+      conn
+      |> put_req_header("accept", "text/markdown")
+      |> get(~p"/services/watchdog")
+      |> response(200)
+    end
+
+    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
+    refute has_element?(live, ~s|.service-offer__start a:not([href^="mailto:"])|)
+    refute markdown.() =~ "calendar.example"
+
+    Application.put_env(:techtree, :book_call, address)
+    on_exit(fn -> Application.put_env(:techtree, :book_call, nil) end)
+
+    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
+    assert has_element?(live, ~s|.service-offer__start a[href="#{address}"]|)
+    assert has_element?(live, ~s|.service-offer__start a[href^="mailto:"]|)
+    assert markdown.() =~ "(#{address})"
+  end
+
   test "with nothing judged yet the pages say so, not a range of days", %{conn: conn} do
     Techtree.Repo.query!("UPDATE wallet_bench_turns SET judgment = NULL")
     WalletBenchScores.delete_all()

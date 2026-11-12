@@ -114,6 +114,8 @@ defmodule TechtreeWeb.PublicDocuments do
   An offer's Markdown, `verify` or `cyber_assist`, with `{{bench}}` where the
   page's Wallet Bench figures go (`TechtreeWeb.ServiceLive.bench_markdown/1`)
   and `{{mailto}}` where its email address goes (`TechtreeWeb.ServiceLive.mailto/1`).
+  Watchdog's also has `{{book_call}}`, its line for booking a call
+  (`TechtreeWeb.ServiceLive.book_call_markdown/0`).
   """
   @spec offer(:verify | :cyber_assist | :watchdog) :: String.t()
   def offer(:verify), do: @sources["services/verify"]

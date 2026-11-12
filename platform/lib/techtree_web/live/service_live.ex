@@ -7,7 +7,8 @@ defmodule TechtreeWeb.ServiceLive do
   `/services/watchdog`, the monthly subscription that watches sites a team
   proves it owns, with its own shape (how it works, the rules, what you get and
   the price). Every page starts an email whose body already asks for what we
-  need (`mailto/1`). Each page's Markdown is `priv/public/services/<offer>.md`,
+  need (`mailto/1`); Watchdog also links Book Call when an address for it is
+  set (`book_call/0`). Each page's Markdown is `priv/public/services/<offer>.md`,
   the same facts in words, and the Verify and Cyber Assist sample reports are
   public documents (`TechtreeWeb.PublicDocuments`).
 
@@ -137,8 +138,22 @@ defmodule TechtreeWeb.ServiceLive do
        page_title: offer.name,
        offer: offer,
        bench: figures(),
-       mailto: mailto(socket.assigns.live_action)
+       mailto: mailto(socket.assigns.live_action),
+       book_call: book_call()
      )}
+  end
+
+  @doc "The address Watchdog's Book Call opens (`TECHTREE_BOOK_CALL_URL`), or nil when none is set."
+  @spec book_call() :: String.t() | nil
+  def book_call, do: Application.get_env(:techtree, :book_call)
+
+  @doc "Watchdog's Markdown line for booking a call: empty when no address is set."
+  @spec book_call_markdown() :: String.t()
+  def book_call_markdown do
+    case book_call() do
+      nil -> ""
+      address -> "[Book a call](#{address}), or write to us.\n\n"
+    end
   end
 
   @doc "The email an offer starts: to build@regents.sh, with its subject and the lines its body asks for."
@@ -260,7 +275,23 @@ defmodule TechtreeWeb.ServiceLive do
           <p class="eyebrow">Start</p>
           <h2>Contact</h2>
           <p>{@offer.start_line}</p>
-          <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
+          <div class="service-intro__actions">
+            <a
+              :if={@book_call}
+              class="rg-button rg-button--primary"
+              href={@book_call}
+              target="_blank"
+              rel="noopener"
+            >
+              Book Call
+            </a>
+            <a
+              class={["rg-button", (@book_call && "rg-button--secondary") || "rg-button--primary"]}
+              href={@mailto}
+            >
+              Email build@regents.sh
+            </a>
+          </div>
         </Regent.Structure.panel>
       </article>
     </Layouts.page>

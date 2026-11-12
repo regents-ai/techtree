@@ -111,6 +111,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     |> PublicDocuments.offer()
     |> String.replace("{{bench}}", TechtreeWeb.ServiceLive.bench_markdown(figures))
     |> String.replace("{{mailto}}", TechtreeWeb.ServiceLive.mailto(offer))
+    |> String.replace("{{book_call}}", TechtreeWeb.ServiceLive.book_call_markdown())
   end
 
   defp markdown(:formal, _conn) do

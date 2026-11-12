@@ -377,6 +377,7 @@ monorepo root.
 | `SECRET_KEY_BASE` | required in production |
 | `PHX_HOST`, `PORT` | endpoint |
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
+| `TECHTREE_BOOK_CALL_URL` | the address the Watchdog page's Book Call opens, an https address; optional, and the page shows no such link without it |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 | `TECHTREE_SHOWCASE` | `public` or `off`: whether the motion lab at `/animations` exists; required in production, `public` elsewhere unless set |
 | `SIWA_ACTIVITY_READ_TOKEN` | the reader key for the sign-in service's agent activity, which gives the account menu each agent's last active site and the Agents page each agent's sites by day (`Techtree.Agents.ActivityReading` keeps each reading five minutes); optional, and unset means neither shows activity |

@@ -7,3 +7,6 @@ local-only-*
 
 .dolt/
 *.db
+
+# Python caches the script checks leave behind.
+__pycache__/

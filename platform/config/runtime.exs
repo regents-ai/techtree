@@ -29,6 +29,18 @@ showcase =
 
 config :techtree, :showcase, showcase
 
+# The Watchdog page's Book Call link (TechtreeWeb.ServiceLive.book_call/0).
+# Unset, the page shows no such link; set, it is an https address or the boot
+# stops.
+book_call =
+  case System.get_env("TECHTREE_BOOK_CALL_URL") do
+    nil -> nil
+    "https://" <> _rest = address -> address
+    _other -> raise "TECHTREE_BOOK_CALL_URL must be an https address"
+  end
+
+config :techtree, :book_call, book_call
+
 config :regent_sprites, token: System.get_env("SPRITES_TOKEN")
 
 # One Claude key for AgentWalletBench: the tested harness's model calls (sent to
