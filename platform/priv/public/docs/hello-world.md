@@ -1,8 +1,8 @@
-# Take a quick look with the Hello World Climb
+# Hello World
 
 The Hello World Climb is a small, fixed comparison that ships with the release, run with a starter Skill (`regents techtree skill starter`). `regents techtree climb prepare` prints the exact one-time start command and the most the run may spend before anything runs. Its toy tasks say nothing about your own Skill.
 
-## What it is for
+## Purpose
 
 The Hello World Climb is a mechanism test for the whole local path, not a measure of what an agent can do. Its starter Skill clearly helps compared with no Skill, so it is easy to see that everything works:
 

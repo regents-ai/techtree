@@ -98,14 +98,14 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             </dd>
             <dt>Wallet tool</dt>
             <dd>{wallet(@attempt).name}, run as <code>{wallet(@attempt).executable}</code></dd>
-            <dt :if={@wallet_version}>Wallet tool version</dt>
+            <dt :if={@wallet_version}>Tool version</dt>
             <dd :if={@wallet_version}>{@wallet_version}</dd>
             <dt :if={@judges != []}>Judge</dt>
             <dd :if={@judges != []}>{Enum.join(@judges, ", ")}</dd>
           </dl>
           <p :if={!@attempt.machine} class="quiet">No machine yet.</p>
           <div :if={@notes != []} id="extra-notes">
-            <h3>Extra notes for these versions</h3>
+            <h3>Notes</h3>
             <ul>
               <li :for={note <- @notes}>{Copy.subject(note)} {note.version}: {note.text}</li>
             </ul>

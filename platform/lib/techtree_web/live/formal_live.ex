@@ -24,7 +24,7 @@ defmodule TechtreeWeb.FormalLive do
     },
     %{
       date: ~D[2026-09-04],
-      title: "Fermat in Lean",
+      title: "Fermat proof",
       line:
         "Claude, working largely on its own for 11 days, wrote a complete proof of Fermat's Last Theorem, building on Lean's shared maths library, that the Lean proof checker accepts. It checks a known proof; it is not new mathematics.",
       source: "Anthropic",
@@ -40,7 +40,7 @@ defmodule TechtreeWeb.FormalLive do
     },
     %{
       date: ~D[2025-11-17],
-      title: "Specs for AI code",
+      title: "AI specs",
       line:
         "Informal Systems had an AI update a Quint model of a consensus protocol, checked the model by hand and by machine, then had the AI write the code and tests from it, with people guiding the design. One case study; the authors say the process has much to mature.",
       source: "Quint",
@@ -81,7 +81,7 @@ defmodule TechtreeWeb.FormalLive do
     },
     %{
       date: ~D[2024-05-16],
-      title: "Kontrol in CI",
+      title: "Kontrol CI",
       line:
         "Runtime Verification used Kontrol to prove that Optimism's bridge contracts on Ethereum stop processing withdrawals while paused, and added the proofs to Optimism's automatic checks.",
       source: "Runtime Verification",

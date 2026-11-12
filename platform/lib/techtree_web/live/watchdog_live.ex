@@ -220,7 +220,7 @@ defmodule TechtreeWeb.WatchdogLive do
           </Regent.Primitives.notice>
 
           <Regent.Structure.panel class="watchdog-add rg-panel__body">
-            <h2>Add a site</h2>
+            <h2>New site</h2>
             <form phx-submit="add_site" class="watchdog-form">
               <Regent.Primitives.field
                 :let={f}
@@ -256,7 +256,7 @@ defmodule TechtreeWeb.WatchdogLive do
             <p class="rg-muted">You can keep up to {Limits.max_hosts()} sites.</p>
           </Regent.Structure.panel>
 
-          <Regent.Primitives.empty_state :if={@hosts == []} title="No sites yet">
+          <Regent.Primitives.empty_state :if={@hosts == []} title="No sites">
             Add a site above to get its proof and start.
           </Regent.Primitives.empty_state>
 
@@ -410,8 +410,8 @@ defmodule TechtreeWeb.WatchdogLive do
   defp check_label(:pending), do: "Checking…"
   defp check_label(_other), do: "Check now"
 
-  defp proof_title(:dns_txt), do: "Add a DNS TXT record"
-  defp proof_title(:well_known_file), do: "Publish a file"
+  defp proof_title(:dns_txt), do: "DNS record"
+  defp proof_title(:well_known_file), do: "Hosted file"
 
   defp proof_place_label(:dns_txt), do: "Record name"
   defp proof_place_label(:well_known_file), do: "File address"

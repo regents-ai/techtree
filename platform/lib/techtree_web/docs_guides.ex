@@ -9,19 +9,19 @@ defmodule TechtreeWeb.DocsGuides do
     %{
       slug: "install",
       group: "Get started",
-      title: "Install and check",
+      title: "Install",
       summary: "Install the release Techtree names and check this machine."
     },
     %{
       slug: "test-a-skill",
       group: "Get started",
-      title: "Test your Skill",
+      title: "Skill test",
       summary: "Make tasks from a Skill, then run them without it and with it."
     },
     %{
       slug: "hello-world",
       group: "Get started",
-      title: "Hello World Climb",
+      title: "Hello World",
       summary: "A small, fixed comparison that shows how a run works."
     },
     %{
@@ -39,13 +39,13 @@ defmodule TechtreeWeb.DocsGuides do
     %{
       slug: "verify",
       group: "Results",
-      title: "Check a Result",
+      title: "Verifying",
       summary: "Check a Result's evidence on your own computer."
     },
     %{
       slug: "publish",
       group: "Results",
-      title: "Publish a Result",
+      title: "Publishing",
       summary: "Add a finished run to the public Results, or withdraw it."
     },
     %{
@@ -63,31 +63,31 @@ defmodule TechtreeWeb.DocsGuides do
     %{
       slug: "agents-for-a-person",
       group: "For agents",
-      title: "Agents for a person",
+      title: "Paired agents",
       summary: "Pair an agent with your account, and what it can then read."
     },
     %{
       slug: "method",
-      group: "How it works",
-      title: "How a Result is proved",
+      group: "Background",
+      title: "Proof",
       summary: "The comparison, the proof bundle, and what a Result does not prove."
     },
     %{
       slug: "where-this-goes",
-      group: "How it works",
-      title: "Where this goes",
+      group: "Background",
+      title: "Roadmap",
       summary: "Harnesses, environments and the network around Techtree."
     },
     %{
       slug: "data",
       group: "Help",
-      title: "What leaves your machine",
+      title: "Your data",
       summary: "What stays on your computer and what Techtree receives."
     },
     %{
       slug: "troubleshooting",
       group: "Help",
-      title: "When something goes wrong",
+      title: "Troubleshooting",
       summary: "Where to look when a step fails."
     }
   ]

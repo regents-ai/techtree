@@ -111,7 +111,7 @@ defmodule TechtreeWeb.AccountLive do
             <dd :if={is_nil(@account.wallet_address)}>No wallet linked</dd>
           </div>
           <div :if={other_wallets(@account) != []}>
-            <dt>Other linked wallets</dt>
+            <dt>Linked wallets</dt>
             <dd>
               <ul class="account-wallet-list">
                 <li :for={wallet <- other_wallets(@account)}><code>{wallet}</code></li>

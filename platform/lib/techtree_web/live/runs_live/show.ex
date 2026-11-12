@@ -91,7 +91,7 @@ defmodule TechtreeWeb.RunsLive.Show do
     <Layouts.page wide>
       <p class="back-link"><a href={~p"/results"}>← Published Results</a></p>
 
-      <.warning_callout :if={@withdrawn?} title="Withdrawn by the participant">
+      <.warning_callout :if={@withdrawn?} title="Withdrawn">
         <p>
           {withdrawn_words(@entry.withdrawn_at)}. It was published here and the
           participant has since asked for it to be marked withdrawn. Nothing about it was
@@ -134,7 +134,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         aria-labelledby="run-verdict"
       >
         <h2 id="run-verdict" class="assessment__verdict">
-          <span class="eyebrow">Keep this Skill change?</span>
+          <span class="eyebrow">Verdict</span>
           <span>{ResultAssessment.verdict_label(@assessment)}</span>
         </h2>
         <p class="assessment__reason">{ResultAssessment.reason(@assessment)}</p>
@@ -164,8 +164,7 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <section id="run-examples" class="section">
-        <p class="eyebrow">Examples</p>
-        <h2>Tasks with and without the Skill</h2>
+        <h2>Examples</h2>
         <p class="small quiet section-note">
           A published Result keeps each task's fingerprint and score. It does not keep the
           task's words or the agent's answers, so these examples show scores only.
@@ -181,11 +180,11 @@ defmodule TechtreeWeb.RunsLive.Show do
             <code title={task.hash}>{task.short_hash}</code>
             <dl class="task-example__scores">
               <div>
-                <dt>Without the Skill</dt>
+                <dt>No Skill</dt>
                 <dd>{task.baseline}</dd>
               </div>
               <div>
-                <dt>With the Skill</dt>
+                <dt>With Skill</dt>
                 <dd>{task.candidate}</dd>
               </div>
               <div>
@@ -198,8 +197,7 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <section id="run-skill-change" class="section">
-        <p class="eyebrow">The Skill change</p>
-        <h2>What differed between the two runs</h2>
+        <h2>Differences</h2>
         <p class="section-note">
           The signed report compared the settings of the two runs and found only this
           difference, which is the one the Climb allows.
@@ -208,8 +206,8 @@ defmodule TechtreeWeb.RunsLive.Show do
           <li :for={change <- @assessment.skill_changes} class="skill-change__item">
             <p><strong>{ResultAssessment.change_label(change, @one_skill?)}</strong></p>
             <.definition_list>
-              <:fact term="Without the Skill"><.change_value value={change.without} /></:fact>
-              <:fact term="With the Skill"><.change_value value={change.with} /></:fact>
+              <:fact term="No Skill"><.change_value value={change.without} /></:fact>
+              <:fact term="With Skill"><.change_value value={change.with} /></:fact>
             </.definition_list>
           </li>
         </ul>
@@ -223,8 +221,7 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <section id="run-evidence" class="section">
-        <p class="eyebrow">Evidence</p>
-        <h2>What stands behind these numbers</h2>
+        <h2>Evidence</h2>
         <ul class="evidence-badges">
           <li id="badge-attested" class="evidence-badge">
             <Regent.Primitives.status tone="neutral" class="badge">
@@ -300,8 +297,7 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <section id="run-rerun" class="section">
-        <p class="eyebrow">Check it yourself</p>
-        <h2>Run this comparison again</h2>
+        <h2>Rerun</h2>
         <div :if={match?(%{}, @rerun)} class="rerun">
           <div class="rerun__needs">
             <h3>You need</h3>
@@ -310,7 +306,7 @@ defmodule TechtreeWeb.RunsLive.Show do
               <li :for={route <- @rerun.routes}>{ModelAccess.needs!(route)}</li>
             </.requirements>
           </div>
-          <.command_block id="copy-run-rerun" label="Run it again" lines={@rerun.commands} />
+          <.command_block id="copy-run-rerun" label="Commands" lines={@rerun.commands} />
         </div>
         <p :if={@rerun == :no_release} class="section-note">
           This site is not serving a release you can install right now, so there are no
@@ -343,7 +339,7 @@ defmodule TechtreeWeb.RunsLive.Show do
           </p>
         </div>
 
-        <h3 class="rerun__heading">What a new run can tell you</h3>
+        <h3 class="rerun__heading">Expectations</h3>
         <ul class="needs">
           <li>
             A new run is a new Result. The model may not answer the same way twice, so its
@@ -357,8 +353,7 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <section class="section">
-        <p class="eyebrow">The evidence in full</p>
-        <h2>Every task and every fingerprint</h2>
+        <h2>Full record</h2>
 
         <Regent.Primitives.disclosure
           id="run-all-tasks"
@@ -481,8 +476,7 @@ defmodule TechtreeWeb.RunsLive.Show do
 
       <section class="offline-verify">
         <div>
-          <p class="eyebrow">Check this copy</p>
-          <h2>Verify this Result offline.</h2>
+          <h2>Offline check</h2>
           <p :if={!@withdrawn?} class="small quiet">
             <a
               id="download-result-bundle"
@@ -506,8 +500,7 @@ defmodule TechtreeWeb.RunsLive.Show do
       </section>
 
       <section id="result-discussion" class="section">
-        <p class="eyebrow">Talk it over</p>
-        <h2>Discuss this Result</h2>
+        <h2>Discussion</h2>
         <p>
           Each Result has one discussion on Patchbay, open to people and agents.
           <a id="discuss-result" href={discussion_url(@entry.bundle_digest)}>

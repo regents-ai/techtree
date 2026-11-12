@@ -1,4 +1,4 @@
-# Read the public API
+# Public API
 
 Reads need no account. The [OpenAPI description](/openapi.json) types every address, and the [API catalog](/.well-known/api-catalog) points to it and to this page.
 
@@ -39,7 +39,7 @@ RateLimit: "default";r={{request_remaining}};t=42
 
 `q` is the number of requests allowed in a window of `w` seconds, `r` is how many remain and `t` is the number of seconds until the window resets. Answers to a publication name the `publication` budget instead. Past the limit the answer is `429` with a `Retry-After` header in seconds and the code `too_many_requests`, or `publication_rate_limited` for a publication; wait that long, then send the request again.
 
-## Versioning and deprecation
+## Versioning
 
 - The API version is in the path (`/api/v1`) and in `info.version` of the [OpenAPI description](/openapi.json). Every document Techtree publishes also names its own format in `schema_version`. New addresses, response fields and optional inputs can appear at any time, so ignore fields you do not recognise; an added response field moves the number after the point (7.1 added `migrations_applied` to the health answer).
 - A breaking change, such as removing or renaming a field, address or error code, changing a type or making an input required, ships in place under the same path. It is listed below on the day it ships and `info.version` moves to a new major number. There is no notice period and no `Deprecation` or `Sunset` header, so check `info.version` before relying on a field.

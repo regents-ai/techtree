@@ -137,8 +137,8 @@ defmodule TechtreeWeb.ServiceLiveTest do
     offer = text(page, ".service-offer")
 
     assert text(page, "h1") =~ "Keep watch on the sites you own."
-    assert text(page, "h2") =~ "How it works"
-    assert text(page, "h2") =~ "The rules we follow"
+    assert text(page, "h2") =~ "Steps"
+    assert text(page, "h2") =~ "Rules"
     assert text(page, "h2") =~ "You get"
     assert text(page, ".service-rules li") =~ "Only sites you've proven you own."
     assert offer =~ "Monthly, per site. Ask us for the price."

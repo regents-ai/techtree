@@ -56,7 +56,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
         aria-labelledby="showcase-verdict"
       >
         <h2 id="showcase-verdict" class="assessment__verdict">
-          <span class="eyebrow">Keep this Skill change?</span>
+          <span class="eyebrow">Verdict</span>
           <span>{verdict_label(@showcase.held_out.verdict)}</span>
         </h2>
         <p class="assessment__reason">{reason(@showcase.held_out)}</p>
@@ -69,8 +69,8 @@ defmodule TechtreeWeb.TddShowcaseLive do
       </section>
 
       <section id="showcase-study" class="section">
-        <p class="eyebrow">Tasks the improving agent could see</p>
-        <h2 :if={@showcase.study.tasks == []}>The improving agent was shown no tasks</h2>
+        <p class="eyebrow">Seen tasks</p>
+        <h2 :if={@showcase.study.tasks == []}>None shown</h2>
         <h2 :if={@showcase.study.tasks != []}>
           {verdict_label(@showcase.study.verdict)} on {other_tasks(length(@showcase.study.tasks))}
         </h2>
@@ -83,8 +83,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
       </section>
 
       <section id="showcase-claims" class="section">
-        <p class="eyebrow">Claims</p>
-        <h2>What the Skill claims, and the tasks that test it</h2>
+        <h2>Claims</h2>
         <p class="section-note">
           A positive case is one where following the Skill should give the right result; a
           boundary case sits at the edge of where the claim applies; a counterexample checks
@@ -116,15 +115,14 @@ defmodule TechtreeWeb.TddShowcaseLive do
       </section>
 
       <section id="showcase-skill" class="section">
-        <p class="eyebrow">The Skill change</p>
-        <h2>What differed between the two runs</h2>
+        <h2>Differences</h2>
         <p class="section-note">
           The two runs used the same tasks, model and limits. One ran with no Skill; the other
           ran with this Skill, the one the tasks were written from.
         </p>
         <.definition_list>
-          <:fact term="Without the Skill">No Skill</:fact>
-          <:fact term="With the Skill">{@showcase.skill.name}</:fact>
+          <:fact term="No Skill">No Skill</:fact>
+          <:fact term="With Skill">{@showcase.skill.name}</:fact>
           <:fact term="Licence">
             {@showcase.skill.licence.name}. {@showcase.skill.licence.copyright}
           </:fact>
@@ -137,8 +135,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
       </section>
 
       <section id="showcase-evidence" class="section">
-        <p class="eyebrow">Evidence</p>
-        <h2>What stands behind these numbers</h2>
+        <h2>Evidence</h2>
         <ul class="evidence-badges">
           <li id="badge-files-checked" class="evidence-badge">
             <Regent.Primitives.status tone="success" class="badge">
@@ -170,37 +167,35 @@ defmodule TechtreeWeb.TddShowcaseLive do
       </section>
 
       <section id="showcase-method" class="section">
-        <p class="eyebrow">Method</p>
-        <h2>How the numbers were made</h2>
+        <h2>Method</h2>
         <.definition_list>
-          <:fact term="What this is">
+          <:fact term="Scope">
             One local comparison on one computer. It is not a published or signed Result.
           </:fact>
           <:fact term="Tries">Each task was tried once without the Skill and once with it.</:fact>
           <:fact term="Model">{model_words(@showcase.model)}, as both runs asked for it</:fact>
-          <:fact term="What limited the runs">
+          <:fact term="Limits">
             {time_limit_words(@showcase.tasks)} Each try ran in its own container with {limits_words(
               @showcase.limits
             )} and no network. Nothing limited the agent's turns, model calls or tokens.
           </:fact>
-          <:fact term="Model calls and tokens">
+          <:fact term="Model use">
             Without the Skill {usage_words(@showcase.arms.baseline)}. With the Skill {usage_words(
               @showcase.arms.candidate
             )}.
           </:fact>
         </.definition_list>
 
-        <h3 class="rerun__heading">What these runs cannot show</h3>
+        <h3 class="rerun__heading">Limits</h3>
         <ul id="showcase-not-established" class="needs">
           <li :for={point <- @showcase.not_established}>{not_established_words(point)}</li>
         </ul>
       </section>
 
       <section id="showcase-check" class="section">
-        <p class="eyebrow">The tasks</p>
-        <h2>The tasks behind this comparison</h2>
+        <h2>Tasks</h2>
         <.definition_list>
-          <:fact term="Fingerprint of the tasks">
+          <:fact term="Task fingerprint">
             <.digest value={@showcase.fingerprint} />
           </:fact>
         </.definition_list>
@@ -218,8 +213,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
       </section>
 
       <section class="section">
-        <p class="eyebrow">The evidence in full</p>
-        <h2>Every task, the Skill's files and the fingerprints</h2>
+        <h2>Full record</h2>
 
         <Regent.Primitives.disclosure
           id="showcase-all-tasks"
@@ -264,7 +258,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
           <Regent.Primitives.disclosure
             :for={{file, index} <- Enum.with_index(@showcase.skill.files, 2)}
             id={"showcase-skill-file-#{index}"}
-            summary={"The Skill's file #{file.path}"}
+            summary={"Skill file #{file.path}"}
             index={two_digits(index)}
             class="integrity-details"
           >
@@ -274,7 +268,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
 
         <Regent.Primitives.disclosure
           id="showcase-records"
-          summary="Records and fingerprints"
+          summary="Records"
           index={two_digits(length(@showcase.skill.files) + 2)}
           class="integrity-details"
         >
@@ -282,8 +276,8 @@ defmodule TechtreeWeb.TddShowcaseLive do
             <:fact term="Comparison">{@showcase.comparison_id}</:fact>
             <:fact term="Compared on">{date(@showcase.created_at)}</:fact>
             <:fact term="Tasks">{@showcase.collection_id}</:fact>
-            <:fact term="Fingerprint of the tasks"><.digest value={@showcase.fingerprint} /></:fact>
-            <:fact term="Fingerprint of the Skill">
+            <:fact term="Task fingerprint"><.digest value={@showcase.fingerprint} /></:fact>
+            <:fact term="Skill fingerprint">
               <.digest value={@showcase.skill.digest} />
             </:fact>
           </.definition_list>
@@ -331,11 +325,11 @@ defmodule TechtreeWeb.TddShowcaseLive do
     ~H"""
     <dl class="task-example__scores">
       <div>
-        <dt>Without the Skill</dt>
+        <dt>No Skill</dt>
         <dd>{reward_words(@task.baseline_reward)}</dd>
       </div>
       <div>
-        <dt>With the Skill</dt>
+        <dt>With Skill</dt>
         <dd>{reward_words(@task.candidate_reward)}</dd>
       </div>
       <div>

@@ -12,14 +12,14 @@ defmodule TechtreeWeb.ProofsLiveTest do
     {:ok, live, html} = live(conn, ~p"/verify")
     text = visible_text(html)
 
-    assert text =~ "Check a Result yourself"
-    assert text =~ "What a check tells you"
-    assert text =~ "What a check can’t tell you"
+    assert text =~ "Offline check"
+    assert text =~ "Checks"
+    assert text =~ "Limits"
     assert text =~ "Techtree did not watch the run happen."
     assert text =~ "not that the computer behind it was honest"
     assert text =~ "doesn’t mean better at everything"
     assert text =~ "Only a separate rerun shows that it repeats."
-    assert text =~ "Why it matters"
+    assert text =~ "Purpose"
     assert has_element?(live, ~s|a[href="/results"]|, "Browse Results")
   end
 
@@ -27,7 +27,7 @@ defmodule TechtreeWeb.ProofsLiveTest do
     {:ok, live, _html} = live(conn, ~p"/verify")
     count = Techtree.Network.Bundle.check_count()
 
-    assert has_element?(live, "#how-made h2", "How a Result is made")
+    assert has_element?(live, "#how-made h2", "Method")
     assert has_element?(live, "#local-results", "The Skill is the only difference.")
 
     assert has_element?(

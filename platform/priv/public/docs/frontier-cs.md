@@ -1,4 +1,4 @@
-# Improve a Skill on Frontier-CS problems
+# Frontier-CS problems
 
 The Frontier-CS Open-Ended Climb has ten open-ended programming problems from [Frontier-CS](https://github.com/FrontierCS/Frontier-CS), created with [FrontierSmith](https://github.com/FrontierCS/FrontierSmith), where no perfect answer is known. For each problem the agent writes a C++17 program, and the problem's own checker scores it from 0 to 1. Every problem runs once without your Skill and once with it.
 

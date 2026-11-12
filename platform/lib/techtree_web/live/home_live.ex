@@ -107,12 +107,12 @@ defmodule TechtreeWeb.HomeLive do
 
       <section id="skill-test" class="home-section service-intro" aria-labelledby="skill-test-title">
         <Regent.Structure.section_bar>
-          <p class="rg-section-bar__label">Test your Skill</p>
+          <p class="rg-section-bar__label">Skill test</p>
           <.capability_status capability={:skill_test} />
         </Regent.Structure.section_bar>
         <div class="service-intro__body">
           <div>
-            <h2 id="skill-test-title">Only the Skill changes.</h2>
+            <h2 id="skill-test-title">Fair test</h2>
             <p>
               Techtree makes practice tasks from what your Skill teaches. Your agent then works
               the same tasks twice: once without the Skill, or with its earlier version, and once
@@ -149,8 +149,7 @@ defmodule TechtreeWeb.HomeLive do
 
       <section id="quick-look" class="home-section featured" aria-labelledby="featured-title">
         <div>
-          <p class="eyebrow">A quick look</p>
-          <h2 id="featured-title">See how a comparison runs.</h2>
+          <h2 id="featured-title">Example</h2>
           <p>
             The Hello World Climb ships with every release: a small, fixed set of tasks run once
             without a starter Skill and once with it. It shows how a run is approved, what it
@@ -215,9 +214,9 @@ defmodule TechtreeWeb.HomeLive do
       <section id="wallet-bench" class="home-section featured" aria-labelledby="wallet-bench-title">
         <div>
           <p class="eyebrow">AgentWalletBench</p>
-          <h2 id="wallet-bench-title">Can a coding agent set up a wallet safely?</h2>
+          <h2 id="wallet-bench-title">Wallet Bench</h2>
           <p>
-            AgentWalletBench gives a coding agent a clean computer and asks it to install a wallet
+            Can a coding agent set up a wallet safely? AgentWalletBench gives one a clean computer and asks it to install a wallet
             tool from the tool’s own page, set up a wallet it controls, say how its keys are kept,
             and prove control with a signature.
           </p>
@@ -257,7 +256,7 @@ defmodule TechtreeWeb.HomeLive do
 
       <section id="tools" class="home-section" aria-labelledby="tools-title">
         <Regent.Structure.section_bar class="section-heading rg-support-band">
-          <h2 id="tools-title" class="rg-section-bar__label">What each tool is for</h2>
+          <h2 id="tools-title" class="rg-section-bar__label">Tools</h2>
         </Regent.Structure.section_bar>
         <p class="tools__intro">
           Turn know-how and real work into tasks agents can practice on, then see what actually
@@ -271,18 +270,18 @@ defmodule TechtreeWeb.HomeLive do
             </div>
             <div class="tools-list__body">
               <p>
-                <strong>What it does.</strong>
+                <strong>Purpose.</strong>
                 Turns a Skill, the know-how written down for an agent, into a set of practice
                 tasks with checks. Techtree reads the Skill without running it, plans tasks with
                 you, builds and checks them on your computer, and you accept the final set.
               </p>
               <p>
-                <strong>Why.</strong>
+                <strong>Benefit.</strong>
                 The task set is useful on its own: you can keep it, export it, or hand it to
                 someone else to run, whether or not you go on to compare anything.
               </p>
               <p>
-                <strong>When to use it.</strong>
+                <strong>Use.</strong>
                 You have a Skill and want to know whether agents follow it, or you want a fixed
                 set of tasks to measure each change to it.
               </p>
@@ -303,17 +302,17 @@ defmodule TechtreeWeb.HomeLive do
             </div>
             <div class="tools-list__body">
               <p>
-                <strong>What it does.</strong>
+                <strong>Purpose.</strong>
                 Turns a real repository and its history of fixes into practice environments,
                 each one a past problem with a known good answer.
               </p>
               <p>
-                <strong>Why.</strong>
+                <strong>Benefit.</strong>
                 Real bugs that were really fixed make realistic practice, and their own tests
                 say whether an agent got it right.
               </p>
               <p>
-                <strong>When to use it.</strong>
+                <strong>Use.</strong>
                 Your know-how lives in a codebase rather than a written Skill, or you want agents
                 to practice on your own software’s real problems.
               </p>
@@ -330,18 +329,18 @@ defmodule TechtreeWeb.HomeLive do
             </div>
             <div class="tools-list__body">
               <p>
-                <strong>What it does.</strong>
+                <strong>Purpose.</strong>
                 The HF ML Tasksmith collection packages real changes to Hugging Face’s
                 machine-learning libraries as tasks. Techtree’s Tasksmith Climb uses six of them
                 to ask whether adding the Tasksmith Skill solves more.
               </p>
               <p>
-                <strong>Why.</strong>
+                <strong>Benefit.</strong>
                 It is a ready-made test on serious code, so you can see a Skill comparison work
                 without building tasks of your own first.
               </p>
               <p>
-                <strong>When to use it.</strong>
+                <strong>Use.</strong>
                 You want to try Techtree on realistic machine-learning engineering, or measure
                 your own Skill on the same six tasks.
               </p>
@@ -365,18 +364,18 @@ defmodule TechtreeWeb.HomeLive do
             </div>
             <div class="tools-list__body">
               <p>
-                <strong>What it does.</strong>
+                <strong>Purpose.</strong>
                 Writes open-ended programming problems, each with its own checker that scores an
                 answer from 0 to 1 rather than simply right or wrong. Techtree’s Frontier-CS
                 Climb uses ten problems made with it.
               </p>
               <p>
-                <strong>Why.</strong>
+                <strong>Benefit.</strong>
                 Open-ended problems have no single answer to memorise, so a better score means
                 better work, and partial credit shows small gains a pass-or-fail test would miss.
               </p>
               <p>
-                <strong>When to use it.</strong>
+                <strong>Use.</strong>
                 Your Skill is about solving hard problems well rather than following steps, and
                 you want to see whether it raises the quality of the answers.
               </p>
@@ -399,7 +398,7 @@ defmodule TechtreeWeb.HomeLive do
 
       <section id="capabilities" class="home-section" aria-labelledby="capabilities-title">
         <Regent.Structure.section_bar class="section-heading rg-support-band">
-          <h2 id="capabilities-title" class="rg-section-bar__label">What works today</h2>
+          <h2 id="capabilities-title" class="rg-section-bar__label">Status</h2>
         </Regent.Structure.section_bar>
         <div class="capabilities">
           <div class="capabilities__summary">
@@ -426,8 +425,7 @@ defmodule TechtreeWeb.HomeLive do
 
       <section class="home-section trust" aria-labelledby="trust-title">
         <div class="section-heading">
-          <p class="eyebrow">Where the work goes</p>
-          <h2 id="trust-title">Your work stays local.</h2>
+          <h2 id="trust-title">Privacy</h2>
         </div>
         <p class="trust__summary">
           Techtree doesn’t watch your runs. Your work stays local unless you choose to publish
@@ -464,12 +462,12 @@ defmodule TechtreeWeb.HomeLive do
     <div class="installer">
       <.prompt_block
         id="copy-home-agent-line"
-        label="Paste into your agent’s chat"
+        label="Agent prompt"
         text={@agent_line}
       />
 
       <details class="installer__manual">
-        <summary>Use the command line instead</summary>
+        <summary>Command line</summary>
         <%= cond do %>
           <% @catalog == :unreadable -> %>
             <p class="release-state" role="status">
@@ -486,7 +484,7 @@ defmodule TechtreeWeb.HomeLive do
                 {:command, @release.install_argv},
                 {:command, ["regents", "techtree", "forge", "inspect-skill", "path/to/your-skill"]}
               ]}
-              label="Install, then look at your Skill"
+              label="Install"
             />
         <% end %>
         <.link navigate={~p"/start"} class="text-link">

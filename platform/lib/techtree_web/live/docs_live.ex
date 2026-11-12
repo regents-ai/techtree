@@ -207,7 +207,7 @@ defmodule TechtreeWeb.DocsLive do
               {:command,
                ["regents", "techtree", "doctor", "--climb", @release.introductory_reference]}
             ]}
-            label="Install, check, then run Doctor"
+            label="Install"
           />
           <p class="small quiet">
             Doctor checks what this machine needs without calling a model. From there, every
@@ -224,7 +224,7 @@ defmodule TechtreeWeb.DocsLive do
   defp guide(%{slug: "test-a-skill"} = assigns) do
     ~H"""
     <section class="doc-section">
-      <h2>1. Make the tasks</h2>
+      <h2>1. Tasks</h2>
       <.command_block
         id="copy-docs-skill-tasks"
         lines={[
@@ -243,13 +243,13 @@ defmodule TechtreeWeb.DocsLive do
            ]},
           {:comment, "Review, correct, build and accept, one printed step at a time."}
         ]}
-        label="Make tasks from a Skill"
+        label="Make tasks"
       />
       <p>
         Accepting the tasks that qualified gives you a collection. Some of its tasks are
         held out from anyone improving the Skill.
       </p>
-      <h2>2. Run them both ways, then compare</h2>
+      <h2>2. Compare</h2>
       <.command_block
         id="copy-docs-skill-compare"
         lines={[
@@ -288,7 +288,7 @@ defmodule TechtreeWeb.DocsLive do
           {:command,
            ["regents", "techtree", "forge", "compare", "BASELINE_RUN_ID", "CANDIDATE_RUN_ID"]}
         ]}
-        label="Compare without and with the Skill"
+        label="Compare"
       />
       <p>
         Both runs use the same provider and model. The comparison calls no model: it pairs
@@ -297,7 +297,7 @@ defmodule TechtreeWeb.DocsLive do
         report you can open in a browser. The <.link navigate={~p"/examples/tdd"}>tdd example</.link>
         shows a finished one.
       </p>
-      <h2 id="two-versions">Compare two versions of a Skill</h2>
+      <h2 id="two-versions">Two versions</h2>
       <p>
         To decide whether a change is worth keeping, give the baseline run the earlier
         version instead of no Skill. Keep the earlier version in its own folder, then run the
@@ -321,9 +321,9 @@ defmodule TechtreeWeb.DocsLive do
           "--skill",
           "path/to/earlier-skill"
         ]}
-        label="Baseline with the earlier version"
+        label="Earlier version"
       />
-      <h2>3. Revise once, if you want to</h2>
+      <h2>3. Revise</h2>
       <p>
         <code>regents techtree uplift context COMPARISON_ID</code>
         gives what a revision may learn from, never the held-out tasks. Write the revised
@@ -334,7 +334,7 @@ defmodule TechtreeWeb.DocsLive do
         and the <code>regents techtree uplift start</code>
         command it prints. The revision is judged on the held-out tasks alone.
       </p>
-      <h2>Fix a task, or check where things stand</h2>
+      <h2>Fixes</h2>
       <p>
         If a built task is wrong, fix a copy of it by hand and record that with <code>regents techtree forge correct-task CONSTRUCTION_ID TASK_NAME DIR</code>.
         <code>regents techtree forge status ID</code>
@@ -364,7 +364,7 @@ defmodule TechtreeWeb.DocsLive do
               "path/to/skill"
             ])
         }
-        label="Prepare the Hello World Climb"
+        label="Hello World"
       />
       <p>
         Approve and run only the exact <code>regents techtree climb start</code>
@@ -394,7 +394,7 @@ defmodule TechtreeWeb.DocsLive do
               "path/to/skill"
             ])
         }
-        label="Prepare the Frontier-CS Open-Ended Climb"
+        label="Frontier-CS"
       />
     </section>
     """
@@ -403,7 +403,7 @@ defmodule TechtreeWeb.DocsLive do
   defp guide(%{slug: "hermes"} = assigns) do
     ~H"""
     <section class="doc-section">
-      <.prompt_block id="copy-docs-hermes" label="Give this to Hermes" text={@instruction} />
+      <.prompt_block id="copy-docs-hermes" label="Hermes prompt" text={@instruction} />
       <p>
         Hermes may prepare commands and explain output. Techtree still stops before every
         model call and waits for your own yes.
@@ -428,7 +428,7 @@ defmodule TechtreeWeb.DocsLive do
       <.command_block
         id="copy-docs-verify"
         argv={["regents", "techtree", "proof", "verify", "path/to/result-bundle"]}
-        label="Check on this computer"
+        label="Verify"
       />
       <.prose html={@text.body_html} />
       <p><.link navigate={~p"/verify"}>Read exactly what a check establishes.</.link></p>
@@ -442,12 +442,12 @@ defmodule TechtreeWeb.DocsLive do
       <.command_block
         id="copy-docs-publish"
         argv={["regents", "techtree", "publish", "RUN_ID"]}
-        label="Publish one finished run"
+        label="Publish"
       />
       <.command_block
         id="copy-docs-withdraw"
         argv={["regents", "techtree", "withdraw", "BUNDLE_DIGEST"]}
-        label="Withdraw a published Result"
+        label="Withdraw"
       />
       <.prose html={@text.body_html} />
     </section>

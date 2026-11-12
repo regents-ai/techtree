@@ -2,13 +2,13 @@
 
 Techtree is a Skill evaluation tool that shows Skill authors and agent builders whether a Skill really makes an agent better, and gives them a Result anyone can check.
 
-## What Techtree does
+## Overview
 
-### Climbs: with and without the Skill
+### Climbs
 
 Your agent works the same fixed tasks twice, once without the Skill and once with it. The model, the tools and the limits stay the same, so any difference in the results comes from the Skill.
 
-### Tasks made for you
+### Tasks
 
 From a Skill, Techtree plans test tasks from what the Skill teaches, checks them and keeps only the ones you accept. This is experimental and happens on your own computer. Building repair tasks from a repository's past fixes is planned.
 
@@ -16,41 +16,41 @@ From a Skill, Techtree plans test tasks from what the Skill teaches, checks them
 
 Every finished comparison ends in a signed Result. You can check it offline, without trusting this site, and choose to publish it so others can check it too.
 
-## What makes Techtree different
+## Differences
 
-### Only the Skill changes
+### Fair test
 
 Both runs use the same tasks, model, tools and limits. Whatever differs in the Result comes from the Skill, not from a different setup.
 
-### Results you can check yourself
+### Checkable Results
 
-A Result can be checked offline on your own computer, without trusting Techtree. [Check a Result](/verify) explains what verification establishes.
+A Result can be checked offline on your own computer, without trusting Techtree. [Offline check](/verify) explains what verification establishes.
 
 ### Never ranked
 
 Published Results are listed in the order they arrived. Techtree doesn't rank them.
 
-### Built from independent parts
+### Independent parts
 
 [Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) scores each Climb's tasks, [Nous Research's Hermes](https://github.com/NousResearch/hermes-agent) runs the agent, and Techtree runs the comparison and keeps the evidence.
 
-### Free and open
+### Open source
 
 Techtree is free to use; you pay your model provider for the model you choose. The code is public under the MIT licence.
 
-## Who uses Techtree
+## Users
 
 - Skill authors who want evidence that their Skill helps.
 - Agent builders choosing which Skills to give their agents.
 - Anyone who wants to check a published claim about a Skill.
 
-## The team behind Techtree
+## Team
 
 Techtree is built and run by Regents Labs, an agentic product lab whose products share one token, REGENT, instead of equity. It builds tools for agents and the people who run them: [Regents](https://regents.sh), [Autolaunch](https://autolaunch.sh), [Patchbay](https://patchbay.help) and Techtree.
 
 - **Sean Brennan**, founder. [X](https://x.com/seanwbren) · [LinkedIn](https://www.linkedin.com/in/seanwbren)
 
-## How Techtree works
+## Method
 
 - **Getting started:** [Start](/start) walks you through the example Climb or evaluating your own Skill.
 - **Getting help:** email [build@regents.sh](mailto:build@regents.sh) or see Contact below.
@@ -75,33 +75,33 @@ Techtree is built and run by Regents Labs, an agentic product lab whose products
 
 Holding REGENT involves contract, network and financial risk. No return is guaranteed.
 
-## Frequently asked questions
+## FAQ
 
-### What is a Climb?
+### Climb
 
 A Climb is Techtree's comparison: your agent works the same fixed tasks without the Skill and then with it, with everything else held the same.
 
-### What is a Result?
+### Result
 
 The signed record of a finished Climb. You can check it offline and choose to publish it.
 
-### How do I check a Result?
+### Checking
 
-On your own computer, without trusting this site. [Check a Result](/verify) shows how and says what a check does and doesn't establish.
+On your own computer, without trusting this site. [Offline check](/verify) shows how and says what a check does and doesn't establish.
 
-### What does Techtree cost?
+### Cost
 
 Nothing. You pay your model provider for the model your agent uses. Techtree Verify and Techtree Cyber Assist are paid checks.
 
-### Which agent does Techtree run?
+### Agent
 
 Nous Research's Hermes runs the agent, and Prime Intellect's Verifiers scores each Climb's tasks.
 
-### Is Techtree finished?
+### Maturity
 
 It is a working technical preview. Building tasks from a Skill is experimental, and building them from a repository is planned.
 
-## Who operates the service
+## Operator
 
 Regents Labs, Inc. runs Techtree and is the operator named in the [Terms of Use](/terms). [Privacy](/privacy) says what Techtree keeps about you. The source code is public at [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree).
 
@@ -119,7 +119,7 @@ Write to [build@regents.sh](mailto:build@regents.sh) for anything that should st
 
 To have your team's workflows or security checked, read [Techtree Verify](/services/verify) or [Techtree Cyber Assist](/services/cyber-assist), then write to [build@regents.sh](mailto:build@regents.sh). To have the sites you own watched month to month, read [Techtree Watchdog](/services/watchdog).
 
-### Bugs and requests
+### Issues
 
 The code is public at [github.com/regents-ai/techtree](https://github.com/regents-ai/techtree). Report bugs and ask for features in [GitHub issues](https://github.com/regents-ai/techtree/issues). Pull requests are welcome too.
 

@@ -31,7 +31,7 @@ defmodule TechtreeWeb.WalletBenchMD do
     wallet tool that can't run on the bench, and "safety" a safety failure.
     #{Enum.map_join(Copy.grid_tests(), &section(attempts, &1))}
 
-    ## Every test with a result
+    ## Every test
 
     Newest first, with tests still running.#{left_out(length(attempts) - length(listed))}
 
@@ -81,7 +81,7 @@ defmodule TechtreeWeb.WalletBenchMD do
   defp list([]), do: "No test has a result yet."
 
   defp list(attempts) do
-    columns = ["Agent and wallet", "Started (UTC)", "Status", "Install", "Wallet", "Model cost"]
+    columns = ["Pairing", "Started (UTC)", "Status", "Install", "Wallet", "Model cost"]
 
     body =
       Enum.map(attempts, fn attempt ->

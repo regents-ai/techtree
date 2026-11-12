@@ -4,7 +4,7 @@
 
 Techtree runs on the person's own computer, through regents-cli. Nothing you read or call on techtree.sh starts a run. Published Climb Results, the Wallet Bench and the Train comparisons are public to read.
 
-## Install and first command
+## Install
 
 {{install}}
 

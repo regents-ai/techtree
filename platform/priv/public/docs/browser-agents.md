@@ -1,4 +1,4 @@
-# Let a browser's agent read Techtree
+# Browser agents
 
 Every page offers the agent built into a browser these tools through WebMCP (`document.modelContext`). The [tool manifest](/capabilities.json) describes them as JSON.
 

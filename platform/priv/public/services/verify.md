@@ -12,8 +12,8 @@ For a security review instead, see [Techtree Cyber Assist](/services/cyber-assis
 
 - Agreed coverage: the workflows that matter to you, and the behaviour each must show.
 - Reproducible failures: every failure with the steps and evidence to see it again.
-- A repeatable suite: one script that reruns every check after each release.
-- A clear report: each check, its result and its evidence, in one table.
+- Repeatable suite: one script that reruns every check after each release.
+- Clear report: each check, its result and its evidence, in one table.
 
 ## Process
 

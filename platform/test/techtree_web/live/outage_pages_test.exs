@@ -94,11 +94,11 @@ defmodule TechtreeWeb.OutagePagesTest do
 
     assert has_element?(
              start,
-             ".setup-unavailable [role=status] h2",
+             ".setup-unavailable [role=status] p",
              "install steps can't be shown"
            )
 
-    refute has_element?(start, ".setup-unavailable h2", "no version of Techtree")
+    refute has_element?(start, ".setup-unavailable p", "no version of Techtree")
 
     {:ok, docs, _html} = quietly(fn -> live(conn, ~p"/docs/install") end)
     assert has_element?(docs, ".doc-section [role=status]", "install steps can't be shown")

@@ -436,7 +436,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
       assert entry.decision == "accepted"
-      assert has_element?(live, "#run-verdict", "Keep this Skill change?")
+      assert has_element?(live, "#run-verdict", "Verdict")
       assert has_element?(live, "#run-verdict", "Improved")
       assert has_element?(live, "#tasks-worse", "Worse on 1 task: Task 01")
 

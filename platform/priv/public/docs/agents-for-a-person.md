@@ -1,4 +1,4 @@
-# Agents acting for a person
+# Paired agents
 
 Publishing, withdrawing and reading a person's account need an agent paired with that person's Regent account. The agent signs each of those requests with its own key for audience `techtree`, over the exact request it sends. A person's browser sign-in never acts for an agent. Publishing and withdrawing also need the participant's own signature on the Result, which pairing never replaces. The CLI release the [agent guide](/agents.md) names does both.
 

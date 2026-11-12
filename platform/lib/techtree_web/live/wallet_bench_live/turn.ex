@@ -40,7 +40,7 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
         <p>{@turn.judgment["summary"]}</p>
 
         <table :if={@turn.judgment["criteria"]} class="results-ledger wallet-bench__criteria">
-          <caption class="offscreen">The judge's checks</caption>
+          <caption class="offscreen">Judge checks</caption>
           <thead>
             <tr>
               <th scope="col">Check</th>
@@ -60,7 +60,7 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
         </table>
 
         <details :if={@turn.judgment["reasoning"]} class="wallet-bench__reasoning">
-          <summary>The judge's reasoning</summary>
+          <summary>Reasoning</summary>
           <p>{@turn.judgment["reasoning"]}</p>
         </details>
       <% end %>
@@ -75,11 +75,11 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
           <dd>{Copy.version(version)}</dd>
         <% end %>
         <%= if base = Copy.base(@turn.checks["base"]) do %>
-          <dt>The bench's Base check</dt>
+          <dt>Base check</dt>
           <dd>{base}</dd>
         <% end %>
         <%= if money = Copy.money(@turn.checks["money"]) do %>
-          <dt>The bench's Base check</dt>
+          <dt>Base check</dt>
           <dd>{money}</dd>
         <% end %>
         <dt :if={@turn.wall_seconds}>Time taken</dt>
@@ -95,7 +95,7 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
       </dl>
 
       <details class="wallet-bench__files">
-        <summary>The prompt sent</summary>
+        <summary>Prompt</summary>
         <pre>{@turn.prompt}</pre>
       </details>
 

@@ -127,9 +127,9 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         <header class="wallet-bench__head">
           <div>
             <p class="eyebrow">AgentWalletBench</p>
-            <h1>Which agent can use which wallet?</h1>
+            <h1>Wallet Bench</h1>
             <p class="wallet-bench__lede">
-              We also check companies’ own wallet flows.
+              Which agent can use which wallet? We also check companies’ own wallet flows.
               <.link navigate={~p"/services/verify"}>
                 Techtree Verify <span aria-hidden="true">→</span>
               </.link>
@@ -241,7 +241,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             not tested yet. A red box is a safety failure. Open a box to see why it isn't a 10.
           </p>
           <details :if={@grid.set_aside != []} class="wallet-bench__set-aside">
-            <summary>Wallet tools with no results ({length(@grid.set_aside)})</summary>
+            <summary>No results ({length(@grid.set_aside)})</summary>
             <ul>
               <li :for={{name, reason} <- @grid.set_aside}><strong>{name}</strong>: {reason}</li>
             </ul>
@@ -265,7 +265,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             <table class="results-ledger results-ledger--cards">
               <thead>
                 <tr>
-                  <th scope="col">Agent and wallet</th>
+                  <th scope="col">Pairing</th>
                   <th scope="col">Started</th>
                   <th scope="col">Status</th>
                   <th scope="col">Install</th>
@@ -299,7 +299,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         </section>
 
         <section :if={@notes != []} class="wallet-bench__section" aria-labelledby="bench-notes">
-          <h2 id="bench-notes">Extra notes by version</h2>
+          <h2 id="bench-notes">Notes</h2>
           <p class="quiet">
             Odd things the bench saw about one release. They explain a result and never change one.
           </p>
@@ -312,7 +312,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             <table class="results-ledger results-ledger--cards">
               <thead>
                 <tr>
-                  <th scope="col">Agent or wallet</th>
+                  <th scope="col">Tool</th>
                   <th scope="col">Version</th>
                   <th scope="col">Note</th>
                 </tr>
@@ -334,7 +334,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         </section>
 
         <details id="how-tests-run" class="wallet-bench__how">
-          <summary>How each test runs</summary>
+          <summary>Method</summary>
           <ol class="wallet-bench__steps">
             <li>A clean machine starts with the coding agent installed and nothing else.</li>
             <li>The agent is asked to install a wallet tool from the tool's official page.</li>
@@ -410,8 +410,8 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
 
   defp missing(assigns) do
     ~H"""
-    <span class="wallet-bench__none" title="Not tested yet">
-      <span aria-hidden="true">—</span><span class="offscreen">Not tested yet</span>
+    <span class="wallet-bench__none" title="Untested">
+      <span aria-hidden="true">—</span><span class="offscreen">Untested</span>
     </span>
     """
   end

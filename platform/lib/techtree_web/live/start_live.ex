@@ -21,7 +21,7 @@ defmodule TechtreeWeb.StartLive do
   alias TechtreeWeb.Outage
   alias TechtreeWeb.ReleaseInfo
 
-  @title "Choose where to start."
+  @title "Start"
 
   @impl true
   def mount(_params, _session, socket) do
@@ -81,15 +81,15 @@ defmodule TechtreeWeb.StartLive do
         <Regent.Structure.panel :if={!@setup_commands} class="rg-panel__body setup-unavailable">
           <%= if @install == :unreadable do %>
             <div role="status">
-              <p class="eyebrow">Install steps unavailable</p>
-              <h2>The install steps can't be shown right now.</h2>
-              <p>Try again in a minute. The guide explains how a test works in the meantime.</p>
+              <h2>Unavailable</h2>
+              <p>
+                The install steps can't be shown right now. Try again in a minute. The guide explains how a test works in the meantime.
+              </p>
             </div>
           <% else %>
-            <p class="eyebrow">Not ready to install yet</p>
-            <h2>There's no version of Techtree to install yet.</h2>
+            <h2>Coming soon</h2>
             <p>
-              The command to copy will appear here as soon as the first version is out. Until then, the guide explains how a test works.
+              There's no version of Techtree to install yet. The command to copy will appear here as soon as the first version is out. Until then, the guide explains how a test works.
             </p>
           <% end %>
           <.link navigate={~p"/docs"} class="text-link">Read the guide →</.link>
@@ -97,12 +97,12 @@ defmodule TechtreeWeb.StartLive do
 
         <nav class="start-paths" aria-label="Ways to start">
           <a href="#skill" class="start-paths__item">
-            <span class="start-paths__name">Test my Skill</span>
+            <span class="start-paths__name">Skill test</span>
             <.capability_status capability={:skill_test} />
             <span class="start-paths__note">Make tasks from it, compare, decide.</span>
           </a>
           <a href="#example" class="start-paths__item">
-            <span class="start-paths__name">Take a quick look</span>
+            <span class="start-paths__name">Example</span>
             <.capability_status capability={:climb} />
             <span class="start-paths__note">Run the small Hello World example end to end.</span>
           </a>
@@ -111,7 +111,7 @@ defmodule TechtreeWeb.StartLive do
         <section id="skill" class="start-path" aria-labelledby="skill-title">
           <header class="start-path__head">
             <.capability_status capability={:skill_test} />
-            <h2 id="skill-title">Test my Skill</h2>
+            <h2 id="skill-title">Skill test</h2>
             <p>
               Give this to a coding agent that can use your terminal, or to Hermes. It sets Techtree up, asks where your Skill is, and stops at every review for your answer.
             </p>
@@ -123,45 +123,45 @@ defmodule TechtreeWeb.StartLive do
             <:fact term="Time">
               About 15 minutes to set up. Making the tasks and running the comparison then take longer, depending on your Skill and your model.
             </:fact>
-            <:fact term="Where your data goes">
+            <:fact term="Your data">
               Nothing is uploaded to Techtree. Making the tasks and running them send your Skill's files and the tasks to the model provider you chose, only after you approve the review that says so. Everything else stays on your computer until you share it.
             </:fact>
           </.definition_list>
           <.prompt_block
             :if={@setup_commands}
             id="copy-start-instruction"
-            label="Give this to your agent"
+            label="Agent prompt"
             text={@instruction}
           />
           <ol class="start-steps" aria-label="What happens next">
             <li>
-              <span class="eyebrow">01 / Bring a Skill</span><h3>Point to your Skill.</h3><p>
+              <span class="eyebrow">01</span><h3>Your Skill</h3><p>
                 Techtree reads its files without running any of them and tells you what it can use.
               </p>
             </li>
             <li>
-              <span class="eyebrow">02 / Review</span><h3>Review the plan.</h3><p>
+              <span class="eyebrow">02</span><h3>Review</h3><p>
                 Before a model sees your Skill, you see what would be sent, to which provider, and the limits. Nothing runs until you say yes.
               </p>
             </li>
             <li>
-              <span class="eyebrow">03 / Create</span><h3>Keep the tasks that work.</h3><p>
+              <span class="eyebrow">03</span><h3>Tasks</h3><p>
                 Tasks are built and checked, and you choose which to keep. Some are held out from anyone improving the Skill.
               </p>
             </li>
             <li>
-              <span class="eyebrow">04 / Compare</span><h3>Run the tasks both ways.</h3><p>
+              <span class="eyebrow">04</span><h3>Compare</h3><p>
                 Your agent works the tasks without the Skill, or with its earlier version, and then with it. Each run shows the most it may spend and waits for your yes.
               </p>
             </li>
             <li>
-              <span class="eyebrow">05 / Decide</span><h3>Keep the change, or don’t.</h3><p>
+              <span class="eyebrow">05</span><h3>Decide</h3><p>
                 Techtree compares the two runs task by task and says whether the Skill improved, regressed, was mixed or made no difference, with the held-out tasks judged on their own.
               </p>
             </li>
           </ol>
           <section :if={@setup_commands} class="start-guide__direct" aria-labelledby="setup-direct">
-            <h3 id="setup-direct">Or set it up yourself</h3>
+            <h3 id="setup-direct">Manual setup</h3>
             <.command_block id="copy-setup-cli" label="Command line" lines={@setup_commands.cli} />
             <.link navigate={~p"/docs/test-a-skill"} class="text-link">
               Every step, including the comparison →
@@ -172,7 +172,7 @@ defmodule TechtreeWeb.StartLive do
         <section id="example" class="start-path" aria-labelledby="example-title">
           <header class="start-path__head">
             <.capability_status capability={:climb} />
-            <h2 id="example-title">Take a quick look</h2>
+            <h2 id="example-title">Example</h2>
             <p>
               The Hello World Climb is a small, fixed challenge that ships with the release. It runs the same tasks without a Skill and with a starter Skill, then shows the difference. It shows how a run works; its toy tasks say nothing about your own Skill.
             </p>
@@ -197,14 +197,14 @@ defmodule TechtreeWeb.StartLive do
             <:fact term="Time">
               About 15 minutes to set up. How long the run takes depends on the model service.
             </:fact>
-            <:fact term="Where your data goes">
+            <:fact term="Your data">
               The model calls go to {ModelAccess.destinations(@example.routes)}, only after you approve. Episodes and traces stay on your computer. Publishing a finished result is optional and uploads its proof bundle to Techtree.
             </:fact>
           </.definition_list>
           <.command_block
             :if={@setup_commands}
             id="copy-start-example"
-            label="Run the example"
+            label="Example run"
             lines={@setup_commands.example}
           />
           <.link navigate={~p"/docs/hello-world"} class="text-link">
@@ -214,7 +214,7 @@ defmodule TechtreeWeb.StartLive do
 
         <div class="start-guide__next">
           <div>
-            <p class="eyebrow">Afterwards</p><h2>Keep the evidence.</h2><p>
+            <p class="eyebrow">Afterwards</p><h2>Evidence</h2><p>
               Techtree keeps every review, attempt and result on your computer; only the model calls you approve go to your provider.
             </p>
           </div>

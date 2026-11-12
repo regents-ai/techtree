@@ -86,7 +86,7 @@ defmodule TechtreeWeb.WalletBenchResultsTest do
         end
 
       assert status == 500
-      assert body =~ "Something went wrong"
+      assert body =~ "<h1>Error</h1>"
       refute body =~ "PK"
     end
   end

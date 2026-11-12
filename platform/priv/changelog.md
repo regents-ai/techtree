@@ -44,6 +44,10 @@
 
 - **Privacy.** If your browser sends Global Privacy Control, the site no longer sets
   its visit cookie, so nothing it records can be put together into one visit.
+- **Titles.** Headings, labels and tab titles across the site are now one or two
+  words. Check a Result is now Offline check in the menu, and the guides are
+  renamed to match: Install, Skill test, Hello World, Verifying, Publishing,
+  Paired agents, Proof, Roadmap, Your data and Troubleshooting. No address changed.
 - **Theme.** The light and dark switch is now in your account menu: slide it, press
   it or use Space or Enter. A small moon and sun made of tiny blocks show which
   theme is on. Signed out, it sits at the top of the page beside Sign in.

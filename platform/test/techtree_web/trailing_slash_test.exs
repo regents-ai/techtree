@@ -8,7 +8,7 @@ defmodule TechtreeWeb.TrailingSlashTest do
     for path <- ["/about/", "/terms/", "/wallet-bench/", "/llms.txt/"] do
       response = request(path, "text/html")
       assert response.status == 404
-      assert response.resp_body =~ "We can’t find that page"
+      assert response.resp_body =~ "<h1>Not found</h1>"
     end
   end
 
@@ -27,7 +27,7 @@ defmodule TechtreeWeb.TrailingSlashTest do
         request(%{Plug.Test.conn(:get, "/about") | request_path: "//about"}, "text/html")
       end)
 
-    assert body =~ "We can’t find that page"
+    assert body =~ "<h1>Not found</h1>"
   end
 
   test "the homepage keeps its slash" do

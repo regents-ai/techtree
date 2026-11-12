@@ -7,7 +7,7 @@ defmodule TechtreeWeb.ErrorHTMLTest do
   test "renders 404.html" do
     html = render_to_string(TechtreeWeb.ErrorHTML, "404", "html", [])
 
-    assert html =~ "We can’t find that page"
+    assert html =~ "<h1>Not found</h1>"
     assert html =~ ~s|href="/"|
     assert html =~ ~s|href="/results"|
 
@@ -22,7 +22,7 @@ defmodule TechtreeWeb.ErrorHTMLTest do
   test "renders 500.html" do
     html = render_to_string(TechtreeWeb.ErrorHTML, "500", "html", [])
 
-    assert html =~ "Something went wrong"
+    assert html =~ "<h1>Error</h1>"
     assert html =~ ~s|href="/"|
   end
 

@@ -45,8 +45,8 @@ defmodule TechtreeWeb.ServiceLive do
         {"Agreed coverage",
          "The workflows that matter to you, and the behaviour each must show."},
         {"Reproducible failures", "Every failure with the steps and evidence to see it again."},
-        {"A repeatable suite", "One script that reruns every check after each release."},
-        {"A clear report", "Each check, its result and its evidence, in one table."}
+        {"Repeatable suite", "One script that reruns every check after each release."},
+        {"Clear report", "Each check, its result and its evidence, in one table."}
       ],
       steps: [
         {"Scope", "Agree the workflows", "And the behaviour each must show"},
@@ -81,7 +81,7 @@ defmodule TechtreeWeb.ServiceLive do
       deliverables: [
         {"Validated findings", "Only weaknesses we reproduced, each with a priority."},
         {"Reproduction evidence", "The inputs, steps and records that show each one."},
-        {"Repairs in priority order", "A proposed fix for each finding, most urgent first."},
+        {"Ranked repairs", "A proposed fix for each finding, most urgent first."},
         {"Fixes verified", "Each fix checked again on the same inputs."}
       ],
       steps: [
@@ -126,8 +126,8 @@ defmodule TechtreeWeb.ServiceLive do
       deliverables: [
         {"Reproduced findings",
          "Only weaknesses we could show again, each with how serious it is."},
-        {"A fix for each", "Clear repair advice, most urgent first."},
-        {"A retest", "After you fix, we check the weakness is gone."}
+        {"Repair advice", "Clear repair advice, most urgent first."},
+        {"Retest", "After you fix, we check the weakness is gone."}
       ],
       price: "Monthly, per site. Ask us for the price.",
       start_line:
@@ -247,7 +247,7 @@ defmodule TechtreeWeb.ServiceLive do
 
         <section class="service-offer__flow" aria-labelledby="watchdog-how-title">
           <p class="eyebrow">Process</p>
-          <h2 id="watchdog-how-title">How it works</h2>
+          <h2 id="watchdog-how-title">Steps</h2>
           <ol class="service-flow">
             <li :for={{{title, detail}, index} <- Enum.with_index(@offer.steps, 1)}>
               <span>0{index}</span><strong>{title}</strong><small>{detail}</small>
@@ -258,7 +258,7 @@ defmodule TechtreeWeb.ServiceLive do
         <section class="service-offer__part" aria-labelledby="watchdog-rules-title">
           <div>
             <p class="eyebrow">Limits</p>
-            <h2 id="watchdog-rules-title">The rules we follow</h2>
+            <h2 id="watchdog-rules-title">Rules</h2>
           </div>
           <ul class="service-rules">
             <li :for={rule <- @offer.rules}>{rule}</li>
@@ -384,9 +384,8 @@ defmodule TechtreeWeb.ServiceLive do
 
         <section class="service-offer__part" aria-labelledby="service-sample-title">
           <div>
-            <p class="eyebrow">Sample report</p>
-            <h2 id="service-sample-title">{@offer.sample_title}</h2>
-            <p>{@offer.sample_line}</p>
+            <h2 id="service-sample-title">Sample report</h2>
+            <p>{@offer.sample_title} {@offer.sample_line}</p>
             <a class="text-link" href={@offer.sample_path}>Read the sample report →</a>
           </div>
           <ul class="service-sample">

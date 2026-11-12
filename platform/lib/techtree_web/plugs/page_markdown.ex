@@ -139,17 +139,17 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
   defp start(%{installable?: true, introductory_reference: reference} = release) do
     """
-    # Choose where to start
+    # Start
 
     To see what a Skill changes, Techtree makes tasks from it and your agent works them twice: once without the Skill, or with its earlier version, and once with it. Only the Skill changes, so the difference is the Skill's.
 
-    ## Test my Skill
+    ## Skill test
 
     Give this to a coding agent that can use your terminal, or to Hermes:
 
     > #{TechtreeWeb.StartLive.instruction()}
 
-    Or set it up yourself:
+    Manual setup:
 
     ```sh
     #{Enum.join(release.install_argv, " ")}
@@ -159,7 +159,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
     Nothing is uploaded to Techtree. Making the tasks and running them send your Skill's files and the tasks to the model provider you chose, only after you approve the review that says so.
 
-    ## Take a quick look
+    ## Example
 
     #{quick_look(reference)}
     The [agent guide](/agents.md) has every step.
@@ -168,7 +168,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
   defp start(_release) do
     """
-    # Choose where to start
+    # Start
 
     There's no version of Techtree to install yet. The [Docs](/docs) explain how a test works in the meantime.
     """
@@ -301,7 +301,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     - Model: `#{showcase.model.model_id}` on #{showcase.model.provider}
     - Skill licence: #{showcase.skill.licence.name}. #{showcase.skill.licence.copyright}
 
-    ## What the Skill claims
+    ## Claims
 
     #{claims}
 

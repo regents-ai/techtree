@@ -307,9 +307,9 @@ defmodule TechtreeWeb.ReleaseCopyTest do
       text = visible_text(html)
 
       # This route owns the verifier boundary; published evidence lives at /results.
-      assert text =~ "Check a Result yourself"
-      assert text =~ "What a check tells you"
-      assert text =~ "What a check can’t tell you"
+      assert text =~ "Offline check"
+      assert text =~ "Checks"
+      assert text =~ "Limits"
       assert text =~ "Techtree did not watch the run happen."
       assert text =~ "regents techtree proof verify path/to/result-bundle"
       refute text =~ CatalogFixture.campaign_digest()

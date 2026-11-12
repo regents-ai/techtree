@@ -6,7 +6,7 @@ Run the same tasks with and without your Skill. See what improved, what regresse
 
 Techtree's Climb evaluator uses [Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) and supports signed, independently checkable result bundles.
 
-## Test your Skill (experimental)
+## Skill test (experimental)
 
 Techtree makes practice tasks from what your Skill teaches. Your agent then works the same tasks twice: once without the Skill, or with its earlier version, and once with it. The model, the tools and the limits stay the same, so any difference comes from the Skill.
 
@@ -16,7 +16,7 @@ Techtree makes practice tasks from what your Skill teaches. Your agent then work
 
 [See a real comparison](/examples/tdd).
 
-## A quick look
+## Example
 
 The Hello World Climb ships with every release: a small, fixed set of tasks run once without a starter Skill and once with it. It shows how a run is approved, what it records and what a Result looks like. Its toy tasks say nothing about your own Skill.
 
@@ -28,7 +28,7 @@ The Hello World Climb ships with every release: a small, fixed set of tasks run 
 
 Techtree is a working technical preview built from three independent parts: Prime Intellect's Verifiers scores each Climb's tasks, Nous Research's Hermes runs the agent, and Techtree runs the comparison and keeps the evidence. Every finished Climb ends in a signed Result that anyone can check offline.
 
-## When to use it
+## Use cases
 
 - To decide whether a change to a Skill is worth keeping.
 - To compare your agent with and without a Skill on tasks made from it.
@@ -36,20 +36,20 @@ Techtree is a working technical preview built from three independent parts: Prim
 
 It is not a general benchmark of a model's broad capability, and it does not run your agent for you in the cloud.
 
-## How to start
+## Start
 
 - [Start](/start): test your Skill, or take a quick look with the example Climb.
 - [Agent guide](/agents.md): the exact release to install and every step for your agent to follow, from making the tasks to comparing the runs. Each review waits for the person's own answer.
 - [Docs](/docs): install, test a Skill, verify, publish and integrate.
 
-## Your work stays local
+## Privacy
 
 Techtree doesn't watch your runs. Your work stays local unless you choose to publish a finished Climb Result. Model calls go to the model provider you run with, under that provider's policies.
 
 ## Pages
 
 - [Results](/results): published Results, newest first. Only Climb runs can be published today.
-- [Check a Result](/verify): how to check a Result offline, and what the check shows.
+- [Offline check](/verify): how to check a Result offline, and what the check shows.
 - [Techtree Verify](/services/verify) and [Techtree Cyber Assist](/services/cyber-assist): paid checks of your team's own workflows, such as an agent wallet flow, or of its security.
 - [Techtree Formal](/formal): what formal verification proves, recent advances with their sources, and how to send code to be proved. Paid, priced once the scope is agreed.
 - [Techtree Watchdog](/services/watchdog): a monthly watch on the sites you own, for security weaknesses, inside limits you agree.
@@ -57,7 +57,7 @@ Techtree doesn't watch your runs. Your work stays local unless you choose to pub
 - [Repo2RLEnv](/repo2rlenv): the planned hosted service for building tasks from a repository.
 - [About](/about), [Privacy](/privacy) and [Terms](/terms)
 
-## For agents and programs
+## Agents
 
 - [/skill.md](/skill.md): the Techtree skill, for an agent to install: what to watch and how to check back.
 - [/agents.md](/agents.md): the agent guide: the release to install and every step.

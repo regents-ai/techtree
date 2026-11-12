@@ -71,7 +71,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       text = visible_text(html)
 
       assert has_element?(live, "#copy-home-agent-line")
-      assert has_element?(live, ".installer__manual > summary", "Use the command line instead")
+      assert has_element?(live, ".installer__manual > summary", "Command line")
       refute text =~ "Release integrity"
       assert has_element?(live, ~s|a[href="/verify"]|, "What verification establishes")
     end
@@ -95,7 +95,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert copied_text(html, "copy-home-cli") == expected
       refute html =~ "Doctor checks prerequisites"
 
-      assert has_element?(live, ".installer__manual .command", "Install, then look at your Skill")
+      assert has_element?(live, ".installer__manual .command", "Install")
       refute has_element?(live, ".installer__doctor-note")
       refute has_element?(live, ".compatibility")
       refute has_element?(live, ".release-coordinate")
@@ -169,7 +169,7 @@ defmodule TechtreeWeb.HomeLiveTest do
                ~s|#hero-crown canvas#hero-crown-canvas|
              )
 
-      assert text =~ "Paste into your agent’s chat"
+      assert text =~ "Agent prompt"
       assert text =~ HomeLive.agent_line()
 
       assert copied_text(html, "copy-home-agent-line") == HomeLive.agent_line()
@@ -297,7 +297,7 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, path)
 
       assert html =~
-               ~r|<span class="masthead__selector">.*href="/start"[^>]*>\s*Start\s*</a>.*href="/results"[^>]*>\s*Results\s*</a>.*href="/verify"[^>]*>\s*Check a Result\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
+               ~r|<span class="masthead__selector">.*href="/start"[^>]*>\s*Start\s*</a>.*href="/results"[^>]*>\s*Results\s*</a>.*href="/verify"[^>]*>\s*Offline check\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
 
       refute html =~ ~r|href="/results"[^>]*>\s*Proofs\s*</a>|
 

@@ -178,7 +178,7 @@ check("/llms.txt is a Markdown guide with a title", llms.status === 200 && type(
 check("/llms.txt links the docs and the OpenAPI description", llms.body.includes("/docs") && llms.body.includes("/openapi.json"));
 check("/llms.txt is cached with an ETag", cached(llms));
 const docs = await get("/docs", "text/markdown");
-for (const heading of ["Errors", "Rate limits", "Versioning and deprecation"]) {
+for (const heading of ["Errors", "Rate limits", "Versioning"]) {
   check(`/docs has a "${heading}" section`, new RegExp(`^## ${heading}$`, "m").test(docs.body));
 }
 const security = await get("/.well-known/security.txt");

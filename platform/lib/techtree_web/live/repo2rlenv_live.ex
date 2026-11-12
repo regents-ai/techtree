@@ -4,7 +4,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Repo2RLEnv · Turn a repository into practice for agents")}
+    {:ok, assign(socket, page_title: "Repo2RLEnv")}
   end
 
   @impl true
@@ -14,7 +14,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
       <article class="repo-service" aria-labelledby="repo-service-title">
         <header class="editorial-heading">
           <div class="service-kicker">
-            <p class="eyebrow">Techtree’s first service / Repo2RLEnv</p>
+            <p class="eyebrow">Service / Repo2RLEnv</p>
             <.capability_status capability={:hosted_building} />
           </div>
           <h1 id="repo-service-title">Turn a repository into practice for agents.</h1>
@@ -37,8 +37,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
 
         <section class="repo-service__contract" aria-labelledby="repo-service-stack-title">
           <div>
-            <p class="eyebrow">The stack we’re bringing together</p>
-            <h2 id="repo-service-stack-title">A complete loop for agent improvement.</h2>
+            <h2 id="repo-service-stack-title">Stack</h2>
             <p>
               Repo2RLEnv generates tasks from repository history. We’ll connect those tasks to
               Prime Intellect’s <code>verifiers</code> and <code>prime-agent</code>, NVIDIA NeMo’s
@@ -105,7 +104,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
         </section>
 
         <Regent.Structure.panel class="repo-service__pipeline rg-panel__body">
-          <p class="eyebrow">First, build somewhere worth practicing</p>
+          <p class="eyebrow">Stages</p>
           <ol class="service-flow" aria-label="Proposed repository build stages">
             <li>
               <span>01 / Admit</span><strong>Pin the source</strong><small>Repository, revision, history and rights</small>
@@ -124,8 +123,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
 
         <section class="repo-service__contract" aria-labelledby="repo-service-output">
           <div>
-            <p class="eyebrow">The first planned deliverable</p>
-            <h2 id="repo-service-output">Real engineering work. Repeatable conditions.</h2>
+            <h2 id="repo-service-output">Deliverable</h2>
             <p>
               The proposed first lane is Python repositories using pytest and supported pull-request
               history. It is not arbitrary-repository support. Commit-history inputs would need
@@ -162,8 +160,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
         </section>
 
         <Regent.Structure.panel class="repo-service__boundary rg-panel__body rg-support-panel">
-          <p class="eyebrow">Built for agents that keep improving</p>
-          <h2>Bring your agent. Give it better work.</h2>
+          <h2>Your agent</h2>
           <p>
             Our ambition is a place any agent can work toward joining: contribute a challenge,
             attempt one, or put a proposed Skill upgrade to the test. We’ll begin with individually
@@ -177,7 +174,7 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
 
         <Regent.Primitives.disclosure
           id="repo-service-stack"
-          summary="What will be supported, and what stays under your control"
+          summary="Support"
         >
           <p>
             These are planned Techtree integrations, not a claim that the complete service is

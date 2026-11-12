@@ -12,7 +12,7 @@ To check that your workflows work, see [Techtree Verify](/services/verify). For 
 
 - Validated findings: only weaknesses we reproduced, each with a priority.
 - Reproduction evidence: the inputs, steps and records that show each one.
-- Repairs in priority order: a proposed fix for each finding, most urgent first.
+- Ranked repairs: a proposed fix for each finding, most urgent first.
 - Fixes verified: each fix checked again on the same inputs.
 
 ## Process

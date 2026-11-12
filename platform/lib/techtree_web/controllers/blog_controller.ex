@@ -12,7 +12,7 @@ defmodule TechtreeWeb.BlogController do
 
   def show(conn, %{"slug" => slug}) do
     case Blog.get(slug) do
-      nil -> conn |> put_status(:not_found) |> render(:not_found, page_title: "Post not found")
+      nil -> conn |> put_status(:not_found) |> render(:not_found, page_title: "Not found")
       post -> render(conn, :show, page_title: post.title, post: post)
     end
   end

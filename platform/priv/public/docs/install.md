@@ -1,4 +1,4 @@
-# Install and check this machine
+# Install
 
 Techtree names one release at a time. The [agent guide](/agents.md) names it, and the [bootstrap contract](/api/v1/bootstrap) carries the same install command as exact arguments; use them as they are rather than the newest version you know of.
 

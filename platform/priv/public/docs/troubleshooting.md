@@ -1,4 +1,4 @@
-# When something goes wrong
+# Troubleshooting
 
 Start from the outside and work inwards.
 

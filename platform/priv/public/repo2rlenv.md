@@ -2,11 +2,11 @@
 
 Turn a repository into practice for agents. Repo2RLEnv is Techtree's first planned service: turning real software and its repair history into environments where agents can practice, test better Skills, and show what actually improved. Building and checkout are not open yet.
 
-## What it brings together
+## Stack
 
 Repo2RLEnv will make tasks from a repository's history and connect them to Prime Intellect's Verifiers and prime-agent, NVIDIA NeMo's Fabric and Relay libraries, and Nous Research's Hermes Agent. Techtree binds the environment, the agent's settings, the Skill versions and the results into evidence you can inspect, so you can decide which changes your agent should keep.
 
-## How an environment will be built
+## Stages
 
 1. Admit: pin the repository, revision, history and rights.
 2. Generate: build the tasks as a task package.

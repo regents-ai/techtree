@@ -77,7 +77,7 @@ defmodule TechtreeWeb.StartLiveTest do
         )
 
       assert instruction_at < cli_at
-      assert has_element?(live, "#setup-direct", "Or set it up yourself")
+      assert has_element?(live, "#setup-direct", "Manual setup")
       assert has_element?(live, ~s|.start-guide__direct a[href="/docs/test-a-skill"]|)
 
       [skill_at, example_at] =
@@ -142,7 +142,7 @@ defmodule TechtreeWeb.StartLiveTest do
 
     {:ok, live, html} = live(conn, ~p"/start")
 
-    assert has_element?(live, ".setup-unavailable h2", "no version of Techtree")
+    assert has_element?(live, ".setup-unavailable p", "no version of Techtree")
     refute has_element?(live, ".setup-unavailable [role=status]")
 
     for id <- [

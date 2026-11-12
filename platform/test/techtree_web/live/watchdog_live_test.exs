@@ -33,7 +33,7 @@ defmodule TechtreeWeb.WatchdogLiveTest do
 
     assert html =~ "Add a site"
     assert html =~ "phx-submit=\"add_site\""
-    assert html =~ "No sites yet"
+    assert html =~ "No sites"
   end
 
   test "each site shows its proof record and state, and its addresses", %{conn: conn} do

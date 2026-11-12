@@ -171,7 +171,7 @@ defmodule TechtreeWeb.RunsLive.Index do
       <div class="runs-index">
         <section class="runs-index__intro" aria-labelledby="runs-index-title">
           <header class="page-heading runs-index__heading">
-            <p class="eyebrow">The public run log</p>
+            <p class="eyebrow">Run log</p>
             <h1 id="runs-index-title">Published Results</h1>
             <p class="runs-index__lede">
               One harness. One model. One challenge. Inspect what changed when a Skill changed.
