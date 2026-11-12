@@ -58,7 +58,7 @@ defmodule Techtree.Repo.Migrations.AddWatchdog do
             column: :id,
             name: "watchdog_routes_host_id_fkey",
             type: :uuid,
-            prefix: "public",
+            prefix: Techtree.Repo.default_prefix(),
             on_delete: :delete_all
           ),
           null: false
