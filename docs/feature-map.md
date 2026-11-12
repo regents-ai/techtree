@@ -12,6 +12,11 @@ fails if the server holds a connection to anywhere but this machine. Each page c
 a console error, sideways scrolling, or a press target too small: 44 px for a
 finger on a touch screen, 24 px for a mouse control.
 
+`make live-check` is the one check that reads the live site, after a release: the
+same page checks at 1280 and 390 wide, signed out, plus the commit it runs, its
+public documents and the browser tools its home page offers
+(`platform/assets/test/live/live.spec.ts`). It writes nothing.
+
 ## Public pages (signed out)
 
 | What a visitor can do | Proved by |

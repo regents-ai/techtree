@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli check-siwa-latest release readiness browser
+.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli check-siwa-latest release readiness browser live-check
 
 check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-siwa-latest check-contracts check-formal check-lab
 
@@ -18,6 +18,14 @@ check-platform:
 # 320 wide, signed out and signed in. check-platform runs them too.
 browser:
 	cd platform/assets && npm run test:browser
+
+# The live site, signed out, in headless Chromium at 1280 and 390 wide: the commit
+# it runs, every public page and document, the browser tools the home page offers
+# and the Agent Message window (scripts/live-check.sh). It writes nothing. Run it
+# after each release; COMMIT=<commit> names the released commit once the release
+# record sits on top of it.
+live-check:
+	scripts/live-check.sh $(COMMIT)
 
 # Every site runs the same check against ash-template's current main branch, so a
 # newly published required fix reaches every site's next gate. Needs `gh auth login`.

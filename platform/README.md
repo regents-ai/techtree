@@ -470,6 +470,18 @@ deploy it asks for the previous release's site script again and fails unless it
 still answers. `test/scripts/deploy_site_test.exs` runs the script through each
 of these with stand-ins for `flyctl`, `curl` and `lockf`.
 
+After each release, `make live-check` from the monorepo root reads techtree.sh
+signed out in headless Chromium at 1280 and 390 wide
+(`scripts/live-check.sh`, `platform/assets/test/live/live.spec.ts`): the site
+runs this checkout's commit, every public page opens with no error, no sideways
+scrolling and no press target too small, the public documents answer in their
+own type, the home page offers exactly this checkout's browser tools and every
+public read among them answers, and the Agent Message window opens. It writes
+nothing and starts no visit. Once the release record is committed on top, name
+the released commit: `make live-check COMMIT=<commit>`. It does not sign in as a
+person or call a signed tool as an agent; those are proved by the local browser
+tests only.
+
 ## Shared database changes
 
 A deploy never applies a change to the shared Identity, Agents or Points

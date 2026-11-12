@@ -1,13 +1,12 @@
 import {expect, test} from "./support/test"
+import {publicPages} from "./support/pages"
 import {layoutProblems, watchErrors} from "./support/visitor"
 
 // Every public page, signed out, at a desktop and a phone width: it loads, its
 // live connection joins where it has one, nothing errors, nothing scrolls
 // sideways and every press target is big enough to hit.
-const pages = ["/", "/start", "/docs", "/docs/install", "/docs/test-a-skill", "/docs/api", "/results",
-  "/wallet-bench", "/train", "/train/nemotron-nano-skill", "/verify", "/changelog",
-  "/examples/tdd", "/repo2rlenv", "/services/verify", "/services/verify/sample-report",
-  "/services/cyber-assist", "/services/cyber-assist/sample-report", "/formal", "/services/watchdog", "/account", "/account/agents", "/agents", "/agents/hermes", "/about", "/privacy", "/terms"]
+// The test server's own Train comparison joins the pages every Techtree has.
+const pages = [...publicPages, "/train/nemotron-nano-skill"]
 
 for (const width of [1280, 390, 320]) {
   test.describe(`${width} wide`, () => {
