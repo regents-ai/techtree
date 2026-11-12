@@ -23,8 +23,14 @@ defmodule Techtree.Watchdog.Host.SetUp do
 
   defp set_origin(changeset) do
     case changeset |> Ash.Changeset.get_argument(:origin) |> normalize() do
-      {:ok, origin} -> Ash.Changeset.force_change_attribute(changeset, :origin, origin)
-      :error -> Ash.Changeset.add_error(changeset, field: :origin, message: "isn't a web address")
+      {:ok, origin} ->
+        Ash.Changeset.force_change_attribute(changeset, :origin, origin)
+
+      :error ->
+        Ash.Changeset.add_error(changeset,
+          field: :origin,
+          message: "That isn't a site's address. Enter one such as example.com."
+        )
     end
   end
 

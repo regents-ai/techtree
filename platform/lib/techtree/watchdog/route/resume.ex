@@ -19,7 +19,7 @@ defmodule Techtree.Watchdog.Route.Resume do
         _unverified_host ->
           Ash.Changeset.add_error(changeset,
             field: :state,
-            message: "can't turn on an address until its site is proven"
+            message: "Prove the site is yours first, then turn this address on."
           )
       end
     end)

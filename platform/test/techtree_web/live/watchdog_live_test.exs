@@ -3,9 +3,10 @@ defmodule TechtreeWeb.WatchdogLiveTest do
   The signed-in Watchdog page as it renders: a visitor is asked to sign in and
   sees no form, and a signed-in person sees their sites with each one's proof
   record and state and the addresses on them. The actions behind the buttons
-  are exercised in `Techtree.WatchdogTest`; this page has no connected walk yet
-  because the account session reads its authority from the socket's connect
-  info, which the LiveView test harness does not carry (feature map gap).
+  are exercised in `Techtree.WatchdogTest`, and the connected page, adding a
+  site and an address, in the browser tests (`assets/test/browser/watchdog.spec.ts`):
+  the account session reads its authority from the socket's connect info, which
+  the LiveView test harness does not carry.
   """
 
   use TechtreeWeb.ConnCase, async: false

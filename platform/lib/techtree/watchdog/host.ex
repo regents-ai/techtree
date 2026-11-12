@@ -182,7 +182,9 @@ defmodule Techtree.Watchdog.Host do
   end
 
   identities do
-    identity :unique_account_origin, [:human_account_id, :origin]
+    identity :unique_account_origin, [:human_account_id, :origin],
+      message: "That site is already on your list.",
+      field_names: [:origin]
   end
 
   @doc "The topic a finished check for `human_account_id` is published on."

@@ -30,15 +30,21 @@ defmodule Techtree.Watchdog.Route.Attach do
         })
       else
         {:error, :bad_host} ->
-          Ash.Changeset.add_error(changeset, field: :host_id, message: "isn't one of your sites")
+          Ash.Changeset.add_error(changeset,
+            field: :host_id,
+            message: "That isn't one of your sites."
+          )
 
         {:error, :bad_url} ->
-          Ash.Changeset.add_error(changeset, field: :url, message: "isn't a web address")
+          Ash.Changeset.add_error(changeset,
+            field: :url,
+            message: "Enter a full web address, starting with https://."
+          )
 
         {:error, :off_host} ->
           Ash.Changeset.add_error(changeset,
             field: :url,
-            message: "has to be an address on that site"
+            message: "Enter an address on this site."
           )
       end
     end)

@@ -20,7 +20,14 @@ defmodule TechtreeWeb.WatchdogLive do
 
     {:ok,
      socket
-     |> assign(page_title: "Watchdog", notice: nil, signed_in?: false, hosts: [], routes: %{})
+     |> assign(
+       page_title: "Watchdog",
+       notice: nil,
+       field_errors: %{},
+       signed_in?: false,
+       hosts: [],
+       routes: %{}
+     )
      |> load_list()}
   end
 
@@ -34,8 +41,11 @@ defmodule TechtreeWeb.WatchdogLive do
        |> inform(:success, "Site added. Publish its proof, then press Check.")
        |> load_list()}
     else
-      {:error, error} -> {:noreply, inform_error(socket, error, "That site couldn't be added.")}
-      nil -> {:noreply, socket}
+      {:error, error} ->
+        {:noreply, refuse(socket, "watchdog-origin", error, "That site couldn't be added.")}
+
+      nil ->
+        {:noreply, socket}
     end
   end
 
@@ -59,7 +69,8 @@ defmodule TechtreeWeb.WatchdogLive do
       {:noreply, socket |> inform(:success, "Address added.") |> load_list()}
     else
       {:error, error} ->
-        {:noreply, inform_error(socket, error, "That address couldn't be added.")}
+        {:noreply,
+         refuse(socket, "watchdog-url-#{host_id}", error, "That address couldn't be added.")}
 
       nil ->
         {:noreply, socket}
@@ -141,10 +152,32 @@ defmodule TechtreeWeb.WatchdogLive do
   defp parse_method("well_known_file"), do: {:ok, :well_known_file}
   defp parse_method(_other), do: {:error, :bad_method}
 
-  defp inform(socket, tone, message), do: assign(socket, notice: %{tone: tone, message: message})
+  defp inform(socket, tone, message),
+    do: assign(socket, notice: %{tone: tone, message: message}, field_errors: %{})
+
+  # A refused site or address: what is wrong with the typed value goes under its
+  # own field; anything else (a limit reached) goes in the page's notice.
+  defp refuse(socket, field_id, error, fallback) do
+    case typed_value_message(error) do
+      nil -> inform_error(socket, error, fallback)
+      message -> assign(socket, notice: nil, field_errors: %{field_id => message})
+    end
+  end
+
+  defp typed_value_message(%Ash.Error.Invalid{errors: errors}) do
+    Enum.find_value(errors, fn
+      %{field: field, message: message} when field in [:origin, :url] and is_binary(message) ->
+        message
+
+      _other ->
+        nil
+    end)
+  end
+
+  defp typed_value_message(_other), do: nil
 
   defp inform_error(socket, error, fallback),
-    do: assign(socket, notice: %{tone: :error, message: first_message(error) || fallback})
+    do: inform(socket, :error, first_message(error) || fallback)
 
   defp first_message(%Ash.Error.Invalid{errors: errors}),
     do: errors |> Enum.map(&message_of/1) |> Enum.find(& &1)
@@ -186,10 +219,15 @@ defmodule TechtreeWeb.WatchdogLive do
             {@notice.message}
           </Regent.Primitives.notice>
 
-          <Regent.Structure.panel class="watchdog-add">
+          <Regent.Structure.panel class="watchdog-add rg-panel__body">
             <h2>Add a site</h2>
             <form phx-submit="add_site" class="watchdog-form">
-              <Regent.Primitives.field :let={f} id="watchdog-origin" label="Site">
+              <Regent.Primitives.field
+                :let={f}
+                id="watchdog-origin"
+                label="Site"
+                errors={List.wrap(@field_errors["watchdog-origin"])}
+              >
                 <input
                   id={f.id}
                   name="origin"
@@ -197,6 +235,7 @@ defmodule TechtreeWeb.WatchdogLive do
                   inputmode="url"
                   placeholder="example.com"
                   aria-describedby={f.described_by}
+                  aria-invalid={f.aria_invalid}
                   required
                 />
                 <:hint>The site's address, such as example.com.</:hint>
@@ -205,10 +244,10 @@ defmodule TechtreeWeb.WatchdogLive do
               <fieldset class="watchdog-method">
                 <legend>Proof</legend>
                 <label>
-                  <input type="radio" name="ownership_method" value="dns_txt" checked /> DNS record
+                  <input type="radio" name="ownership_method" value="dns_txt" checked />DNS record
                 </label>
                 <label>
-                  <input type="radio" name="ownership_method" value="well_known_file" /> File
+                  <input type="radio" name="ownership_method" value="well_known_file" />File
                 </label>
               </fieldset>
 
@@ -223,7 +262,7 @@ defmodule TechtreeWeb.WatchdogLive do
 
           <ol class="watchdog-sites">
             <li :for={host <- @hosts}>
-              <Regent.Structure.panel class="watchdog-site">
+              <Regent.Structure.panel class="watchdog-site rg-panel__body">
                 <div class="watchdog-site__head">
                   <h2>{host.origin}</h2>
                   <Regent.Primitives.status tone={status_tone(host.ownership_state)}>
@@ -324,13 +363,19 @@ defmodule TechtreeWeb.WatchdogLive do
 
                   <form phx-submit="add_address" class="watchdog-form watchdog-form--inline">
                     <input type="hidden" name="host_id" value={host.id} />
-                    <Regent.Primitives.field :let={f} id={"watchdog-url-#{host.id}"} label="Address">
+                    <Regent.Primitives.field
+                      :let={f}
+                      id={"watchdog-url-#{host.id}"}
+                      label="Address"
+                      errors={List.wrap(@field_errors["watchdog-url-#{host.id}"])}
+                    >
                       <input
                         id={f.id}
                         name="url"
                         type="url"
                         placeholder={"https://#{host.origin}/path"}
                         aria-describedby={f.described_by}
+                        aria-invalid={f.aria_invalid}
                         required
                       />
                     </Regent.Primitives.field>
