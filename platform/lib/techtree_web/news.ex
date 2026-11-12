@@ -7,7 +7,7 @@ defmodule TechtreeWeb.News do
 
   use TechtreeWeb, :verified_routes
 
-  @changelog Path.expand("../../priv/changelog.md", __DIR__)
+  @changelog Application.app_dir(:techtree, "priv/changelog.md")
   @external_resource @changelog
 
   # Each day's notes are a "## Website (date)" section; what it added is its
