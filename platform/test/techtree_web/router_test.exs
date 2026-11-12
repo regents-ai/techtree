@@ -9,7 +9,7 @@ defmodule TechtreeWeb.RouterTest do
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "writes are limited to publication, agent pairing, sign-in, private profile actions, private Model Climb reports, the browser's visit reports, the Claude connector's sign-in and the hosted MCP server" do
+  test "writes are limited to publication, agent pairing, an agent's message for the team, sign-in, private profile actions, private Model Climb reports, the browser's visit reports, the Claude connector's sign-in and the hosted MCP server" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
@@ -21,6 +21,7 @@ defmodule TechtreeWeb.RouterTest do
              "delete /auth/privy/session",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
+             "post /api/v1/messages/:topic",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",
@@ -124,6 +125,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /watchdog",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
+             "post /api/v1/messages/:topic",
              "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",
@@ -137,7 +139,7 @@ defmodule TechtreeWeb.RouterTest do
            ]
   end
 
-  test "no route takes a path parameter other than a digest, a fingerprint, a slug, an agent's name or a wallet bench attempt's id, turn and file" do
+  test "no route takes a path parameter other than a digest, a fingerprint, a slug, an agent's name, a message's topic or a wallet bench attempt's id, turn and file" do
     parameters =
       @routes
       |> Enum.flat_map(&Regex.scan(~r/:([a-z_]+)/, &1.path, capture: :all_but_first))
@@ -155,6 +157,7 @@ defmodule TechtreeWeb.RouterTest do
                "key_id",
                "root_digest",
                "slug",
+               "topic",
                "turn"
              ]
   end

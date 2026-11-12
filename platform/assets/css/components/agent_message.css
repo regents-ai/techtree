@@ -1,0 +1,103 @@
+/* The Agent Message window (`AgentMessage.dialog`): three texts, each with its
+   title and copy press on one line and its text wrapped, so nothing scrolls
+   sideways on a phone; under them, a signed-in person's own message. Its close
+   button is the Pair New Agent window's (`.shell-dialog-close`), kept in the
+   corner by the same pad. */
+.agent-message {
+  --shell-dialog-pad: clamp(var(--space-2), 4vw, var(--space-4));
+  --rg-dialog-size: 40rem;
+}
+
+.agent-message h2 {
+  margin: 0 0 var(--space-2);
+  padding-inline-end: 3rem;
+  font-family: var(--font-family-ui);
+  font-size: var(--type-headline-size);
+}
+
+.agent-message__note {
+  margin: 0;
+  color: var(--color-fg-muted);
+}
+
+.agent-message__texts {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agent-message__texts > li {
+  min-width: 0;
+  border: 1px solid var(--hairline-strong);
+}
+
+.agent-message__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-inline-start: var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.agent-message__head h3 {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font: .75rem var(--font-family-ui);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.agent-message__copy {
+  min-height: 2.75rem;
+  font-size: .8125rem;
+}
+
+.agent-message__texts pre {
+  margin: 0;
+  padding: var(--space-2);
+  font-size: .8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.agent-message__texts pre code {
+  color: inherit;
+  font-size: inherit;
+}
+
+/* The person's own message, under the three texts. */
+.agent-message__form {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--hairline-strong);
+}
+
+.agent-message__form h3 {
+  margin: 0;
+  font-family: var(--font-family-ui);
+  font-size: 1.0625rem;
+  font-weight: 400;
+}
+
+.agent-message__fields {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.agent-message__fields :is(textarea, input) {
+  width: 100%;
+}
+
+.agent-message__fields > .rg-button {
+  justify-self: start;
+}
+
+.agent-message__form .rg-notice code {
+  overflow-wrap: anywhere;
+}

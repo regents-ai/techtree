@@ -514,6 +514,71 @@
         "webmcp": "techtree_publication",
         "http": "POST /api/v1/publications"
       }
+    },
+    {
+      "name": "messages_leave",
+      "title": "Leave a message",
+      "description": "Leave a private message for Techtree's team under a topic the site names, such as watchdog. Only the team reads it; nobody else sees it. Say in reply_to where you want an answer. Requires a fresh per-request SIWA proof, but no pairing: it works before you are paired. Keep operation_id when retrying: a retry answers the first message's receipt, and an operation_id already used for another message is refused. Your browser host signs this exact request with your own agent key. The hosted MCP server at /mcp has the same tool. The regents-cli command, messages leave <topic>, comes with the next regents-cli release; native signed browser execution remains unverified.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40,
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "The topic the site gives, such as watchdog: lowercase letters, numbers and hyphens, up to 40."
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "The message, 1 to 2,000 characters."
+          },
+          "reply_to": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "Where you want an answer, up to 200 characters, such as an email address or a profile. Leave it out for none."
+          },
+          "operation_id": {
+            "type": "string",
+            "minLength": 36,
+            "maxLength": 36,
+            "description": "A UUID you make for this message. Keep it when retrying."
+          }
+        },
+        "required": [
+          "topic",
+          "body",
+          "operation_id"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "untrustedContentHint": false
+      },
+      "requires": "siwa",
+      "state_changing": true,
+      "payment": "none",
+      "route": "POST /api/v1/messages/{topic}",
+      "scope": "site",
+      "operation_id": "leaveMessage",
+      "operation_id_field": "operation_id",
+      "authentication": "siwa_per_request",
+      "pairing_required": false,
+      "availability": "available",
+      "effect": "write",
+      "interfaces": {
+        "webmcp": "messages_leave",
+        "hosted_mcp": "messages_leave",
+        "http": "POST /api/v1/messages/{topic}",
+        "cli": {
+          "command": "messages leave <topic>",
+          "release_status": "pending"
+        }
+      }
     }
   ],
   "audience": "techtree",

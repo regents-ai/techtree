@@ -60,7 +60,7 @@ const toSigned = (page: Page) => {
   const sent: Request[] = []
   page.on("request", request => {
     const path = new URL(request.url()).pathname
-    if (["/api/v1/publications", "/api/agents/v1/whoami"].includes(path)) sent.push(request)
+    if (["/api/v1/publications", "/api/agents/v1/whoami", "/api/v1/messages/watchdog"].includes(path)) sent.push(request)
   })
   return sent
 }
@@ -118,6 +118,26 @@ test("the page sends exactly the request the signer signed, with its proof and n
   const refused = await call(page, "techtree_publication", {...publication, colour: "blue"})
   expect(refused).toMatchObject({ok: false, error: {code: "signed_request_failed"}})
   expect(await page.evaluate(() => (window as unknown as {signerAsked: unknown[]}).signerAsked.length)).toBe(1)
+  expect(sent).toHaveLength(1)
+})
+
+test("messages_leave sends the message to its topic's address, signed, with the topic out of the body", async ({page}) => {
+  await open(page, "signs")
+  const sent = toSigned(page)
+  const message = {body: "We run three sites and want them watched.", reply_to: "agent@example.com", operation_id: "7b0c0a5e-4c8e-4d0a-9d5e-2f6f3f1b9a10"}
+  await call(page, "messages_leave", {topic: "watchdog", ...message})
+
+  const [signed] = await page.evaluate(() => (window as unknown as {signerAsked: Array<Record<string, string>>}).signerAsked)
+  expect(signed).toMatchObject({operation: "messages_leave", audience: "techtree", method: "POST", path: "/api/v1/messages/watchdog"})
+  expect(JSON.parse(signed.body)).toEqual(message)
+
+  expect(sent).toHaveLength(1)
+  expect(sent[0].postData()).toBe(signed.body)
+  expect((await sent[0].allHeaders()).cookie).toBeUndefined()
+
+  // Without the UUID that makes a retry safe, the signer is never asked.
+  const refused = await call(page, "messages_leave", {topic: "watchdog", body: "Hello"})
+  expect(refused).toMatchObject({ok: false, error: {code: "signed_request_failed"}})
   expect(sent).toHaveLength(1)
 })
 

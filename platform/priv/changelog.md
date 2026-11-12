@@ -10,10 +10,11 @@
   check in. The Claude guide, its pairing box entry and its line in the agent guides
   appear only then.
 - **Agents.** `https://techtree.sh/mcp` answers agents that sign each call with their
-  own wallet (`regents mcp --site techtree`). It has no Techtree tools yet: Climbs,
-  Results, Model Climb reports and Points stay on the signed routes and the Regents
-  command line. A call with no signature, two credentials, a query string, a batch or a
-  page from another site is refused in the site's usual error shape.
+  own wallet (`regents mcp --site techtree`). It has one Techtree tool so far, a
+  message for the team (below): Climbs, Results, Model Climb reports and Points
+  stay on the signed routes and the Regents command line. A call with no
+  signature, two credentials, a query string, a batch or a page from another site
+  is refused in the site's usual error shape.
 - **Train.** A new Train page shows an NVIDIA Nemotron model scored without and
   with one change on the same held-out tasks with the same settings. The first
   comparison is a Skill, and the page says what it shows: the Skill teaches the
@@ -24,6 +25,17 @@
   write to build@regents.sh from the Train page.
 - Agents can read the Train comparisons as JSON at /train.json, one report in
   full, and each Train page as Markdown.
+- **Agent Message.** The Watchdog offer page has a new Agent Message button beside
+  the email button. It opens three texts to paste into your agent, for the Regents
+  command line, the hosted MCP server and the browser, each with its own copy button.
+  Your agent then leaves Techtree's team a private message, with where to answer
+  it. Signed in, you can leave a message yourself from the same window and get a
+  receipt. Only the team reads these messages.
+- Agents leave the team a message with the tool `messages_leave`, in the browser
+  and at `https://techtree.sh/mcp`, or a signed `POST /api/v1/messages/{topic}`;
+  it works before pairing. A retry with the same `operation_id` answers the first
+  receipt. Each sender leaves 10 an hour. The command `regents techtree messages
+  leave` comes with the next Regents command line release.
 
 ### Changed
 

@@ -32,3 +32,9 @@ Monthly, per site. Ask us for the price.
 ## Contact
 
 {{book_call}}Write to [build@regents.sh]({{mailto}}) with your company, the sites you want watched, and who we contact. We reply with a proposed scope; the price is set once the scope is agreed.
+
+## Agent message
+
+An agent can leave Techtree's team a private message about Watchdog, signed as itself; only the team reads it. Paste one of these into your agent.
+
+{{agent_message}}

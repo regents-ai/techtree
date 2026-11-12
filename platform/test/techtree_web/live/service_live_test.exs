@@ -3,11 +3,14 @@ defmodule TechtreeWeb.ServiceLiveTest do
   The two offer pages count their Agent Wallet Bench figures from the scores
   `/wallet-bench.json` serves, on the page and in its Markdown, so neither can
   say a different number from the bench.
+
+  The pages are read as they render: they read the sign-in from the socket's
+  connect info, which the LiveView test harness does not carry. The connected
+  Watchdog offer is exercised in the browser tests
+  (`assets/test/browser/agent_message.spec.ts`).
   """
 
   use TechtreeWeb.ConnCase, async: false
-
-  import Phoenix.LiveViewTest
 
   alias Techtree.WalletBenchFixture
   alias TechtreeWeb.WalletBenchScores
@@ -84,20 +87,17 @@ defmodule TechtreeWeb.ServiceLiveTest do
     assert feed == %{agents: 2, working: 1, plain_file: 1, judged: 4, safety: 1}
 
     for path <- [~p"/services/verify", ~p"/services/cyber-assist"] do
-      {:ok, live, _html} = live(conn, path)
+      page = page(conn, path)
 
-      assert figures(live) == [
+      assert figures(page) == [
                {"#{feed.agents}", "coding agents tested"},
                {"#{feed.plain_file} of #{feed.working}",
                 "working wallet they set up left their key or unlock password in a plain file"},
                {"#{feed.safety}", "safety failure in #{feed.judged} judged tests"}
              ]
 
-      assert has_element?(
-               live,
-               ".service-result .eyebrow",
+      assert text(page, ".service-result .eyebrow") =~
                "Our own bench, tests run 14 October to 2 November 2026"
-             )
     end
   end
 
@@ -120,10 +120,10 @@ defmodule TechtreeWeb.ServiceLiveTest do
   test "each offer's page and Markdown start the same email", %{conn: conn} do
     for {offer, path} <- [verify: ~p"/services/verify", cyber_assist: ~p"/services/cyber-assist"] do
       mailto = TechtreeWeb.ServiceLive.mailto(offer)
-      {:ok, live, _html} = live(conn, path)
+      page = page(conn, path)
       text = conn |> put_req_header("accept", "text/markdown") |> get(path) |> response(200)
 
-      assert has_element?(live, ~s|.service-offer__start a[href="#{mailto}"]|)
+      assert has?(page, ~s|.service-offer__start a[href="#{mailto}"]|)
       assert text =~ "(#{mailto})"
       assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
       assert %{"subject" => _subject, "body" => body} = URI.decode_query(query)
@@ -133,22 +133,23 @@ defmodule TechtreeWeb.ServiceLiveTest do
 
   test "the Watchdog page shows its sections, its price with no figure, and links the other offers",
        %{conn: conn} do
-    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
+    page = page(conn, ~p"/services/watchdog")
+    offer = text(page, ".service-offer")
 
-    assert has_element?(live, "h1", "Keep watch on the sites you own.")
-    assert has_element?(live, "h2", "How it works")
-    assert has_element?(live, "h2", "The rules we follow")
-    assert has_element?(live, "h2", "You get")
-    assert has_element?(live, ".service-rules li", "Only sites you've proven you own.")
-    assert render(live) =~ "Monthly, per site. Ask us for the price."
-    refute render(live) =~ ~r/[$£€]\s?\d/
-    assert has_element?(live, ~s|.service-offer__other a[href="/services/verify"]|)
-    assert has_element?(live, ~s|.service-offer__other a[href="/services/cyber-assist"]|)
+    assert text(page, "h1") =~ "Keep watch on the sites you own."
+    assert text(page, "h2") =~ "How it works"
+    assert text(page, "h2") =~ "The rules we follow"
+    assert text(page, "h2") =~ "You get"
+    assert text(page, ".service-rules li") =~ "Only sites you've proven you own."
+    assert offer =~ "Monthly, per site. Ask us for the price."
+    refute offer =~ ~r/[$£€]\s?\d/
+    assert has?(page, ~s|.service-offer__other a[href="/services/verify"]|)
+    assert has?(page, ~s|.service-offer__other a[href="/services/cyber-assist"]|)
   end
 
   test "the Watchdog page and Markdown start the same Company/Sites/Contact email", %{conn: conn} do
     mailto = TechtreeWeb.ServiceLive.mailto(:watchdog)
-    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
+    page = page(conn, ~p"/services/watchdog")
 
     text =
       conn
@@ -156,7 +157,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
       |> get(~p"/services/watchdog")
       |> response(200)
 
-    assert has_element?(live, ~s|.service-offer__start a[href="#{mailto}"]|)
+    assert has?(page, ~s|.service-offer__start a[href="#{mailto}"]|)
     assert text =~ "(#{mailto})"
     refute text =~ "{{"
 
@@ -175,16 +176,16 @@ defmodule TechtreeWeb.ServiceLiveTest do
       |> response(200)
     end
 
-    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
-    refute has_element?(live, ~s|.service-offer__start a:not([href^="mailto:"])|)
+    page = page(conn, ~p"/services/watchdog")
+    refute has?(page, ~s|.service-offer__start a:not([href^="mailto:"])|)
     refute markdown.() =~ "calendar.example"
 
     Application.put_env(:techtree, :book_call, address)
     on_exit(fn -> Application.put_env(:techtree, :book_call, nil) end)
 
-    {:ok, live, _html} = live(conn, ~p"/services/watchdog")
-    assert has_element?(live, ~s|.service-offer__start a[href="#{address}"]|)
-    assert has_element?(live, ~s|.service-offer__start a[href^="mailto:"]|)
+    page = page(conn, ~p"/services/watchdog")
+    assert has?(page, ~s|.service-offer__start a[href="#{address}"]|)
+    assert has?(page, ~s|.service-offer__start a[href^="mailto:"]|)
     assert markdown.() =~ "(#{address})"
   end
 
@@ -192,16 +193,17 @@ defmodule TechtreeWeb.ServiceLiveTest do
     Techtree.Repo.query!("UPDATE wallet_bench_turns SET judgment = NULL")
     WalletBenchScores.delete_all()
 
-    {:ok, live, _html} = live(conn, ~p"/services/verify")
-    assert has_element?(live, ".service-result .eyebrow", "Our own bench, no tests judged yet")
-    assert [{"0", "coding agents tested"} | _figures] = figures(live)
+    page = page(conn, ~p"/services/verify")
+    assert text(page, ".service-result .eyebrow") =~ "Our own bench, no tests judged yet"
+    assert [{"0", "coding agents tested"} | _figures] = figures(page)
   end
 
-  defp figures(live) do
-    live
-    |> element(".service-result__figures")
-    |> render()
-    |> LazyHTML.from_fragment()
+  defp page(conn, path), do: conn |> get(path) |> html_response(200) |> LazyHTML.from_document()
+  defp has?(page, selector), do: not Enum.empty?(LazyHTML.query(page, selector))
+  defp text(page, selector), do: page |> LazyHTML.query(selector) |> LazyHTML.text()
+
+  defp figures(page) do
+    page
     |> LazyHTML.query(".service-result__figures > div")
     |> Enum.map(fn div ->
       {div |> LazyHTML.query("dd") |> LazyHTML.text() |> String.trim(),

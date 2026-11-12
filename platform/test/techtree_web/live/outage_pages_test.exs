@@ -162,10 +162,17 @@ defmodule TechtreeWeb.OutagePagesTest do
   } do
     TechtreeWeb.WalletBenchScores.delete_all()
 
-    {:ok, live, _html} = quietly(fn -> live(conn, ~p"/services/verify") end)
+    # Read as it renders: the offer pages read the sign-in from the socket's
+    # connect info, which the LiveView test harness does not carry.
+    page =
+      quietly(fn -> get(conn, ~p"/services/verify") end)
+      |> html_response(200)
+      |> LazyHTML.from_document()
 
-    assert has_element?(live, ".service-result [role=status]", "figures can't be shown")
-    refute has_element?(live, ".service-result__figures")
+    assert page |> LazyHTML.query(".service-result [role=status]") |> LazyHTML.text() =~
+             "figures can't be shown"
+
+    assert Enum.empty?(LazyHTML.query(page, ".service-result__figures"))
 
     text =
       quietly(fn ->

@@ -234,8 +234,10 @@ defmodule Techtree.MixProject do
       # server takes the count to 32: the agents domain reads its Connection
       # resource and that resource its caller check, the router hands /mcp its
       # tool-argument check, and the MCP plug keys its rate limits by client
-      # address. Keep this floor bounded.
-      "xref graph --label compile-connected --fail-above 32",
+      # address. Messages for the team take it to 34: the messages domain reads
+      # its Message resource, and that resource the module that runs its
+      # agent_leave action. Keep this floor bounded.
+      "xref graph --label compile-connected --fail-above 34",
       "ash.codegen --check",
       "usage_rules.sync --check",
       "techtree.sync_openapi --check",

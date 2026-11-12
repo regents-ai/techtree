@@ -116,7 +116,9 @@ defmodule TechtreeWeb.PublicDocuments do
   page's Wallet Bench figures go (`TechtreeWeb.ServiceLive.bench_markdown/1`)
   and `{{mailto}}` where its email address goes (`TechtreeWeb.ServiceLive.mailto/1`).
   Watchdog's also has `{{book_call}}`, its line for booking a call
-  (`TechtreeWeb.ServiceLive.book_call_markdown/0`).
+  (`TechtreeWeb.ServiceLive.book_call_markdown/0`), and `{{agent_message}}`,
+  the three ways an agent leaves the team a message
+  (`TechtreeWeb.ServiceLive.agent_message_markdown/0`).
   """
   @spec offer(:verify | :cyber_assist | :watchdog) :: String.t()
   def offer(:verify), do: @sources["services/verify"]

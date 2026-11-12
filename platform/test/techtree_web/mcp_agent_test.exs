@@ -3,8 +3,8 @@ defmodule TechtreeWeb.McpAgentTest do
   # (4.3) sets out, through this site's own endpoint and router:
   # - every request carries an agent's signature or a connected app's token, never
   #   both, and a signature the sign-in service refuses is refused;
-  # - an agent's signed call is admitted as that agent, and no tool here is a
-  #   signed agent's yet;
+  # - an agent's signed call is admitted as that agent, and its one tool here
+  #   leaves the team a message (TechtreeWeb.MessagesApiTest);
   # - a query string, a page from another site, a batch, a body that is not JSON
   #   and any other method or address are refused in the site's shape, before
   #   any signature is checked;
@@ -84,7 +84,7 @@ defmodule TechtreeWeb.McpAgentTest do
     assert error(refused)["code"] == "http_signature_invalid"
   end
 
-  test "an agent's signed call is admitted as that agent, with no tool of its own here yet",
+  test "an agent's signed call is admitted as that agent, with the one tool that is its own here",
        %{from: from} do
     agent = wallet()
     listed = mcp(rpc("tools/list"), from: from, proof: agent)
@@ -92,7 +92,7 @@ defmodule TechtreeWeb.McpAgentTest do
     assert listed.status == 200
     assert get_resp_header(listed, "cache-control") == ["private, no-store"]
     assert %Agent{wallet_address: ^agent, connection: nil} = Ash.PlugHelpers.get_actor(listed)
-    assert result(listed)["tools"] == []
+    assert [%{"name" => "messages_leave"}] = result(listed)["tools"]
 
     call = mcp(call("register_identity", %{}), from: from, proof: agent)
     assert %{"error" => _} = Jason.decode!(call.resp_body)

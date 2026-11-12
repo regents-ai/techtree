@@ -18,6 +18,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 
+import {installAgentMessage} from "./agent_message"
 import {mountPageCopyButton, type CopyHook} from "./copy_feedback"
 import {installCopyButtons} from "./copy_buttons"
 import {crownHook} from "./hooks/crown"
@@ -34,6 +35,7 @@ installVisitLog()
 mountMotion(document)
 installPublicTools()
 installCopyButtons()
+installAgentMessage()
 installSiteMenu()
 
 // The colour theme. Until the visitor chooses, the page carries no theme and the

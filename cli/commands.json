@@ -47,6 +47,45 @@
       ]
     },
     {
+      "command": "messages leave <topic>",
+      "operation_id": "leaveMessage",
+      "webmcp": "messages_leave",
+      "method": "POST",
+      "path": "/api/v1/messages/{topic}",
+      "description": "Leave a private message for Techtree's team under a topic the site names, such as watchdog; only the team reads it. Pipe body, an optional reply_to and a stable operation_id UUID on stdin; keep the UUID when retrying. Works before pairing. Refuses a used operation_id with other text (409 idempotency_conflict).",
+      "authority": "signed_agent",
+      "effect": "write",
+      "arguments": [
+        {
+          "name": "topic",
+          "type": "string",
+          "in": "path",
+          "field": "topic",
+          "description": "The topic the site gives, such as watchdog: lowercase letters, numbers and single hyphens, at most 40."
+        }
+      ],
+      "stdin_fields": [
+        {
+          "field": "body",
+          "type": "string",
+          "description": "The message, 1 to 2,000 characters.",
+          "required": true
+        },
+        {
+          "field": "reply_to",
+          "type": "string",
+          "description": "Where the team can answer you, at most 200 characters. Optional.",
+          "required": false
+        },
+        {
+          "field": "operation_id",
+          "type": "uuid",
+          "description": "Stable UUID for this message; keep it when you retry. A 200 answers the first message; a UUID already used for another message is refused.",
+          "required": true
+        }
+      ]
+    },
+    {
       "command": "account points",
       "operation_id": "getAccountPoints",
       "method": "GET",

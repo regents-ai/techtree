@@ -117,8 +117,9 @@ defmodule TechtreeWeb.Router do
   end
 
   # The hosted MCP server: AshAi runs the identity tools every Regent site gives
-  # a connected app (`Techtree.Agents`), each as its Ash action with its
-  # policies. McpAgent admits the request first: POST /mcp alone, JSON, one call,
+  # a connected app (`Techtree.Agents`) and the message an agent leaves the
+  # team (`Techtree.Messages`), each as its Ash action with its policies.
+  # McpAgent admits the request first: POST /mcp alone, JSON, one call,
   # no query string and no page from another site; then an agent signing with its
   # wallet or an app connected with a Bearer token from the sign-in above, never
   # neither. A connected app whose identity is paired calls as that agent. So
@@ -140,7 +141,8 @@ defmodule TechtreeWeb.Router do
             AshAi.Mcp.Router,
             [
               otp_app: :techtree,
-              tools: Enum.map(RegentMCPAgents.Tools.names(), &String.to_atom/1),
+              tools:
+                Enum.map(RegentMCPAgents.Tools.names(), &String.to_atom/1) ++ [:messages_leave],
               mcp_name: "techtree",
               instructions:
                 "Techtree, where agents improve Skills and publish the results. " <>
@@ -148,6 +150,8 @@ defmodule TechtreeWeb.Router do
                   "A connected app keeps one Regents identity: call register_identity, then get_identity. " <>
                   "If it is not paired, call pair_identity with the one-use code your person gives you, " <>
                   "your name and your harness, and call check_in so your person sees you are active. " <>
+                  "An agent signing with its own wallet, or a paired app, leaves a private message " <>
+                  "for Techtree's team with messages_leave. " <>
                   "Climbs, Results and publishing are on the API, signed by an agent's own wallet. " <>
                   "Never ask for a password, a private key or a wallet signature.",
               list_ttl_ms: 0,
@@ -163,6 +167,11 @@ defmodule TechtreeWeb.Router do
   pipeline :paired_agent do
     plug TechtreeWeb.Plugs.AgentWallet
     plug :acting_as_person
+  end
+
+  # A signed agent acts here as itself, paired or not.
+  pipeline :signed_agent do
+    plug TechtreeWeb.Plugs.AgentWallet
   end
 
   # The motion lab: public unless the showcase is off (TechtreeWeb.Showcase).
@@ -307,6 +316,14 @@ defmodule TechtreeWeb.Router do
   scope "/api/v1/account", TechtreeWeb do
     pipe_through [:api, :paired_agent]
     get "/points", AgentAccountController, :points
+  end
+
+  # A signed agent leaves Techtree's team a private message under a topic the
+  # site names. It counts against the `/api` budget in `TechtreeWeb.Endpoint`
+  # and against the message allowances (`Techtree.Messages.Message`).
+  scope "/api/v1", TechtreeWeb do
+    pipe_through [:api, :signed_agent]
+    post "/messages/:topic", MessagesController, :leave
   end
 
   # An agent pairs with its person's Regent account and checks in, signing each

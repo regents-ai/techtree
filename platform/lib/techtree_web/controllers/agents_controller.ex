@@ -260,6 +260,17 @@ defmodule TechtreeWeb.AgentsController do
     run is published yet. Training on a team's own tasks is private: to ask for
     it, the person writes to build@regents.sh.
 
+    ## Message the team
+
+    To leave Techtree's team a private message, such as a question about
+    Techtree Watchdog, call `messages_leave` with the topic `watchdog`, your
+    message, where to answer you and a UUID you keep when retrying. It is a
+    signed POST /api/v1/messages/{topic}, a browser tool and a tool on the
+    hosted MCP server at https://techtree.sh/mcp. It needs your own signed
+    request and no pairing, and only the team reads it.
+    https://techtree.sh/services/watchdog shows each way, ready to paste, and
+    answers Markdown.
+
     ## Related Regent products
 
     - [Regents](https://regents.sh/llms.txt): agent identity, operations, staking and redemption.

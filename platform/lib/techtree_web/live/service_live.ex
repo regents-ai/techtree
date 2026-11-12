@@ -8,9 +8,14 @@ defmodule TechtreeWeb.ServiceLive do
   proves it owns, with its own shape (how it works, the rules, what you get and
   the price). Every page starts an email whose body already asks for what we
   need (`mailto/1`); Watchdog also links Book Call when an address for it is
-  set (`book_call/0`). Each page's Markdown is `priv/public/services/<offer>.md`,
-  the same facts in words, and the Verify and Cyber Assist sample reports are
-  public documents (`TechtreeWeb.PublicDocuments`).
+  set (`book_call/0`), and has the Agent Message button
+  (`TechtreeWeb.Components.AgentMessage`, topic `watchdog`): its window gives an
+  agent three ways to leave the team a private message, and a signed-in person a
+  form for one. The window's form acts for the signed-in person, so these pages
+  read the sign-in as the account menu beside them does
+  (`TechtreeWeb.Live.Session`, `:load_visitor`). Each page's Markdown is
+  `priv/public/services/<offer>.md`, the same facts in words, and the Verify and
+  Cyber Assist sample reports are public documents (`TechtreeWeb.PublicDocuments`).
 
   The bench figures are counted from the published scores
   (`TechtreeWeb.WalletBenchScores.figures/0`, the grids `/wallet-bench.json`
@@ -20,7 +25,10 @@ defmodule TechtreeWeb.ServiceLive do
 
   use TechtreeWeb, :live_view
 
+  alias TechtreeWeb.Components.AgentMessage
   alias TechtreeWeb.{Outage, WalletBenchScores}
+
+  on_mount {TechtreeWeb.Live.Session, :load_visitor}
 
   @offers %{
     verify: %{
@@ -156,6 +164,10 @@ defmodule TechtreeWeb.ServiceLive do
     end
   end
 
+  @doc "Watchdog's Markdown for an agent: the three ways it leaves the team a message."
+  @spec agent_message_markdown() :: String.t()
+  def agent_message_markdown, do: AgentMessage.markdown("watchdog")
+
   @doc "The email an offer starts: to build@regents.sh, with its subject and the lines its body asks for."
   @spec mailto(:verify | :cyber_assist | :watchdog) :: String.t()
   def mailto(offer) do
@@ -191,6 +203,9 @@ defmodule TechtreeWeb.ServiceLive do
          " in #{figures.judged} " <> plural(figures.judged, "judged test")}
     ]
   end
+
+  defp signed_in(%{principal: {:human, account}}), do: account
+  defp signed_in(_access_context), do: nil
 
   defp plural(1, noun), do: noun
   defp plural(_count, noun), do: noun <> "s"
@@ -291,8 +306,16 @@ defmodule TechtreeWeb.ServiceLive do
             >
               Email build@regents.sh
             </a>
+            <AgentMessage.button id="watchdog-message-button" dialog="watchdog-message" />
           </div>
         </Regent.Structure.panel>
+        <AgentMessage.dialog
+          id="watchdog-message"
+          topic="watchdog"
+          account={signed_in(@access_context)}
+          lease={@session_lease}
+          client_key={@client_key}
+        />
       </article>
     </Layouts.page>
     """

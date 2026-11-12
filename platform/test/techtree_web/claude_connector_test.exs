@@ -393,7 +393,11 @@ defmodule TechtreeWeb.ClaudeConnectorTest do
                agent = actor(post_mcp(rpc("tools/list"), token))
 
       assert agent.connection.subject == subject
-      assert Enum.sort(tool_names(token)) == Enum.sort(RegentMCPAgents.Tools.names())
+
+      # As the agent it also has the agent's tool, a message for the team.
+      assert Enum.sort(tool_names(token)) ==
+               Enum.sort(["messages_leave" | RegentMCPAgents.Tools.names()])
+
       assert %{"isError" => false} = tool(token, "check_in")
     end
 

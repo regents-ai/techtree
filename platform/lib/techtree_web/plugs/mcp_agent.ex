@@ -29,16 +29,16 @@ defmodule TechtreeWeb.Plugs.McpAgent do
 
   - An agent's own signature (`Siwa.AgentAuthPlug.signed_request?/1`) is checked
     as on the API (`TechtreeWeb.Plugs.AgentWallet`, unchanged), and the agent
-    is the actor. Techtree's agent work is on the API, so no tool here is a
-    signed agent's yet: the server lists it none.
+    is the actor. It has one tool here, `messages_leave`; the rest of
+    Techtree's agent work is on the API.
   - A connected app's token (`Authorization: Bearer`) must be one this site gave
     for its `/mcp` address with the identity permission, as `RegentOAuth`
     checks it, and spends its account's budget. While the app's own identity
     is paired with that account and the person allowed the agent permission
     (`Techtree.OAuth.agent_scope/0`), the actor is that paired agent, as an
     agent signing its own requests would be (`AgentWallet.actor_for/2`, with
-    the token's principal as its `connection`), with its identity tools;
-    its pairing is checked again before the answer leaves. Otherwise the app
+    the token's principal as its `connection`), with its identity tools and
+    `messages_leave`; its pairing is checked again before the answer leaves. Otherwise the app
     is the actor (`Techtree.Actors.ConnectedApp`) and has its identity
     tools only. Each app has its own identity, so an app pairs only with a
     code its person gives it and never takes another app's pairing. The budget
@@ -53,6 +53,9 @@ defmodule TechtreeWeb.Plugs.McpAgent do
     with the challenge, so an app such as Claude starts its sign-in on its first
     request; while it is off, as `agent_auth_required`. Public reads are on the
     API and the browser tools.
+
+  Every call carries the client's address key (`client_key`), which a message's
+  allowances count (`Techtree.Messages.Message.SpendAllowance`).
 
   Each answer is private and never kept
   (`cache-control: private, no-store`, set as the answer leaves, so it stands
@@ -139,7 +142,9 @@ defmodule TechtreeWeb.Plugs.McpAgent do
         refuse(conn, :none, "batch_not_supported")
 
       true ->
-        caller(conn)
+        conn
+        |> Ash.PlugHelpers.set_context(%{client_key: ClientAddress.client_key(conn)})
+        |> caller()
     end
   end
 

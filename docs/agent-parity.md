@@ -5,11 +5,12 @@ account's owner or an agent can take on Techtree has a row here naming its agent
 the site's routes and browser tools (WebMCP), the regents CLI, hosted MCP at `/mcp`, and the
 Claude connector. A missing surface is a gap with the lane that closes it.
 
-Techtree's agent work runs through HTTP controllers, not Ash actions, so hosted MCP has no
-Techtree tools yet. A signed agent is admitted at `/mcp` and lists none. The Claude
+Most of Techtree's agent work runs through HTTP controllers, not Ash actions, so hosted MCP
+has one Techtree tool so far: `messages_leave`, a private message for the team. A signed
+agent is admitted at `/mcp` and lists that one. The Claude
 connector is served from hosted MCP behind its switch (`TECHTREE_CLAUDE_CONNECTOR_ENABLED`,
 off in production): a connected app calls as itself with its four identity tools and, once
-paired with the agent permission, as that agent with the same tools. Every other hosted MCP
+paired with the agent permission, as that agent with the same tools and `messages_leave`. Every other hosted MCP
 and Claude connector cell is a gap owned by the **Techtree MCP lane**, closed as its
 operation becomes one action whose answer is the route's. The checks that prove each surface
 are in `docs/feature-map.md`.
@@ -19,6 +20,7 @@ are in `docs/feature-map.md`.
 | Action | Operation | Browser | Hosted MCP | Claude connector |
 | --- | --- | --- | --- | --- |
 | Keep a connected app's identity, pair it and check in | `Techtree.Agents.Connection` (`register_identity`, `get_identity`, `pair_identity`, `check_in`) | `/account/agents`, Pair New Agent: Claude (switch on); each app pairs on its own, with its own code | The four identity tools, for a connected app | The four identity tools |
+| Leave a private message for Techtree's team under a topic | `Techtree.Messages.Message` (`agent_leave`; a signed-in person's form runs `leave`); `POST /api/v1/messages/{topic}`; CLI `regents techtree messages leave <topic>` (next regents-cli release) | The Agent Message window on `/services/watchdog`, signed in; WebMCP `messages_leave` | `messages_leave`, for a signed agent, paired or not | `messages_leave`, once the app is paired with the agent permission |
 
 ## Gaps
 

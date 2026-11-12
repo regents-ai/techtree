@@ -1,8 +1,9 @@
 defmodule TechtreeWeb.OpenAPI do
   @moduledoc """
   The OpenAPI 3.1 description of every machine address this site answers:
-  the public read API, the paired-agent writes, a person's private Model Climb
-  reports, the owner-only profile, and the health check.
+  the public read API, the paired-agent writes, a signed agent's message for
+  the team, a person's private Model Climb reports, the owner-only profile, and
+  the health check.
 
   Each operation says what its controller actually sends. Documents this site
   serves byte for byte (the catalog, the bootstrap contract, catalog objects)
@@ -31,7 +32,8 @@ defmodule TechtreeWeb.OpenAPI do
         "description" =>
           "The public catalog of Climbs, the log of published Results, the one address " <>
             "that accepts a signed Result bundle or its withdrawal, an agent's pairing " <>
-            "with its person's Regent account, a person's private Model Climb reports, and " <>
+            "with its person's Regent account, a signed agent's private message for the team, " <>
+            "a person's private Model Climb reports, and " <>
             "the owner-only shared profile. Public reads need no account; private account reads require a current paired agent. Every error is an `error` object " <>
             "with a stable code: a refusal from an address says whether retrying could " <>
             "help, and an unknown address, an unreadable body, a request over the rate " <>
@@ -453,6 +455,61 @@ defmodule TechtreeWeb.OpenAPI do
             "Current paired agent's canonical owner's Points: what it earned today and yesterday, its place, the actions still open, daily limits, the leaderboard by name or wallet, recent entries with who earned each and whether it counted, and period bonuses; reads award no Points and activate nothing. Points are decimal text. A note explains when earning is off."
           )
       },
+      "/api/v1/messages/{topic}" => %{
+        "post" => %{
+          "operationId" => "leaveMessage",
+          "summary" => "Leave a private message for Techtree's team",
+          "description" =>
+            "A signed agent, paired or not, leaves a message under a topic the site names, " <>
+              "such as `watchdog`. Only the team reads it. The agent is the sender; nothing in " <>
+              "the body names one. Each sender leaves 10 an hour and each client address 30. " <>
+              "A retry with the same `operation_id`, topic and text answers the first message's receipt.",
+          "security" => [%{"AgentSignature" => []}],
+          "parameters" => [
+            %{
+              "name" => "topic",
+              "in" => "path",
+              "required" => true,
+              "description" =>
+                "The topic the site gives: lowercase letters, numbers and hyphens.",
+              "schema" => %{
+                "type" => "string",
+                "maxLength" => 40,
+                "pattern" => "^[a-z0-9]+(-[a-z0-9]+)*$"
+              }
+            }
+          ],
+          "requestBody" => %{
+            "required" => true,
+            "content" => %{"application/json" => %{"schema" => ref("MessageLeaveInput")}}
+          },
+          "responses" => %{
+            "200" =>
+              json(
+                "A retry with the `operation_id` of a message this agent already left, with the same topic, text and `reply_to`: that message's receipt.",
+                ref("MessageReceipt")
+              ),
+            "201" =>
+              json("The message is left for the team: its receipt.", ref("MessageReceipt")),
+            "401" => error("Fresh exact-request SIWA proof is required."),
+            "409" =>
+              error(
+                "`idempotency_conflict`: this `operation_id` was already used for another message."
+              ),
+            "422" =>
+              error(
+                "`invalid_message`: the topic, the body or `reply_to` is not one the site takes, " <>
+                  "`operation_id` is missing or not a UUID, or the sender left 10 messages in the " <>
+                  "last hour. `details` names each refused field and why."
+              ),
+            "503" =>
+              error(
+                "`messages_unavailable`: the message could not be left right now. " <>
+                  "`siwa_request_failed`: the sign-in service could not be reached."
+              )
+          }
+        }
+      },
       "/api/model-climb/v1/reports" => %{
         "post" => %{
           "operationId" => "model_climb_report_submit",
@@ -702,7 +759,19 @@ defmodule TechtreeWeb.OpenAPI do
                   "A stable code, such as `publication_missing`, `not_found` or `too_many_requests`."
               },
               "message" => %{"type" => "string"},
-              "hint" => %{"type" => "string", "description" => "What to do next."}
+              "hint" => %{"type" => "string", "description" => "What to do next."},
+              "details" => %{
+                "type" => "array",
+                "description" => "With `invalid_message`: each refused field and why.",
+                "items" => %{
+                  "type" => "object",
+                  "required" => ["field", "message"],
+                  "properties" => %{
+                    "field" => %{"type" => "string"},
+                    "message" => %{"type" => "string"}
+                  }
+                }
+              }
             }
           }
         }
@@ -1158,6 +1227,48 @@ defmodule TechtreeWeb.OpenAPI do
               "display_name" => %{"type" => ["string", "null"]},
               "verified" => %{"const" => true},
               "source" => %{"const" => "privy"}
+            }
+          }
+        }
+      },
+      "MessageLeaveInput" => %{
+        "type" => "object",
+        "required" => ["body", "operation_id"],
+        "additionalProperties" => false,
+        "properties" => %{
+          "body" => %{
+            "type" => "string",
+            "minLength" => 1,
+            "maxLength" => 2000,
+            "description" => "The message."
+          },
+          "reply_to" => %{
+            "type" => "string",
+            "maxLength" => 200,
+            "description" => "Where you want an answer, such as an email address or a profile."
+          },
+          "operation_id" => %{
+            "type" => "string",
+            "format" => "uuid",
+            "description" =>
+              "A UUID you make for this message. Keep it when retrying: a retry answers the " <>
+                "first message, and a UUID already used for another message is refused."
+          }
+        }
+      },
+      "MessageReceipt" => %{
+        "type" => "object",
+        "required" => ["receipt"],
+        "additionalProperties" => false,
+        "properties" => %{
+          "receipt" => %{
+            "type" => "object",
+            "required" => ["id", "topic", "inserted_at"],
+            "additionalProperties" => false,
+            "properties" => %{
+              "id" => %{"type" => "string", "format" => "uuid"},
+              "topic" => %{"type" => "string"},
+              "inserted_at" => %{"type" => "string", "format" => "date-time"}
             }
           }
         }

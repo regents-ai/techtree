@@ -6,6 +6,7 @@
 /* After the shared primitives, as the template's shell is, so the pairing
    window's close button keeps its own size and place over the shared button's. */
 @import "components/account_shell.css";
+@import "components/agent_message.css";
 @import "./agent_versions.css";
 @import "./techtree_home.css";
 @import "./techtree_pages.css";
