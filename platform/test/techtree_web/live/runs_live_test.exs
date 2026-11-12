@@ -185,7 +185,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       refute live |> element("select") |> has_element?()
       refute live |> element("[phx-click]") |> has_element?()
-      refute html =~ "<form"
+      refute without_confirm_window(html) =~ "<form"
     end
 
     test "says once, of itself, that the log opened with this project's own runs",

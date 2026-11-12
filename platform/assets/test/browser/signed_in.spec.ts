@@ -174,8 +174,10 @@ for (const width of [1280, 390, 320]) {
 // and phone widths, each with an agent of its own. A name with a hidden character
 // is refused beside the field and the agent keeps its name; a name with an emoji
 // joined by a zero-width joiner saves, and the window and the list show it.
+// Unpair asks in the site's own window, opened over the agent's: Cancel keeps
+// the agent and Unpair takes it off the list.
 for (const width of ["desktop", "phone"] as const) {
-  test(`on a ${width}, an agent's window renames it`, async ({browser}) => {
+  test(`on a ${width}, an agent's window renames it and unpairs it`, async ({browser}) => {
     const hasTouch = width === "phone"
     const context = await browser.newContext(
       hasTouch ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch} : {},
@@ -200,10 +202,10 @@ for (const width of ["desktop", "phone"] as const) {
 
     await name.fill("Ada‮gnp.exe")
     await press(save)
-    await expect(agentWindow.getByRole("alert")).toHaveText(
-      "That name can’t be used. Use 1 to 80 characters with no hidden characters.",
-    )
     await expect(name).toHaveAttribute("aria-invalid", "true")
+    await expect(name).toHaveAccessibleDescription(
+      /That name can’t be used\. Use 1 to 80 characters with no hidden characters\./,
+    )
     await expect(agentWindow).toBeVisible()
 
     await name.fill(renamed)
@@ -212,8 +214,22 @@ for (const width of ["desktop", "phone"] as const) {
     await expect(
       renamedWindow.getByText(`Saved. This agent is now called ${renamed} on every Regent site.`),
     ).toBeVisible()
-    await expect(renamedWindow.getByRole("alert")).toHaveCount(0)
+    await expect(renamedWindow.getByRole("textbox", {name: "Name"})).not.toHaveAttribute("aria-invalid", "true")
     await expect(page.getByRole("button", {name: `See ${renamed}’s actions`})).toBeAttached()
+
+    const ask = page.locator("#rg-confirm")
+    const unpair = renamedWindow.getByRole("button", {name: "Unpair", exact: true})
+    await press(unpair)
+    await expect(ask).toBeVisible()
+    await press(ask.getByRole("button", {name: "Cancel"}))
+    await expect(ask).toBeHidden()
+    await expect(renamedWindow).toBeVisible()
+    await expect(unpair).toBeFocused()
+
+    await press(unpair)
+    await press(ask.getByRole("button", {name: "Unpair", exact: true}))
+    await expect(ask).toBeHidden()
+    await expect(page.getByRole("button", {name: `See ${renamed}’s actions`})).toHaveCount(0)
     expect(errors).toEqual([])
     expect(outside).toEqual([])
     await context.close()

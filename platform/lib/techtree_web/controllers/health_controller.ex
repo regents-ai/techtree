@@ -2,8 +2,10 @@ defmodule TechtreeWeb.HealthController do
   @moduledoc """
   Whether this machine is serving a catalog: `/healthz` in plain text for the
   host's health check, `ok` or `503 unavailable`, and `/api/v1/health` in JSON
-  for agents and the command line, `{"status": "ok"}` or 503 with an
-  `unavailable` error.
+  for agents and the command line, `{"status": "ok", "migrations_applied": true}`
+  or 503 with an `unavailable` error. The JSON says whether this release's
+  migrations are all applied; pending ones leave the answer at 200, so the host
+  does not restart a site that is serving.
 
   Serving means there is an active, completed catalog release: the process being
   up is not the same as the site having something true to publish. Which
@@ -18,6 +20,7 @@ defmodule TechtreeWeb.HealthController do
   use TechtreeWeb, :controller
 
   alias Techtree.Catalog.Query
+  alias Techtree.Health
   alias TechtreeWeb.{HealthMemory, Outage}
 
   def show(conn, _params) do
@@ -33,7 +36,7 @@ defmodule TechtreeWeb.HealthController do
     conn = put_resp_header(conn, "cache-control", "no-store")
 
     if serving?() do
-      json(conn, %{status: "ok"})
+      json(conn, %{status: "ok", migrations_applied: Health.migrations_applied?()})
     else
       conn
       |> put_status(:service_unavailable)

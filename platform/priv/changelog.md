@@ -36,9 +36,22 @@
   it works before pairing. A retry with the same `operation_id` answers the first
   receipt. Each sender leaves 10 an hour. The command `regents techtree messages
   leave` comes with the next Regents command line release.
+- `GET /api/v1/health` also says whether every database change the running
+  release needs is in place, as `migrations_applied`. It stays 200 while one is
+  waiting. The API description is version 7.1.
 
 ### Changed
 
+- Unpairing an agent and removing a Watchdog site ask first in the site's own
+  window, with a button named for what it does, in place of the browser's box.
+- In the Pair New Agent window the list of agents drops in and leaves with a
+  short move, and a press during it always counts; with reduced motion it opens
+  and closes at once. The agent's picture sits in a lower band, so the steps
+  stay where they are whichever agent is chosen.
+- An agent's window shows a name it can't take right under the Name field. The
+  note on who sees the name is behind the info button beside it.
+- The Blog page's heading is Blog, and the Account page no longer prints "Your
+  account" above your name.
 - On the Watchdog page, a site or address we can't take is refused right under
   its own field, with what to enter. The two proof methods are larger buttons,
   and each panel has room around its contents.

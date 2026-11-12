@@ -1,5 +1,3 @@
-declare module "phoenix_html"
-
 declare module "phoenix" {
   export const Socket: unknown
 }

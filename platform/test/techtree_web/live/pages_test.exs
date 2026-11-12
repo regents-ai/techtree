@@ -137,7 +137,7 @@ defmodule TechtreeWeb.PagesTest do
          %{conn: conn} do
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
-        markup = String.downcase(html)
+        markup = html |> without_confirm_window() |> String.downcase()
 
         refute markup =~ "<form"
         refute markup =~ "<input"

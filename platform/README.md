@@ -123,7 +123,7 @@ GET /admin/messages            The team only: the messages left for it, newest f
 GET /blog, /blog/:slug          published posts
 
 GET /healthz                    ok while a catalog is being served
-GET /api/v1/health              the same check as JSON, {"status": "ok"}
+GET /api/v1/health              the same check as JSON, {"status": "ok", "migrations_applied": true}
 GET /capabilities.json          the browser tools, and the commit and image running
 GET /api/v1/bootstrap           the installation contract, exact bytes
 GET /api/v1/catalog             the generated catalog index, exact bytes
@@ -280,7 +280,11 @@ and content render without them. The home page crown is a vgpu island: the
 shared `assets/js/canvas_island.ts` (a copy of ash-template's) wraps the
 renderer in `assets/js/crown/`, the server draws a still crown first, and the
 live one takes over once its first frame is drawn. Motion uses Anime.js through
-the shared motion kit in `assets/js/hooks/motion/`. The stylesheet is hand-written CSS with no
+the shared motion kit in `assets/js/hooks/motion/`. A control carrying
+`data-confirm` (the question) and `data-confirm-action` (one word for the
+going-ahead button) asks in the one shared window in the root layout
+(`Regent.Structure.confirm`, `assets/vendor/regent_ui/confirm.mjs`), never the
+browser's box; no on-chain button carries one. The stylesheet is hand-written CSS with no
 framework or remote fonts, so a page is readable on a phone, in a reader, and
 on paper.
 
@@ -473,7 +477,7 @@ of these with stand-ins for `flyctl`, `curl` and `lockf`.
 After each release, `make live-check` from the monorepo root reads techtree.sh
 signed out in headless Chromium at 1280 and 390 wide
 (`scripts/live-check.sh`, `platform/assets/test/live/live.spec.ts`): the site
-runs this checkout's commit, every public page opens with no error, no sideways
+runs this checkout's commit with every migration applied, every public page opens with no error, no sideways
 scrolling and no press target too small, the public documents answer in their
 own type, the home page offers exactly this checkout's browser tools and every
 public read among them answers, and the Agent Message window opens. It writes

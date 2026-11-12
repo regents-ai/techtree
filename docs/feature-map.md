@@ -13,8 +13,9 @@ a console error, sideways scrolling, or a press target too small: 44 px for a
 finger on a touch screen, 24 px for a mouse control.
 
 `make live-check` is the one check that reads the live site, after a release: the
-same page checks at 1280 and 390 wide, signed out, plus the commit it runs, its
-public documents and the browser tools its home page offers
+same page checks at 1280 and 390 wide, signed out, plus the commit it runs, that
+its migrations are all applied, its public documents and the browser tools its
+home page offers
 (`platform/assets/test/live/live.spec.ts`). It writes nothing.
 
 ## Public pages (signed out)
@@ -49,16 +50,16 @@ public documents and the browser tools its home page offers
 | --- | --- |
 | Open the account menu from their name on every page: their agents with Manage, Pair New Agent, Manage Account and Sign out; it hangs under the button inside the screen at 1280, 390 and 320 wide, the page still fits, a press outside or Escape closes it with focus back on the button, and with less motion it appears at once | `signed_in.spec.ts`, `account_menu_live_test.exs` |
 | Pair New Agent in the account menu, and in the Agents list, opens the pairing window over the page they are on, every press, with the keyboard on the agent dropdown and the list of agents open; the menu closes first; Close, the backdrop or Escape close it, Escape closing an open list first; closed, focus goes back to what opened it; Manage Account opens the Account page and closes the menu; every signed-in page holds the one window | `signed_in.spec.ts`, `pairing.spec.ts`, `account_menu_live_test.exs` |
-| Choose an agent in the pairing window and copy its message; the window keeps one height whatever is chosen; each agent keeps its own code until a new one is asked for; a form sent back with nothing chosen leaves the box as it is | `pairing.spec.ts` |
+| Choose an agent in the pairing window and copy its message; the window keeps one height whatever is chosen; the agent's picture sits in a low band and choosing moves nothing under it; the list drops in and leaves with a short move, a press during it counts, and with less motion it opens and closes at once; each agent keeps its own code until a new one is asked for; a form sent back with nothing chosen leaves the box as it is | `pairing.spec.ts` |
 | See their agents and Pair New Agent on the Agents tab (/account/agents), and their profile on the Account tab, at 1280, 390 and 320 wide, with nothing scrolling sideways | `signed_in.spec.ts`, `account_menu_live_test.exs` |
 | See the Train pages signed in at 1280 and 390 wide, the newest comparison leading, its Settings link opening the comparison's settings and every task opening under Every task | `train.spec.ts` |
 | On a phone, see the open Menu over the page, with the page and footer out of reach until it closes; on a short phone screen the account menu ends inside the screen and reaches Sign out | `signed_in.spec.ts` |
 | See public pages signed out, and stay signed in, while the database is down | `outage_pages_test.exs` |
-| On Watchdog, add a site you own, get its DNS record or file to publish, press Check to prove ownership, and add, turn off or remove the addresses on it; only your own list is seen or changed, and an address can't be active until its site is proven | `watchdog_test.exs`, `watchdog_ownership_test.exs`, `watchdog_live_test.exs`; `watchdog.spec.ts` adds a site and an address signed in at desktop and phone widths, and sees a bad or repeated site and an address on another site refused under its own field. **Gap:** no browser check presses Check or turns an address on |
+| On Watchdog, add a site you own, get its DNS record or file to publish, press Check to prove ownership, and add, turn off or remove the addresses on it; only your own list is seen or changed, and an address can't be active until its site is proven | `watchdog_test.exs`, `watchdog_ownership_test.exs`, `watchdog_live_test.exs`; `watchdog.spec.ts` adds a site and an address signed in at desktop and phone widths, sees a bad or repeated site and an address on another site refused under its own field, and removes the site through the site's own confirm window (Cancel keeps it, Remove removes it, the browser's box never opens). **Gap:** no browser check presses Check or turns an address on |
 | On the Watchdog offer, open Agent Message and leave the team a message from its form: an empty message is refused under its field when the field is left, a sent one shows its receipt and clears the form, and the window stays open, at 1280 and 390 wide | `agent_message.spec.ts`, `messages_pages_test.exs` |
 | As one of the site's admins (`REGENT_CREDITS_ADMINS`), read every message left for the team at /admin/messages, newest first, 50 a page; anyone else, signed in or not, gets the not-found page | `messages_pages_test.exs`; `agent_message.spec.ts` leaves a message and reads it there, connected, at 1280 and 390 wide |
 | Sign in with Privy | **Gap:** needs a real Privy account; checked by hand |
-| Rename a paired agent from its window on the Agents page, at both widths; a name with hidden characters is refused | `signed_in.spec.ts` |
+| Rename a paired agent from its window on the Agents page, at both widths; a name with hidden characters is refused under the Name field itself; Unpair there asks in the site's own confirm window, opened over the agent's (Cancel keeps the agent, Unpair takes it off the list) | `signed_in.spec.ts` |
 | See the three most recently active agents in the account menu | `menu_agents_test.exs` (property) |
 | Every agent kind the library knows, Claude Duet included, draws its picture in the agents list and the account menu, so an agent paired on another site never breaks a person's list here | `agent_pictures_test.exs` |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
@@ -70,6 +71,7 @@ public documents and the browser tools its home page offers
 | What an agent can do | Proved by |
 | --- | --- |
 | Read `/agents.md`, `/llms.txt`, `/openapi.json` and the bootstrap | `agents_controller_test.exs`, `bootstrap_controller_test.exs`, `open_api_test.exs` |
+| Read whether the site is serving at `/healthz` and `GET /api/v1/health`, which also says whether the running release's migrations are all applied (`migrations_applied`) and stays 200 while one waits | `health_controller_test.exs`; the live check reads it true after a release |
 | Read the catalog, Climbs, objects and publications | `catalog_controller_test.exs`, `climb_controller_test.exs`, `object_controller_test.exs`, `publication_*_test.exs` |
 | Publish a Result and report a Climb | `publication_controller_test.exs`, `test/techtree/network/` |
 | Sign in with its wallet and use the three agent addresses (publications, Model Climb reports, `/api/v1/account`) only while acting as its person: unsigned 401, unpaired `agent_not_paired`, person not here `person_not_here`, and an unpairing during the request sends none of the person's data | `agent_wallet_test.exs` |

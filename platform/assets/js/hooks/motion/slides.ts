@@ -1,15 +1,16 @@
 /**
  * Panels that open over the page: the phone menu slides out as a drawer, a
- * dialog rises as a sheet and a header menu pops under its button. The page
+ * dialog rises as a sheet, a header menu pops under its button and a list,
+ * such as the pairing window's agents, drops under its dropdown. The page
  * opens and closes them itself; this only moves a panel from where it starts
  * to where it rests, then hands it back to its stylesheet. Closing is
- * immediate.
+ * immediate, except for a list, which leaves the way it came.
  *
  * Moves in percent name both ends, so they stay a share of the panel's own
  * size instead of being converted to pixels.
  */
-import {createScope, spring} from "animejs"
-import {BASE, EASE_OUT, SLOW, lastInputByPointer, play, still} from "./shared"
+import {createScope, spring, stagger} from "animejs"
+import {BASE, EASE_OUT, SLOW, lastInputByPointer, play, rest, still} from "./shared"
 import type {Hook} from "../../hook_composition"
 
 // The phone menu sits against the left edge, so its drawer comes from there.
@@ -27,6 +28,34 @@ export const menu = (el: Element) =>
     duration: SLOW,
     ease: "outBack(2.2)",
   })
+
+// A list fades in and rises a little, its items one after another, in about
+// 160 ms. Every item can be pressed from the first frame.
+export function list(el: HTMLElement) {
+  settle(el)
+  play(el, {opacity: {from: 0}, y: {from: 4}, duration: 100, ease: EASE_OUT})
+  return play(items(el), {opacity: {from: 0}, y: {from: 4}, duration: 110, delay: stagger(5), ease: EASE_OUT})
+}
+
+// Closing a list hides it at once in the page, so it stays drawn while it
+// leaves, quicker than it came, and a press on it lands on what is under it
+// (`data-leaving`, in components/motion.css).
+export function unlist(el: HTMLElement) {
+  el.dataset.leaving = ""
+  return play(el, {opacity: {to: 0}, y: {to: 4}, duration: 100, ease: EASE_OUT}).then(() => {
+    delete el.dataset.leaving
+  })
+}
+
+// A list that opens with no move, from a key or with less motion asked for:
+// one still leaving stops there and shows at rest.
+export function settle(el: HTMLElement) {
+  rest([el, ...items(el)])
+  delete el.dataset.leaving
+}
+
+// A list's items, without the name a fieldset gives it.
+const items = (el: HTMLElement) => [...el.children].filter(child => !(child instanceof HTMLLegendElement))
 
 export const backdrop = (el: Element) =>
   play(el, {opacity: {from: 0}, duration: BASE, ease: EASE_OUT})

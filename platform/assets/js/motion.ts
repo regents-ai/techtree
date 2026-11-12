@@ -17,7 +17,7 @@ import {splitText} from "animejs"
 import {deny, nope, squish} from "./hooks/motion/press"
 import {CASCADE, GRIDS, HEADLINES, onFirstSight} from "./hooks/motion/reveals"
 import {CLIPPED_WORD, byPointer, lastInputByPointer, still, watchInput} from "./hooks/motion/shared"
-import {backdrop, drawer, menu, sheet} from "./hooks/motion/slides"
+import {backdrop, drawer, list, menu, settle, sheet, unlist} from "./hooks/motion/slides"
 
 // A menu's summary is its button; other summaries open disclosures in the
 // page's own flow and stay still. The theme switch turns its own cube, and the
@@ -79,7 +79,8 @@ export function press(event: MouseEvent) {
   if (shade) backdrop(shade)
 }
 
-// A dialog rises as a sheet and a header menu pops open. A page that redraws
+// A dialog rises as a sheet, a header menu pops open and a dropdown's list
+// drops in, and leaves again when it closes. A page that redraws
 // an open one closes and reopens it within one moment, which reports it as
 // having been open all along, so it does not move again. Once it rests where it
 // opens, moved or not, it carries `data-settled`, so whatever measures it, such
@@ -87,20 +88,38 @@ export function press(event: MouseEvent) {
 function toggle(event: Event) {
   if (!(event instanceof ToggleEvent) || !(event.target instanceof HTMLElement)) return
   const {target} = event
-  if (event.newState === "closed") return target.removeAttribute("data-settled")
+  const moves = lastInputByPointer() && !still(target)
+  if (event.newState === "closed") {
+    target.removeAttribute("data-settled")
+    if (moves) close(target)
+    return
+  }
   if (event.oldState !== "closed") return
 
-  const moves = lastInputByPointer() && !still(target)
-  Promise.resolve(moves ? open(target) : undefined).then(() => {
+  Promise.resolve(moves ? open(target) : openStill(target)).then(() => {
     if (target.hasAttribute("open")) target.dataset.settled = ""
   })
 }
 
 function open(target: HTMLElement) {
   if (target instanceof HTMLDialogElement) return sheet(target)
-  const panel = target instanceof HTMLDetailsElement && target.querySelector(":scope > [data-panel='menu']")
-  if (panel) return menu(panel)
+  const panel = detailsPanel(target)
+  if (panel?.dataset.panel === "menu") return menu(panel)
+  if (panel?.dataset.panel === "list") return list(panel)
 }
+
+function openStill(target: HTMLElement) {
+  const panel = detailsPanel(target)
+  if (panel?.dataset.panel === "list") settle(panel)
+}
+
+function close(target: HTMLElement) {
+  const panel = detailsPanel(target)
+  if (panel?.dataset.panel === "list") unlist(panel)
+}
+
+const detailsPanel = (target: HTMLElement) =>
+  target instanceof HTMLDetailsElement ? target.querySelector<HTMLElement>(":scope > [data-panel]") : null
 
 // The words are joined back into plain text once they have risen.
 function rise(headline: HTMLElement) {

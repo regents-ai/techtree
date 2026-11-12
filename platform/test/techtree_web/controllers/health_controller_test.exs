@@ -3,6 +3,8 @@ defmodule TechtreeWeb.HealthControllerTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
+  alias Techtree.Health
+  alias Techtree.Repo
 
   test "an application with no active release is not healthy", %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
@@ -41,8 +43,28 @@ defmodule TechtreeWeb.HealthControllerTest do
 
     conn = get(conn, ~p"/api/v1/health")
 
-    assert json_response(conn, 200) == %{"status" => "ok"}
+    assert json_response(conn, 200) == %{"status" => "ok", "migrations_applied" => true}
     assert get_resp_header(conn, "cache-control") == ["no-store"]
     assert [~s("default";q=) <> _] = get_resp_header(conn, "ratelimit-policy")
+  end
+
+  test "a release waiting on a migration still answers 200 and says so", %{conn: conn} do
+    CatalogFixture.use_bundle(CatalogFixture.root())
+    Importer.import!(CatalogFixture.root())
+
+    assert Health.migrations_applied?()
+
+    # The newest migration is forgotten inside this test's own transaction, as
+    # if this release carried one the database has not applied.
+    table = ~s("#{Repo.default_prefix()}"."schema_migrations")
+
+    Repo.query!("DELETE FROM #{table} WHERE version = (SELECT max(version) FROM #{table})")
+
+    refute Health.migrations_applied?()
+
+    assert json_response(get(conn, ~p"/api/v1/health"), 200) ==
+             %{"status" => "ok", "migrations_applied" => false}
+
+    assert response(get(conn, ~p"/healthz"), 200) == "ok"
   end
 end

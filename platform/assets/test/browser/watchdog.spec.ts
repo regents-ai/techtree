@@ -4,15 +4,21 @@ import {layoutProblems, signIn, watchErrors} from "./support/visitor"
 // The signed-in Watchdog page at a desktop and a phone width: a site that can't
 // be read as one, and one already on the list, are refused under the Site field
 // itself and nothing is added; a real one is added and takes its own address
-// form, which refuses an address on another site under its own field.
+// form, which refuses an address on another site under its own field. Remove
+// site asks first in the site's own window, never the browser's box.
 for (const width of [1280, 390]) {
-  test(`signed in at ${width} wide, Watchdog refuses a bad site or address under its own field`, async ({browser}) => {
+  test(`signed in at ${width} wide, Watchdog refuses a bad site or address under its own field and asks before removing a site`, async ({browser}) => {
     const hasTouch = width < 768
     const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
     const outside = await keepOffline(context)
     await signIn(context)
     const page = await context.newPage()
     const errors = watchErrors(page)
+    const browserBoxes: string[] = []
+    page.on("dialog", dialog => {
+      browserBoxes.push(dialog.message())
+      void dialog.dismiss()
+    })
     const site = `walk-${width}.example`
 
     await page.goto("/watchdog", {waitUntil: "networkidle"})
@@ -57,6 +63,27 @@ for (const width of [1280, 390]) {
     await mine.getByRole("button", {name: "Add address"}).click()
     await expect(mine.locator(".rg-field-errors p")).toHaveCount(0)
     await expect(mine.getByText(`https://${site}/pay`)).toBeVisible()
+
+    // Cancel keeps the site and hands the keyboard back; the going-ahead button
+    // removes it, with its address.
+    const remove = mine.getByRole("button", {name: "Remove site"})
+    const ask = page.locator("#rg-confirm")
+    await remove.click()
+    await expect(ask).toBeVisible()
+    await expect(ask.locator("#rg-confirm-question")).not.toBeEmpty()
+    expect(await ask.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+    expect(await layoutProblems(page)).toEqual([])
+    await ask.getByRole("button", {name: "Cancel"}).click()
+    await expect(ask).toBeHidden()
+    await expect(remove).toBeFocused()
+    await expect(sites).toHaveCount(before + 1)
+
+    await remove.click()
+    await ask.getByRole("button", {name: "Remove", exact: true}).click()
+    await expect(ask).toBeHidden()
+    await expect(sites).toHaveCount(before)
+    await expect(mine).toHaveCount(0)
+    expect(browserBoxes).toEqual([])
 
     expect(errors).toEqual([])
     expect(outside).toEqual([])

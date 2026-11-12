@@ -7,6 +7,7 @@ import {AccountShell} from "./hooks/account_shell"
 import {MenuAgents} from "./hooks/menu_agents"
 import {VerifiedConnections} from "./hooks/verified_connections"
 import "../vendor/regent_ui/blog.mjs"
+import "../vendor/regent_ui/confirm.mjs"
 import "../vendor/regent_ui/pill_select.mjs"
 
 // The pages are read-only documents. This bundle keeps the live connection,
@@ -14,7 +15,6 @@ import "../vendor/regent_ui/pill_select.mjs"
 // the repository's public star count, and plays the standard motion. It never
 // runs a command or sends the color preference anywhere.
 
-import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 

@@ -315,6 +315,7 @@ defmodule TechtreeWeb.WatchdogLive do
                     phx-click="remove_site"
                     phx-value-id={host.id}
                     data-confirm="Remove this site and its addresses?"
+                    data-confirm-action="Remove"
                   >
                     Remove site
                   </Regent.Primitives.button>

@@ -59,6 +59,8 @@ test("the site answers and runs this checkout's commit", async ({page}) => {
   const health = await page.goto("/healthz")
   expect(health?.status()).toBe(200)
   expect((await health!.text()).trim()).toBe("ok")
+  // Every migration the live release carries is applied.
+  expect(await (await page.request.get("/api/v1/health")).json()).toEqual({status: "ok", migrations_applied: true})
 
   const capabilities = await page.goto("/capabilities.json")
   const {build} = (await capabilities!.json()) as {build: {commit: string}}

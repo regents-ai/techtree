@@ -26,7 +26,7 @@ defmodule TechtreeWeb.OpenAPI do
       "openapi" => "3.1.0",
       "info" => %{
         "title" => "Techtree",
-        "version" => "7",
+        "version" => "7.1",
         "summary" =>
           "Controlled Skill comparisons with signed results anyone can verify offline.",
         "description" =>
@@ -39,7 +39,8 @@ defmodule TechtreeWeb.OpenAPI do
             "help, and an unknown address, an unreadable body, a request over the rate " <>
             "limit or an unexpected failure says what to do next. A breaking change " <>
             "ships with a new major `info.version` and is listed in the documentation's " <>
-            "versioning and deprecation section the same day.",
+            "versioning and deprecation section the same day; an added field moves the " <>
+            "number after the point.",
         "license" => %{"name" => "MIT", "identifier" => "MIT"},
         "contact" => %{"name" => "Regents Labs", "email" => "build@regents.sh"}
       },
@@ -73,7 +74,8 @@ defmodule TechtreeWeb.OpenAPI do
           "operationId" => "getHealth",
           "summary" => "Read whether a catalog release is being served",
           "description" =>
-            "The same check as /healthz, answered in JSON. Responses use Cache-Control: no-store.",
+            "The same check as /healthz, answered in JSON, with whether every migration " <>
+              "this release carries is applied. Responses use Cache-Control: no-store.",
           "responses" => %{
             "200" => json("A catalog release is being served.", ref("Health")),
             "503" => error("The site is up but is not serving a catalog release (unavailable).")
@@ -742,8 +744,15 @@ defmodule TechtreeWeb.OpenAPI do
       },
       "Health" => %{
         "type" => "object",
-        "required" => ["status"],
-        "properties" => %{"status" => %{"type" => "string", "const" => "ok"}}
+        "required" => ["status", "migrations_applied"],
+        "properties" => %{
+          "status" => %{"type" => "string", "const" => "ok"},
+          "migrations_applied" => %{
+            "type" => "boolean",
+            "description" =>
+              "False when this release carries a migration the site's database has not applied."
+          }
+        }
       },
       "Error" => %{
         "type" => "object",

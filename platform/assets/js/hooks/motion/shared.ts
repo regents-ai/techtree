@@ -56,7 +56,7 @@ const playing = new WeakMap<Element, JSAnimation>()
 
 export function play(targets: Element | Element[], params: AnimationParams) {
   const els = [targets].flat()
-  for (const el of els) playing.get(el)?.revert()
+  rest(els)
   const animation = animate(els, {
     ...params,
     onComplete: done => {
@@ -66,4 +66,12 @@ export function play(targets: Element | Element[], params: AnimationParams) {
   })
   for (const el of els) playing.set(el, animation)
   return animation
+}
+
+// Puts elements back as they were before their last run began, and forgets it.
+export function rest(targets: Element | Element[]) {
+  for (const el of [targets].flat()) {
+    playing.get(el)?.revert()
+    playing.delete(el)
+  }
 }

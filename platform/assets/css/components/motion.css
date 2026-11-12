@@ -5,3 +5,9 @@
 /* What a wallet button squishes when pressed, so the button itself keeps its size
    and a quick second press near its edge still lands on it. A transform needs a box. */
 [data-press-label] { display: inline-block; }
+
+/* A dropdown's list leaving (`unlist` in the motion kit): its closed <details>
+   still draws it until it has faded out, and a press on it lands on what is under
+   it. Opened again, it takes presses at once. */
+details:not([open]):has(> [data-panel="list"][data-leaving])::details-content { content-visibility: visible; }
+details:not([open]) > [data-panel="list"][data-leaving] { pointer-events: none; }

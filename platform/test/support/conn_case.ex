@@ -51,6 +51,17 @@ defmodule TechtreeWeb.ConnCase do
   end
 
   @doc """
+  The page without the one confirm window the root layout gives every page
+  (`Regent.Structure.confirm`). Its form only closes the window
+  (`method="dialog"`) and sends nothing.
+  """
+  def without_confirm_window(html) do
+    [window] = Regex.run(~r/<dialog id="rg-confirm".*?<\/dialog>/s, html)
+    true = window =~ ~s(<form method="dialog")
+    String.replace(html, window, "")
+  end
+
+  @doc """
   What pressing the copy button `button_id` puts on the clipboard: the text of
   the element its `data-copy-target` names, exactly as the browser reads it.
   """

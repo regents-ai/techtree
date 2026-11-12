@@ -6,7 +6,7 @@ defmodule Techtree.MixProject do
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
   @elixir_utils_ref "dd2d3c6e631df4c20f5055a45184dcb8e4d33139"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "33d5aa96d0da65a507dc5e332da045b6fe821789"
+  @design_system_ref "dfd18f87354db8b7d04acbe4057ffc12b5838757"
 
   def project do
     [

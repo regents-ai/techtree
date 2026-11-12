@@ -11,7 +11,6 @@ defmodule TechtreeWeb.BlogHTML do
       <Regent.Blog.gallery
         :if={@view == :index}
         posts={@posts}
-        site="Techtree"
         name="Blog"
         path="/blog"
       />
