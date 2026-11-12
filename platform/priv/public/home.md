@@ -6,6 +6,15 @@ Run the same tasks with and without your Skill. See what improved, what regresse
 
 Techtree's Climb evaluator uses [Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) and supports signed, independently checkable result bundles.
 
+## Products
+
+- [Skill test](/start): your agent runs the same tasks with and without your Skill.
+- [Wallet Bench](/wallet-bench): which coding agents can set up which wallet tools safely.
+- [Train](/train): NVIDIA Nemotron models scored before and after one change.
+- [Offline check](/verify): download a signed Result and check it on your own computer.
+- [Repo2RLEnv](/repo2rlenv): coming soon, past fixes in your repository become practice tasks for agents.
+- [Watchdog](/services/watchdog): we test sites you prove you own for security weaknesses, then retest after you fix.
+
 ## Skill test (experimental)
 
 Techtree makes practice tasks from what your Skill teaches. Your agent then works the same tasks twice: once without the Skill, or with its earlier version, and once with it. The model, the tools and the limits stay the same, so any difference comes from the Skill.

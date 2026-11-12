@@ -23,6 +23,7 @@ import {mountPageCopyButton, type CopyHook} from "./copy_feedback"
 import {installCopyButtons} from "./copy_buttons"
 import {crownHook} from "./hooks/crown"
 import {ThemeSwitch} from "./hooks/theme_switch"
+import {ValueCard} from "./hooks/value_card"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionRefusal} from "./hooks/motion/moments"
@@ -58,6 +59,8 @@ const Hooks: Record<string, object> = {
   Crown: crownHook(() => (showingTheme() === "light" ? 2 : 4)),
   MotionList,
   ThemeSwitch,
+  // The home page's product cards.
+  ValueCard,
   ...labHooks,
 }
 

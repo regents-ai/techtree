@@ -14,6 +14,7 @@
 @import "./train.css";
 @import "./components/motion.css";
 @import "./components/theme_switch.css";
+@import "./components/value_cards.css";
 @import "./animations.css";
 
 /* Palette, type, cut skins and interaction sweeps come from Regent UI.

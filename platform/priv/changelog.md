@@ -4,6 +4,9 @@
 
 ### Added
 
+- **Products.** The home page has a new Products row under the opening: six cards,
+  for Skill test, Wallet Bench, Train, Offline check, Repo2RLEnv and Watchdog, each
+  with a small moving picture that follows the mouse and a link to its page.
 - **Claude.** The Claude connector is built and switched off. Once it is on, a person
   adds Techtree to Claude as a connector, approves it here, and pairs Claude from Pair
   New Agent. Each app connected this way pairs on its own, with its own code, and can

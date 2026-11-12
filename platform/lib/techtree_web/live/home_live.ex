@@ -1,12 +1,14 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
   One promise and the newest Result that keeps it, one Start button and one
-  copyable instruction for an agent. Then how testing a Skill works, a quick
-  look at the Hello World Climb, every published Climb, AgentWalletBench, what
-  each tool is for, and what works today.
+  copyable instruction for an agent. Then a card for each of the six products,
+  how testing a Skill works, a quick look at the Hello World Climb, every
+  published Climb, AgentWalletBench, what each tool is for, and what works today.
   """
 
   use TechtreeWeb, :live_view
+
+  import TechtreeWeb.Components.ValueCards
 
   alias Techtree.Catalog.Query
   alias Techtree.Network.Query, as: Results
@@ -41,6 +43,7 @@ defmodule TechtreeWeb.HomeLive do
        campaign_facts: CampaignFacts.for_climb(campaign),
        climbs: Enum.map(climbs, &{&1, ClimbCopy.for_reference(&1.reference)}),
        capabilities: Capabilities.all(),
+       products: products(),
        tasksmith: climb_with_slug(climbs, "tasksmith-climb"),
        frontier: climb_with_slug(climbs, "frontier-cs-open-ended-climb"),
        wallet_harnesses:
@@ -104,6 +107,13 @@ defmodule TechtreeWeb.HomeLive do
         <a class="hero__more" href="#skill-test" aria-label="How a Skill is tested">
           <Regent.Icons.icon name="chevrons-down" />
         </a>
+      </section>
+
+      <section id="products" class="home-section products" aria-labelledby="products-title">
+        <Regent.Structure.section_bar class="section-heading rg-support-band">
+          <h2 id="products-title" class="rg-section-bar__label">Products</h2>
+        </Regent.Structure.section_bar>
+        <.value_cards id="cards-row" label="Products" cards={@products} />
       </section>
 
       <section id="skill-test" class="home-section service-intro" aria-labelledby="skill-test-title">
@@ -448,6 +458,68 @@ defmodule TechtreeWeb.HomeLive do
   def agent_line do
     "Read #{url(~p"/agents.md")} and help me test one of my Skills with Techtree. " <>
       "Ask me before any paid model call or before publishing anything."
+  end
+
+  # The Products row. Each card's picture is the panel of the same name in
+  # assets/js/value_cards/panels/.
+  defp products do
+    [
+      %{
+        id: "compare",
+        name: "Skill test",
+        headline: "See what a Skill changes.",
+        line: "Your agent runs the same tasks with and without your Skill.",
+        tint: "#3fbf7f",
+        action: "Test Skill",
+        navigate: ~p"/start"
+      },
+      %{
+        id: "wallet",
+        name: "Wallet Bench",
+        headline: "Agents and wallets, tested.",
+        line: "See which coding agents can set up which wallet tools safely.",
+        tint: "#6fdba0",
+        action: "See scores",
+        navigate: ~p"/wallet-bench"
+      },
+      %{
+        id: "train",
+        name: "Train",
+        headline: "One change, measured.",
+        line: "See NVIDIA Nemotron models scored before and after one change.",
+        tint: "#38b2e0",
+        action: "See comparisons",
+        navigate: ~p"/train"
+      },
+      %{
+        id: "check",
+        name: "Offline check",
+        headline: "Results you can verify.",
+        line: "Download a signed Result and check it on your own computer.",
+        tint: "#b5d94a",
+        action: "Check Result",
+        navigate: ~p"/verify"
+      },
+      %{
+        id: "repo",
+        name: "Repo2RLEnv",
+        headline: "Practice from real code.",
+        line: "Coming soon: past fixes in your repository become practice tasks for agents.",
+        tint: "#2fc4c4",
+        action: "Learn more",
+        navigate: ~p"/repo2rlenv"
+      },
+      %{
+        id: "watch",
+        name: "Watchdog",
+        headline: "Keep watch on your sites.",
+        line:
+          "We test sites you prove you own for security weaknesses, then retest after you fix.",
+        tint: "#f0a531",
+        action: "See details",
+        navigate: ~p"/services/watchdog"
+      }
+    ]
   end
 
   defp names(ids, fetch!), do: ids |> Enum.map(&fetch!.(&1).name) |> Enum.sort()
