@@ -113,6 +113,32 @@ export function returnedFromOAuth(search: string): boolean {
   return new URLSearchParams(search).has("privy_oauth_code")
 }
 
+// Where Privy 3.51 keeps a session of its own in this browser
+// (`@privy-io/react-auth`, pinned in package.json).
+const privySessionKeys = ["privy:token", "privy:refresh_token"]
+
+/**
+ * Whether Privy still holds a sign-in of its own in this browser. A person
+ * whose sign-in here has lapsed is then signed back in on whatever page they
+ * open, without pressing anything.
+ */
+export function privyHoldsSession(storage: Pick<Storage, "getItem"> | null): boolean {
+  if (!storage) return false
+  try {
+    return privySessionKeys.some(key => storage.getItem(key) !== null)
+  } catch {
+    return false
+  }
+}
+
+function localStorageOrNull(): Pick<Storage, "getItem"> | null {
+  try {
+    return window.localStorage
+  } catch {
+    return null
+  }
+}
+
 export function reloadDocumentOnce(documentRoot: Document, reload: () => void): void {
   if (reloadedDocuments.has(documentRoot)) return
   reloadedDocuments.add(documentRoot)
@@ -202,7 +228,19 @@ export async function csrfToken(
 let openRotations = 0
 let unreadRenewal = false
 let adoptingRenewal: Promise<void> | null = null
+let documentLeaving = false
 const heldSockets = new Set<() => void>()
+
+// A document that has begun to leave, by a reload or any other full
+// navigation, is replaced by one rendered for the cookie its own request
+// carries. An adoption read this document sent after that would write a newer
+// cookie behind the new page's back: the new page's socket would then carry a
+// CSRF token its cookie no longer backs, Phoenix would refuse the join as stale
+// and load the page a second time. So from `beforeunload` on, a held socket
+// here stays held and reads nothing; the page that replaces it reads its own.
+export function holdAdoptionWhileLeaving(view: Pick<Window, "addEventListener"> = window): void {
+  view.addEventListener("beforeunload", () => { documentLeaving = true }, {once: true})
+}
 
 // True only while this tab is known to hold the CSRF state of the cookie it
 // would connect under.
@@ -257,7 +295,8 @@ function adoptUnreadRenewal(fetcher: typeof fetch): Promise<void> {
     // one of them may already have read what the cookie carries by the time it
     // runs. Reading again would answer for a renewal this tab no longer has,
     // and closing it again would strand a transport that is already current.
-    if (!unreadRenewal) return
+    // A document already leaving reads nothing (`holdAdoptionWhileLeaving`).
+    if (!unreadRenewal || documentLeaving) return
     await csrfToken(fetcher, signal)
     // A rotation that opened while this read was in flight latched a renewal
     // newer than the one it answers for, and only that rotation can say this
@@ -1090,8 +1129,9 @@ export function installAccountAuthLazyLoader(
     })
   } else if (documentRoot.querySelector("#account-control [data-account-target='profile']")) {
     reconcileSignedInStartup()
-  } else if (returnedFromOAuth(documentRoot.location?.search ?? "")) {
-    // Privy finishes a redirect sign-in only once it is running on the page.
+  } else if (returnedFromOAuth(documentRoot.location?.search ?? "") || privyHoldsSession(localStorageOrNull())) {
+    // Privy finishes a redirect sign-in only once it is running on the page, and
+    // a sign-in Privy still holds here signs the person back in the same way.
     onWalletSync()
   }
   return () => {

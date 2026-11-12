@@ -1,5 +1,5 @@
 import {browserCsrfToken, holdSocketDuringCookieRotation, installAccountAuthLazyLoader,
-  installCrossTabCsrf, retireRefusedSession, type PinnedSocket} from "./auth_lazy"
+  holdAdoptionWhileLeaving, installCrossTabCsrf, retireRefusedSession, type PinnedSocket} from "./auth_lazy"
 import {InfoDialog} from "./hooks/info_dialog"
 import {AccountPicture} from "./hooks/account_picture"
 import {AccountMenu} from "./hooks/account_menu"
@@ -200,6 +200,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
 
 if (document.querySelector('meta[name="privy-app-id"]')) {
   holdSocketDuringCookieRotation(liveSocket.getSocket() as PinnedSocket)
+  holdAdoptionWhileLeaving()
   void retireRefusedSession()
   installAccountAuthLazyLoader()
   installCrossTabCsrf()
