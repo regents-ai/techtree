@@ -88,12 +88,12 @@ defmodule TechtreeWeb.Endpoint do
   # reading `tools`. API responses replace them with their own.
   plug :secure_browser_headers
 
-  # Before the parser, so a body it refuses on an `/api` path is answered
-  # in JSON (`TechtreeWeb.Plugs.Parsers`).
+  # Before the parser, so a body it refuses on an `/api` path or the MCP
+  # address is answered in JSON (`TechtreeWeb.Plugs.Parsers`).
   plug RegentAgentAccess.Plug,
     documents: &TechtreeWeb.PublicDocuments.document/1,
     guide: "/llms.txt",
-    json_prefixes: ["api"]
+    json_prefixes: ["api", "mcp"]
 
   # After the error format is chosen, so a slash address is answered as any
   # address that names nothing.
@@ -103,7 +103,8 @@ defmodule TechtreeWeb.Endpoint do
   # reports, every `/api` path, answered or not, except publishing, which `TechtreeWeb.PublicationRate`
   # counts on its own, the Wallet Bench's scores and downloads, each of
   # which reads the whole table or a stored file, and each Result's share
-  # picture, which is drawn for every request. Every answer says what is
+  # picture, which is drawn for every request. The MCP address has its own
+  # (`TechtreeWeb.Plugs.McpAgent.limit_address/1`). Every answer says what is
   # left of it; past it the answer is 429 with Retry-After. Pages are never
   # counted, and counting never waits.
   plug :limit_rate
@@ -136,6 +137,9 @@ defmodule TechtreeWeb.Endpoint do
 
   defp limit_rate(%Plug.Conn{method: "POST", path_info: ["visit-log"]} = conn, _opts),
     do: RegentAgentAccess.RateLimit.call(conn, @rate_limit)
+
+  defp limit_rate(%Plug.Conn{path_info: ["mcp" | _]} = conn, _opts),
+    do: TechtreeWeb.Plugs.McpAgent.limit_address(conn)
 
   defp limit_rate(conn, _opts) do
     if counted?(Enum.map(conn.path_info, &URI.decode/1), conn),

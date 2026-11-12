@@ -9,7 +9,7 @@ defmodule TechtreeWeb.RouterTest do
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "writes are limited to publication, agent pairing, sign-in, private profile actions, private Model Climb reports and the browser's visit reports" do
+  test "writes are limited to publication, agent pairing, sign-in, private profile actions, private Model Climb reports, the browser's visit reports, the Claude connector's sign-in and the hosted MCP server" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
@@ -17,6 +17,7 @@ defmodule TechtreeWeb.RouterTest do
 
     assert Enum.sort(writes) == [
              "* /api/agents/v1",
+             "* /mcp",
              "delete /auth/privy/session",
              "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
@@ -24,6 +25,11 @@ defmodule TechtreeWeb.RouterTest do
              "post /api/v1/publications",
              "post /auth/privy/failure",
              "post /auth/privy/session",
+             "post /oauth/authorize",
+             "post /oauth/connections/revoke",
+             "post /oauth/register",
+             "post /oauth/revoke",
+             "post /oauth/token",
              "post /visit-log"
            ]
   end
@@ -36,10 +42,14 @@ defmodule TechtreeWeb.RouterTest do
 
     assert paths == [
              "* /api/agents/v1",
+             "* /mcp",
              "delete /auth/privy/session",
              "get /",
              "get /.well-known/agent-skills/*path",
              "get /.well-known/api-catalog",
+             "get /.well-known/oauth-authorization-server",
+             "get /.well-known/oauth-protected-resource",
+             "get /.well-known/oauth-protected-resource/mcp",
              "get /.well-known/security.txt",
              "get /about",
              "get /account",
@@ -80,6 +90,8 @@ defmodule TechtreeWeb.RouterTest do
              "get /formal",
              "get /healthz",
              "get /llms.txt",
+             "get /oauth/authorize",
+             "get /oauth/connections",
              "get /openapi.json",
              "get /privacy",
              "get /repo2rlenv",
@@ -111,6 +123,11 @@ defmodule TechtreeWeb.RouterTest do
              "post /api/v1/publications",
              "post /auth/privy/failure",
              "post /auth/privy/session",
+             "post /oauth/authorize",
+             "post /oauth/connections/revoke",
+             "post /oauth/register",
+             "post /oauth/revoke",
+             "post /oauth/token",
              "post /visit-log"
            ]
   end

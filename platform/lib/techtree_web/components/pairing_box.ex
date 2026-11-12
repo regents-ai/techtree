@@ -2,7 +2,8 @@ defmodule TechtreeWeb.PairingBox do
   @moduledoc """
   Pairing an agent (`RegentAgents`), in the pairing window every Pair New Agent
   opens, in the shared pairing box (`Regent.Account.pairing`): a dropdown of the
-  ten agents in `RegentAgents.Harness.featured/0`, then the message to paste with
+  ten agents in `RegentAgents.Harness.featured/0`, and Claude while its connector
+  is on (`RegentAgents.Harness.hosted/0`, read at runtime), then the message to paste with
   its code in a short box with icons to copy it and make a new code. Each agent
   keeps its own code until it expires, so choosing another agent and coming back
   shows the same message. Once the agent uses the code, the box names it, and this
@@ -78,11 +79,14 @@ defmodule TechtreeWeb.PairingBox do
     """
   end
 
-  @doc "The ten agents to choose from, as the shared pairing box takes them."
+  @doc """
+  The agents to choose from, as the shared pairing box takes them: the ten
+  featured agents, then Claude while its connector is on.
+  """
   def choices,
     do:
       for(
-        harness <- Harness.featured(),
+        harness <- Harness.featured() ++ Harness.hosted(),
         do: %{value: to_string(harness), label: label(harness)}
       )
 
@@ -108,7 +112,7 @@ defmodule TechtreeWeb.PairingBox do
 
   defp with_offered(socket, harness, then) do
     with {:ok, harness} <- Harness.match(harness),
-         true <- harness in Harness.featured() do
+         true <- harness in Harness.offered() do
       then.(socket, harness)
     else
       _not_offered -> socket

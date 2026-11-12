@@ -12,6 +12,10 @@ defmodule Techtree.Application do
     # Debian image can lag by weeks. Req, Finch and Mint read this list through
     # `:public_key.cacerts_get/0`, so it is loaded before anything connects.
     :ok = :public_key.cacerts_load(CAStore.file_path())
+    # The Claude connector stays off until its one switch turns it on
+    # (config/runtime.exs); these only check and store its settings.
+    :ok = RegentOAuth.configure(Techtree.OAuth)
+    :ok = RegentMCPAgents.configure!()
     :ok = TechtreeWeb.UnexpectedFailure.attach_jobs()
     :ok = RegentHttp.ErrorSaving.attach()
     :ok = TechtreeWeb.VisitLog.Events.attach()
@@ -21,6 +25,9 @@ defmodule Techtree.Application do
         TechtreeWeb.Telemetry,
         Techtree.Accounts.RequestRateLimiter,
         Techtree.Repo,
+        # The connector's sign-in store: the site's database with a small pool of
+        # its own, only while the connector is on.
+        if(RegentOAuth.enabled?(), do: RegentOAuth.Repo),
         {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Techtree.PubSub},
         # The figures every reader it admits sees alike, then the readers that
@@ -36,6 +43,8 @@ defmodule Techtree.Application do
         TechtreeWeb.Telemetry.site_poller(),
         Techtree.SharedChanges,
         Techtree.Agents.ActivityReading,
+        # The wallet of each connected app's own identity, asked for once.
+        Techtree.Agents.HostedAddress,
         TechtreeWeb.HealthMemory,
         TechtreeWeb.GithubStars,
         TechtreeWeb.GithubStars.Reader,

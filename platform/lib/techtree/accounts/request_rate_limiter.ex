@@ -38,6 +38,17 @@ defmodule Techtree.Accounts.RequestRateLimiter do
     if count <= limit, do: {:ok, budget}, else: {:error, :rate_limited, budget}
   end
 
+  @doc "Whether `key` has spent its `limit` in this window. Counts nothing."
+  @spec spent?(term(), pos_integer(), pos_integer()) :: boolean()
+  def spent?(key, limit, window_seconds) do
+    bucket = Integer.floor_div(System.monotonic_time(:second), window_seconds)
+
+    case :ets.lookup(@table, {window_seconds, key, bucket}) do
+      [{_row, count}] -> count >= limit
+      [] -> false
+    end
+  end
+
   # The first request of a window drops that window's older counters, and the
   # older sweep markers with them.
   defp sweep(window_seconds, bucket) do

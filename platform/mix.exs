@@ -71,7 +71,14 @@ defmodule Techtree.MixProject do
       # regent_identity names regent_privy by a sibling path; this pin replaces it.
       {:regent_privy,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "privy", override: true},
-      {:regent_agent_access, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access"},
+      {:regent_agent_access,
+       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "agent_access", override: true},
+      # regent_mcp_agents names regent_oauth, regent_agents and regent_agent_access
+      # by sibling paths; these pins replace them.
+      {:regent_oauth,
+       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "oauth", override: true},
+      # The Claude connector's identity tools at /mcp (Techtree.Agents.Connection).
+      {:regent_mcp_agents, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "mcp_agents"},
       {:regent_sprites, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "sprites"},
       {:regent_anthropic, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "anthropic"},
       # The wallet bench signs its funding sends with it.
@@ -111,6 +118,8 @@ defmodule Techtree.MixProject do
        override: true},
       {:ash, "~> 3.37"},
       {:ash_oban, "~> 0.10.3"},
+      # The hosted MCP server at /mcp runs the Ash actions its domains hand it.
+      {:ash_ai, "~> 1.5"},
       {:oban, "~> 2.24"},
       {:nebulex, "~> 3.0"},
       {:nebulex_local, "~> 3.0"},
@@ -219,9 +228,12 @@ defmodule Techtree.MixProject do
       # The reviewed account adoption adds five Ash resource/domain edges and
       # two session/header edges to the previous 19; the template's agent record
       # adds one more, and the Watchdog domain two more, for its Host and Route
-      # (each Ash domain reads its resources at compile time). Keep this floor
-      # bounded.
-      "xref graph --label compile-connected --fail-above 29",
+      # (each Ash domain reads its resources at compile time). The hosted MCP
+      # server takes the count to 32: the agents domain reads its Connection
+      # resource and that resource its caller check, the router hands /mcp its
+      # tool-argument check, and the MCP plug keys its rate limits by client
+      # address. Keep this floor bounded.
+      "xref graph --label compile-connected --fail-above 32",
       "ash.codegen --check",
       "usage_rules.sync --check",
       "techtree.sync_openapi --check",
