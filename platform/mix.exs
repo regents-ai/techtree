@@ -241,6 +241,8 @@ defmodule Techtree.MixProject do
       "ash.codegen --check",
       "usage_rules.sync --check",
       "cmd --cd assets npm run typecheck",
+      # The script tests (assets/test/*.test.ts): rules a page's scripts keep, with no browser.
+      "cmd --cd assets npm test",
       "test",
       # The main pages in headless Chromium at desktop and phone widths, against a
       # server the browser tests start on their own database (assets/test/browser).
