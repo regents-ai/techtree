@@ -199,7 +199,15 @@ if config_env() == :dev and Phoenix.Endpoint.server?(:techtree, TechtreeWeb.Endp
   end
 end
 
-# The browser tests' server (assets/playwright.config.ts) writes its lines in
+# Visit lines (TechtreeWeb.VisitLog) have a handler of their own, sized for a crowd
+# acting at once, which the application adds as it starts. Every other line stays on
+# the default handler, whose limit of 500 a second still guards against a flood of
+# errors.
+config :techtree, :logger, [
+  TechtreeWeb.VisitLog.handler(%{type: :standard_io}, Logger.default_formatter())
+]
+
+# The browser tests' server (assets/playwright.config.ts) writes its visit lines in
 # production's shape to a file of its own, which assets/test/browser/visits.spec.ts
 # reads to replay a visit.
 if config_env() == :test and System.get_env("TECHTREE_BROWSER_TEST") == "1" do
@@ -207,9 +215,12 @@ if config_env() == :test and System.get_env("TECHTREE_BROWSER_TEST") == "1" do
 
   config :logger, level: :info
 
-  config :logger, :default_handler,
-    config: [file: String.to_charlist(Path.expand("../tmp/#{partition}-lines.jsonl", __DIR__))],
-    formatter: LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
+  config :techtree, :logger, [
+    TechtreeWeb.VisitLog.handler(
+      %{file: String.to_charlist(Path.expand("../tmp/#{partition}-lines.jsonl", __DIR__))},
+      LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
+    )
+  ]
 end
 
 # config/runtime.exs is executed for all environments, including
@@ -294,9 +305,11 @@ if config_env() == :prod do
   config :techtree, :session_options, secure: true, http_only: true
 
   # One JSON object a line, which Fly Sentinel reads, carrying only the visit
-  # fields (TechtreeWeb.VisitLog). Release commands write the same shape.
-  config :logger, :default_handler,
-    formatter: LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
+  # fields (TechtreeWeb.VisitLog), from both handlers. Release commands write the
+  # same shape.
+  json = LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
+  config :logger, :default_handler, formatter: json
+  config :techtree, :logger, [TechtreeWeb.VisitLog.handler(%{type: :standard_io}, json)]
 
   network_signing_key =
     System.get_env("TECHTREE_NETWORK_SIGNING_KEY") ||

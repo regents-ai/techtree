@@ -18,9 +18,10 @@
 # imports the catalog snapshot this tree added last on the
 # stable channel, as production does, starts the server, and checks the health
 # endpoint, the commit and image /capabilities.json names, the catalog served,
-# the home page, a built stylesheet and the running server's database
-# connection. FLY_IMAGE_REF, which Fly sets on every machine, names the local
-# image. The signing key and secret are thrown away with it.
+# the home page, a built stylesheet, the one JSON visit line the home page's
+# request writes and the running server's database connection. FLY_IMAGE_REF,
+# which Fly sets on every machine, names the local image. The signing key and
+# secret are thrown away with it.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -138,6 +139,19 @@ stylesheet="$(grep -oE '/assets/[^"]+-[0-9a-f]{32}\.css' <<<"$home" | head -n 1)
 stylesheet_answer="$(curl --silent --fail --output /dev/null --write-out '%{http_code} %{content_type} %{size_download} bytes' "$base$stylesheet")"
 [[ $stylesheet_answer == "200 text/css"* ]] || fail "$stylesheet answered $stylesheet_answer"
 
+# The one request for the home page above is one JSON visit line in the server's
+# output, as Fly Sentinel reads it: visit lines have a handler of their own
+# (TechtreeWeb.VisitLog) and the default handler leaves them to it, so the line
+# is written once, never twice and never dropped.
+home_visit_lines() {
+  docker logs "$run-app" 2>&1 | { grep -F '"where":"/"' || true; } |
+    jq -c 'select(.metadata.event.name == "request" and .metadata.event.where == "/")' | wc -l | tr -d ' '
+}
+home_visit_written() { [[ $(home_visit_lines) -ge 1 ]]; }
+wait_for "the home page's visit line" home_visit_written
+visit_lines="$(home_visit_lines)"
+[[ $visit_lines == 1 ]] || fail "the home page's one request wrote $visit_lines visit lines"
+
 connected_database="$(docker exec "$run-app" /app/bin/techtree rpc \
   '[[name]] = Techtree.Repo.query!("SELECT current_database()").rows; IO.puts(name)')"
 [[ $connected_database == techtree_smoke ]] || fail "the server's database answered \"$connected_database\""
@@ -159,4 +173,5 @@ echo "  health          $base/healthz answered $health"
 echo "  capabilities    $base/capabilities.json names commit $commit, image $image"
 echo "  catalog served  $served_catalog"
 echo "  static asset    $stylesheet answered $stylesheet_answer"
+echo "  visit line      the home page's request wrote one JSON line"
 echo "  database        the running server queried $connected_database"

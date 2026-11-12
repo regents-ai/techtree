@@ -19,6 +19,9 @@ defmodule Techtree.Application do
     :ok = TechtreeWeb.UnexpectedFailure.attach_jobs()
     :ok = RegentHttp.ErrorSaving.attach()
     :ok = TechtreeWeb.VisitLog.Events.attach()
+    # Visit lines' own handler (config/runtime.exs), and the default handler leaves them to it.
+    :ok = Logger.add_handlers(:techtree)
+    :ok = :logger.add_handler_filter(:default, :visits, TechtreeWeb.VisitLog.default_filter())
 
     children =
       [

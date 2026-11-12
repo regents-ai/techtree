@@ -30,6 +30,9 @@ defmodule TechtreeWeb.VisitLog do
   The events themselves come from `TechtreeWeb.VisitLog.Events`; the browser
   adds the few only it can see through `TechtreeWeb.VisitLogController`.
 
+  Visit lines have a handler of their own (`handler/2`), sized for a crowd acting
+  at once, and the default handler leaves them to it (`default_filter/0`).
+
   Two kinds of line show where people come from and where they stop, the same
   on every site:
 
@@ -61,6 +64,19 @@ defmodule TechtreeWeb.VisitLog do
   @where ~r/\A[A-Za-z0-9_.:\/@* -]{1,120}\z/
   @outcome ~r/\A[a-z0-9_]{1,48}\z/
   @names ~w(request tool.call page press action job outgoing page.error tool.unsent press.unsent arrival step)
+  # The domain `record` gives its lines; Elixir puts `:elixir` before every domain.
+  @domain [:elixir, :visit]
+  # A visit line is a request, press or change, so the lines follow real traffic: the
+  # handler keeps 2,000 a second and 2,000 waiting to be written (Erlang's defaults are
+  # 500 and 200), the crowd the site is built for. Past 10 waiting, each process waits
+  # for its line to be written (Erlang's default), and past 4,000 the waiting lines are
+  # let go, so a flood still cannot exhaust the machine.
+  @limits %{
+    burst_limit_max_count: 2_000,
+    burst_limit_window_time: 1_000,
+    drop_mode_qlen: 2_000,
+    flush_qlen: 4_000
+  }
   @steps ~w(sign_in_opened signed_in pairing_code_shown agent_paired)
   # Where a visit came from, by the referring site's address or `utm_source`.
   @sources %{
@@ -86,6 +102,26 @@ defmodule TechtreeWeb.VisitLog do
   @doc "The metadata a production line carries (config/runtime.exs)."
   def fields, do: [:request_id, :visit, :actor, :surface, :event]
 
+  @doc """
+  The handler that writes visit lines, and only them, to `config`'s destination
+  with `formatter` (config/runtime.exs), with the limits above.
+  """
+  def handler(config, formatter) do
+    {:handler, :visits, :logger_std_h,
+     %{
+       config: Map.merge(config, @limits),
+       formatter: formatter,
+       filter_default: :stop,
+       filters: [
+         remote_gl: {&:logger_filters.remote_gl/2, :stop},
+         visits: {&:logger_filters.domain/2, {:log, :sub, @domain}}
+       ]
+     }}
+  end
+
+  @doc "The default handler's filter that leaves visit lines to `handler/2`."
+  def default_filter, do: {&:logger_filters.domain/2, {:stop, :sub, @domain}}
+
   @doc "The named steps of the shared journey."
   def steps, do: @steps
 
@@ -105,7 +141,10 @@ defmodule TechtreeWeb.VisitLog do
   def record(name, where, outcome \\ nil, ms \\ nil, client \\ nil) do
     event = event(name, where, outcome, ms, client)
     message = Enum.join([event.name, event.where | List.wrap(event[:outcome])], " ")
-    Logger.info(fn -> {message, event: event} end)
+    # `domain` sends the line to its own handler and is never printed, so it is not one
+    # of the formatter's metadata keys.
+    # credo:disable-for-next-line Credo.Check.Warning.MissedMetadataKeyInLoggerConfig
+    Logger.info(fn -> {message, event: event} end, domain: [:visit])
   end
 
   @doc """
