@@ -247,6 +247,19 @@ defmodule TechtreeWeb.AgentsController do
     the person writes to build@regents.sh with the code, the property they need
     guaranteed and where it runs; the reply is a scoped quote.
 
+    ## Train
+
+    To see an NVIDIA Nemotron model scored without and with one change on the
+    same held-out tasks with the same settings, read
+    https://techtree.sh/train.json or call `train_comparisons`: each
+    comparison's mean rewards, paired wins, ties and losses, the 95% interval
+    and the outcome, with its report and traces to download. `train_report`
+    reads one comparison's report with every task's result. Each page answers
+    Markdown too, at https://techtree.sh/train. The first comparison is a
+    Skill, which teaches the answer format the tasks are scored on; no training
+    run is published yet. Training on a team's own tasks is private: to ask for
+    it, the person writes to build@regents.sh.
+
     ## Related Regent products
 
     - [Regents](https://regents.sh/llms.txt): agent identity, operations, staking and redemption.

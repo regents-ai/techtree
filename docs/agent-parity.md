@@ -41,3 +41,6 @@ owned by the **Techtree MCP lane**.
 | Read my person's Points | `GET /api/v1/account/points` | `account_points` | `regents techtree account points` | Gap | Gap |
 | Publish or withdraw a Result | `POST /api/v1/publications` | `techtree_publication` | None | Gap | Gap |
 | Keep and read Model Climb reports | `/api/model-climb/v1/reports` | None | None | Gap | Gap |
+| List the Train comparisons, newest first | `GET /train.json` | `train_comparisons` | None | Gap | Gap |
+| Read one Train comparison with every task | `GET /train/{slug}/report.json` | `train_report` | None | Gap | Gap |
+| Download a Train comparison's traces | `GET /train/{slug}/traces.jsonl` | None: `train_comparisons` gives each `traces_url` | None | Gap | Gap |

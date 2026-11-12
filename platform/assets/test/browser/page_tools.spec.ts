@@ -120,3 +120,15 @@ test("the page sends exactly the request the signer signed, with its proof and n
   expect(await page.evaluate(() => (window as unknown as {signerAsked: unknown[]}).signerAsked.length)).toBe(1)
   expect(sent).toHaveLength(1)
 })
+
+test("the Train tools read every comparison the Train page shows, newest first, and one report in full", async ({page}) => {
+  await open(page, "none")
+  const answer = await call(page, "train_comparisons", {}) as {ok: boolean; data: {comparisons: Array<{slug: string; digest: string}>}}
+  expect(answer.ok).toBe(true)
+  expect(answer.data.comparisons.map(comparison => comparison.slug)).toEqual(["nemotron-lightning-rl", "nemotron-nano-skill"])
+
+  const report = await call(page, "train_report", {slug: "nemotron-nano-skill"}) as {ok: boolean; data: {digest: string}}
+  expect(report.ok).toBe(true)
+  expect(report.data.digest).toBe(answer.data.comparisons[1].digest)
+  expect(await call(page, "train_report", {slug: "missing"})).toMatchObject({ok: false, status: 404, error: {code: "comparison_not_found"}})
+})

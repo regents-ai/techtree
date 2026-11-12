@@ -346,6 +346,70 @@
       }
     },
     {
+      "name": "train_comparisons",
+      "title": "List Train comparisons",
+      "description": "List the Train comparisons, newest first: an NVIDIA Nemotron model scored without and with one change on the same held-out tasks with the same settings. The first comparison is a Skill, which teaches the answer format the tasks are scored on; no training run is published yet. Each has its title, both arms with their mean reward, solved count and completion tokens, the paired wins, ties and losses, the mean difference with its 95% interval and the method, the outcome (uplift, tie, regression or inconclusive), the environment, model and sampling settings, the report and traces digests, and the addresses of its page, its report and its traces. Reads only; needs no sign-in.",
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": false
+      },
+      "requires": "none",
+      "state_changing": false,
+      "payment": "none",
+      "route": "GET /train.json",
+      "scope": "site",
+      "authentication": "public",
+      "pairing_required": false,
+      "availability": "available",
+      "effect": "read",
+      "interfaces": {
+        "webmcp": "train_comparisons",
+        "http": "GET /train.json"
+      }
+    },
+    {
+      "name": "train_report",
+      "title": "Read one Train report",
+      "description": "Read one Train comparison's report exactly as committed, techtree.train.v1alpha1: the environment, model, sampling and software, both arms, each task's reward and solved mark for each arm, the paired wins, ties and losses with the mean difference, its 95% interval and the method, the outcome, the run's host, times and cost, the traces digest, and the report's own digest. A report whose digest or traces do not check out is not served. Reads only; needs no sign-in.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "The comparison's slug from train_comparisons, such as payment-terms-nemotron-3-nano-4b-skill."
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "untrustedContentHint": false
+      },
+      "requires": "none",
+      "state_changing": false,
+      "payment": "none",
+      "route": "GET /train/{slug}/report.json",
+      "scope": "site",
+      "authentication": "public",
+      "pairing_required": false,
+      "availability": "available",
+      "effect": "read",
+      "interfaces": {
+        "webmcp": "train_report",
+        "http": "GET /train/{slug}/report.json"
+      }
+    },
+    {
       "name": "agent_whoami",
       "title": "Check my agent identity and pairing",
       "description": "Verify your own SIWA identity and current pairing before private work. Requires a fresh per-request SIWA proof, but no pairing. Reads your identity and effective access only; awards no Points and manages no grants. If effective_access.paired is false, ask the owner to sign in on this site and pair you with Pair New Agent on their Agents page, then redeem the code they paste you through the existing SIWA pairing flow. Call it with empty input; your browser host signs the exact request with your own agent key. The regents-cli release named at /agents.md has the same command; native signed browser execution remains unverified.",

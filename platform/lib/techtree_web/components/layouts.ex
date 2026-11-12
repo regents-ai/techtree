@@ -134,6 +134,7 @@ defmodule TechtreeWeb.Layouts do
       {"Start", ~p"/start"},
       {"Results", ~p"/results"},
       {"Wallet Bench", ~p"/wallet-bench"},
+      {"Train", ~p"/train"},
       {"Check a Result", ~p"/verify"},
       {"Docs", ~p"/docs"}
     ]
@@ -293,6 +294,14 @@ defmodule TechtreeWeb.Layouts do
 
   defp description_for_path("/animations"),
     do: "Every motion Techtree uses, side by side."
+
+  defp description_for_path("/train"),
+    do:
+      "NVIDIA Nemotron models before and after one change, on the same held-out tasks with the same settings."
+
+  defp description_for_path("/train/" <> _slug),
+    do:
+      "One NVIDIA Nemotron model before and after one change: mean rewards, task results, settings and evidence."
 
   defp description_for_path("/results/" <> _digest),
     do: "Inspect one published Techtree Result and its task-level evidence."

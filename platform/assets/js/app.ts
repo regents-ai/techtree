@@ -24,6 +24,7 @@ import {crownHook} from "./hooks/crown"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionRefusal} from "./hooks/motion/moments"
+import {MotionCascade} from "./hooks/motion/reveals"
 import {installPublicTools} from "./public_tools"
 import {installSiteMenu} from "./site_menu"
 import {installVisitLog} from "./visit_log"
@@ -234,7 +235,7 @@ Hooks.CopyCommandPageView = {
   },
 }
 
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell, MenuAgents, VerifiedConnections, MotionRefusal})
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell, MenuAgents, VerifiedConnections, MotionRefusal, MotionCascade})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

@@ -1,0 +1,91 @@
+/* Train: a comparison's figures and its strip of task results, the list of
+   comparisons, one comparison's arms, tasks, settings and evidence, and the
+   Private offer. */
+.train { display: grid; gap: var(--space-4); }
+.train > * { min-width: 0; }
+.train .section { margin-top: 0; }
+.train h2 { font-size: 1.5rem; letter-spacing: -.02em; }
+.train h3 { font-size: 1rem; }
+
+/* The lead comparison, and the Result of one comparison. */
+.train-lead { display: grid; gap: var(--space-3); padding: var(--rg-panel-padding); border: 1px solid var(--hairline-strong); background: var(--color-surface); }
+.train-lead > * { min-width: 0; }
+.train-lead__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1) var(--space-2); }
+.train-lead__head .eyebrow { flex-basis: 100%; }
+.train-lead__head h2 a { color: inherit; text-decoration: none; }
+.train-lead__head h2 a:hover { text-decoration: underline; }
+.train-reading { max-width: 68ch; color: var(--color-fg-muted); }
+.train-lead__line { color: var(--color-fg-muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.train-lead__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+
+/* Each arm's mean reward, then the difference in points. */
+.train-figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+.train-figures > div { display: grid; align-content: start; gap: var(--space-1); min-width: 0; padding-inline: var(--space-3); }
+.train-figures > div:first-child { padding-inline-start: 0; }
+.train-figures > div + div { border-inline-start: 1px solid var(--hairline); }
+.train-figures dt { color: var(--color-fg-muted); font-size: .8125rem; }
+.train-figures dd { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .375rem; margin: 0; font-size: clamp(2rem, 6vw, 3.25rem); line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.train-figures__unit { color: var(--color-fg-muted); font-size: .875rem; letter-spacing: 0; }
+
+/* One mark per task: wins, then ties, then losses. */
+.train-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(4px, 1fr)); gap: 1px; forced-color-adjust: none; }
+.train-strip__task { block-size: 1.75rem; background: var(--hairline-strong); }
+.train-strip__task--win { background: var(--color-success); }
+.train-strip__task--loss { background: var(--color-error); }
+
+.train-legend { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin-top: var(--space-2); font-variant-numeric: tabular-nums; forced-color-adjust: none; }
+.train-legend__item { display: inline-flex; align-items: center; gap: var(--space-1); }
+.train-legend__item::before { content: ""; inline-size: .75rem; block-size: .75rem; background: var(--hairline-strong); }
+.train-legend__item--win::before { background: var(--color-success); }
+.train-legend__item--loss::before { background: var(--color-error); }
+
+/* Wins, ties, losses and the interval, beside the figures. */
+.train-paired { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; border-block: 1px solid var(--hairline); }
+.train-paired > div { display: grid; gap: calc(var(--space-1) / 2); padding: var(--space-2) var(--space-2) var(--space-2) 0; }
+.train-paired dt { color: var(--color-fg-muted); font-size: .8125rem; }
+.train-paired dd { margin: 0; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+
+/* The list of comparisons. */
+.train-list { display: grid; margin-top: var(--space-3); padding: 0; list-style: none; border-top: 1px solid var(--hairline); }
+.train-list__item { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) auto; align-items: center; gap: var(--space-2) var(--space-3); padding-block: var(--space-3); border-bottom: 1px solid var(--hairline); }
+.train-list__name { display: grid; gap: calc(var(--space-1) / 2); min-width: 0; }
+.train-list__name a { font-weight: 600; overflow-wrap: anywhere; }
+.train-list__figures { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-variant-numeric: tabular-nums; }
+
+/* One comparison: the arms side by side, every task, the settings, the evidence. */
+.train-arms, .train-settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--rg-track-gap); margin-top: var(--space-3); }
+.train-arms > *, .train-settings > * { min-width: 0; }
+.train-arm h3 { margin: 0; }
+.train-settings h3 { margin: 0; }
+
+.train-tasks { margin-top: var(--space-2); }
+.train-tasks summary { display: flex; align-items: center; min-height: 2.75rem; cursor: pointer; font-size: .875rem; }
+.train-tasks__frame { overflow-x: auto; border-block: 1px solid var(--hairline); }
+.train-tasks__frame:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.train-tasks__table { inline-size: 100%; border-collapse: collapse; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.train-tasks__table th, .train-tasks__table td { padding: .5rem .75rem .5rem 0; text-align: left; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+.train-tasks__table thead th { color: var(--color-fg-muted); font-size: .8125rem; font-weight: 400; }
+.train-tasks__table th[scope="row"] { font-weight: 400; }
+.train-tasks__result--win { color: var(--color-success); }
+.train-tasks__result--loss { color: var(--color-error); }
+
+.train-copyable { display: inline-flex; align-items: flex-start; gap: var(--space-1); max-inline-size: 100%; min-width: 0; }
+.train-copyable .digest { min-width: 0; }
+.train-downloads { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+
+/* Private training, offered by email. */
+.train-private h2 { margin-top: 0; font-size: 1.75rem; }
+.train-private p { max-width: 60ch; margin-block: var(--space-2) var(--space-3); }
+
+@media (max-width: 47.99rem) {
+  .train-list__item, .train-arms, .train-settings { grid-template-columns: minmax(0, 1fr); }
+  .train-paired { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .train-figures > div { padding-inline: var(--space-2); }
+}
+
+/* On a touch screen each comparison's name and each copy icon get a finger's 44
+   pixels. */
+@media (pointer: coarse) {
+  .train-list__name a { display: flex; align-items: center; min-height: 2.75rem; }
+  .train-copyable .rg-copy--icon { inline-size: 2.75rem; block-size: 2.75rem; min-block-size: 2.75rem; }
+}

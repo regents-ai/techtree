@@ -1,0 +1,63 @@
+mode = "rl"
+name = "payment-terms-nemotron-3-nano-30b"
+gpu_type = "RTX_PRO_6000B_96GB"
+max_steps = 50
+
+[model]
+name = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
+
+[deployment]
+type = "single_node"
+num_train_gpus = 1
+num_infer_gpus = 1
+
+[inference]
+
+[trainer.model.lora]
+rank = 16
+alpha = 32
+
+[orchestrator]
+batch_size = 64
+
+[orchestrator.train]
+group_size = 8
+
+[[orchestrator.train.source]]
+
+[orchestrator.train.source.env.taskset]
+id = "regents/payment-terms"
+split = "train"
+seed = 0
+
+[orchestrator.train.source.env.agent.harness]
+id = "null"
+
+[orchestrator.train.source.env.agent.sampling]
+max_tokens = 512
+
+[orchestrator.train.source.env.agent.sampling.chat_template_kwargs]
+enable_thinking = false
+
+[orchestrator.eval]
+interval = 50
+
+[orchestrator.eval.sampling]
+temperature = 0.0
+
+[[orchestrator.eval.source]]
+name = "held-out"
+
+[orchestrator.eval.source.env.taskset]
+id = "regents/payment-terms"
+split = "held_out"
+seed = 0
+
+[orchestrator.eval.source.env.agent.harness]
+id = "null"
+
+[orchestrator.eval.source.env.agent.sampling]
+max_tokens = 512
+
+[orchestrator.eval.source.env.agent.sampling.chat_template_kwargs]
+enable_thinking = false
