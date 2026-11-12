@@ -30,4 +30,4 @@ Our own bench, reviewed the way a Cyber Assist customer's product would be: one 
 
 ## Contact
 
-Write to [build@regents.sh]({{mailto}}) with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.
+Write to [build@regents.sh]({{mailto}}) with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope.

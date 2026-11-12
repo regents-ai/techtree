@@ -92,7 +92,7 @@ defmodule TechtreeWeb.PublicDocuments do
 
   @payment "Tests use the person's own model account. Using Techtree is free; " <>
              "paid hosted runs are planned. Techtree Verify, Techtree Cyber Assist and " <>
-             "Techtree Formal are paid. The price is set for each job once the scope is agreed by email."
+             "Techtree Formal are paid work, scoped with each team by email."
 
   # The public documents change only with a release, so the release time is when
   # each last changed. security.txt expires a year after it.

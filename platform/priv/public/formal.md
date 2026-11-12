@@ -1,4 +1,4 @@
-# Techtree Formal
+# Formal
 
 Formal verification: a proof shows that a precise model of the code keeps a stated property for every input the model allows, not only the inputs a test tried, and a computer checks every step. This page is experimental.
 
@@ -45,4 +45,4 @@ Write to [build@regents.sh]({{mailto}}) with:
 - The property you need guaranteed, in plain words.
 - Where it runs, such as a chain, a server or a device.
 
-We reply by email with a scoped quote. The work is paid, and the price is set once the scope is agreed.
+We reply by email with a proposed scope.

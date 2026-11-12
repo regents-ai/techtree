@@ -27,13 +27,9 @@ For a one-off check instead, see [Techtree Verify](/services/verify) and [Techtr
 - Repair advice: clear repair advice, most urgent first.
 - Retest: after you fix, we check the weakness is gone.
 
-## Price
-
-Monthly, per site. Ask us for the price.
-
 ## Contact
 
-{{book_call}}Write to [build@regents.sh]({{mailto}}) with your company, the sites you want watched, and who we contact. We reply with a proposed scope; the price is set once the scope is agreed.
+{{book_call}}Write to [build@regents.sh]({{mailto}}) with your company, the sites you want watched, and who we contact. We reply with a proposed scope.
 
 ## Agent message
 

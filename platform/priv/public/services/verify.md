@@ -1,4 +1,4 @@
-# Techtree Verify
+# Verify
 
 Prove your important workflows work.
 
@@ -30,4 +30,4 @@ Our own bench, checked the way a Verify customer's product would be: 12 of 14 ch
 
 ## Contact
 
-Write to [build@regents.sh]({{mailto}}) with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.
+Write to [build@regents.sh]({{mailto}}) with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope.

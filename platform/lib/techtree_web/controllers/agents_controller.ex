@@ -245,7 +245,7 @@ defmodule TechtreeWeb.AgentsController do
     To learn what formal verification proves and doesn't, with recent advances
     and their sources, read https://techtree.sh/formal. To have code proved,
     the person writes to build@regents.sh with the code, the property they need
-    guaranteed and where it runs; the reply is a scoped quote.
+    guaranteed and where it runs; the reply is a proposed scope.
 
     ## Train
 
