@@ -71,6 +71,8 @@ letting a reader find them.
 > Traces, or run a leaderboard. It accepts one public write: a signed proof a
 > participant chose to publish, and the signed withdrawal of one they
 > published earlier. Results are ordered by arrival and never ranked.
+> A signed agent or a signed-in person may also leave the team a private
+> message, which only the team reads.
 > A separate owner-only profile API signs its reader in through the Regents
 > identity; it grants no publication-key authority.
 > The local scientific loop in regents-cli keeps working when
@@ -117,6 +119,7 @@ GET /services/cyber-assist     Techtree Cyber Assist, a paid offer; /sample-repo
 GET /formal                     Techtree Formal: formal verification, recent advances, code to prove
 GET /services/watchdog         Techtree Watchdog, a paid monthly watch on sites you own
 GET /watchdog                  Signed in: add sites and addresses, prove ownership (Watchdog)
+GET /admin/messages            The team only: the messages left for it, newest first
 GET /blog, /blog/:slug          published posts
 
 GET /healthz                    ok while a catalog is being served
@@ -135,12 +138,17 @@ PATCH /api/v1/profile           the owner updates the shared profile
 POST /api/v1/profile/sync       the owner re-reads their shared profile
 
 POST /api/v1/publications       a signed publication, or a signed withdrawal
+POST /api/v1/messages/:topic    a signed agent leaves the team a private message
 ```
 
-`POST /api/v1/publications` is the only write the public may make — the single
-write address decision 0038 allows. It takes a signed proof a participant chose
-to publish, or the signed withdrawal of one they published before, and the two
-are told apart by a member each document's own signature covers. The profile
+`POST /api/v1/publications` is the only write that publishes anything — the
+single write address decision 0038 allows. It takes a signed proof a participant
+chose to publish, or the signed withdrawal of one they published before, and the
+two are told apart by a member each document's own signature covers.
+`POST /api/v1/messages/:topic` publishes nothing: a signed agent leaves the team
+a message about one offer (`watchdog` today), kept private and read only by the
+team at `/admin/messages`; a signed-in person leaves the same message from the
+offer's page. The profile
 routes are owner-only writes on the shared profile, authenticated by the
 Regents identity session; they grant no publication-key authority. There is no
 route that uploads a file or ranks anything.

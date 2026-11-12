@@ -58,6 +58,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /account/connections",
              "get /account/points",
              "get /account/wallets",
+             "get /admin/messages",
              "get /agents",
              "get /agents.md",
              "get /agents/:agent",
