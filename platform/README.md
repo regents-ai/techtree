@@ -377,6 +377,7 @@ monorepo root.
 | `SECRET_KEY_BASE` | required in production |
 | `PHX_HOST`, `PORT` | endpoint |
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
+| `REGENT_CREDITS_ADMINS` | the Privy ids of the accounts that run the site, comma-separated; they read the messages left for the team at `/admin/messages`. Optional: without it no one can open that page, and messages are kept unread |
 | `TECHTREE_BOOK_CALL_URL` | the address the Watchdog page's Book Call opens, an https address; optional, and the page shows no such link without it |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 | `TECHTREE_SHOWCASE` | `public` or `off`: whether the motion lab at `/animations` exists; required in production, `public` elsewhere unless set |

@@ -48,6 +48,10 @@ if System.get_env("TECHTREE_BROWSER_TEST") == "1" do
     access_key_id: "browser-tests",
     secret_access_key: "browser-tests",
     req_options: [plug: Techtree.EvidenceShelf]
+
+  # The browser tests' signed-in person (assets/test/browser/support/sign_in.exs)
+  # is one of the team, so the tests read the messages left for it.
+  config :regent_agents, admins: ["did:privy:browser-test"]
 end
 
 # We don't run a server during test. If one is required,

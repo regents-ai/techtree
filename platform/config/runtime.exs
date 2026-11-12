@@ -41,6 +41,15 @@ book_call =
 
 config :techtree, :book_call, book_call
 
+# The Privy accounts that run this site, comma-separated: they read the messages
+# left for the team at /admin/messages (TechtreeWeb.TeamGate,
+# RegentAgents.Checks.Admin). Unset, no one does. Every Regent site reads this
+# name.
+if admins = System.get_env("REGENT_CREDITS_ADMINS") do
+  config :regent_agents,
+    admins: admins |> String.split(",", trim: true) |> Enum.map(&String.trim/1)
+end
+
 config :regent_sprites, token: System.get_env("SPRITES_TOKEN")
 
 # One Claude key for AgentWalletBench: the tested harness's model calls (sent to

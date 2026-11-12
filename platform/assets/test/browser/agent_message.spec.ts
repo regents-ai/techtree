@@ -6,7 +6,8 @@ import {layoutProblems, signIn, watchErrors} from "./support/visitor"
 // It opens its window: each of the three texts fits the screen and copies exactly
 // what it shows, and Escape closes it. A signed-in person leaves a message from
 // its form and sees the receipt, after an empty message is refused when the field
-// is left. A visitor sees the texts and no form.
+// is left, and the team's page then shows it first. A visitor sees the texts and
+// no form, and the team's page is not found for them.
 for (const width of [1280, 390]) {
   test(`at ${width} wide, an agent's texts copy and a signed-in person leaves a message`, async ({browser}) => {
     const hasTouch = width < 768
@@ -76,6 +77,15 @@ for (const width of [1280, 390]) {
     await press(dialog.getByRole("button", {name: "Close"}))
     await expect(dialog).toBeHidden()
 
+    // The browser tests' person is one of the team (config/test.exs).
+    await page.goto("/admin/messages", {waitUntil: "networkidle"})
+    await expect(page.locator(".phx-connected").first()).toBeAttached()
+    const newest = page.locator("#team-messages > li").first()
+    await expect(newest.locator(".team-messages__body")).toHaveText(`We run three sites and want them watched (${width}).`)
+    await expect(newest.locator("code")).toHaveText("watchdog")
+    await expect(newest).toContainText("walk@example.com")
+    expect(await layoutProblems(page)).toEqual([])
+
     expect(errors).toEqual([])
     expect(outside).toEqual([])
     await context.close()
@@ -97,4 +107,6 @@ test("a visitor opens the window and sees the three texts and no form", async ({
   await page.mouse.click(5, 5)
   await expect(dialog).toBeHidden()
   expect(errors).toEqual([])
+
+  expect((await page.goto("/admin/messages"))?.status()).toBe(404)
 })

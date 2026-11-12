@@ -89,6 +89,22 @@ defmodule TechtreeWeb.Router do
     end
   end
 
+  # The team's own pages: the site's admins only. Anyone else gets the
+  # not-found page, signed in or not (TechtreeWeb.TeamGate).
+  pipeline :team do
+    plug TechtreeWeb.TeamGate
+  end
+
+  scope "/admin", TechtreeWeb do
+    pipe_through [:html_only, :browser, :account_browser, :account_only, :team]
+
+    live_session :team,
+      session: {TechtreeWeb.Live.Session, :render_context, []},
+      on_mount: [{TechtreeWeb.Live.Session, :load_human}, TechtreeWeb.TeamGate] do
+      live "/messages", TeamMessagesLive, :index
+    end
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
     plug :put_public_api_headers

@@ -101,3 +101,44 @@
 .agent-message__form .rg-notice code {
   overflow-wrap: anywhere;
 }
+
+/* The team's inbox (`TechtreeWeb.TeamMessagesLive`). */
+.team-messages { display: grid; gap: var(--space-4); }
+
+.team-messages__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-messages__list > li {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--hairline-strong);
+  background: var(--color-surface);
+}
+
+.team-messages__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+}
+
+.team-messages__meta dt {
+  color: var(--color-fg-muted);
+  font-size: .8125rem;
+}
+
+.team-messages__meta dd {
+  margin: 0;
+}
+
+.team-messages__body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
