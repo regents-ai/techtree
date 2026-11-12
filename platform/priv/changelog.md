@@ -85,6 +85,18 @@
   groups that open one at a time, and the On-ramp from your work through Techtree
   to Prime Intellect. The header has three menus and a Book Call button, and the
   footer lists every page.
+- **Pages.** Start, Results and each Result, Offline check, Wallet Bench, Train,
+  Formal, Repo2RLEnv, the Verify, Cyber Assist and Watchdog offers, Docs, the
+  agents' pages, Changelog, Blog and Account now open the way the home page does:
+  a dark band with the page's name, what it does in one line, its main action and
+  Book Call (Account has its tabs there instead), and on a wide screen a moving dot
+  picture of the page's own. What each page says and does is the same, and no
+  address changed.
+- **Evaluate & Climb.** Start, its Docs guide and the Markdown agents read now call
+  the Skill test Evaluate & Climb.
+- **Prices.** The offers, Formal and About no longer show prices: the work is
+  scoped with each team by email.
+- The home page's count of published Results leaves out any that were withdrawn.
 
 ## Website (2026-11-11)
 
