@@ -180,11 +180,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}(?:/[\w.-]+)*\z|
 
   # The GitHub addresses that are informational rather than installable: the
-  # verifiers hover card and the home page's tool notes link projects' homes, and the masthead links this
-  # project's repository and its stargazers page. Nothing a reader installs is
-  # ever taken from any of them, so the immutable-revision rule does not apply.
+  # verifiers hover card, the home page's tool notes and the Stack link projects'
+  # homes, and the masthead links this project's repository and its stargazers
+  # page. Nothing a reader installs is ever taken from any of them, so the
+  # immutable-revision rule does not apply.
   @informational_addresses [
     "https://github.com/PrimeIntellect-ai/verifiers",
+    "https://github.com/PrimeIntellect-ai/prime-agent",
+    "https://github.com/NVIDIA/SkillEvaluator",
     "https://github.com/NousResearch/hermes-agent",
     "https://github.com/FrontierCS/Frontier-CS",
     "https://github.com/FrontierCS/FrontierSmith",

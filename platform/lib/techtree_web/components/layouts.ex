@@ -169,6 +169,7 @@ defmodule TechtreeWeb.Layouts do
     >
       <Regent.Icons.icon name={@page.icon} class="menu-page__icon" />
       <span class="menu-page__name">
+        <span :if={@page.by} class="menu-page__by">{@page.by}</span>
         {@page.name} <span :if={@page.soon} class="menu-page__soon">Soon</span>
       </span>
       <span class="menu-page__line">{@page.line}</span>
@@ -434,6 +435,7 @@ defmodule TechtreeWeb.Layouts do
                     target={external?(page.href) && "_blank"}
                     rel={external?(page.href) && "noopener noreferrer"}
                   >
+                    <span :if={page.by} class="regent-footer__by">{page.by}</span>
                     {page.name}
                   </a>
                   <span :if={!page.href}>{page.name}</span>
@@ -457,10 +459,11 @@ defmodule TechtreeWeb.Layouts do
   end
 
   # The Products menu's columns as they are; each of the other two menus as one
-  # column, and $REGENT with the resources.
+  # column, $REGENT with the resources, and the Stack on its own.
   defp footer_columns do
     [products, agents, resources] = SiteMenu.groups()
-    regent = %{name: "Buy $REGENT", href: @buy_regent, soon: false}
+    stack = SiteMenu.stack()
+    regent = %{name: "Buy $REGENT", by: nil, href: @buy_regent, soon: false}
 
     products.columns ++
       [
@@ -468,8 +471,9 @@ defmodule TechtreeWeb.Layouts do
         %{
           id: resources.id,
           title: resources.name,
-          pages: Enum.flat_map(resources.columns, & &1.pages) ++ [regent]
-        }
+          pages: Enum.flat_map(resources.columns -- [stack], & &1.pages) ++ [regent]
+        },
+        stack
       ]
   end
 

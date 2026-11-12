@@ -7,39 +7,24 @@
  * The server draws each card in its first place (`data-slot`), so the page is
  * whole before this runs and stays so for a visitor who asked for less motion.
  * From then on this owns each card's place: the carousel is `phx-update="ignore"`.
+ * A card moves by changing its `data-slot`; the stylesheet places each slot and
+ * slides a card between them, so no card is ever left with a style of its own.
  *
  * The turning stops while a mouse is over the cards, while the keyboard is
  * inside, while it is off the screen, once Pause is pressed, and never starts
  * for less motion. The active dot fills as the next turn comes, and is the clock.
  * A swipe on a touch screen turns it by hand, as the dots do.
  */
-import {animate, stagger, utils, type JSAnimation} from "animejs"
-import {EASE_IN_OUT, EASE_OUT, play, still} from "../hooks/motion/shared"
+import {animate, stagger, type JSAnimation} from "animejs"
+import {EASE_OUT, play, still} from "../hooks/motion/shared"
 import {countUp} from "./tally"
 
 type Slot = "centre" | "next" | "prev" | "away"
-type Place = {x: string; scale: number; opacity: number}
 
 /** How long each Result stays in the middle. */
 const TURN_MS = 5600
-/** How long a card takes to slide to its next place. */
-const SLIDE_MS = 760
 /** How far a finger must move sideways to turn the carousel. */
 const SWIPE_PX = 40
-
-const WIDE = "(min-width: 48rem)"
-
-// Each place as a share of the card's own width, so the cards keep their
-// spacing at any size. On a narrow screen the neighbours only peek in.
-const places = (): Record<Slot, Place> => {
-  const side = matchMedia(WIDE).matches ? 66 : 94
-  return {
-    centre: {x: "0%", scale: 1, opacity: 1},
-    next: {x: `${side}%`, scale: 0.84, opacity: 0.42},
-    prev: {x: `-${side}%`, scale: 0.84, opacity: 0.42},
-    away: {x: "0%", scale: 0.72, opacity: 0},
-  }
-}
 
 /** Where the card at `index` sits when `current` is in the middle of `count` cards. */
 export const slotOf = (index: number, current: number, count: number): Slot => {
@@ -72,8 +57,7 @@ export const MarketingCarousel = {
     const events = new AbortController()
     const options = {signal: events.signal}
 
-    const place = (animated: boolean) => {
-      const at = places()
+    const place = () => {
       cards.forEach((card, index) => {
         const slot = slotOf(index, current, count)
         card.dataset.slot = slot
@@ -81,8 +65,6 @@ export const MarketingCarousel = {
         card.inert = !middle
         if (middle) card.removeAttribute("aria-hidden")
         else card.setAttribute("aria-hidden", "true")
-        if (animated) animate(card, {...at[slot], duration: SLIDE_MS, ease: EASE_IN_OUT})
-        else utils.set(card, at[slot])
       })
       dots.forEach((dot, index) => dot.setAttribute("aria-current", String(index === current)))
     }
@@ -96,7 +78,8 @@ export const MarketingCarousel = {
 
     const turning = () => !calm && !held && !hovered && !focused && onscreen
 
-    // The active dot's fill is the clock: when it is full, the next Result turns in.
+    // The active dot's fill is the clock: when it is full, the next Result turns
+    // in. It runs on the fill's `--turn`, which the stylesheet turns into its width.
     const wind = () => {
       clock?.revert()
       clock = undefined
@@ -104,7 +87,7 @@ export const MarketingCarousel = {
       const fill = dots[current]?.querySelector<HTMLElement>("[data-fill]")
       if (!fill) return
       clock = animate(fill, {
-        scaleX: [0, 1],
+        "--turn": [0, 1],
         duration: TURN_MS,
         ease: "linear",
         autoplay: turning(),
@@ -116,7 +99,7 @@ export const MarketingCarousel = {
       const was = current
       current = (next + count) % count
       if (current === was) return
-      place(!calm)
+      place()
       if (!calm) arrive(cards[current])
       wind()
     }
@@ -173,10 +156,9 @@ export const MarketingCarousel = {
       run()
     })
     sight.observe(root)
-    matchMedia(WIDE).addEventListener("change", () => place(false), options)
 
     // From here the carousel owns each card's place, starting from where the server put it.
-    place(false)
+    place()
     wind()
     run()
 
@@ -184,7 +166,6 @@ export const MarketingCarousel = {
       events.abort()
       sight.disconnect()
       clock?.revert()
-      utils.remove(cards)
     }
   },
   destroyed(this: CarouselHook) {

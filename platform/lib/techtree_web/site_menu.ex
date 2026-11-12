@@ -5,13 +5,16 @@ defmodule TechtreeWeb.SiteMenu do
 
   Each page is a map with its name, a Lucide icon, one short line, its address
   and whether it is still to come. A page still to come with no address of its
-  own yet has `href: nil` and is shown without a link.
+  own yet has `href: nil` and is shown without a link. A project Techtree is
+  built on (`stack/0`) also names whose it is, as in "NVIDIA’s", shown before
+  its name; every other page has `by: nil`.
   """
 
   use TechtreeWeb, :verified_routes
 
   @type page :: %{
           name: String.t(),
+          by: String.t() | nil,
           icon: String.t(),
           line: String.t(),
           href: String.t() | nil,
@@ -30,9 +33,9 @@ defmodule TechtreeWeb.SiteMenu do
         columns: [
           column("measure", "Measure", [
             page(
-              "Skill test",
+              "Evaluate & Climb",
               "flask-conical",
-              "Your agent, with and without a Skill",
+              "Check a Skill, then prove what it changed",
               ~p"/start"
             ),
             page(
@@ -56,7 +59,7 @@ defmodule TechtreeWeb.SiteMenu do
               "Compare agents on your own code",
               ~p"/repo2rlenv"
             ),
-            soon("Model Climb", "mountain", "Train your own model privately", nil)
+            soon("Model Climb", "mountain", "Private training on your tasks", nil)
           ]),
           column("services", "Services", [
             page(
@@ -67,7 +70,7 @@ defmodule TechtreeWeb.SiteMenu do
             ),
             page(
               "Cyber Assist",
-              "scan-search",
+              "search-check",
               "Validated findings, verified fixes",
               ~p"/services/cyber-assist"
             ),
@@ -124,17 +127,81 @@ defmodule TechtreeWeb.SiteMenu do
           ]),
           column("company", "Company", [
             page("About", "info", "Who runs Techtree, and how to reach us", ~p"/about")
-          ])
+          ]),
+          stack()
         ]
       }
     ]
   end
 
+  @doc """
+  The projects Techtree is built on, each with what it does here. SkillEvaluator
+  is still to come: its checks are not part of Techtree yet.
+  """
+  @spec stack() :: column()
+  def stack do
+    column("stack", "Stack", [
+      built_on(
+        "Prime Intellect’s",
+        "Verifiers",
+        "scale",
+        "Scores every task in a Climb",
+        "https://github.com/PrimeIntellect-ai/verifiers"
+      ),
+      built_on(
+        "Prime Intellect’s",
+        "Environments Hub",
+        "boxes",
+        "Where the Tasksmith Climb gets its tasks",
+        "https://app.primeintellect.ai/dashboard/environments"
+      ),
+      built_on(
+        "Prime Intellect’s",
+        "Prime Agent",
+        "bot",
+        "One of the agents Wallet Bench tests",
+        "https://github.com/PrimeIntellect-ai/prime-agent"
+      ),
+      built_on(
+        "NVIDIA’s",
+        "Skill2Env",
+        "git-fork",
+        "The recipe Techtree’s Skill tasks follow",
+        "https://github.com/NVlabs/Skill2Env"
+      ),
+      built_on(
+        "NVIDIA’s",
+        "SkillEvaluator",
+        "clipboard-check",
+        "Checks a Skill’s quality and overlap",
+        "https://github.com/NVIDIA/SkillEvaluator",
+        true
+      ),
+      built_on(
+        "NVIDIA’s",
+        "Nemotron",
+        "brain",
+        "The models the Train page scores",
+        "https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/"
+      ),
+      built_on(
+        "Nous Research’s",
+        "Hermes",
+        "waypoints",
+        "Runs the agent in a Climb",
+        "https://github.com/NousResearch/hermes-agent"
+      )
+    ])
+  end
+
   defp column(id, title, pages), do: %{id: id, title: title, pages: pages}
 
   defp page(name, icon, line, href),
-    do: %{name: name, icon: icon, line: line, href: href, soon: false}
+    do: %{name: name, by: nil, icon: icon, line: line, href: href, soon: false}
 
   defp soon(name, icon, line, href),
-    do: %{name: name, icon: icon, line: line, href: href, soon: true}
+    do: %{name: name, by: nil, icon: icon, line: line, href: href, soon: true}
+
+  defp built_on(by, name, icon, line, href, soon \\ false),
+    do: %{name: name, by: by, icon: icon, line: line, href: href, soon: soon}
 end

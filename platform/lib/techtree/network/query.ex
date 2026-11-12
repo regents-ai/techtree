@@ -83,16 +83,16 @@ defmodule Techtree.Network.Query do
   end
 
   @doc """
-  The newest entry still standing, or nil when every one is withdrawn or none
-  has arrived.
+  The newest `limit` entries still standing, newest first; none when every one
+  is withdrawn or none has arrived.
   """
-  @spec newest_standing() :: PublicationEntry.t() | nil
-  def newest_standing do
+  @spec standing(pos_integer()) :: [PublicationEntry.t()]
+  def standing(limit) do
     PublicationEntry
     |> Ash.Query.for_read(:list_log, %{})
     |> Ash.Query.filter(is_nil(withdrawn_at))
-    |> Ash.Query.limit(1)
-    |> Ash.read_one!()
+    |> Ash.Query.limit(limit)
+    |> Ash.read!()
   end
 
   @doc """

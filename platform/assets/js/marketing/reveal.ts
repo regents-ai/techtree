@@ -55,3 +55,24 @@ export const MarketingRise = {
     this.scope?.revert()
   },
 }
+
+/**
+ * A row of tiles (`data-stagger`) that rise in one after another, from the
+ * row's middle outwards, the first time the row scrolls into view. The row is
+ * `phx-update="ignore"`, so the page never redraws a tile while it moves.
+ */
+export const MarketingStagger = {
+  mounted(this: RiseHook) {
+    const row = this.el
+    const scope = createScope({root: row})
+    this.scope = scope.add(() =>
+      onFirstSight(row, () => {
+        if (still(row)) return
+        const tiles = [...row.querySelectorAll("[data-stagger]")]
+        play(tiles, {opacity: {from: 0}, y: {from: 18}, delay: stagger(55, {from: "center"}), duration: 620, ease: EASE_OUT})
+      }))
+  },
+  destroyed(this: RiseHook) {
+    this.scope?.revert()
+  },
+}
