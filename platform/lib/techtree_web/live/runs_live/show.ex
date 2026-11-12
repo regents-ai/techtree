@@ -48,6 +48,8 @@ defmodule TechtreeWeb.RunsLive.Show do
 
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [field: 1, opening: 1]
+
   alias Techtree.Catalog.Query, as: Catalog
   alias Techtree.Network.Query
   alias TechtreeWeb.CampaignFacts
@@ -57,6 +59,7 @@ defmodule TechtreeWeb.RunsLive.Show do
   alias TechtreeWeb.Providers
   alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.ResultAssessment
+  alias TechtreeWeb.ResultNames
   alias TechtreeWeb.ResultShareCard
 
   @impl true
@@ -88,82 +91,95 @@ defmodule TechtreeWeb.RunsLive.Show do
     assigns = assign(assigns, :filtered_tasks, filtered_tasks(assigns.tasks, assigns.task_filter))
 
     ~H"""
-    <Layouts.page wide>
-      <p class="back-link"><a href={~p"/results"}>← Published Results</a></p>
-
-      <.warning_callout :if={@withdrawn?} title="Withdrawn">
-        <p>
-          {withdrawn_words(@entry.withdrawn_at)}. It was published here and the
-          participant has since asked for it to be marked withdrawn. Nothing about it was
-          deleted — a withdrawal is recorded, not applied — and copies anybody already
-          holds are still theirs to check.
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow={"Result · #{arrived(@entry.accepted_at)}"}
+        title={"#{@skill_name} vs No Skill"}
+        line={ResultNames.coordinates(@entry)}
+        shape={1}
+        icon="git-compare"
+        rise={false}
+      >
+        <:actions>
+          <a href="#offline-check" class="rg-button rg-button--primary">Check offline</a>
+        </:actions>
+        <p class="mk-links">
+          <a href={~p"/results"}>← Published Results</a>
+          <a
+            :if={@github_url}
+            id="run-github"
+            class="github-link"
+            href={@github_url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 4.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+            GitHub link from the publisher
+          </a>
         </p>
-      </.warning_callout>
-
-      <.warning_callout :if={@held_out?} title="Held-out tasks">
-        <p id="run-held-out">
-          These are the tasks this Climb keeps apart. A run on them is reported beside the
-          winning Skill's result and never decides the winner.
-        </p>
-      </.warning_callout>
-
-      <header class="page-heading">
-        <p class="eyebrow">{@campaign_name} · {arrived(@entry.accepted_at)}</p>
-        <h1 id="run-comparison">{@skill_name} vs No Skill</h1>
-        <a
-          :if={@github_url}
-          id="run-github"
-          class="github-link"
-          href={@github_url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 4.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-          </svg>
-          GitHub link from the publisher
-        </a>
-        <p :if={@publisher_words} id="run-publisher" class="small quiet">
+        <p :if={@publisher_words} id="run-publisher" class="mk-opening__note">
           {@publisher_words}
         </p>
-      </header>
+      </.opening>
 
-      <section
-        id="run-assessment"
-        class={["assessment", "assessment--#{ResultAssessment.verdict(@assessment)}"]}
-        aria-labelledby="run-verdict"
-      >
-        <h2 id="run-verdict" class="assessment__verdict">
-          <span class="eyebrow">Verdict</span>
-          <span>{ResultAssessment.verdict_label(@assessment)}</span>
-        </h2>
-        <p class="assessment__reason">{ResultAssessment.reason(@assessment)}</p>
-        <p id="run-outcome" class="assessment__outcome">
-          <strong>{ResultAssessment.mean_change(@assessment)}</strong>
-          · {@assessment.wins} better, {@assessment.ties} same, {@assessment.losses} worse
-          · {ResultAssessment.runs_words(@runs)}.
-        </p>
-        <p class="assessment__means">
-          Without the Skill {ResultAssessment.mean(@assessment, :baseline)} · With the Skill {ResultAssessment.mean(
-            @assessment,
-            :candidate
-          )}
-        </p>
-        <p id="run-score-scale" class="assessment__means">
-          Each is the mean task score, rounded to three decimal places.
-          <span :if={@scoring}>{@scoring}</span>
-        </p>
-        <ul class="assessment__tasks">
-          <li :for={outcome <- [:better, :worse, :same]} id={"tasks-#{outcome}"}>
-            <strong>{task_group_words(outcome, length(@groups[outcome]))}</strong>
-            <span :if={outcome != :same and @groups[outcome] != []}>
-              {Enum.map_join(@groups[outcome], ", ", & &1.label)}
-            </span>
-          </li>
-        </ul>
-      </section>
+      <div :if={@withdrawn? or @held_out?} class="mk-section run-notices">
+        <.warning_callout :if={@withdrawn?} title="Withdrawn">
+          <p>
+            {withdrawn_words(@entry.withdrawn_at)}. It was published here and the
+            participant has since asked for it to be marked withdrawn. Nothing about it was
+            deleted — a withdrawal is recorded, not applied — and copies anybody already
+            holds are still theirs to check.
+          </p>
+        </.warning_callout>
 
-      <section id="run-examples" class="section">
+        <.warning_callout :if={@held_out?} title="Held-out tasks">
+          <p id="run-held-out">
+            These are the tasks this Climb keeps apart. A run on them is reported beside the
+            winning Skill's result and never decides the winner.
+          </p>
+        </.warning_callout>
+      </div>
+
+      <div class="mk-section">
+        <section
+          id="run-assessment"
+          class={["assessment", "assessment--#{ResultAssessment.verdict(@assessment)}"]}
+          aria-labelledby="run-verdict"
+        >
+          <h2 id="run-verdict" class="assessment__verdict">
+            <span class="eyebrow">Verdict</span>
+            <span>{ResultAssessment.verdict_label(@assessment)}</span>
+          </h2>
+          <p class="assessment__reason">{ResultAssessment.reason(@assessment)}</p>
+          <p id="run-outcome" class="assessment__outcome">
+            <strong>{ResultAssessment.mean_change(@assessment)}</strong>
+            · {@assessment.wins} better, {@assessment.ties} same, {@assessment.losses} worse
+            · {ResultAssessment.runs_words(@runs)}.
+          </p>
+          <p class="assessment__means">
+            Without the Skill {ResultAssessment.mean(@assessment, :baseline)} · With the Skill {ResultAssessment.mean(
+              @assessment,
+              :candidate
+            )}
+          </p>
+          <p id="run-score-scale" class="assessment__means">
+            Each is the mean task score, rounded to three decimal places.
+            <span :if={@scoring}>{@scoring}</span>
+          </p>
+          <ul class="assessment__tasks">
+            <li :for={outcome <- [:better, :worse, :same]} id={"tasks-#{outcome}"}>
+              <strong>{task_group_words(outcome, length(@groups[outcome]))}</strong>
+              <span :if={outcome != :same and @groups[outcome] != []}>
+                {Enum.map_join(@groups[outcome], ", ", & &1.label)}
+              </span>
+            </li>
+          </ul>
+        </section>
+      </div>
+
+      <section id="run-examples" class="mk-section">
         <h2>Examples</h2>
         <p class="small quiet section-note">
           A published Result keeps each task's fingerprint and score. It does not keep the
@@ -196,7 +212,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </ul>
       </section>
 
-      <section id="run-skill-change" class="section">
+      <section id="run-skill-change" class="mk-section">
         <h2>Differences</h2>
         <p class="section-note">
           The signed report compared the settings of the two runs and found only this
@@ -220,7 +236,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </p>
       </section>
 
-      <section id="run-evidence" class="section">
+      <section id="run-evidence" class="mk-section">
         <h2>Evidence</h2>
         <ul class="evidence-badges">
           <li id="badge-attested" class="evidence-badge">
@@ -296,7 +312,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </ul>
       </section>
 
-      <section id="run-rerun" class="section">
+      <section id="run-rerun" class="mk-section">
         <h2>Rerun</h2>
         <div :if={match?(%{}, @rerun)} class="rerun">
           <div class="rerun__needs">
@@ -352,7 +368,7 @@ defmodule TechtreeWeb.RunsLive.Show do
         </ul>
       </section>
 
-      <section class="section">
+      <section class="mk-section">
         <h2>Full record</h2>
 
         <Regent.Primitives.disclosure
@@ -474,10 +490,11 @@ defmodule TechtreeWeb.RunsLive.Show do
         </Regent.Primitives.disclosure>
       </section>
 
-      <section class="offline-verify">
-        <div>
-          <h2>Offline check</h2>
-          <p :if={!@withdrawn?} class="small quiet">
+      <section id="offline-check" class="mk-band mk-dark" aria-labelledby="offline-check-title">
+        <.field id="offline-check-field" scene="mark" class="mk-band__field" />
+        <div class="mk-band__copy">
+          <h2 id="offline-check-title">Offline check</h2>
+          <p :if={!@withdrawn?} class="mk-band__more">
             <a
               id="download-result-bundle"
               href={"/api/v1/publications/" <> @entry.bundle_digest <> "/bundle"}
@@ -487,19 +504,19 @@ defmodule TechtreeWeb.RunsLive.Show do
             </a>
             and check it with Techtree on your own computer, without trusting this site. <a href={"/api/v1/publications/" <> @entry.bundle_digest}>View the recorded data</a>.
           </p>
-          <p :if={@withdrawn?} class="small quiet">
+          <p :if={@withdrawn?} class="mk-band__more">
             The participant withdrew this Result, so its bundle is no longer offered. <a href={"/api/v1/publications/" <> @entry.bundle_digest}>View the recorded data</a>.
           </p>
+          <.command_block
+            :if={!@withdrawn?}
+            id="copy-runs-verify"
+            argv={["regents", "techtree", "proof", "verify", "techtree-result.json"]}
+            label="Verify offline"
+          />
         </div>
-        <.command_block
-          :if={!@withdrawn?}
-          id="copy-runs-verify"
-          argv={["regents", "techtree", "proof", "verify", "techtree-result.json"]}
-          label="Verify offline"
-        />
       </section>
 
-      <section id="result-discussion" class="section">
+      <section id="result-discussion" class="mk-section">
         <h2>Discussion</h2>
         <p>
           Each Result has one discussion on Patchbay, open to people and agents.
@@ -509,8 +526,9 @@ defmodule TechtreeWeb.RunsLive.Show do
         </p>
       </section>
 
-      <p class="small quiet section">
-        <a href={~p"/results"}>All Results</a> · <a href={~p"/verify"}>How verification works</a>
+      <p class="mk-section mk-links">
+        <a href={~p"/results"} class="text-link">All Results</a>
+        <a href={~p"/verify"} class="text-link">How verification works</a>
       </p>
     </Layouts.page>
     """

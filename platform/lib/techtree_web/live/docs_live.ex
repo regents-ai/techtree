@@ -9,6 +9,7 @@ defmodule TechtreeWeb.DocsLive do
 
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [opening: 1]
   import TechtreeWeb.PageCopy, only: [page_copy: 1]
 
   alias Techtree.Catalog.Query
@@ -83,16 +84,22 @@ defmodule TechtreeWeb.DocsLive do
   @impl true
   def render(%{guide: nil} = assigns) do
     ~H"""
-    <Layouts.page wide>
+    <Layouts.page wide flush>
       <article class="docs-index" data-markdown-root>
-        <header class="docs-hero">
-          <div class="docs-hero__top">
-            <h1>Docs</h1>
-            <.page_copy />
-          </div>
-          <p class="lede">{DocsGuides.lede()}</p>
-        </header>
-        <section :for={{group, guides} <- DocsGuides.groups()} class="docs-index__group">
+        <.opening
+          eyebrow="Resources"
+          title="Docs"
+          line="Install, test, check and publish."
+          more={DocsGuides.lede()}
+          shape={7}
+          icon="book-open"
+        >
+          <:actions>
+            <.link navigate={~p"/docs/install"} class="rg-button rg-button--primary">Install</.link>
+          </:actions>
+          <div class="mk-opening__tools"><.page_copy variant="secondary" /></div>
+        </.opening>
+        <section :for={{group, guides} <- DocsGuides.groups()} class="mk-section">
           <h2>{group}</h2>
           <ul class="docs-index__list">
             <li :for={guide <- guides}>

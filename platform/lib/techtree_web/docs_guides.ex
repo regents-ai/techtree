@@ -15,7 +15,7 @@ defmodule TechtreeWeb.DocsGuides do
     %{
       slug: "test-a-skill",
       group: "Get started",
-      title: "Skill test",
+      title: "Evaluate & Climb",
       summary: "Make tasks from a Skill, then run them without it and with it."
     },
     %{

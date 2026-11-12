@@ -139,11 +139,11 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
   defp start(%{installable?: true, introductory_reference: reference} = release) do
     """
-    # Start
+    # Evaluate & Climb
 
     To see what a Skill changes, Techtree makes tasks from it and your agent works them twice: once without the Skill, or with its earlier version, and once with it. Only the Skill changes, so the difference is the Skill's.
 
-    ## Skill test
+    ## Your Skill
 
     Give this to a coding agent that can use your terminal, or to Hermes:
 
@@ -168,7 +168,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
   defp start(_release) do
     """
-    # Start
+    # Evaluate & Climb
 
     There's no version of Techtree to install yet. The [Docs](/docs) explain how a test works in the meantime.
     """

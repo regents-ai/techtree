@@ -58,6 +58,8 @@ defmodule TechtreeWeb.RunsLive.Index do
 
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [opening: 1]
+
   alias Techtree.Catalog.Query, as: Catalog
   alias Techtree.Catalog.Route
   alias Techtree.Network.AgentVersions
@@ -168,23 +170,25 @@ defmodule TechtreeWeb.RunsLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.page wide flush>
-      <div class="runs-index">
-        <section class="runs-index__intro" aria-labelledby="runs-index-title">
-          <header class="page-heading runs-index__heading">
-            <p class="eyebrow">Run log</p>
-            <h1 id="runs-index-title">Published Results</h1>
-            <p class="runs-index__lede">
-              One harness. One model. One challenge. Inspect what changed when a Skill changed.
-              Newest submissions first, not ranked by score.
-            </p>
-            <p id="results-scope" class="small quiet">
-              Only Climb runs can be published today. A test of your own Skill stays on your
-              computer; <.link navigate={~p"/examples/tdd"}>the tdd example</.link>
-              shows what one looks like.
-            </p>
-          </header>
-        </section>
+      <.opening
+        eyebrow="Measure"
+        title="Results"
+        line="Inspect what changed when a Skill changed."
+        more="One harness. One model. One challenge. Newest submissions first, not ranked by score."
+        shape={1}
+        icon="list-checks"
+      >
+        <:actions>
+          <.link navigate={~p"/start"} class="rg-button rg-button--primary">Start</.link>
+        </:actions>
+        <p id="results-scope" class="mk-opening__note">
+          Only Climb runs can be published today. A test of your own Skill stays on your
+          computer; <.link navigate={~p"/examples/tdd"}>the tdd example</.link>
+          shows what one looks like.
+        </p>
+      </.opening>
 
+      <section class="mk-section runs-index" aria-label="Published Results">
         <section
           :if={@total > 0}
           class="results-filters"
@@ -478,7 +482,7 @@ defmodule TechtreeWeb.RunsLive.Index do
         <p class="runs-index__footer small quiet">
           <a href={~p"/verify"}>How verification works</a>
         </p>
-      </div>
+      </section>
     </Layouts.page>
     """
   end

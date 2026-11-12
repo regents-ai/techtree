@@ -95,6 +95,15 @@ defmodule Techtree.Network.Query do
     |> Ash.read!()
   end
 
+  @doc "How many entries on the log still stand: every one not withdrawn."
+  @spec standing_count() :: non_neg_integer()
+  def standing_count do
+    PublicationEntry
+    |> Ash.Query.for_read(:list_log, %{})
+    |> Ash.Query.filter(is_nil(withdrawn_at))
+    |> Ash.count!()
+  end
+
   @doc """
   How many entries the log holds for the coordinates given, withdrawn or not.
   A coordinate left out is every value of it.

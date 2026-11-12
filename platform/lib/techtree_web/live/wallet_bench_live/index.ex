@@ -16,6 +16,8 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
 
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [opening: 1]
+
   alias Techtree.WalletBench
   alias Techtree.WalletBench.Judge
   alias TechtreeWeb.Outage
@@ -122,19 +124,24 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.page wide>
-      <div class="wallet-bench">
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow="AgentWalletBench"
+        title="Wallet Bench"
+        line="Which agent can use which wallet?"
+        more="We also check companies’ own wallet flows."
+        shape={5}
+        icon="wallet"
+      >
+        <:actions>
+          <.link navigate={~p"/services/verify"} class="rg-button rg-button--primary">
+            Techtree Verify
+          </.link>
+        </:actions>
+      </.opening>
+
+      <div class="mk-section wallet-bench">
         <header class="wallet-bench__head">
-          <div>
-            <p class="eyebrow">AgentWalletBench</p>
-            <h1>Wallet Bench</h1>
-            <p class="wallet-bench__lede">
-              Which agent can use which wallet? We also check companies’ own wallet flows.
-              <.link navigate={~p"/services/verify"}>
-                Techtree Verify <span aria-hidden="true">→</span>
-              </.link>
-            </p>
-          </div>
           <nav class="wallet-bench__switch" aria-label="View">
             <.link
               patch={here(assigns, view: :list, result: nil)}

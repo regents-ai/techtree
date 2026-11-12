@@ -5,8 +5,8 @@ defmodule TechtreeWeb.ServiceLive do
   result, then what the buyer gets, how an engagement runs, a sample of the
   report and the way to start a conversation; and Techtree Watchdog at
   `/services/watchdog`, the monthly subscription that watches sites a team
-  proves it owns, with its own shape (how it works, the rules, what you get and
-  the price). Every page starts an email whose body already asks for what we
+  proves it owns, with its own shape (how it works, the rules and what you
+  get). Every page starts an email whose body already asks for what we
   need (`mailto/1`); Watchdog also shows Book Call when an address for it is
   set (`TechtreeWeb.Components.BookCall`), and has the Agent Message button
   (`TechtreeWeb.Components.AgentMessage`, topic `watchdog`): its window gives an
@@ -25,6 +25,8 @@ defmodule TechtreeWeb.ServiceLive do
 
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [field: 1, opening: 1]
+
   alias TechtreeWeb.Components.{AgentMessage, BookCall}
   alias TechtreeWeb.{Outage, WalletBenchScores}
 
@@ -33,7 +35,8 @@ defmodule TechtreeWeb.ServiceLive do
   @offers %{
     verify: %{
       name: "Techtree Verify",
-      title: "Techtree Verify",
+      title: "Verify",
+      icon: "shield-check",
       promise: "Prove your important workflows work.",
       lede:
         "For teams that ship quickly. We check the workflows you choose, such as how an agent sets up and uses a wallet, reproduce every failure and leave you a suite you can run again.",
@@ -65,13 +68,14 @@ defmodule TechtreeWeb.ServiceLive do
         {"The download is offered on every view of a result", "Fail", :fail}
       ],
       start_line:
-        "Write to build@regents.sh with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.",
+        "Write to build@regents.sh with what you ship, the workflows that matter most, and where we can try them (a test site is best). We reply with a proposed scope.",
       subject: "Techtree Verify",
       body: ["Company:", "Product:", "Workflows that matter most:", "Place to try them:"]
     },
     cyber_assist: %{
       name: "Techtree Cyber Assist",
       title: "Cyber Assist",
+      icon: "search-check",
       promise: "Find and fix the security weaknesses that matter.",
       lede:
         "For applications and agent integrations. We validate each weakness, show how to reproduce it, rank the repairs and check that each fix holds.",
@@ -101,7 +105,7 @@ defmodule TechtreeWeb.ServiceLive do
         {"The hiding step also hid the bundled checksums", "Low, fixed", :fixed}
       ],
       start_line:
-        "Write to build@regents.sh with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope; the price is set once the scope is agreed.",
+        "Write to build@regents.sh with what you build, where you want a second look, and where we can try it (a test site is best). We reply with a proposed scope.",
       subject: "Techtree Cyber Assist",
       body: ["Company:", "Product:", "Parts for a second look:", "Place to try it:"]
     },
@@ -132,9 +136,8 @@ defmodule TechtreeWeb.ServiceLive do
         {"Repair advice", "Clear repair advice, most urgent first."},
         {"Retest", "After you fix, we check the weakness is gone."}
       ],
-      price: "Monthly, per site. Ask us for the price.",
       start_line:
-        "Write to build@regents.sh with your company, the sites you want watched, and who we contact. We reply with a proposed scope; the price is set once the scope is agreed.",
+        "Write to build@regents.sh with your company, the sites you want watched, and who we contact. We reply with a proposed scope.",
       subject: "Techtree Watchdog",
       body: ["Company:", "Sites:", "Contact:"]
     }
@@ -148,6 +151,7 @@ defmodule TechtreeWeb.ServiceLive do
      assign(socket,
        page_title: offer.name,
        offer: offer,
+       service: socket.assigns.live_action |> Atom.to_string() |> String.replace("_", "-"),
        bench: figures(),
        mailto: mailto(socket.assigns.live_action),
        book_call: BookCall.address()
@@ -229,67 +233,62 @@ defmodule TechtreeWeb.ServiceLive do
   @impl true
   def render(%{live_action: :watchdog} = assigns) do
     ~H"""
-    <Layouts.page wide>
-      <article class="service-offer" aria-labelledby="service-title">
-        <header class="editorial-heading">
-          <h1 id="service-title">{@offer.title}</h1>
-          <p class="lede">{@offer.promise}</p>
-          <p class="lede">{@offer.lede}</p>
-          <div class="service-offer__actions">
-            <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
-          </div>
-          <p class="service-offer__other">
-            For a one-off check instead, see <a href={~p"/services/verify"}>Techtree Verify</a>
-            and <a href={~p"/services/cyber-assist"}>Techtree Cyber Assist</a>.
-          </p>
-        </header>
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow="Services"
+        title={@offer.title}
+        line={@offer.promise}
+        more={@offer.lede}
+        service={@service}
+        icon="radar"
+      >
+        <:actions>
+          <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
+        </:actions>
+        <p id="other-offers" class="mk-opening__note">
+          For a one-off check instead, see <a href={~p"/services/verify"}>Techtree Verify</a>
+          and <a href={~p"/services/cyber-assist"}>Techtree Cyber Assist</a>.
+        </p>
+      </.opening>
 
-        <section class="service-offer__flow" aria-labelledby="watchdog-how-title">
-          <p class="eyebrow">Process</p>
+      <section id="steps" class="mk-section" aria-labelledby="watchdog-how-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Process</p>
           <h2 id="watchdog-how-title">Steps</h2>
-          <ol class="service-flow">
-            <li :for={{{title, detail}, index} <- Enum.with_index(@offer.steps, 1)}>
-              <span>0{index}</span><strong>{title}</strong><small>{detail}</small>
-            </li>
-          </ol>
-        </section>
+        </header>
+        <ol
+          id="watchdog-steps"
+          class="mk-sequence"
+          phx-hook="MarketingStagger"
+          phx-update="ignore"
+        >
+          <li :for={{{title, detail}, index} <- Enum.with_index(@offer.steps, 1)} data-stagger>
+            <span class="mk-sequence__index">0{index}</span>
+            <h3>{title}</h3>
+            <p>{detail}</p>
+          </li>
+        </ol>
+      </section>
 
-        <section class="service-offer__part" aria-labelledby="watchdog-rules-title">
-          <div>
-            <p class="eyebrow">Limits</p>
-            <h2 id="watchdog-rules-title">Rules</h2>
-          </div>
-          <ul class="service-rules">
-            <li :for={rule <- @offer.rules}>{rule}</li>
-          </ul>
-        </section>
+      <section class="mk-section mk-split" aria-labelledby="watchdog-rules-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Limits</p>
+          <h2 id="watchdog-rules-title">Rules</h2>
+        </header>
+        <ul id="watchdog-rules" class="mk-status">
+          <li :for={rule <- @offer.rules}>{rule}</li>
+        </ul>
+      </section>
 
-        <section class="service-offer__part" aria-labelledby="watchdog-get-title">
-          <div>
-            <p class="eyebrow">Deliverables</p>
-            <h2 id="watchdog-get-title">You get</h2>
-          </div>
-          <dl class="service-deliverables">
-            <div :for={{title, detail} <- @offer.deliverables}>
-              <dt>{title}</dt>
-              <dd>{detail}</dd>
-            </div>
-          </dl>
-        </section>
+      <.deliverables offer={@offer} />
 
-        <section class="service-offer__part" aria-labelledby="watchdog-price-title">
-          <div>
-            <p class="eyebrow">Price</p>
-            <h2 id="watchdog-price-title">Cost</h2>
-          </div>
-          <p>{@offer.price}</p>
-        </section>
-
-        <Regent.Structure.panel class="service-offer__start rg-panel__body rg-support-panel">
-          <p class="eyebrow">Start</p>
-          <h2>Contact</h2>
-          <p>{@offer.start_line}</p>
-          <div class="service-intro__actions">
+      <section id="contact" class="mk-band mk-dark" aria-labelledby="contact-title">
+        <.field id="contact-field" scene="glow" class="mk-band__field" />
+        <div class="mk-band__copy">
+          <p class="mk-eyebrow">Start</p>
+          <h2 id="contact-title">Contact</h2>
+          <p class="mk-band__line">{@offer.start_line}</p>
+          <div class="mk-band__actions">
             <BookCall.book_call />
             <a
               class={["rg-button", (@book_call && "rg-button--secondary") || "rg-button--primary"]}
@@ -299,104 +298,139 @@ defmodule TechtreeWeb.ServiceLive do
             </a>
             <AgentMessage.button id="watchdog-message-button" dialog="watchdog-message" />
           </div>
-        </Regent.Structure.panel>
-        <AgentMessage.dialog
-          id="watchdog-message"
-          topic="watchdog"
-          account={signed_in(@access_context)}
-          lease={@session_lease}
-          client_key={@client_key}
-        />
-      </article>
+        </div>
+      </section>
+      <AgentMessage.dialog
+        id="watchdog-message"
+        topic="watchdog"
+        account={signed_in(@access_context)}
+        lease={@session_lease}
+        client_key={@client_key}
+      />
     </Layouts.page>
     """
   end
 
   def render(assigns) do
     ~H"""
-    <Layouts.page wide>
-      <article class="service-offer" aria-labelledby="service-title">
-        <header class="editorial-heading">
-          <h1 id="service-title">{@offer.title}</h1>
-          <p class="lede">{@offer.promise}</p>
-          <p class="lede">{@offer.lede}</p>
-          <div class="service-offer__actions">
-            <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
-            <a class="text-link" href={@offer.sample_path}>Read the sample report →</a>
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow="Services"
+        title={@offer.title}
+        line={@offer.promise}
+        more={@offer.lede}
+        service={@service}
+        icon={@offer.icon}
+      >
+        <:actions>
+          <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
+        </:actions>
+        <p id="other-offers" class="mk-opening__note">
+          {@offer.other.lead} <a href={@offer.other.path}>{@offer.other.name}</a>.
+          For ongoing watching of sites you own, see <a href={~p"/services/watchdog"}>Techtree Watchdog</a>.
+        </p>
+      </.opening>
+
+      <section
+        id="bench"
+        class="mk-section"
+        aria-labelledby="service-result-title"
+        phx-hook="MarketingTally"
+      >
+        <header class="mk-section__head mk-section__head--row">
+          <div>
+            <p class="mk-eyebrow">
+              {case @bench do
+                {:ok, figures} -> tested(figures)
+                :database_down -> "Our own bench"
+              end}
+            </p>
+            <h2 id="service-result-title">Wallet Bench</h2>
           </div>
-          <p class="service-offer__other">
-            {@offer.other.lead} <a href={@offer.other.path}>{@offer.other.name}</a>.
-            For ongoing watching of sites you own, see <a href={~p"/services/watchdog"}>Techtree Watchdog</a>.
+          <a class="text-link" href={~p"/wallet-bench"}>See the bench →</a>
+        </header>
+        <%= case @bench do %>
+          <% {:ok, figures} -> %>
+            <dl id="bench-figures" class="mk-tallies">
+              <div :for={{figure, label} <- bench(figures)}>
+                <dt>{label}</dt>
+                <dd data-tally>{figure}</dd>
+              </div>
+            </dl>
+          <% :database_down -> %>
+            <p class="empty-state" role="status">
+              The bench figures can't be shown right now. Try again in a minute.
+            </p>
+        <% end %>
+      </section>
+
+      <.deliverables offer={@offer} />
+
+      <section id="steps" class="mk-section" aria-labelledby="service-how-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Process</p>
+          <h2 id="service-how-title">Steps</h2>
+        </header>
+        <ol id="service-steps" class="mk-sequence" phx-hook="MarketingStagger" phx-update="ignore">
+          <li
+            :for={{{stage, title, detail}, index} <- Enum.with_index(@offer.steps, 1)}
+            data-stagger
+          >
+            <span class="mk-sequence__index">0{index} / {stage}</span>
+            <h3>{title}</h3>
+            <p>{detail}</p>
+          </li>
+        </ol>
+      </section>
+
+      <section class="mk-section mk-split" aria-labelledby="service-sample-title">
+        <header class="mk-section__head">
+          <h2 id="service-sample-title">Sample report</h2>
+          <p>{@offer.sample_title} {@offer.sample_line}</p>
+          <p class="mk-links">
+            <a class="text-link" href={@offer.sample_path}>Read the sample report →</a>
           </p>
         </header>
+        <ul class="mk-outcomes">
+          <li :for={{label, result, mark} <- @offer.sample_rows}>
+            <span>{label}</span>
+            <strong class={["mk-outcome", "mk-outcome--#{mark}"]}>{result}</strong>
+          </li>
+        </ul>
+      </section>
 
-        <section class="service-result" aria-labelledby="service-result-title">
-          <%= case @bench do %>
-            <% {:ok, figures} -> %>
-              <p class="eyebrow">{tested(figures)}</p>
-              <h2 id="service-result-title">Wallet Bench</h2>
-              <dl class="service-result__figures">
-                <div :for={{figure, label} <- bench(figures)}>
-                  <dt>{label}</dt>
-                  <dd>{figure}</dd>
-                </div>
-              </dl>
-            <% :database_down -> %>
-              <p class="eyebrow">Our own bench</p>
-              <h2 id="service-result-title">Wallet Bench</h2>
-              <p class="empty-state" role="status">
-                The bench figures can't be shown right now. Try again in a minute.
-              </p>
-          <% end %>
-          <a class="text-link" href={~p"/wallet-bench"}>See the bench →</a>
-        </section>
-
-        <section class="service-offer__part" aria-labelledby="service-get-title">
-          <div>
-            <p class="eyebrow">Deliverables</p>
-            <h2 id="service-get-title">You get</h2>
+      <section id="contact" class="mk-band mk-dark" aria-labelledby="contact-title">
+        <.field id="contact-field" scene="glow" class="mk-band__field" />
+        <div class="mk-band__copy">
+          <p class="mk-eyebrow">Start</p>
+          <h2 id="contact-title">Contact</h2>
+          <p class="mk-band__line">{@offer.start_line}</p>
+          <div class="mk-band__actions">
+            <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
+            <BookCall.book_call variant={:secondary} />
           </div>
-          <dl class="service-deliverables">
-            <div :for={{title, detail} <- @offer.deliverables}>
-              <dt>{title}</dt>
-              <dd>{detail}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <Regent.Structure.panel class="service-offer__flow rg-panel__body">
-          <p class="eyebrow">Process</p>
-          <ol class="service-flow">
-            <li :for={{{stage, title, detail}, index} <- Enum.with_index(@offer.steps, 1)}>
-              <span>0{index} / {stage}</span><strong>{title}</strong><small>{detail}</small>
-            </li>
-          </ol>
-        </Regent.Structure.panel>
-
-        <section class="service-offer__part" aria-labelledby="service-sample-title">
-          <div>
-            <h2 id="service-sample-title">Sample report</h2>
-            <p>{@offer.sample_title} {@offer.sample_line}</p>
-            <a class="text-link" href={@offer.sample_path}>Read the sample report →</a>
-          </div>
-          <ul class="service-sample">
-            <li :for={{label, result, mark} <- @offer.sample_rows}>
-              <span>{label}</span>
-              <strong class={["service-sample__mark", "service-sample__mark--#{mark}"]}>
-                {result}
-              </strong>
-            </li>
-          </ul>
-        </section>
-
-        <Regent.Structure.panel class="service-offer__start rg-panel__body rg-support-panel">
-          <p class="eyebrow">Start</p>
-          <h2>Contact</h2>
-          <p>{@offer.start_line}</p>
-          <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
-        </Regent.Structure.panel>
-      </article>
+        </div>
+      </section>
     </Layouts.page>
+    """
+  end
+
+  attr :offer, :map, required: true
+
+  defp deliverables(assigns) do
+    ~H"""
+    <section class="mk-section mk-split" aria-labelledby="service-get-title">
+      <header class="mk-section__head">
+        <p class="mk-eyebrow">Deliverables</p>
+        <h2 id="service-get-title">You get</h2>
+      </header>
+      <dl class="mk-facts">
+        <div :for={{title, detail} <- @offer.deliverables}>
+          <dt>{title}</dt>
+          <dd>{detail}</dd>
+        </div>
+      </dl>
+    </section>
     """
   end
 end

@@ -1,9 +1,7 @@
 /* Train: a comparison's figures and its strip of task results, the list of
-   comparisons, one comparison's arms, tasks, settings and evidence, and the
-   Private offer. */
+   comparisons, and one comparison's arms, tasks, settings and evidence. */
 .train { display: grid; gap: var(--space-4); }
 .train > * { min-width: 0; }
-.train .section { margin-top: 0; }
 .train h2 { font-size: 1.5rem; letter-spacing: -.02em; }
 .train h3 { font-size: 1rem; }
 
@@ -72,10 +70,6 @@
 .train-copyable { display: inline-flex; align-items: flex-start; gap: var(--space-1); max-inline-size: 100%; min-width: 0; }
 .train-copyable .digest { min-width: 0; }
 .train-downloads { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
-
-/* Private training, offered by email. */
-.train-private h2 { margin-top: 0; font-size: 1.75rem; }
-.train-private p { max-width: 60ch; margin-block: var(--space-2) var(--space-3); }
 
 @media (max-width: 47.99rem) {
   .train-list__item, .train-arms, .train-settings { grid-template-columns: minmax(0, 1fr); }

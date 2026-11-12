@@ -159,8 +159,8 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       assert has_element?(
                live,
-               ~s|.runs-index__intro[aria-labelledby="runs-index-title"] #runs-index-title|,
-               "Published Results"
+               ~s|#opening[aria-labelledby="opening-title"] h1#opening-title|,
+               "Results"
              )
 
       assert has_element?(live, ".results-ledger tbody > tr.results-ledger__row")
@@ -405,7 +405,7 @@ defmodule TechtreeWeb.RunsLiveTest do
     test "shows campaign and Skill metadata on the detail page", %{conn: conn, entry: entry} do
       {:ok, live, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
-      assert has_element?(live, "#run-comparison")
+      assert has_element?(live, "#opening-title")
       assert visible_text(render(live)) =~ "Techtree Hello World"
       assert visible_text(render(live)) =~ "Hello World Skill vs No Skill"
       refute has_element?(live, "#run-subtitle")
@@ -675,7 +675,7 @@ defmodule TechtreeWeb.RunsLiveTest do
 
       {:ok, detail, _html} = live(conn, "/results/#{entry.bundle_digest}")
 
-      assert has_element?(detail, "#run-comparison")
+      assert has_element?(detail, "#opening-title")
       assert visible_text(render(detail)) =~ "branchcode vs No Skill"
       assert has_element?(detail, "#run-github[href=\"#{github_url}\"]")
 

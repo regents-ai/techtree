@@ -229,9 +229,10 @@ defmodule TechtreeWeb.HomeLiveTest do
     setup do
       CatalogFixture.use_bundle(CatalogFixture.root())
       Importer.import!(CatalogFixture.root())
-      files = NetworkFixture.resign(NetworkFixture.scored(), keys: NetworkFixture.key_pair())
+      keys = NetworkFixture.key_pair()
+      files = NetworkFixture.resign(NetworkFixture.scored(), keys: keys)
       {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
-      {:ok, entry: entry}
+      {:ok, entry: entry, keys: keys}
     end
 
     test "the newest Result sits in the middle of the opening, with its figures and how sure it is",
@@ -258,6 +259,16 @@ defmodule TechtreeWeb.HomeLiveTest do
       # One Result does not turn: no dots and no Pause.
       refute has_element?(live, "#hero-results button")
       assert has_element?(live, ~s|#figures a[href="/results"] [data-tally]|, "1")
+    end
+
+    test "a withdrawn Result leaves the count of published Results",
+         %{conn: conn, entry: entry, keys: keys} do
+      {:ok, _marked, :recorded} =
+        NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+
+      {:ok, live, _html} = live(conn, ~p"/")
+
+      refute has_element?(live, ~s|#figures a[href="/results"]|)
     end
   end
 

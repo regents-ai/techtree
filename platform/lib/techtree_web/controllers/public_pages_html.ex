@@ -1,7 +1,12 @@
 defmodule TechtreeWeb.PublicPagesHTML do
-  @moduledoc "About, Privacy, Terms, the sample reports and the agents' pages, in the site's document layout."
+  @moduledoc """
+  About, Privacy, Terms and the sample reports in the site's document layout,
+  and the agents' pages under the marketing site's opening band.
+  """
 
   use TechtreeWeb, :html
+
+  import TechtreeWeb.Components.Marketing, only: [opening: 1]
 
   attr :page, :map, required: true
 
@@ -17,6 +22,28 @@ defmodule TechtreeWeb.PublicPagesHTML do
       <article class="public-document rg-blog__prose">
         {raw(@page.body_html)}
       </article>
+    </Layouts.page>
+    """
+  end
+
+  attr :page, :map, required: true
+
+  # The list of agents or one agent's page; PublicDocuments.page/1 renders only
+  # committed Markdown, filled with this site's own address.
+  # sobelow_skip ["XSS.Raw"]
+  def agent(assigns) do
+    ~H"""
+    <Layouts.page wide flush>
+      <.opening eyebrow="Agents" title={@page.title} line={@page.lede} shape={1} icon="bot">
+        <:actions>
+          <a href={~p"/account/agents"} class="rg-button rg-button--primary">Pair</a>
+        </:actions>
+      </.opening>
+      <section class="mk-section">
+        <article class="public-document rg-blog__prose">
+          {raw(@page.body_html)}
+        </article>
+      </section>
     </Layouts.page>
     """
   end

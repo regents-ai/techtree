@@ -13,10 +13,12 @@ defmodule TechtreeWeb.TrainLive.Index do
 
   use TechtreeWeb, :live_view
 
-  alias Techtree.Train.Comparisons
-  alias TechtreeWeb.TrainCopy, as: Copy
-
+  import TechtreeWeb.Components.Marketing, only: [field: 1, opening: 1]
   import TechtreeWeb.TrainLive.Parts
+
+  alias Techtree.Train.Comparisons
+  alias TechtreeWeb.Components.BookCall
+  alias TechtreeWeb.TrainCopy, as: Copy
 
   @impl true
   def mount(_params, _session, socket) do
@@ -31,65 +33,73 @@ defmodule TechtreeWeb.TrainLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.page wide>
-      <div class="train">
-        <header class="page-heading">
-          <p class="eyebrow">NVIDIA Nemotron · Verifiers</p>
-          <h1>Train</h1>
-          <p class="lede">
-            NVIDIA Nemotron models before and after one change, on the same held-out tasks with the same settings.
-          </p>
-        </header>
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow="Measure"
+        title="Train"
+        line="NVIDIA Nemotron models before and after one change, on the same held-out tasks with the same settings."
+        shape={8}
+        icon="trending-up"
+      >
+        <:actions>
+          <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
+        </:actions>
+      </.opening>
 
+      <div class="mk-section train">
         <p :if={@comparisons == []} id="train-empty" class="empty-state" role="status">
           No comparisons yet. Each one will show a Nemotron model's score before and after its change, task by task.
         </p>
 
         <.lead :if={@comparisons != []} comparison={hd(@comparisons)} />
-
-        <section
-          :if={length(@comparisons) > 1}
-          id="train-comparisons"
-          class="section"
-          aria-labelledby="train-comparisons-title"
-        >
-          <h2 id="train-comparisons-title">Comparisons</h2>
-          <ol
-            id="train-list"
-            class="train-list"
-            phx-hook="MotionCascade"
-            data-variant={TechtreeWeb.Motion.standard("grid")}
-          >
-            <li
-              :for={comparison <- @comparisons}
-              id={"comparison-#{comparison.slug}"}
-              class="train-list__item"
-            >
-              <div class="train-list__name">
-                <.link navigate={~p"/train/#{comparison.slug}"}>{comparison.title}</.link>
-                <span class="small quiet">
-                  {comparison.model.family} · {Copy.date(comparison.operational.finished_at)}
-                </span>
-              </div>
-              <p class="train-list__figures">
-                <span :for={arm <- comparison.arms}>
-                  <span class="quiet">{Copy.arm_label(comparison, arm)}</span>
-                  {Copy.percent(arm.mean_reward)}
-                </span>
-              </p>
-              <.outcome outcome={comparison.outcome} />
-            </li>
-          </ol>
-        </section>
-
-        <section id="private" class="section" aria-labelledby="private-title">
-          <Regent.Structure.panel class="train-private rg-panel__body rg-support-panel">
-            <h2 id="private-title">Private</h2>
-            <p>{Copy.private_offer()}</p>
-            <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
-          </Regent.Structure.panel>
-        </section>
       </div>
+
+      <section
+        :if={length(@comparisons) > 1}
+        id="train-comparisons"
+        class="mk-section"
+        aria-labelledby="train-comparisons-title"
+      >
+        <h2 id="train-comparisons-title">Comparisons</h2>
+        <ol
+          id="train-list"
+          class="train-list"
+          phx-hook="MotionCascade"
+          data-variant={TechtreeWeb.Motion.standard("grid")}
+        >
+          <li
+            :for={comparison <- @comparisons}
+            id={"comparison-#{comparison.slug}"}
+            class="train-list__item"
+          >
+            <div class="train-list__name">
+              <.link navigate={~p"/train/#{comparison.slug}"}>{comparison.title}</.link>
+              <span class="small quiet">
+                {comparison.model.family} · {Copy.date(comparison.operational.finished_at)}
+              </span>
+            </div>
+            <p class="train-list__figures">
+              <span :for={arm <- comparison.arms}>
+                <span class="quiet">{Copy.arm_label(comparison, arm)}</span>
+                {Copy.percent(arm.mean_reward)}
+              </span>
+            </p>
+            <.outcome outcome={comparison.outcome} />
+          </li>
+        </ol>
+      </section>
+
+      <section id="private" class="mk-band mk-dark" aria-labelledby="private-title">
+        <.field id="private-field" scene="mark" class="mk-band__field" />
+        <div class="mk-band__copy">
+          <h2 id="private-title">Private</h2>
+          <p class="mk-band__line">{Copy.private_offer()}</p>
+          <div class="mk-band__actions">
+            <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
+            <BookCall.book_call variant={:secondary} />
+          </div>
+        </div>
+      </section>
     </Layouts.page>
     """
   end

@@ -26,7 +26,7 @@ defmodule TechtreeWeb.MessagesPagesTest do
 
     assert [button] =
              page
-             |> LazyHTML.query(".service-offer__start [data-agent-message-open]")
+             |> LazyHTML.query("#contact [data-agent-message-open]")
              |> LazyHTML.attribute("aria-controls")
 
     assert "#" <> button == @window

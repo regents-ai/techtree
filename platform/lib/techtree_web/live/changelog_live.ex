@@ -2,6 +2,8 @@ defmodule TechtreeWeb.ChangelogLive do
   @moduledoc "Release notes compiled from the repository's canonical changelog."
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [opening: 1]
+
   @external_resource Path.expand("../../../priv/changelog.md", __DIR__)
   @html @external_resource
         |> File.read!()
@@ -19,15 +21,23 @@ defmodule TechtreeWeb.ChangelogLive do
   # sobelow_skip ["XSS.Raw"]
   def render(assigns) do
     ~H"""
-    <Layouts.page>
-      <header class="editorial-heading">
-        <p class="eyebrow">Release notes</p>
-        <h1>Changelog</h1>
-        <p class="lede">What changed, what you can use, and what comes next.</p>
-      </header>
-      <article id="changelog" class="rg-blog__prose" aria-label="Release history">
-        {raw(@changelog_html)}
-      </article>
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow="News"
+        title="Changelog"
+        line="What changed, what you can use, and what comes next."
+        shape={5}
+        icon="newspaper"
+      >
+        <:actions>
+          <.link navigate={~p"/docs/install"} class="rg-button rg-button--primary">Install</.link>
+        </:actions>
+      </.opening>
+      <section class="mk-section">
+        <article id="changelog" class="rg-blog__prose" aria-label="Release history">
+          {raw(@changelog_html)}
+        </article>
+      </section>
     </Layouts.page>
     """
   end

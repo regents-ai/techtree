@@ -1,6 +1,6 @@
 import type {ValuePanel} from "../panel"
 
-/** Skill test: the compare panel, two columns of tasks filling, without the Skill and with it. */
+/** Evaluate & Climb: the compare panel, two columns of tasks filling, without the Skill and with it. */
 export const compare: ValuePanel = {
   colours: ["#0f2e1f", "#3fbf7f", "#d9f99d"],
   pitch: [9, 9],

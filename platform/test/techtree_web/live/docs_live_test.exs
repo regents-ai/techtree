@@ -17,7 +17,7 @@ defmodule TechtreeWeb.DocsLiveTest do
     {:ok, live, _html} = live(conn, ~p"/docs")
 
     for {group, guides} <- DocsGuides.groups() do
-      assert has_element?(live, ".docs-index__group h2", group)
+      assert has_element?(live, ".docs-index .mk-section h2", group)
 
       for guide <- guides do
         assert has_element?(live, ~s|a[href="/docs/#{guide.slug}"]|, guide.title)

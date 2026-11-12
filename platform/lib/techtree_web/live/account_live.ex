@@ -12,7 +12,6 @@ defmodule TechtreeWeb.AccountLive do
 
   use TechtreeWeb, :html
 
-  import TechtreeWeb.Components.PageHead, only: [page_head: 1]
   import TechtreeWeb.Components.VerifiedConnections
 
   attr :account, :map, default: nil
@@ -23,11 +22,9 @@ defmodule TechtreeWeb.AccountLive do
     ~H"""
     <.settings_page
       id="account-page"
-      title="Account"
       account={@account}
       signed_out_reason={@signed_out_reason}
     >
-      <:tip>Your profile.</:tip>
       <Regent.Account.layout id="account">
         <:identity>
           <Regent.Account.identity
@@ -70,11 +67,9 @@ defmodule TechtreeWeb.AccountLive do
     ~H"""
     <.settings_page
       id="account-agents-page"
-      title="Agents"
       account={@account}
       signed_out_reason={@signed_out_reason}
     >
-      <:tip>The agents you paired.</:tip>
       <.live_component
         module={TechtreeWeb.AgentsPanel}
         id="account-agents"
@@ -92,11 +87,9 @@ defmodule TechtreeWeb.AccountLive do
     ~H"""
     <.settings_page
       id="wallets-page"
-      title="Wallets"
       account={@account}
       signed_out_reason={@signed_out_reason}
     >
-      <:tip>The wallets your sign-in verified.</:tip>
       <section class="account-panel account-details" aria-labelledby="account-wallets-title">
         <h2 id="account-wallets-title">Your wallets</h2>
         <dl>
@@ -133,11 +126,9 @@ defmodule TechtreeWeb.AccountLive do
     ~H"""
     <.settings_page
       id="connections-page"
-      title="Connections"
       account={@account}
       signed_out_reason={@signed_out_reason}
     >
-      <:tip>Accounts you have connected, such as X, GitHub and Farcaster.</:tip>
       <.verified_connections
         id="account-verified-connections"
         class="account-panel"
@@ -150,19 +141,13 @@ defmodule TechtreeWeb.AccountLive do
   end
 
   attr :id, :string, required: true
-  attr :title, :string, required: true
   attr :account, :map, default: nil
   attr :signed_out_reason, :atom, default: :signed_out
-  slot :tip, required: true
   slot :inner_block, required: true
 
   defp settings_page(assigns) do
     ~H"""
     <article id={@id} class="account-page rg-utility">
-      <.page_head title={@title}>
-        <:tip>{render_slot(@tip)}</:tip>
-      </.page_head>
-
       <Regent.Account.signed_out
         :if={is_nil(@account)}
         id={"#{@id}-signed-out"}

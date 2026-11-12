@@ -96,7 +96,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
                {"#{feed.safety}", "safety failure in #{feed.judged} judged tests"}
              ]
 
-      assert text(page, ".service-result .eyebrow") =~
+      assert text(page, "#bench .mk-eyebrow") =~
                "Our own bench, tests run 14 October to 2 November 2026"
     end
   end
@@ -123,7 +123,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
       page = page(conn, path)
       text = conn |> put_req_header("accept", "text/markdown") |> get(path) |> response(200)
 
-      assert has?(page, ~s|.service-offer__start a[href="#{mailto}"]|)
+      assert has?(page, ~s|#contact a[href="#{mailto}"]|)
       assert text =~ "(#{mailto})"
       assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
       assert %{"subject" => _subject, "body" => body} = URI.decode_query(query)
@@ -131,21 +131,20 @@ defmodule TechtreeWeb.ServiceLiveTest do
     end
   end
 
-  test "the Watchdog page shows its sections, its price with no figure, and links the other offers",
+  test "the Watchdog page shows its sections, no figure for money, and links the other offers",
        %{conn: conn} do
     page = page(conn, ~p"/services/watchdog")
-    offer = text(page, ".service-offer")
+    offer = text(page, "main")
 
     assert text(page, "h1") == "Watchdog"
-    assert text(page, "h1 + .lede") == "Keep watch on the sites you own."
+    assert text(page, "h1 + .mk-opening__line") == "Keep watch on the sites you own."
     assert text(page, "h2") =~ "Steps"
     assert text(page, "h2") =~ "Rules"
     assert text(page, "h2") =~ "You get"
-    assert text(page, ".service-rules li") =~ "Only sites you've proven you own."
-    assert offer =~ "Monthly, per site. Ask us for the price."
+    assert text(page, "#watchdog-rules li") =~ "Only sites you've proven you own."
     refute offer =~ ~r/[$£€]\s?\d/
-    assert has?(page, ~s|.service-offer__other a[href="/services/verify"]|)
-    assert has?(page, ~s|.service-offer__other a[href="/services/cyber-assist"]|)
+    assert has?(page, ~s|#other-offers a[href="/services/verify"]|)
+    assert has?(page, ~s|#other-offers a[href="/services/cyber-assist"]|)
   end
 
   test "the Watchdog page and Markdown start the same Company/Sites/Contact email", %{conn: conn} do
@@ -158,7 +157,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
       |> get(~p"/services/watchdog")
       |> response(200)
 
-    assert has?(page, ~s|.service-offer__start a[href="#{mailto}"]|)
+    assert has?(page, ~s|#contact a[href="#{mailto}"]|)
     assert text =~ "(#{mailto})"
     refute text =~ "{{"
 
@@ -178,15 +177,15 @@ defmodule TechtreeWeb.ServiceLiveTest do
     end
 
     page = page(conn, ~p"/services/watchdog")
-    refute has?(page, ~s|.service-offer__start a:not([href^="mailto:"])|)
+    refute has?(page, ~s|#contact a:not([href^="mailto:"])|)
     refute markdown.() =~ "calendar.example"
 
     Application.put_env(:techtree, :book_call, address)
     on_exit(fn -> Application.put_env(:techtree, :book_call, nil) end)
 
     page = page(conn, ~p"/services/watchdog")
-    assert has?(page, ~s|.service-offer__start a[href="#{address}"]|)
-    assert has?(page, ~s|.service-offer__start a[href^="mailto:"]|)
+    assert has?(page, ~s|#contact a[href="#{address}"]|)
+    assert has?(page, ~s|#contact a[href^="mailto:"]|)
     assert markdown.() =~ "(#{address})"
   end
 
@@ -195,17 +194,19 @@ defmodule TechtreeWeb.ServiceLiveTest do
     WalletBenchScores.delete_all()
 
     page = page(conn, ~p"/services/verify")
-    assert text(page, ".service-result .eyebrow") =~ "Our own bench, no tests judged yet"
+    assert text(page, "#bench .mk-eyebrow") =~ "Our own bench, no tests judged yet"
     assert [{"0", "coding agents tested"} | _figures] = figures(page)
   end
 
   defp page(conn, path), do: conn |> get(path) |> html_response(200) |> LazyHTML.from_document()
   defp has?(page, selector), do: not Enum.empty?(LazyHTML.query(page, selector))
-  defp text(page, selector), do: page |> LazyHTML.query(selector) |> LazyHTML.text()
+
+  defp text(page, selector),
+    do: page |> LazyHTML.query(selector) |> LazyHTML.text() |> String.trim()
 
   defp figures(page) do
     page
-    |> LazyHTML.query(".service-result__figures > div")
+    |> LazyHTML.query("#bench-figures > div")
     |> Enum.map(fn div ->
       {div |> LazyHTML.query("dd") |> LazyHTML.text() |> String.trim(),
        div |> LazyHTML.query("dt") |> LazyHTML.text() |> String.trim()}

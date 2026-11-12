@@ -78,7 +78,7 @@ defmodule TechtreeWeb.StartLiveTest do
 
       assert instruction_at < cli_at
       assert has_element?(live, "#setup-direct", "Manual setup")
-      assert has_element?(live, ~s|.start-guide__direct a[href="/docs/test-a-skill"]|)
+      assert has_element?(live, ~s|#manual-setup a[href="/docs/test-a-skill"]|)
 
       [skill_at, example_at] =
         Enum.map(
@@ -142,8 +142,8 @@ defmodule TechtreeWeb.StartLiveTest do
 
     {:ok, live, html} = live(conn, ~p"/start")
 
-    assert has_element?(live, ".setup-unavailable p", "no version of Techtree")
-    refute has_element?(live, ".setup-unavailable [role=status]")
+    assert has_element?(live, "#setup-unavailable p", "no version of Techtree")
+    refute has_element?(live, "#setup-unavailable [role=status]")
 
     for id <- [
           "copy-start-example",

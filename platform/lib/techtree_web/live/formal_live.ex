@@ -13,6 +13,10 @@ defmodule TechtreeWeb.FormalLive do
 
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [field: 1, opening: 1]
+
+  alias TechtreeWeb.Components.BookCall
+
   @frontier [
     %{
       date: ~D[2026-10-22],
@@ -98,7 +102,7 @@ defmodule TechtreeWeb.FormalLive do
   def mount(_params, _session, socket) do
     {:ok,
      assign(socket,
-       page_title: "Techtree Formal",
+       page_title: "Formal",
        frontier: @frontier,
        example_url: @example_url,
        mailto: mailto()
@@ -129,147 +133,150 @@ defmodule TechtreeWeb.FormalLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.page wide>
-      <article class="formal" aria-labelledby="formal-title">
-        <header class="editorial-heading">
-          <p class="service-kicker">
-            <span class="eyebrow">Techtree Formal</span>
-            <Regent.Primitives.status tone="warning" class="badge">
-              Experimental
-            </Regent.Primitives.status>
-          </p>
-          <h1 id="formal-title">Formal Verification</h1>
-          <p class="lede">
-            A proof shows that a precise model of the code keeps a stated property for every input the model allows, not only the inputs a test tried, and a computer checks every step.
-          </p>
-          <div class="service-offer__actions">
-            <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
-            <a class="text-link" href="#formal-example-title">See the example →</a>
-          </div>
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow="Prove"
+        title="Formal"
+        line="A proof shows that a precise model of the code keeps a stated property for every input the model allows, not only the inputs a test tried, and a computer checks every step."
+        shape={4}
+        icon="sigma"
+      >
+        <:actions>
+          <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
+        </:actions>
+        <p class="mk-links">
+          <Regent.Primitives.status tone="warning" class="badge">
+            Experimental
+          </Regent.Primitives.status>
+          <a class="text-link" href="#formal-example-title">See the example →</a>
+        </p>
+      </.opening>
+
+      <section class="mk-section mk-split" aria-labelledby="formal-basics-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Plain words</p>
+          <h2 id="formal-basics-title">Basics</h2>
+          <p>A test tries the inputs someone picked. A proof covers every input the model allows.</p>
         </header>
-
-        <section class="service-offer__part" aria-labelledby="formal-basics-title">
+        <dl class="mk-facts">
           <div>
-            <p class="eyebrow">Plain words</p>
-            <h2 id="formal-basics-title">Basics</h2>
-            <p>
-              A test tries the inputs someone picked. A proof covers every input the model allows.
-            </p>
+            <dt>Property</dt>
+            <dd>The rule you need, such as "the total paid never passes the cap".</dd>
           </div>
-          <dl class="service-deliverables">
-            <div>
-              <dt>Property</dt>
-              <dd>The rule you need, such as "the total paid never passes the cap".</dd>
-            </div>
-            <div>
-              <dt>Model</dt>
-              <dd>A precise description of the code, or of its design, that the proof is about.</dd>
-            </div>
-            <div>
-              <dt>Proof</dt>
-              <dd>A step-by-step argument that a small checker program accepts.</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section class="service-offer__part" aria-labelledby="formal-limits-title">
           <div>
-            <p class="eyebrow">Honest scope</p>
-            <h2 id="formal-limits-title">Limits</h2>
-            <p>
-              A proof covers the property as written and the model as built, under the assumptions it states.
-            </p>
+            <dt>Model</dt>
+            <dd>A precise description of the code, or of its design, that the proof is about.</dd>
           </div>
-          <ul class="formal-limits">
-            <li>A property that misses the point gives a sound proof of the wrong thing.</li>
-            <li>
-              Anything outside the model, such as the compiler, the chip, other services or the people calling the code, is assumed, not proven.
-            </li>
-            <li>A proof about the design says nothing about whether the code follows it.</li>
-            <li>
+          <div>
+            <dt>Proof</dt>
+            <dd>A step-by-step argument that a small checker program accepts.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="mk-section mk-split" aria-labelledby="formal-limits-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Honest scope</p>
+          <h2 id="formal-limits-title">Limits</h2>
+          <p>
+            A proof covers the property as written and the model as built, under the assumptions it states.
+          </p>
+        </header>
+        <ul class="mk-status">
+          <li>A property that misses the point gives a sound proof of the wrong thing.</li>
+          <li>
+            Anything outside the model, such as the compiler, the chip, other services or the people calling the code, is assumed, not proven.
+          </li>
+          <li>A proof about the design says nothing about whether the code follows it.</li>
+          <li>
+            <span>
               In Anthropic's words, “Formally verified” does not mean “bug-free.”
               <a href="https://www.anthropic.com/research/formal-verification">Source</a>
-            </li>
-          </ul>
-        </section>
+            </span>
+          </li>
+        </ul>
+      </section>
 
-        <section class="formal-frontier" aria-labelledby="formal-frontier-title">
-          <p class="eyebrow">Recent advances</p>
+      <section class="mk-section" aria-labelledby="formal-frontier-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Recent advances</p>
           <h2 id="formal-frontier-title">Frontier</h2>
-          <ol class="formal-frontier__list">
-            <li :for={item <- @frontier}>
-              <time datetime={Date.to_iso8601(item.date)}>{date(item.date)}</time>
-              <div>
-                <strong>{item.title}</strong>
-                <p>{item.line}</p>
-                <a class="text-link" href={item.url}>{item.source} →</a>
-              </div>
-            </li>
-          </ol>
-        </section>
+        </header>
+        <ol class="formal-frontier__list">
+          <li :for={item <- @frontier}>
+            <time datetime={Date.to_iso8601(item.date)}>{date(item.date)}</time>
+            <div>
+              <strong>{item.title}</strong>
+              <p>{item.line}</p>
+              <a class="text-link" href={item.url}>{item.source} →</a>
+            </div>
+          </li>
+        </ol>
+      </section>
 
-        <section class="service-offer__part" aria-labelledby="formal-example-title">
-          <div>
-            <p class="service-kicker">
-              <span class="eyebrow">Worked example</span>
-              <Regent.Primitives.status tone="success" class="badge">
-                Proved
-              </Regent.Primitives.status>
-            </p>
-            <h2 id="formal-example-title">Funding Cap</h2>
-            <p>
-              The Wallet Bench pays each agent it tests a small amount of USDC, and ETH for fees. This model describes how those payments stay within each run's total while several tests run at once, a failed try is retried, or a payment's result on Base is not known yet.
-            </p>
+      <section class="mk-section mk-split" aria-labelledby="formal-example-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Worked example</p>
+          <Regent.Primitives.status tone="success" class="badge">Proved</Regent.Primitives.status>
+          <h2 id="formal-example-title">Funding Cap</h2>
+          <p>
+            The Wallet Bench pays each agent it tests a small amount of USDC, and ETH for fees. This model describes how those payments stay within each run's total while several tests run at once, a failed try is retried, or a payment's result on Base is not known yet.
+          </p>
+          <p class="mk-links">
             <a class="text-link" href={@example_url}>See the files on GitHub →</a>
+          </p>
+        </header>
+        <dl class="mk-facts">
+          <div>
+            <dt>Property</dt>
+            <dd>
+              For each token, the payments the bench keeps, and the money that really moves on Base, never pass the run's total.
+            </dd>
           </div>
-          <dl class="service-deliverables">
-            <div>
-              <dt>Property</dt>
-              <dd>
-                For each token, the payments the bench keeps, and the money that really moves on Base, never pass the run's total.
-              </dd>
-            </div>
-            <div>
-              <dt>Model</dt>
-              <dd>
-                The design of the funding step, written in Quint, not the code itself. It assumes Base never undoes a finalized block, and that a Base server that is behind shows an older record, never a false one.
-              </dd>
-            </div>
-            <div>
-              <dt>Proof</dt>
-              <dd>
-                Apalache proves both rules hold for runs of any length within the model's limits: three tests funded at once, a total of two payments of each token, and one retry each.
-              </dd>
-            </div>
-            <div>
-              <dt>Found</dt>
-              <dd>
-                Two ways past the total. If the database ran at repeatable read, three tests could each keep a payment against a total of two; a test on Postgres shows the same, and Techtree runs at read committed. And a Base server that is behind could make a lost payment look replaced, freeing room past the total; Techtree now reads Base at its finalized block, and the model was checked again.
-              </dd>
-            </div>
-            <div>
-              <dt>Code</dt>
-              <dd>
-                The proof covers the design, not the code. A test on Postgres and tests against a stand-in Base server tie the two together.
-              </dd>
-            </div>
-          </dl>
-        </section>
+          <div>
+            <dt>Model</dt>
+            <dd>
+              The design of the funding step, written in Quint, not the code itself. It assumes Base never undoes a finalized block, and that a Base server that is behind shows an older record, never a false one.
+            </dd>
+          </div>
+          <div>
+            <dt>Proof</dt>
+            <dd>
+              Apalache proves both rules hold for runs of any length within the model's limits: three tests funded at once, a total of two payments of each token, and one retry each.
+            </dd>
+          </div>
+          <div>
+            <dt>Found</dt>
+            <dd>
+              Two ways past the total. If the database ran at repeatable read, three tests could each keep a payment against a total of two; a test on Postgres shows the same, and Techtree runs at read committed. And a Base server that is behind could make a lost payment look replaced, freeing room past the total; Techtree now reads Base at its finalized block, and the model was checked again.
+            </dd>
+          </div>
+          <div>
+            <dt>Code</dt>
+            <dd>
+              The proof covers the design, not the code. A test on Postgres and tests against a stand-in Base server tie the two together.
+            </dd>
+          </div>
+        </dl>
+      </section>
 
-        <Regent.Structure.panel class="service-offer__start rg-panel__body rg-support-panel">
-          <p class="eyebrow">Submit</p>
-          <h2>Submit Code</h2>
-          <ul class="formal-send">
+      <section id="submit" class="mk-band mk-dark" aria-labelledby="submit-title">
+        <.field id="submit-field" scene="glow" class="mk-band__field" />
+        <div class="mk-band__copy">
+          <p class="mk-eyebrow">Submit</p>
+          <h2 id="submit-title">Submit Code</h2>
+          <ul class="mk-status">
             <li>The code, or a link to its repository.</li>
             <li>The property you need guaranteed, in plain words.</li>
             <li>Where it runs, such as a chain, a server or a device.</li>
           </ul>
-          <p>
-            We reply by email with a scoped quote. The work is paid, and the price is set once the scope is agreed.
-          </p>
-          <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
-        </Regent.Structure.panel>
-      </article>
+          <p class="mk-band__more">We reply by email with a proposed scope.</p>
+          <div class="mk-band__actions">
+            <a class="rg-button rg-button--primary" href={@mailto}>Email build@regents.sh</a>
+            <BookCall.book_call variant={:secondary} />
+          </div>
+        </div>
+      </section>
     </Layouts.page>
     """
   end

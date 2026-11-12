@@ -8,12 +8,34 @@ defmodule TechtreeWeb.AccountShellLive do
   alias Techtree.Points.Board
   alias TechtreeWeb.{AccountLive, Read}
 
+  import TechtreeWeb.Components.Marketing, only: [opening: 1]
+
   @tabs [
-    %{route_id: :account, label: "Account", path: "/account"},
-    %{route_id: :account_agents, label: "Agents", path: "/account/agents"},
-    %{route_id: :points, label: "Points", path: "/account/points"},
-    %{route_id: :wallets, label: "Wallets", path: "/account/wallets"},
-    %{route_id: :connections, label: "Connections", path: "/account/connections"}
+    %{route_id: :account, label: "Account", path: "/account", line: "Your profile."},
+    %{
+      route_id: :account_agents,
+      label: "Agents",
+      path: "/account/agents",
+      line: "The agents you paired."
+    },
+    %{
+      route_id: :points,
+      label: "Points",
+      path: "/account/points",
+      line: "One total for you and your agents."
+    },
+    %{
+      route_id: :wallets,
+      label: "Wallets",
+      path: "/account/wallets",
+      line: "The wallets your sign-in verified."
+    },
+    %{
+      route_id: :connections,
+      label: "Connections",
+      path: "/account/connections",
+      line: "Accounts you have connected, such as X, GitHub and Farcaster."
+    }
   ]
   @actions %{"link" => :link, "unlink" => :unlink}
   @refused %{
@@ -119,14 +141,20 @@ defmodule TechtreeWeb.AccountShellLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.page wide>
+    <Layouts.page wide flush>
       <div
         id="account-shell"
         class="account-shell"
         phx-hook="AccountShell"
         data-route={@route_spec.path}
       >
-        <div class="account-shell__head">
+        <.opening
+          eyebrow="Account"
+          title={@route_spec.label}
+          line={@route_spec.line}
+          rise={false}
+          book_call={false}
+        >
           <nav class="account-shell__tabs" aria-label="Account views">
             <.link
               :for={tab <- @tabs}
@@ -136,40 +164,42 @@ defmodule TechtreeWeb.AccountShellLive do
               {tab.label}
             </.link>
           </nav>
+        </.opening>
+        <div class="account-shell__body">
+          <AccountLive.profile
+            :if={@route_spec.route_id == :account}
+            signed_out_reason={@signed_out_reason}
+            account={current_account(@access_context)}
+            account_control={@account_control}
+          />
+          <AccountLive.agents
+            :if={@route_spec.route_id == :account_agents}
+            signed_out_reason={@signed_out_reason}
+            lease={@session_lease}
+            account={current_account(@access_context)}
+          />
+          <TechtreeWeb.PointsLive.page
+            :if={@route_spec.route_id == :points}
+            signed_out_reason={@signed_out_reason}
+            account={current_account(@access_context)}
+            points={@points}
+            board={@points_board}
+            bonus={@points_bonus}
+            earning={@points_earning}
+          />
+          <AccountLive.wallets
+            :if={@route_spec.route_id == :wallets}
+            signed_out_reason={@signed_out_reason}
+            account={current_account(@access_context)}
+          />
+          <AccountLive.connections
+            :if={@route_spec.route_id == :connections}
+            signed_out_reason={@signed_out_reason}
+            account={current_account(@access_context)}
+            verified_connections={@verified_connections}
+            verified_connections_notice={@verified_connections_notice}
+          />
         </div>
-        <AccountLive.profile
-          :if={@route_spec.route_id == :account}
-          signed_out_reason={@signed_out_reason}
-          account={current_account(@access_context)}
-          account_control={@account_control}
-        />
-        <AccountLive.agents
-          :if={@route_spec.route_id == :account_agents}
-          signed_out_reason={@signed_out_reason}
-          lease={@session_lease}
-          account={current_account(@access_context)}
-        />
-        <TechtreeWeb.PointsLive.page
-          :if={@route_spec.route_id == :points}
-          signed_out_reason={@signed_out_reason}
-          account={current_account(@access_context)}
-          points={@points}
-          board={@points_board}
-          bonus={@points_bonus}
-          earning={@points_earning}
-        />
-        <AccountLive.wallets
-          :if={@route_spec.route_id == :wallets}
-          signed_out_reason={@signed_out_reason}
-          account={current_account(@access_context)}
-        />
-        <AccountLive.connections
-          :if={@route_spec.route_id == :connections}
-          signed_out_reason={@signed_out_reason}
-          account={current_account(@access_context)}
-          verified_connections={@verified_connections}
-          verified_connections_notice={@verified_connections_notice}
-        />
       </div>
     </Layouts.page>
     """

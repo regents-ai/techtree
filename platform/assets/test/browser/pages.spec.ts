@@ -1,13 +1,38 @@
 import type {Page} from "@playwright/test"
 import {expect, test} from "./support/test"
 import {publicPages} from "./support/pages"
-import {layoutProblems, watchErrors} from "./support/visitor"
+import {layoutProblems, lowContrast, watchErrors} from "./support/visitor"
 
 // Every public page, signed out, at a desktop and a phone width: it loads, its
 // live connection joins where it has one, nothing errors, nothing scrolls
 // sideways and every press target is big enough to hit.
-// The test server's own Train comparison joins the pages every Techtree has.
-const pages = [...publicPages, "/train/nemotron-nano-skill"]
+// The test server's own Train comparison and the blog's posts join the pages
+// every Techtree has.
+const pages = [...publicPages, "/train/nemotron-nano-skill", "/blog"]
+
+// The inner pages that open on the dark band.
+const openings = ["/start", "/results", "/verify", "/wallet-bench", "/train", "/formal", "/repo2rlenv",
+  "/services/verify", "/services/cyber-assist", "/services/watchdog", "/docs", "/agents", "/agents/hermes",
+  "/changelog", "/blog", "/account"]
+
+for (const theme of ["light", "dark"] as const) {
+  test(`in ${theme}, every inner page opens on one band with one title, its words and buttons readable`, async ({page}) => {
+    test.slow()
+    await page.emulateMedia({colorScheme: theme})
+    const errors = watchErrors(page)
+    for (const path of openings) {
+      await page.goto(path, {waitUntil: "networkidle"})
+      const band = page.locator(".mk-opening")
+      await expect(band, path).toHaveCount(1)
+      await expect(page.locator("h1"), path).toHaveCount(1)
+      await expect(band.locator("h1"), path).toBeVisible()
+      // The title's words rise apart and are joined back once they have risen.
+      await expect(band.locator("h1 [data-word]"), path).toHaveCount(0)
+      expect(await lowContrast(band), `${path} in ${theme}`).toEqual([])
+    }
+    expect(errors).toEqual([])
+  })
+}
 
 for (const width of [1280, 390, 320]) {
   test.describe(`${width} wide`, () => {

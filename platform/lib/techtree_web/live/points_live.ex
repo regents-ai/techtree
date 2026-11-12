@@ -6,7 +6,6 @@ defmodule TechtreeWeb.PointsLive do
   """
   use TechtreeWeb, :html
   import TechtreeWeb.Components.AccountControls, only: [account_picture: 1]
-  import TechtreeWeb.Components.PageHead, only: [page_head: 1]
   alias RegentPoints.{Amount, Rules}
   alias TechtreeWeb.PointsEntries
 
@@ -49,7 +48,6 @@ defmodule TechtreeWeb.PointsLive do
 
     ~H"""
     <article id="points-page" class="account-page">
-      <.page_head title="Points" />
       <Regent.Account.signed_out
         :if={is_nil(@account)}
         id="points-signed-out"

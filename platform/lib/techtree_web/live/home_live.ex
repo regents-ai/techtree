@@ -17,6 +17,7 @@ defmodule TechtreeWeb.HomeLive do
 
   use TechtreeWeb, :live_view
 
+  import TechtreeWeb.Components.Marketing, only: [field: 1, group: 1]
   import TechtreeWeb.Components.ValueCards
 
   alias Techtree.Catalog.Query
@@ -259,7 +260,7 @@ defmodule TechtreeWeb.HomeLive do
               </div>
               <div class="mk-card__head">
                 <h4>Live run</h4>
-                <.capability_status capability={:skill_test} />
+                <.capability_status capability={:evaluate_climb} />
               </div>
               <p>Does the Skill help the agent?</p>
               <p :if={@newest} class="mk-card__fact">
@@ -345,7 +346,7 @@ defmodule TechtreeWeb.HomeLive do
         name="Measure"
         line="See what a Skill, an agent or a model change really does."
       >
-        <:item title="Evaluate & Climb" icon="mountain" shape={8} capability={:skill_test} open>
+        <:item title="Evaluate & Climb" icon="mountain" shape={8} capability={:evaluate_climb} open>
           <p>
             Techtree makes practice tasks from what your Skill teaches, following <a href="https://github.com/NVlabs/Skill2Env">NVIDIA’s Skill2Env</a>. Your agent then
             works the same tasks twice: once without the Skill, or with its earlier version, and
@@ -534,7 +535,7 @@ defmodule TechtreeWeb.HomeLive do
         name="Build"
         line="Turn know-how and real work into tasks agents can practice on, then see what helps."
       >
-        <:item title="Skill2Env" icon="git-fork" shape={6} capability={:skill_test} open>
+        <:item title="Skill2Env" icon="git-fork" shape={6} capability={:evaluate_climb} open>
           <p>
             Turns a Skill, the know-how written down for an agent, into a set of practice tasks
             with checks. Techtree reads the Skill without running it, plans tasks with you, builds
@@ -546,7 +547,7 @@ defmodule TechtreeWeb.HomeLive do
           </p>
           <p class="mk-links">
             <.link navigate={~p"/start#skill"} class="text-link">
-              Test a Skill <span aria-hidden="true">→</span>
+              Evaluate &amp; Climb <span aria-hidden="true">→</span>
             </.link>
             <a class="text-link" href="https://github.com/NVlabs/Skill2Env">
               NVIDIA’s Skill2Env <span aria-hidden="true">→</span>
@@ -919,7 +920,7 @@ defmodule TechtreeWeb.HomeLive do
   # The site's figures, each only once there is one to show.
   defp figures(climbs) do
     for {value, label, href} <- [
-          {Results.count(), "Published Results", ~p"/results"},
+          {Results.standing_count(), "Published Results", ~p"/results"},
           {length(climbs), "Published Climbs", "#climbs"},
           {WalletBenchScores.figures().agents, "Agents tested", ~p"/wallet-bench"},
           {length(Comparisons.list()), "Train comparisons", ~p"/train"}
@@ -1011,31 +1012,6 @@ defmodule TechtreeWeb.HomeLive do
       width: 200,
       height: 280
     }
-
-  attr :id, :string, required: true
-  attr :scene, :string, values: ~w(glow screen mark backdrop), required: true
-  attr :shape, :integer, default: nil
-  attr :class, :string, default: nil
-  slot :inner_block
-
-  # A moving picture (`assets/js/marketing/field_hook.ts`) over the still the
-  # stylesheet draws, which stays for less motion and where WebGPU is missing.
-  defp field(assigns) do
-    ~H"""
-    <div
-      id={@id}
-      class={["mk-field", "mk-field--#{@scene}", @class]}
-      phx-hook="MarketingField"
-      phx-mounted={JS.ignore_attributes(["data-field-ready", "data-field-shape"])}
-      data-field={@scene}
-      data-field-shape={@shape}
-      aria-hidden="true"
-    >
-      <div class="mk-field__still">{render_slot(@inner_block)}</div>
-      <canvas id={"#{@id}-canvas"} class="mk-field__canvas" phx-update="ignore" data-field-canvas></canvas>
-    </div>
-    """
-  end
 
   attr :results, :list, required: true
 
@@ -1164,65 +1140,4 @@ defmodule TechtreeWeb.HomeLive do
 
   defp share(_value, 0), do: 0
   defp share(value, total), do: round(value / total * 100)
-
-  attr :id, :string, required: true
-  attr :name, :string, required: true
-  attr :line, :string, required: true
-  attr :flip, :boolean, default: false, doc: "put the picture before the items"
-
-  slot :item, required: true do
-    attr :title, :string, required: true
-    attr :icon, :string, required: true
-    attr :shape, :integer, required: true, doc: "the dot picture's shape (SHAPES in scenes.ts)"
-    attr :capability, :atom
-    attr :open, :boolean
-    attr :id, :string
-  end
-
-  # One group of products: its items, one open at a time, beside a dot picture
-  # that draws the open item's shape (`assets/js/marketing/accordion.ts`).
-  defp group(assigns) do
-    assigns = assign(assigns, :first, Enum.find(assigns.item, & &1[:open]) || hd(assigns.item))
-
-    ~H"""
-    <section
-      id={@id}
-      class={["mk-section", "mk-group", @flip && "mk-group--flip"]}
-      aria-labelledby={"#{@id}-title"}
-      phx-hook="MarketingAccordion"
-    >
-      <div class="mk-group__items">
-        <h2 id={"#{@id}-title"}>{@name}</h2>
-        <p class="mk-group__line">{@line}</p>
-        <details
-          :for={{item, index} <- Enum.with_index(@item)}
-          id={item[:id] || "#{@id}-#{index}"}
-          class="mk-item"
-          name={@id}
-          open={item[:open]}
-          data-shape={item.shape}
-          phx-mounted={JS.ignore_attributes(["open"])}
-        >
-          <summary class="mk-item__summary">
-            <Regent.Icons.icon name={item.icon} class="mk-item__icon" />
-            <h3 class="mk-item__title">{item.title}</h3>
-            <.capability_status :if={item[:capability]} capability={item.capability} />
-            <Regent.Icons.icon name="plus" class="mk-item__toggle" />
-          </summary>
-          <div class="mk-item__body" data-item-body>
-            {render_slot(item)}
-          </div>
-        </details>
-      </div>
-      <.field id={"#{@id}-picture"} scene="screen" shape={@first.shape} class="mk-group__picture">
-        <Regent.Icons.icon
-          :for={item <- @item}
-          name={item.icon}
-          class="mk-group__glyph"
-          data-glyph={item.shape}
-        />
-      </.field>
-    </section>
-    """
-  end
 end

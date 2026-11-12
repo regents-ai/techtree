@@ -33,7 +33,7 @@ for (const width of [1280, 390]) {
       const errors = watchErrors(page)
       const response = await page.goto(`/results/${digest}`, {waitUntil: "networkidle"})
       expect(response?.status()).toBe(200)
-      await expect(page.locator("#run-comparison")).toBeVisible()
+      await expect(page.locator("#opening-title")).toBeVisible()
       await expect(page.locator(".phx-connected").first()).toBeAttached()
       expect(await layoutProblems(page)).toEqual([])
       expect(errors).toEqual([])

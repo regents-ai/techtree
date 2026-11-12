@@ -12,9 +12,9 @@ defmodule TechtreeWeb.Capabilities do
 
   @capabilities [
     %{
-      id: :skill_test,
+      id: :evaluate_climb,
       name:
-        "Test a Skill: make tasks from it, then compare with and without it, or with its earlier version",
+        "Evaluate & Climb: make tasks from a Skill, then compare with and without it, or with its earlier version",
       status: :experimental
     },
     %{

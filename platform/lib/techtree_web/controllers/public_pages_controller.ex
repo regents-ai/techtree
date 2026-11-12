@@ -25,11 +25,14 @@ defmodule TechtreeWeb.PublicPagesController do
   def show(conn, _params) do
     if PublicDocuments.document?(conn.request_path) do
       page = PublicDocuments.page(conn.request_path)
-      render(conn, :show, page: page, page_title: page.title)
+      render(conn, template(conn.request_path), page: page, page_title: page.title)
     else
       raise TechtreeWeb.NotFoundError
     end
   end
+
+  defp template("/agents" <> _rest), do: :agent
+  defp template(_path), do: :show
 
   @doc "A public page as JSON, `{title, markdown}`."
   def document(conn, _params) do

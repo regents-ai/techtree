@@ -154,13 +154,11 @@
 .account-shell .rg-account-identity__who { flex-wrap: wrap; }
 .account-shell .rg-account-identity__name h2 { min-inline-size: 0; }
 .account-shell .rg-account-identity__name h2 .rg-address { flex-wrap: wrap; }
-.account-shell__head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-block-end: 2rem; }
 .account-shell__tabs { display: flex; flex-wrap: wrap; gap: .25rem; }
 .account-shell__tabs a { padding: .65rem .8rem; color: var(--color-fg-muted); text-decoration: none; border-bottom: 2px solid transparent; }
 .account-shell__tabs a[aria-current="page"] { color: var(--color-fg); border-bottom-color: currentColor; }
 .account-shell__tabs a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 @media (max-width: 40rem) {
-  .account-shell__head { align-items: flex-start; }
   /* The five views stay on one row on a phone. A row too wide for the screen
      scrolls sideways, and its right edge fades while there is more to see. */
   .account-shell__tabs {

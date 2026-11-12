@@ -94,7 +94,7 @@ defmodule TechtreeWeb.OutagePagesTest do
 
     assert has_element?(
              start,
-             ".setup-unavailable [role=status] p",
+             "#setup-unavailable [role=status] p",
              "install steps can't be shown"
            )
 
@@ -169,10 +169,10 @@ defmodule TechtreeWeb.OutagePagesTest do
       |> html_response(200)
       |> LazyHTML.from_document()
 
-    assert page |> LazyHTML.query(".service-result [role=status]") |> LazyHTML.text() =~
+    assert page |> LazyHTML.query("#bench [role=status]") |> LazyHTML.text() =~
              "figures can't be shown"
 
-    assert Enum.empty?(LazyHTML.query(page, ".service-result__figures"))
+    assert Enum.empty?(LazyHTML.query(page, "#bench-figures"))
 
     text =
       quietly(fn ->
