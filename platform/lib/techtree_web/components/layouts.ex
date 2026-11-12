@@ -47,7 +47,12 @@ defmodule TechtreeWeb.Layouts do
       <div class="masthead__inner">
         <a class="masthead__name" href={~p"/"} aria-label="Techtree home">
           <span class="masthead__mark" aria-hidden="true">
-            <svg viewBox="0 0 58 34" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <svg
+              viewBox="0 0 58 34"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="currentColor"
+              aria-hidden="true"
+            >
               <rect x="0" y="0" width="10" height="10" />
               <rect x="24" y="0" width="10" height="10" />
               <rect x="48" y="0" width="10" height="10" />

@@ -25,6 +25,17 @@
 - Agents can read the Train comparisons as JSON at /train.json, one report in
   full, and each Train page as Markdown.
 
+### Changed
+
+- On the Watchdog page, a site or address we can't take is refused right under
+  its own field, with what to enter. The two proof methods are larger buttons,
+  and each panel has room around its contents.
+- On a phone, the three figures on a Train comparison sit one to a row.
+- Selected filters, tabs and menu items are marked with a line or a fill, with
+  no shadows, and headings on the Account page are regular weight, as on the
+  other Regents sites. Fields show focus, a value to fix and a disabled state
+  the same way everywhere.
+
 ## Website (2026-11-11)
 
 ### Added

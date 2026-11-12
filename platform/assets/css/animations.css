@@ -397,7 +397,6 @@
   border: 1px solid var(--ash-line-strong);
   border-inline-start: 4px solid var(--ash-accent-warm);
   background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
   font-size: 0.85rem;
 }
 

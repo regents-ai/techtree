@@ -86,7 +86,7 @@ defmodule Techtree.PublicIdentity do
       end
 
     svg =
-      ~s(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 5" shape-rendering="crispEdges"><rect width="5" height="5" fill="#121212"/>#{Enum.join(marks)}</svg>)
+      ~s(<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 5 5" shape-rendering="crispEdges"><rect width="5" height="5" fill="#121212"/>#{Enum.join(marks)}</svg>)
 
     "data:image/svg+xml;base64," <> Base.encode64(svg)
   end

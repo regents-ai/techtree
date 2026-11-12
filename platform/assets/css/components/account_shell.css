@@ -37,7 +37,7 @@
 /* The account menu hangs from the account button. */
 #account-chip { anchor-name: --rg-account-menu; }
 /* The menu's headings are short labels in the interface face, not page titles. */
-#account-menu h2 { margin: 0; font-family: var(--font-family-ui); font-size: .95rem; font-weight: 600; line-height: 1.35; letter-spacing: normal; }
+#account-menu h2 { margin: 0; font-family: var(--font-family-ui); font-size: .95rem; font-weight: 400; line-height: 1.35; letter-spacing: normal; }
 /* A name that is the wallet opens its full address; with a mouse it is at least
    24px tall, as every control here is (a finger already gets 44px). */
 @media (hover: hover) and (pointer: fine) {
@@ -113,7 +113,6 @@
   margin-inline: auto calc(-1 * var(--shell-dialog-pad));
   padding: 0;
   border: 0;
-  border-radius: 0 calc(1.25rem - 1px) 0 0.75rem;
 }
 
 .shell-dialog-close svg {

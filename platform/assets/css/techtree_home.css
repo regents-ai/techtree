@@ -104,7 +104,6 @@
     position: relative;
     inset: auto;
     order: 2;
-    z-index: 0;
     height: 18rem;
     margin-top: var(--space-3);
     mask-image: linear-gradient(transparent, #000 20%, #000 80%, transparent);

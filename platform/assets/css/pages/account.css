@@ -21,7 +21,7 @@
 .account-page h2 {
   margin: 0;
   font-family: var(--font-family-ui);
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .account-page p {
@@ -33,7 +33,6 @@
   color: var(--color-fg-muted);
   font-family: var(--font-family-ui);
   font-size: .875rem;
-  font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
 }

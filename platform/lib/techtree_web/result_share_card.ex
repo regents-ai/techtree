@@ -171,7 +171,7 @@ defmodule TechtreeWeb.ResultShareCard do
       end)
 
     """
-    <svg xmlns="http://www.w3.org/2000/svg" width="#{@width}" height="#{@height}">
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" width="#{@width}" height="#{@height}">
       <rect width="#{@width}" height="#{@height}" fill="#{@ground}"/>
       <polygon points="#{panel(0, @cut)}" fill="#{@edge}"/>
       <polygon points="#{panel(1, @cut - 0.4)}" fill="#{@face}"/>

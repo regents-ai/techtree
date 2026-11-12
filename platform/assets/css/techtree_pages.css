@@ -154,7 +154,7 @@
 .runs-index #agent-version-browser a { font-size: .8125rem; padding: .5rem .75rem; }
 .results-filter-choices { display: flex; align-items: center; gap: .5rem; overflow-x: auto; padding: 4px; min-height: 2.75rem; }
 .results-filter-choices .result-choice { display: inline-flex; align-items: center; gap: var(--space-1); flex-shrink: 0; min-height: 2.75rem; max-width: 32rem; padding: .5rem .75rem; border: 1px solid var(--hairline-strong); font-size: .8125rem; text-decoration: none; }
-.results-filter-choices .result-choice[aria-current="page"] { background: var(--color-accent); color: var(--color-fg-on-accent); border-color: var(--color-accent); box-shadow: inset 0 -2px 0 currentColor; }
+.results-filter-choices .result-choice[aria-current="page"] { background: var(--color-accent); color: var(--color-fg-on-accent); border-color: var(--color-accent); border-bottom-color: currentColor; }
 .result-choice__digest { font: .6875rem var(--font-family-ui); }
 .runs-index #results-count { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-1) var(--space-3); margin-top: var(--space-2); font-size: .75rem; }
 .results-context > span { font-size: .75rem; }
@@ -271,12 +271,18 @@
 .service-rules > li:last-child { border-bottom: 1px solid var(--hairline); }
 
 .watchdog .watchdog-add { margin-block: var(--space-4); }
-.watchdog .watchdog-add h2 { margin-bottom: var(--space-3); }
+.watchdog .watchdog-add h2 { margin-bottom: var(--space-3); font-size: 1.5rem; }
 .watchdog-form { display: grid; gap: var(--space-3); max-width: 34rem; }
 .watchdog-form--inline { margin-top: var(--space-3); }
-.watchdog-method { display: flex; flex-wrap: wrap; gap: var(--space-3); border: 0; padding: 0; margin: 0; }
-.watchdog-method legend { font-weight: 600; margin-bottom: var(--space-1); }
-.watchdog-method label { display: inline-flex; align-items: center; gap: var(--space-1); }
+/* The proof method: each choice is its own label, a finger's 44 pixels tall, and
+   the chosen one is filled; the radio itself is kept for the keyboard and screen
+   readers and not drawn. */
+.watchdog-method { display: flex; flex-wrap: wrap; gap: var(--space-1); border: 0; padding: 0; margin: 0; }
+.watchdog-method legend { margin-bottom: var(--space-1); }
+.watchdog-method label { display: inline-flex; align-items: center; min-height: 2.75rem; padding-inline: var(--space-2); border: 1px solid var(--hairline-strong); cursor: pointer; }
+.watchdog-method label:has(input:checked) { background: var(--color-accent); color: var(--color-fg-on-accent); border-color: var(--color-accent); }
+.watchdog-method label:has(input:focus-visible) { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.watchdog-method input { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .watchdog-sites { display: grid; gap: var(--space-4); margin-top: var(--space-4); }
 .watchdog-site { display: grid; gap: var(--space-3); }
 .watchdog-site__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2); justify-content: space-between; }

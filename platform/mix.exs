@@ -6,7 +6,7 @@ defmodule Techtree.MixProject do
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
   @elixir_utils_ref "dd2d3c6e631df4c20f5055a45184dcb8e4d33139"
   @design_system "https://github.com/regents-ai/design-system.git"
-  @design_system_ref "d3845c6d9fe34b7131937bafa051e6e04c9b09dd"
+  @design_system_ref "33d5aa96d0da65a507dc5e332da045b6fe821789"
 
   def project do
     [
@@ -223,6 +223,8 @@ defmodule Techtree.MixProject do
       "deps.unlock --check-unused",
       "cmd mix hex.audit",
       "format --check-formatted",
+      # The shared style rules, over this site's own styles and templates.
+      "cmd sh assets/vendor/regent_ui/style-check.sh",
       "credo --strict",
       "cmd env SOBELOW_HOME=_build/sobelow mix sobelow --exit",
       # The reviewed account adoption adds five Ash resource/domain edges and
