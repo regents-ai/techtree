@@ -1,0 +1,791 @@
+{
+  "schema_version": "techtree.train.v1alpha1",
+  "kind": "Comparison",
+  "spec": {
+    "title": "Skill on Nemotron 3 Nano 4B",
+    "environment": {
+      "id": "regents/payment-terms",
+      "version": "0.1.0",
+      "split": "held_out",
+      "seed": 0,
+      "task_count": 64,
+      "taskset_digest": "sha256:4fb725b4192fd61c42887153db986a1985e33eb8fdaee30286230bbf29ce808d"
+    },
+    "model": {
+      "family": "Nemotron 3 Nano",
+      "name": "nemotron-3-nano:4b",
+      "provider": "ollama",
+      "weights_digest": "sha256:af872b2f353c6aee1bf9fd15e7dca62a3e23f9df17907f4c803129729f02b754"
+    },
+    "sampling": {
+      "temperature": 0.0,
+      "max_tokens": 512,
+      "thinking": false
+    },
+    "arms": [
+      {
+        "name": "baseline",
+        "change": "none",
+        "skill_digest": null
+      },
+      {
+        "name": "skill",
+        "change": "skill",
+        "skill_digest": "sha256:89feb9881e7d28871ab4b5ca079cd8a1de78efe4fe81629bfb55f70a5ce88f5d"
+      }
+    ],
+    "software": {
+      "verifiers": "0.4.1",
+      "techtree_lab": "0.1.0"
+    },
+    "results": {
+      "arms": [
+        {
+          "name": "baseline",
+          "mean_reward": 0.0,
+          "solved": 0,
+          "tokens": {
+            "prompt": 9392,
+            "completion": 7146
+          }
+        },
+        {
+          "name": "skill",
+          "mean_reward": 0.961,
+          "solved": 34,
+          "tokens": {
+            "prompt": 10795,
+            "completion": 15010
+          }
+        }
+      ],
+      "per_task": [
+        {
+          "task_id": "payment-terms-held-out-0000",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0001",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0002",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0003",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0004",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0005",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0006",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0007",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0008",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0009",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0010",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0011",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0012",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0013",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0014",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0015",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0016",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0017",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0018",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0019",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0020",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0021",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0022",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0023",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0024",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0025",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0026",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0027",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0028",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0029",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0030",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0031",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0032",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0033",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0034",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0035",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0036",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0037",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0038",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0039",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0040",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0041",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0042",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0043",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0044",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0045",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0046",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0047",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0048",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0049",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0050",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0051",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0052",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0053",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0054",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0055",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0056",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0057",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0058",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0059",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0060",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0061",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0062",
+          "rewards": [
+            0.0,
+            0.9167
+          ],
+          "solved": [
+            false,
+            false
+          ]
+        },
+        {
+          "task_id": "payment-terms-held-out-0063",
+          "rewards": [
+            0.0,
+            1.0
+          ],
+          "solved": [
+            false,
+            true
+          ]
+        }
+      ],
+      "paired": {
+        "wins": 64,
+        "ties": 0,
+        "losses": 0,
+        "mean_difference": 0.961,
+        "ci95": [
+          0.9505,
+          0.9714
+        ],
+        "method": "paired bootstrap, 10000 resamples, seed 0"
+      },
+      "outcome": "uplift"
+    },
+    "traces_digest": "sha256:eb084c054e200efb696af2f9c56263382ef70fc43271db59b378661ae9b308c2"
+  },
+  "operational": {
+    "started_at": "2026-11-11T23:49:25Z",
+    "finished_at": "2026-11-11T23:53:46Z",
+    "host": "local",
+    "cost_usd": "0.00",
+    "duration_seconds": 261
+  },
+  "digest": "sha256:4d143be133f89b6d192d6d9402ce58b97c91f709ac8a4f24f822277b69b07bc9"
+}
