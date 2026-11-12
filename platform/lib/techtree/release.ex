@@ -18,6 +18,10 @@ defmodule Techtree.Release do
   # together with their ledger, before this application selects techtree_app.
   @imported_through 20_260_828_235_308
 
+  @doc "The last migration of the imported history, the only ones that may name the public schema."
+  @spec imported_through() :: pos_integer()
+  def imported_through, do: @imported_through
+
   @default_starter_skill_root {:priv, "release"}
   @platform_schema "regent_names"
 

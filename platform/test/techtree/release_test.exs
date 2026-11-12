@@ -200,6 +200,20 @@ defmodule Techtree.ReleaseTest do
     assert query!(config, "SELECT version FROM techtree_app.schema_migrations").rows == []
   end
 
+  # Production keeps this site's tables in its own schema, and every local,
+  # test and start-up-check database keeps them in public, so a migration that
+  # names public for a table passes every check here and fails in production
+  # (release v225). Only the imported history may; its tables were moved.
+  test "no migration after the imported history names the public schema for a table" do
+    named =
+      for file <- release_migration_files(),
+          version_of(file) > Release.imported_through(),
+          File.read!(Path.join(release_migrations_path(), file)) =~ ~r/prefix:\s*"public"/,
+          do: file
+
+    assert named == []
+  end
+
   test "the local fixture prepares only a local dev or test database" do
     local = [hostname: "127.0.0.1", database: "techtree_test"]
 
