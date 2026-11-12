@@ -12,12 +12,18 @@ defmodule TechtreeWeb.PageCopy do
 
   use Phoenix.Component
 
+  attr :variant, :string,
+    default: "primary",
+    values: ~w(primary secondary),
+    doc: "secondary beside a page's own main action"
+
   @doc "The Copy page split button. Place inside a page heading."
   def page_copy(assigns) do
     ~H"""
     <div class="pagecopy" data-markdown-skip>
       <Regent.Primitives.button
         type="button"
+        variant={@variant}
         class="pagecopy__main rg-copy"
         id="copy-page"
         phx-hook="CopyCommandPage"

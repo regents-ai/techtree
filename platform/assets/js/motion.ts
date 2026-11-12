@@ -36,8 +36,9 @@ export function mountMotion(doc: Document) {
   const main = doc.querySelector("main")
   if (main === null || live(main) || still(main)) return
 
+  // An opening band's headline moves with the band (marketing/reveal.ts).
   const headline = main.querySelector<HTMLElement>("h1")
-  if (headline !== null) rise(headline)
+  if (headline !== null && headline.closest("[data-entrance]") === null) rise(headline)
 
   for (const list of main.querySelectorAll<HTMLElement>("[data-cascade]"))
     onFirstSight(list, () => GRIDS.cascade([...list.children].slice(0, CASCADE)))

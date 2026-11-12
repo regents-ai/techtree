@@ -1,0 +1,146 @@
+/* The inner pages in the home page's look (`TechtreeWeb.Components.Marketing`).
+
+   Every inner page opens on a dark band: the eyebrow, the page's name, its
+   promise, its actions and, on a wide screen, a dot picture of the page's own
+   shape. Below it the page's parts are the home page's ruled sections
+   (`.mk-section`, in techtree_home.css) holding the pieces here. */
+
+/* The opening band. Its ground is a faint grid of dots the stylesheet draws, so
+   the band reads the same with or without the picture beside it. */
+/* It clips only sideways, and sits over the section after it, so a menu opened
+   in it (the Docs' Copy page) hangs over that section whole. */
+.mk-opening {
+  position: relative; z-index: 1; isolation: isolate; overflow-x: clip;
+  display: grid; align-items: center; gap: var(--space-5) var(--rg-track-gap);
+  margin-inline: calc(-1 * var(--rg-panel-padding));
+  padding: clamp(3rem, 8vh, 5.5rem) var(--rg-panel-padding);
+  background:
+    radial-gradient(60% 90% at 100% 0%, rgb(47 168 102 / .18), transparent 70%),
+    radial-gradient(circle, rgb(200 242 92 / .09) 0 1px, transparent 1.5px) 0 0 / 9px 9px,
+    var(--color-bg);
+}
+.mk-opening--picture { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+.mk-opening__copy { display: grid; justify-items: start; min-width: 0; max-width: 46rem; }
+.mk-opening .mk-eyebrow { color: var(--color-accent); }
+.mk-opening .mk-opening__title {
+  max-width: 100%; font-family: var(--font-family-title); font-size: clamp(2.75rem, 6.4vw, 5.5rem);
+  line-height: 1; letter-spacing: -.045em; text-wrap: balance; overflow-wrap: break-word;
+}
+.mk-opening__line {
+  max-width: 38rem; margin-top: var(--space-3); color: var(--color-fg-muted);
+  font-family: var(--font-family-title); font-size: clamp(1.125rem, 1.7vw, 1.5rem); line-height: 1.35;
+  letter-spacing: -.015em; text-wrap: pretty;
+}
+.mk-opening__more { max-width: 38rem; margin-top: var(--space-2); color: var(--color-fg-muted); text-wrap: pretty; }
+.mk-opening__actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
+.mk-opening__note { max-width: 38rem; margin-top: var(--space-3); color: var(--color-fg-muted); font-size: .875rem; }
+.mk-opening__note a { color: var(--color-fg); }
+/* Each link in the row is its own press, so its line is a full 24 pixels. */
+.mk-opening__copy > .mk-links { margin-top: var(--space-3); color: var(--color-fg-muted); font-size: .875rem; line-height: 1.5rem; }
+.mk-opening__tools { margin-top: var(--space-3); }
+/* A title that changes in place takes focus without a ring: it is where the
+   reader is, not a control. */
+.mk-opening__title[tabindex]:focus { outline: none; }
+/* The picture keeps the band's dark colours whatever the theme; a service's
+   picture takes the service's own (`.mk-service--*`). */
+.mk-opening__picture {
+  justify-self: end; width: min(100%, 26rem); aspect-ratio: 1;
+  border: 1px solid var(--hairline-strong);
+}
+.mk-opening .mk-field--screen { --field-ground: #0F1A14; --field-ink: #C8F25C; --field-glow: #2FA866; }
+.mk-opening__picture .mk-field__still { display: grid; place-items: center; }
+.mk-opening .mk-opening__glyph { inline-size: 38%; block-size: auto; aspect-ratio: 1; color: var(--field-ink); stroke-width: 1; }
+
+/* Two ways in, as two tiles side by side. */
+.mk-paths {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: var(--space-4);
+  border: 1px solid var(--hairline); background: var(--hairline);
+}
+.mk-paths > * { background: var(--color-bg); }
+.mk-paths .mk-tile { min-height: 11rem; }
+.mk-paths .badge { justify-self: start; }
+
+/* Steps in order, each under a rule that fills in the accent. */
+.mk-sequence { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
+.mk-sequence > li { display: grid; align-content: start; gap: var(--space-1); padding-top: var(--space-2); border-top: 2px solid var(--color-accent); }
+.mk-sequence__index { color: var(--color-fg-muted); font-family: var(--font-family-mono); font-size: .75rem; letter-spacing: .12em; }
+.mk-sequence h3 { font-size: 1.25rem; line-height: 1.25; }
+.mk-sequence p { margin-top: 0; color: var(--color-fg-muted); font-size: .875rem; }
+
+/* Facts beside what to copy: the section's two halves. */
+.mk-section > .mk-split, .mk-section > .mk-panel, .mk-section > .mk-cards, .mk-section > .facts { margin-top: var(--space-4); }
+.mk-section > .command { margin-top: var(--space-4); }
+.mk-section > .mk-links { margin-top: var(--space-3); }
+.mk-panel .facts { margin-top: 0; }
+.mk-split > .command, .mk-split > .facts { margin: 0; }
+/* Cards over a panel: the cards take the wider share. */
+.mk-split--wide { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
+.mk-card .mk-sequence__index { margin-bottom: var(--space-1); }
+.mk-card h3 { font-size: 1.25rem; line-height: 1.25; }
+.mk-card__more { margin-top: auto; padding-top: var(--space-2); font-size: .875rem; }
+.mk-section__note { max-width: var(--measure); margin-top: var(--space-4); color: var(--color-fg-muted); font-size: .875rem; }
+/* A Result's withdrawn and held-out notes, before what it compared. */
+.run-notices { display: grid; gap: var(--space-3); }
+.run-notices .callout { margin-block: 0; }
+
+/* The blog's posts, the home page's news cards with each post's picture. */
+.mk-news--posts { margin-top: 0; }
+.mk-news__picture {
+  width: calc(100% + 2 * var(--space-3)); max-width: none; height: auto; aspect-ratio: 16 / 9;
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-3)) var(--space-1);
+  border-bottom: 1px solid var(--hairline); object-fit: cover;
+}
+
+/* The Docs' guides, one ruled section a group. */
+.docs-index .mk-section > h2 { font-size: clamp(1.5rem, 2.5vw, 2rem); }
+.docs-index .docs-index__list { margin-top: var(--space-3); }
+
+/* A page of prose under its band: the changelog, an agent's page. */
+.mk-section > .rg-blog__prose { max-width: var(--measure); }
+
+/* The Account's tabs sit in its band, and its views under it. */
+.mk-opening .account-shell__tabs { margin-top: var(--space-4); }
+.account-shell__body { padding-block: var(--space-5) var(--space-7); }
+
+/* Figures that count up the first time they are seen (`MarketingTally`). */
+.mk-tallies {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 1px; margin-top: var(--space-4);
+  border: 1px solid var(--hairline); background: var(--hairline);
+}
+.mk-tallies > div { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); background: var(--color-bg); }
+.mk-tallies dd {
+  order: -1; font-family: var(--font-family-title); font-size: clamp(2.25rem, 4vw, 3.5rem);
+  line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums;
+}
+.mk-tallies dt { max-width: 28ch; color: var(--color-fg-muted); font-size: .875rem; }
+
+/* A ruled list beside its heading, and the marks a sample report gives each line. */
+.mk-split > .mk-section__head { max-width: none; }
+.mk-split > .mk-facts, .mk-split > .mk-status { margin-top: 0; }
+.mk-outcomes > li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); padding-block: var(--space-2); border-bottom: 1px solid var(--hairline); font-size: .875rem; }
+.mk-outcomes > li:first-child { border-top: 1px solid var(--hairline); }
+.mk-outcome { display: inline-flex; align-items: center; gap: .4rem; flex-shrink: 0; font-weight: 400; white-space: nowrap; }
+.mk-outcome::before { content: ""; width: .5rem; height: .5rem; background: var(--hairline-strong); }
+.mk-outcome--pass::before, .mk-outcome--fixed::before { background: var(--color-success); }
+.mk-outcome--fail::before { background: var(--color-error); }
+
+/* A dark band's copy with a command or actions in it. */
+.mk-band__copy > .command { margin-top: var(--space-4); }
+.mk-band__copy > .mk-status { margin-top: var(--space-3); }
+
+/* A last word before the footer: the next step, beside its button. */
+.mk-next { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); }
+.mk-next__copy { max-width: 40rem; }
+.mk-next__copy h2 { margin-top: 0; }
+.mk-next__copy p:last-child { margin-top: var(--space-2); color: var(--color-fg-muted); }
+
+@media (max-width: 63.99rem) {
+  .mk-opening--picture, .mk-split--wide { grid-template-columns: minmax(0, 1fr); }
+  .mk-opening__picture { display: none; }
+}
+@media (max-width: 47.99rem) {
+  .mk-paths { grid-template-columns: minmax(0, 1fr); }
+}
+@media print {
+  .mk-opening { background: none; color: inherit; }
+}
