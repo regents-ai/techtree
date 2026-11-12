@@ -136,7 +136,8 @@ defmodule TechtreeWeb.ServiceLiveTest do
     page = page(conn, ~p"/services/watchdog")
     offer = text(page, ".service-offer")
 
-    assert text(page, "h1") =~ "Keep watch on the sites you own."
+    assert text(page, "h1") == "Watchdog"
+    assert text(page, "h1 + .lede") == "Keep watch on the sites you own."
     assert text(page, "h2") =~ "Steps"
     assert text(page, "h2") =~ "Rules"
     assert text(page, "h2") =~ "You get"

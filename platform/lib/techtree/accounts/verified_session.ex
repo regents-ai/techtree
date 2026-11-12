@@ -16,7 +16,8 @@ defmodule Techtree.Accounts.VerifiedSession do
   """
   def establish(%RegentPrivy.Session{privy_user_id: did} = verified) do
     # `RegentPrivy.Session` already lowercases the list, keeps each wallet once
-    # and puts the wallet the person signed in with inside it.
+    # and puts the person's main wallet (their own, or else the Regents wallet)
+    # inside it.
     case verified do
       %{wallet_address: primary, wallet_addresses: [_ | _] = addresses} when is_binary(primary) ->
         with {:ok, account} <- Accounts.register_verified(did, primary, addresses, actor: @actor),

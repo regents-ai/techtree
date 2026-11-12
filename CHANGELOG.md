@@ -42,6 +42,11 @@
 
 ### Changed
 
+- Signed in, the site ignores a wallet your account does not link, and signing out
+  lets go of every wallet. Everyone now gets a Regents wallet when they sign in,
+  including people who sign in with their own wallet, which stays their main one.
+  The Home, Repo2RLEnv, Techtree Verify, Cyber Assist and Watchdog pages lead with
+  the product's name, with the line that was the heading just under it.
 - **Privacy.** If your browser sends Global Privacy Control, the site no longer sets
   its visit cookie, so nothing it records can be put together into one visit.
 - **Titles.** Headings, labels and tab titles across the site are now one or two

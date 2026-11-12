@@ -79,7 +79,8 @@ defmodule TechtreeWeb.HomeLive do
           </div>
 
           <div class="hero__copy">
-            <h1 id="hero-title" class="hero-title">Improve a Skill. Prove it worked.</h1>
+            <h1 id="hero-title" class="hero-title">Techtree</h1>
+            <p class="hero__subtitle">Improve a Skill. Prove it worked.</p>
             <p class="hero__lede">
               Run the same tasks with and without your Skill. See what improved, what regressed,
               and keep a report anyone can check.

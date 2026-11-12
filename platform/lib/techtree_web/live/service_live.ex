@@ -33,6 +33,7 @@ defmodule TechtreeWeb.ServiceLive do
   @offers %{
     verify: %{
       name: "Techtree Verify",
+      title: "Techtree Verify",
       promise: "Prove your important workflows work.",
       lede:
         "For teams that ship quickly. We check the workflows you choose, such as how an agent sets up and uses a wallet, reproduce every failure and leave you a suite you can run again.",
@@ -70,6 +71,7 @@ defmodule TechtreeWeb.ServiceLive do
     },
     cyber_assist: %{
       name: "Techtree Cyber Assist",
+      title: "Cyber Assist",
       promise: "Find and fix the security weaknesses that matter.",
       lede:
         "For applications and agent integrations. We validate each weakness, show how to reproduce it, rank the repairs and check that each fix holds.",
@@ -105,6 +107,7 @@ defmodule TechtreeWeb.ServiceLive do
     },
     watchdog: %{
       name: "Techtree Watchdog",
+      title: "Watchdog",
       promise: "Keep watch on the sites you own.",
       lede:
         "A monthly subscription for teams. You list the web addresses you own, prove they're yours, and we safely test them for security weaknesses the way a careful attacker would, inside limits you agree, and nothing else.",
@@ -233,8 +236,8 @@ defmodule TechtreeWeb.ServiceLive do
     <Layouts.page wide>
       <article class="service-offer" aria-labelledby="service-title">
         <header class="editorial-heading">
-          <p class="eyebrow">{@offer.name}</p>
-          <h1 id="service-title">{@offer.promise}</h1>
+          <h1 id="service-title">{@offer.title}</h1>
+          <p class="lede">{@offer.promise}</p>
           <p class="lede">{@offer.lede}</p>
           <div class="service-offer__actions">
             <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>
@@ -326,8 +329,8 @@ defmodule TechtreeWeb.ServiceLive do
     <Layouts.page wide>
       <article class="service-offer" aria-labelledby="service-title">
         <header class="editorial-heading">
-          <p class="eyebrow">{@offer.name}</p>
-          <h1 id="service-title">{@offer.promise}</h1>
+          <h1 id="service-title">{@offer.title}</h1>
+          <p class="lede">{@offer.promise}</p>
           <p class="lede">{@offer.lede}</p>
           <div class="service-offer__actions">
             <a class="rg-button rg-button--primary" href={@mailto}>Email us</a>

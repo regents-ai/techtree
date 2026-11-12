@@ -14,10 +14,11 @@ defmodule TechtreeWeb.Repo2RLEnvLive do
       <article class="repo-service" aria-labelledby="repo-service-title">
         <header class="editorial-heading">
           <div class="service-kicker">
-            <p class="eyebrow">Service / Repo2RLEnv</p>
+            <p class="eyebrow">Service</p>
             <.capability_status capability={:hosted_building} />
           </div>
-          <h1 id="repo-service-title">Turn a repository into practice for agents.</h1>
+          <h1 id="repo-service-title">Repo2RLEnv</h1>
+          <p class="lede">Turn a repository into practice for agents.</p>
           <p class="lede">
             Every repository holds lessons an agent has yet to learn. Repo2RLEnv is Techtree’s
             first service: turning real software and its repair history into environments where

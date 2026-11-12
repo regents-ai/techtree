@@ -1,6 +1,8 @@
 # Repo2RLEnv
 
-Turn a repository into practice for agents. Repo2RLEnv is Techtree's first planned service: turning real software and its repair history into environments where agents can practice, test better Skills, and show what actually improved. Building and checkout are not open yet.
+Turn a repository into practice for agents.
+
+Repo2RLEnv is Techtree's first planned service: turning real software and its repair history into environments where agents can practice, test better Skills, and show what actually improved. Building and checkout are not open yet.
 
 ## Stack
 

@@ -23,7 +23,14 @@ defmodule TechtreeWeb.HomeLiveTest do
       {:ok, live, html} = live(conn, ~p"/")
       text = visible_text(html)
 
-      assert has_element?(live, "#hero-title", "Improve a Skill. Prove it worked.")
+      assert has_element?(live, "#hero-title", "Techtree")
+
+      assert has_element?(
+               live,
+               "#hero-title + .hero__subtitle",
+               "Improve a Skill. Prove it worked."
+             )
+
       assert text =~ "Run the same tasks with and without your Skill."
       assert has_element?(live, ~s|.hero__actions a.rg-button--primary[href="/start"]|, "Start")
 

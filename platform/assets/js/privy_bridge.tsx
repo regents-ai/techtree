@@ -852,11 +852,13 @@ function AccountBridge({oauthReturn, mode, providerState, publishRequestHandler,
     [lifetime],
   )
   // Adoption only ever asks the server, and only once the person has a wallet:
-  // the run that follows their new wallet asks then.
+  // the run that follows their new wallet asks then. While the sign-in window
+  // this page opened is still open, Privy is still making the person's Regents
+  // wallet, so the window's own completion asks instead, once it is made.
   const completeAutomaticLogin = React.useCallback(
     () =>
       lifetime.aborted || !provider.current.ready || !provider.current.authenticated ||
-        !provider.current.hasWallet || walletDisconnected() || signOutOnly
+        !provider.current.hasWallet || loginOpen.current || walletDisconnected() || signOutOnly
         ? Promise.resolve() : completeExplicitLogin(),
     [completeExplicitLogin, signOutOnly, lifetime],
   )
@@ -1286,17 +1288,18 @@ export function startPrivyBridge(
 
     root.render(
       // The sign-in choices (a wallet, Google and the others) come from the Privy
-      // dashboard. Someone who signs in without a wallet gets a Privy Ethereum
-      // wallet of their own at once, linked to their account, so every account
-      // can act. It is an ordinary wallet, never a smart wallet: SIWA checks its
-      // signatures without asking the chain. Privy's own list of networks covers
-      // every network a step goes to, through Privy's own nodes, and a person
-      // always sees Privy's confirm window before their Privy wallet signs.
+      // dashboard. Everyone, including someone who signs in with their own
+      // wallet, gets a Privy Ethereum wallet (their Regents wallet) at their next
+      // sign-in, linked to their account, so every account can act. It is an
+      // ordinary wallet, never a smart wallet: SIWA checks its signatures without
+      // asking the chain. Privy's own list of networks covers every network a
+      // step goes to, through Privy's own nodes, and a person always sees Privy's
+      // confirm window before their Privy wallet signs.
       <PrivyProvider
         appId={appId}
         config={{
           appearance: {logo: "/mark.png"},
-          embeddedWallets: {showWalletUIs: true, ethereum: {createOnLogin: "users-without-wallets"}},
+          embeddedWallets: {showWalletUIs: true, ethereum: {createOnLogin: "all-users"}},
         }}
       >
         <AccountBridge

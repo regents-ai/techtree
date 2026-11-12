@@ -1,6 +1,8 @@
-# Techtree Watchdog
+# Watchdog
 
-Keep watch on the sites you own. A monthly subscription for teams: you list the web addresses you own, prove they're yours, and we safely test them for security weaknesses the way a careful attacker would, inside limits you agree, and nothing else.
+Keep watch on the sites you own.
+
+A monthly subscription for teams: you list the web addresses you own, prove they're yours, and we safely test them for security weaknesses the way a careful attacker would, inside limits you agree, and nothing else.
 
 For a one-off check instead, see [Techtree Verify](/services/verify) and [Techtree Cyber Assist](/services/cyber-assist).
 
