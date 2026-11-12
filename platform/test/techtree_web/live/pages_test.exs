@@ -152,8 +152,8 @@ defmodule TechtreeWeb.PagesTest do
           assert attributes =~ "rg-copy" or attributes =~ "copycommand" or
                    attributes =~ ~s|role="switch"| or
                    attributes =~ ~s|data-account-target="sign-in"| or
+                   attributes =~ "masthead__trigger" or
                    attributes =~ "masthead__menu-button" or
-                   attributes =~ "regent-footer__guide" or
                    attributes =~ ~s|phx-click="filter_tasks"|,
                  "#{page} has a button that is not a local-only control"
 

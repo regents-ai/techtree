@@ -7,6 +7,7 @@
    window's close button keeps its own size and place over the shared button's. */
 @import "components/account_shell.css";
 @import "components/agent_message.css";
+@import "components/site_chrome.css";
 @import "./agent_versions.css";
 @import "./techtree_home.css";
 @import "./techtree_pages.css";
@@ -111,109 +112,12 @@ code { font-size: .9em; }
 }
 .skip-link:focus { transform: none; }
 
-/* One continuous frame. All non-rail rows share the same main track. */
-.techtree-frame { min-height: 100vh; display: flex; flex-direction: column; }
-.masthead { position: relative; z-index: var(--rg-layer-header); border-bottom: 1px solid var(--rg-page-rule); }
-.masthead__inner {
-  min-height: 6rem; padding: var(--space-2) var(--rg-panel-padding);
-  display: grid; grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center; gap: var(--space-3) var(--space-1);
-}
-.masthead__name { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: 2.75rem; white-space: nowrap; gap: var(--space-1); font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none; }
-.masthead__mark { width: 1.5rem; flex: 0 0 auto; }
-/* Under 480 wide the Menu, theme switch and Sign in leave room for the mark alone;
-   the link is still named "Techtree home". */
-@media (max-width: 29.99rem) { .masthead__wordmark { display: none; } }
-.masthead__nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: .875rem; min-width: 0; }
-.masthead__selector { display: flex; flex-wrap: wrap; min-width: 0; }
-.masthead__selector a {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 2.75rem; padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--hairline-strong); margin: 0 -1px -1px 0; text-decoration: none;
-}
-.masthead__selector a[aria-current="page"] { border-bottom: 3px solid currentColor; background: var(--color-surface); }
-.masthead__menu { position: relative; display: inline-flex; }
-.masthead__menu-button {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 2.75rem; min-height: 2.75rem; padding: 0; margin: 0 -1px -1px 0;
-  border: 1px solid var(--hairline-strong); background: none; color: inherit; font: inherit; cursor: pointer;
-}
-.masthead__menu-button svg { width: 1.25rem; height: 1.25rem; }
-.masthead__menu-button[aria-current="page"] { border-bottom: 3px solid currentColor; background: var(--color-surface); }
-/* The page list is a popover the Menu button opens and closes; it sits under the
-   header, against the right edge. */
-.masthead__menu-list {
-  inset: 4rem var(--space-2) auto auto; margin: 0; padding: 0; min-width: 12rem;
-  flex-direction: column; color: inherit;
-  border: 1px solid var(--hairline-strong); background: var(--color-surface-elevated); box-shadow: var(--rg-layer-tip-shadow);
-}
-.masthead__menu-list:popover-open { display: flex; }
-.masthead__selector .masthead__menu-list a { justify-content: flex-start; border: 0; border-inline-start: 3px solid transparent; margin: 0; }
-.masthead__selector .masthead__menu-list a + a { border-top: 1px solid var(--hairline); }
-.masthead__selector .masthead__menu-list a[aria-current="page"] { border-bottom: 0; border-inline-start-color: currentColor; }
-.masthead__menu-list a:hover { background: var(--color-surface); }
-/* Wide screens: the pages in a row, no Menu button. */
-@media (min-width: 64rem) {
-  .masthead__menu-button, .masthead__selector .masthead__menu-github { display: none; }
-  .masthead__menu-list { position: static; inset: auto; overflow: visible; display: flex; flex-direction: row; min-width: 0; border: 0; background: none; }
-  .masthead__selector .masthead__menu-list a { border: 1px solid var(--hairline-strong); margin: 0 -1px -1px 0; }
-  .masthead__selector .masthead__menu-list a + a { border-top: 1px solid var(--hairline-strong); }
-  .masthead__selector .masthead__menu-list a[aria-current="page"] { border-bottom: 3px solid currentColor; box-shadow: none; }
-}
-.masthead__github {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  min-height: 2.75rem; padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--hairline-strong); background: var(--color-surface); text-decoration: none;
-}
-.masthead__github-logo { width: 1.5rem; height: 1.5rem; fill: currentColor; flex: 0 0 auto; }
-.masthead__github-count {
-  display: inline-flex; align-items: center; gap: var(--space-1);
-  align-self: stretch; margin: calc(-1 * var(--space-1)) 0; padding-left: var(--space-2);
-  border-left: 1px solid var(--hairline-strong); font-variant-numeric: tabular-nums;
-}
-.masthead__github-count[hidden] { display: none; }
-.masthead__github-star { width: 1rem; height: 1rem; fill: #eab308; stroke: #eab308; flex: 0 0 auto; }
-.masthead__github:hover { background: var(--color-surface-elevated); }
 .page { min-width: 0; width: 100%; padding: var(--space-6) var(--rg-panel-padding); }
 .page--flush { padding-top: 0; padding-bottom: 0; }
 .page > *, .docs-content, .hero > *, .hero__stage > *, .climb-contract > *, .facts > * { min-width: 0; }
 /* A short page still puts the footer at the bottom of the window. */
 .techtree-frame > [data-phx-main] { flex: 1 0 auto; display: flex; flex-direction: column; }
 .techtree-frame .rg-sheet-row:has(> .rg-sheet-row__main > main) { flex: 1 0 auto; }
-/* The footer every Regent site shares (`Layouts.product_links/1`). */
-.regent-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--rg-panel-padding);
-  border-top: 1px solid var(--hairline);
-  font-size: 0.8125rem;
-}
-.regent-footer p { margin: 0; }
-/* Each icon draws at 24px inside a 44px press target; the row is pulled out by the
-   difference so the icons still line up with the text around them. */
-.regent-footer__social { display: flex; align-items: center; margin: -.625rem; }
-.regent-footer__social > a { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; }
-.regent-footer__social > a svg { width: 1.5rem; height: 1.5rem; }
-.regent-footer__links { display: flex; flex-wrap: wrap; column-gap: var(--space-3); }
-.regent-footer__links a { display: inline-flex; align-items: center; min-height: 2.75rem; color: inherit; }
-.regent-footer__links .regent-footer__guide {
-  display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0; border: 0;
-  background: none; color: inherit; font: inherit; text-decoration: underline; cursor: pointer;
-}
-/* The two legal documents stay together, apart from the rest by a hairline where
-   they share its line and on a line of their own on a phone. */
-.regent-footer__legal { display: flex; column-gap: var(--space-3); }
-@media (min-width: 48rem) {
-  .regent-footer__legal { padding-inline-start: var(--space-3); border-inline-start: 1px solid var(--hairline); }
-}
-@media (max-width: 47.99rem) { .regent-footer__legal { flex-basis: 100%; } }
-.regent-footer__guide-body p { margin: 0; color: var(--rg-p-muted); }
-.regent-footer__guide-body a { min-height: 2.75rem; }
-.regent-footer__guide-body:popover-open { display: grid; }
-
 /* Product-owned links consume the same primary skin/label as real buttons.
    No local pseudo-element or animation overrides the canonical shimmer. */
 .actions, .hero__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }

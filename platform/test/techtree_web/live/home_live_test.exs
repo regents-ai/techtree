@@ -289,7 +289,8 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute html =~ ~s|<a class="masthead__name" data-phx-link|
   end
 
-  test "every page carries the same primary navigation in the decided order", %{conn: conn} do
+  test "every page carries the same three menus, the same Menu sheet and the same footer",
+       %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
 
@@ -302,15 +303,45 @@ defmodule TechtreeWeb.HomeLiveTest do
           ~p"/climbs/hello-world-climb"
         ] do
       {:ok, live, html} = live(conn, path)
+      document = LazyHTML.from_document(html)
 
-      assert html =~
-               ~r|<span class="masthead__selector">.*href="/start"[^>]*>\s*Start\s*</a>.*href="/results"[^>]*>\s*Results\s*</a>.*href="/verify"[^>]*>\s*Offline check\s*</a>.*href="/docs"[^>]*>\s*Docs\s*</a>.*</span>\s*<a class="masthead__github" href="https://github.com/regents-ai/techtree"|s
+      # Each menu's button opens its own panel.
+      assert for(
+               trigger <- LazyHTML.query(document, ".masthead__trigger"),
+               do: {trim(trigger), attribute(trigger, "popovertarget")}
+             ) == [
+               {"Products", "menu-products"},
+               {"Agents", "menu-agents"},
+               {"Resources", "menu-resources"}
+             ]
 
-      refute html =~ ~r|href="/results"[^>]*>\s*Proofs\s*</a>|
-
-      if path == ~p"/start" do
-        assert html =~ ~r|href="/start" aria-current="page">\s*Start\s*</a>|
+      for panel <- ["menu-products", "menu-agents", "menu-resources"] do
+        assert [_one] = Enum.to_list(LazyHTML.query(document, "##{panel}[popover]"))
       end
+
+      menus = hrefs(document, "[data-mega] a")
+
+      for page <- ~w(/start /results /wallet-bench /train /verify /formal /repo2rlenv
+                     /services/verify /services/cyber-assist /services/watchdog /agents
+                     /agents.md /llms.txt /docs/api /docs /changelog /blog /about) do
+        assert page in menus, "#{path}: the menus leave out #{page}"
+      end
+
+      # Below a wide screen, Menu opens the same pages in one sheet; the footer lists them too.
+      assert hrefs(document, "#site-menu .menu-columns a") == menus
+
+      assert attribute(
+               Enum.at(LazyHTML.query(document, ".masthead__menu-button"), 0),
+               "popovertarget"
+             ) == "site-menu"
+
+      footer = hrefs(document, ".regent-footer__columns a")
+      assert Enum.all?(menus, &(&1 in footer))
+      assert hrefs(document, ".regent-footer__legal a") == ["/privacy", "/terms"]
+
+      current = hrefs(document, "[data-mega] a[aria-current=page]")
+      if path in [~p"/start", ~p"/docs", ~p"/results", ~p"/verify"], do: assert(current == [path])
+      if path == ~p"/climbs/hello-world-climb", do: assert(current == [])
 
       # Signed out, the header carries the one theme switch, a real switch.
       assert [_one] = Regex.scan(~r/<button[^>]*role="switch"[^>]*aria-label="Light theme"/, html)
@@ -325,4 +356,25 @@ defmodule TechtreeWeb.HomeLiveTest do
       refute html =~ ~s|>Sign in<|
     end
   end
+
+  test "Book Call shows in the header and its Menu only when a booking page is set", %{conn: conn} do
+    address = "https://calendar.example/techtree"
+    docs = fn -> conn |> get(~p"/docs") |> html_response(200) end
+
+    refute docs.() =~ "Book Call"
+
+    Application.put_env(:techtree, :book_call, address)
+    on_exit(fn -> Application.put_env(:techtree, :book_call, nil) end)
+
+    document = LazyHTML.from_document(docs.())
+    assert hrefs(document, ".masthead__book[target=_blank]") == [address]
+    assert hrefs(document, "#site-menu .sheet__end a.rg-button") == [address]
+  end
+
+  defp hrefs(document, selector) do
+    for link <- LazyHTML.query(document, selector), do: attribute(link, "href")
+  end
+
+  defp attribute(node, name), do: node |> LazyHTML.attribute(name) |> List.first()
+  defp trim(node), do: node |> LazyHTML.text() |> String.trim()
 end

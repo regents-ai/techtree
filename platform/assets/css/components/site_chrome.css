@@ -1,0 +1,176 @@
+/* The header and footer on every page (`TechtreeWeb.Layouts`).
+
+   The header is one row that stays at the top: the name, three menus, the
+   project source, the account control and Book Call. Each menu opens a panel
+   the width of the frame, under the header. Below a wide screen the menus fold
+   into Menu, a sheet over the page under the header (`assets/js/site_menu.ts`). */
+:root { --masthead-height: 4rem; }
+/* A link reached from the keyboard is never left under the header. */
+html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
+
+.techtree-frame { min-height: 100vh; display: flex; flex-direction: column; }
+.masthead {
+  position: sticky; top: 0; z-index: var(--rg-layer-header);
+  border-bottom: 1px solid var(--rg-page-rule); background: var(--color-bg);
+}
+.masthead__inner {
+  display: flex; align-items: center; gap: var(--space-1);
+  min-height: var(--masthead-height); padding: 0 var(--rg-panel-padding);
+}
+.masthead__name {
+  display: inline-flex; flex: 0 0 auto; align-items: center; gap: var(--space-1);
+  min-height: 2.75rem; white-space: nowrap; font-family: var(--font-family-title); font-size: 1.25rem; text-decoration: none;
+}
+.masthead__name:hover { text-decoration: none; }
+.masthead__mark { width: 1.5rem; flex: 0 0 auto; }
+/* Under 480 wide the Menu, theme switch and Sign in leave room for the mark alone;
+   the link is still named "Techtree home". */
+@media (max-width: 29.99rem) { .masthead__wordmark { display: none; } }
+
+.masthead__nav { display: none; }
+.masthead__groups { display: flex; align-items: center; gap: var(--space-1); }
+.masthead__trigger {
+  display: inline-flex; align-items: center; gap: .375rem;
+  min-height: 2.75rem; padding: 0 var(--space-1);
+  border: 0; background: none; color: inherit; font-size: .9375rem; cursor: pointer;
+}
+.masthead__trigger:hover { color: var(--color-link); }
+.masthead__chevron { width: 1rem; height: 1rem; transition: transform var(--duration-base) var(--ease-out); }
+.masthead__trigger:has(+ :popover-open) .masthead__chevron { transform: rotate(180deg); }
+
+.masthead__end { display: flex; align-items: center; gap: var(--space-1); min-width: 0; margin-inline-start: auto; }
+.masthead__github {
+  display: none; align-items: center; gap: var(--space-1);
+  min-height: 2.75rem; padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--hairline-strong); background: var(--color-surface); font-size: .875rem; text-decoration: none;
+}
+.masthead__github:hover { background: var(--color-surface-elevated); text-decoration: none; }
+.masthead__github-logo { width: 1.25rem; height: 1.25rem; fill: currentColor; flex: 0 0 auto; }
+.masthead__github-count {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  align-self: stretch; margin: calc(-1 * var(--space-1)) 0; padding-left: var(--space-2);
+  border-left: 1px solid var(--hairline-strong); font-variant-numeric: tabular-nums;
+}
+.masthead__github-star { width: 1rem; height: 1rem; fill: #eab308; stroke: #eab308; flex: 0 0 auto; }
+.masthead__book { display: none; }
+.masthead__menu-button {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  width: 2.75rem; height: 2.75rem; padding: 0;
+  border: 1px solid var(--hairline-strong); background: none; color: inherit; cursor: pointer;
+}
+.masthead__menu-button svg { width: 1.25rem; height: 1.25rem; }
+.masthead__menu-close { display: none; }
+.masthead:has(#site-menu:popover-open) .masthead__menu-open { display: none; }
+.masthead:has(#site-menu:popover-open) .masthead__menu-close { display: block; }
+
+@media (min-width: 64rem) {
+  .masthead__nav { display: block; margin-inline-start: var(--space-3); }
+  .masthead__github, .masthead__book { display: inline-flex; }
+  .masthead__menu-button, .sheet { display: none; }
+}
+
+/* One menu's panel: the frame's width, under the header, its pages in columns. */
+.mega {
+  position: fixed; inset: calc(var(--masthead-height) + 1px) 0 auto; margin: 0 auto;
+  width: min(calc(100% - 2 * var(--rg-page-gutter)), var(--rg-frame-max)); height: auto;
+  max-height: calc(100dvh - var(--masthead-height) - var(--space-4)); overflow: auto;
+  padding: var(--space-5) var(--rg-panel-padding);
+  border: 1px solid var(--hairline-strong); border-top: 0;
+  background: var(--color-surface-elevated); color: var(--color-fg);
+}
+.menu-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-4) var(--space-3); }
+.menu-columns__title, .regent-footer__title {
+  display: flex; align-items: center; gap: .625rem; margin-bottom: var(--space-1);
+  color: var(--color-fg-muted); font-family: var(--font-family-mono); font-size: .6875rem;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+/* A plus mark before each column's name: the frame's corner marks, small. */
+.menu-columns__title::before, .regent-footer__title::before {
+  content: ""; width: 9px; height: 9px; flex: 0 0 auto;
+  background:
+    linear-gradient(currentColor 0 0) center / 100% 1px no-repeat,
+    linear-gradient(currentColor 0 0) center / 1px 100% no-repeat;
+}
+.menu-page {
+  display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); column-gap: var(--space-2); align-items: center;
+  min-height: 2.75rem; padding: var(--space-1); margin-inline: calc(-1 * var(--space-1));
+  color: inherit; text-decoration: none;
+}
+.menu-page__icon {
+  grid-row: 1 / span 2; width: 2.25rem; height: 2.25rem; padding: .5rem;
+  border: 1px solid var(--hairline-strong); background: var(--color-bg);
+  transition: background-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+}
+.menu-page__name { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; font-size: .9375rem; line-height: 1.3; }
+.menu-page__line { grid-column: 2; color: var(--color-fg-muted); font-size: .8125rem; line-height: 1.35; }
+.menu-page__soon, .regent-footer__soon {
+  display: inline-flex; align-items: center; padding: .0625rem .375rem;
+  border: 1px solid var(--hairline-strong); color: var(--color-fg-muted);
+  font-family: var(--font-family-mono); font-size: .625rem; letter-spacing: .08em; line-height: 1.4; text-transform: uppercase;
+}
+a.menu-page:hover { background: var(--color-surface); color: inherit; text-decoration: none; }
+a.menu-page:hover .menu-page__name, .menu-page[aria-current="page"] .menu-page__name { text-decoration: underline; text-underline-offset: .2em; }
+a.menu-page:hover .menu-page__icon { border-color: transparent; background: var(--color-accent); color: var(--color-fg-on-accent); }
+
+/* Menu below a wide screen: every group in one sheet under the header. */
+.sheet {
+  position: fixed; inset: calc(var(--masthead-height) + 1px) 0 0; margin: 0;
+  width: 100%; height: auto; max-width: none; max-height: none;
+  padding: var(--space-3) var(--rg-panel-padding) var(--space-6);
+  overflow-y: auto; overscroll-behavior: contain;
+  border: 0; border-top: 1px solid var(--hairline); background: var(--color-bg); color: var(--color-fg);
+}
+.sheet__group + .sheet__group { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--hairline); }
+.sheet__title { margin-bottom: var(--space-2); font-family: var(--font-family-title); font-size: 1.5rem; line-height: 1.2; }
+.sheet__end {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2);
+  margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--hairline);
+}
+.sheet__github { display: inline-block; width: 1.25rem; height: 1.25rem; fill: currentColor; }
+
+/* The footer: the name and brand links, the site's pages in columns, then
+   whose project this is and the legal pages, over the name drawn large. */
+.regent-footer {
+  container-type: inline-size; overflow: hidden;
+  padding: var(--space-7) var(--rg-panel-padding) 0;
+  border-top: 1px solid var(--hairline); font-size: .875rem;
+}
+.regent-footer p { margin: 0; }
+.regent-footer__top { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+.regent-footer__name {
+  display: inline-flex; align-items: center; gap: var(--space-1); min-height: 2.75rem;
+  font-family: var(--font-family-title); font-size: 1.5rem; text-decoration: none;
+}
+.regent-footer__mark { width: 1.75rem; }
+.regent-footer__line { margin-top: var(--space-1); color: var(--color-fg-muted); }
+/* Each icon draws at 24px inside a 44px press target; the row is pulled out by the
+   difference so the icons still line up with the text around them. */
+.regent-footer__social { display: flex; align-items: center; margin: var(--space-2) -.625rem 0; }
+.regent-footer__social > a { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; }
+.regent-footer__social > a svg { width: 1.5rem; height: 1.5rem; }
+.regent-footer__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-3); }
+.regent-footer__column li { display: flex; flex-wrap: wrap; align-items: center; column-gap: .5rem; }
+.regent-footer__column :is(a, span:not(.regent-footer__soon)) { display: inline-flex; align-items: center; min-height: 2.75rem; color: inherit; }
+.regent-footer__column span:not(.regent-footer__soon) { color: var(--color-fg-muted); }
+.regent-footer__base {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--space-3);
+  margin-top: var(--space-6); padding-top: var(--space-2); border-top: 1px solid var(--hairline);
+  color: var(--color-fg-muted); font-size: .8125rem;
+}
+.regent-footer__legal { display: flex; flex-wrap: wrap; column-gap: var(--space-3); }
+.regent-footer__legal a { display: inline-flex; align-items: center; min-height: 2.75rem; color: inherit; }
+/* Sized to the footer's own width, so the name runs edge to edge on any screen;
+   its feet are cut by the footer's lower edge. */
+.regent-footer__giant {
+  margin: var(--space-3) 0 -.18em;
+  color: var(--hairline-strong); font-family: var(--font-family-title);
+  font-size: 26cqi; line-height: 1; letter-spacing: -.05em; white-space: nowrap;
+  user-select: none;
+}
+@media (min-width: 48rem) {
+  .regent-footer__columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .regent-footer__column :is(a, span:not(.regent-footer__soon)) { min-height: 2.25rem; }
+}
+@media (min-width: 64rem) {
+  .regent-footer__top { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }
+}
