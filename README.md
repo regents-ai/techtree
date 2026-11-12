@@ -99,6 +99,7 @@ records name commits of the archived `regents-ai/techtree-hermes`.
 | [`climb-v0.7.23`](platform/priv/releases/climb-v0.7.23/) | `regents-cli` 1.10.22 | `0b08d4a` (regents-cli tag `v1.10.22`) | `0bd9f4b` (`plugin/`) | `0b08d4a` | `sha256:e0319bae…` | 0.21.3 | 2026-11-02 |
 | [`climb-v0.7.24`](platform/priv/releases/climb-v0.7.24/) | `regents-cli` 1.10.23 | `8e8f2af` (regents-cli tag `v1.10.23`) | `56d1641` (`plugin/`) | `8e8f2af` | `sha256:e0319bae…` | 0.21.3 | 2026-11-04 |
 | [`climb-v0.7.25`](platform/priv/releases/climb-v0.7.25/) | `regents-cli` 1.10.24 | `fd32543` (regents-cli tag `v1.10.24`) | `31875a4` (`plugin/`) | `fd32543` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-06 |
+| [`climb-v0.7.26`](platform/priv/releases/climb-v0.7.26/) | `regents-cli` 1.10.25 | `8b3240b` (regents-cli tag `v1.10.25`) | `72cdb0f` (`plugin/`) | `8b3240b` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-12 |
 
 The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0`, Hermes
 v2026.7.20 from `climb-v0.3.1`, and Hermes v2026.9.24 with GPT-6 Luna at high
