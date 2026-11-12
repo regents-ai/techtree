@@ -42,6 +42,8 @@
 
 ### Changed
 
+- **Privacy.** If your browser sends Global Privacy Control, the site no longer sets
+  its visit cookie, so nothing it records can be put together into one visit.
 - **Theme.** The light and dark switch is now in your account menu: slide it, press
   it or use Space or Enter. A small moon and sun made of tiny blocks show which
   theme is on. Signed out, it sits at the top of the page beside Sign in.

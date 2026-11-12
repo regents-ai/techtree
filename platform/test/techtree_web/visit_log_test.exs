@@ -213,8 +213,36 @@ defmodule TechtreeWeb.VisitLogTest do
     assert {tracked.assigns.arrival, tracked.assigns.gpc} == {"chatgpt", false}
 
     untracked = opened.([{"sec-gpc", "1"}])
-    assert untracked.assigns.visit =~ @visit
-    assert {untracked.assigns[:arrival], untracked.assigns.gpc} == {nil, true}
+    assert {untracked.assigns.visit, untracked.assigns[:arrival]} == {nil, nil}
+    assert untracked.assigns.gpc
+    refute Map.has_key?(untracked.resp_cookies, "_visit")
+  end
+
+  test "a browser that asks not to be tracked keeps no visit on its calls, even one it sends" do
+    visit = String.duplicate("a", 22)
+
+    call =
+      conn(:post, "/api/agents/status")
+      |> put_req_header("sec-gpc", "1")
+      |> put_req_header("x-regent-visit", visit)
+      |> Plug.Test.put_req_cookie("_visit", visit)
+      |> VisitLog.call([])
+
+    assert {call.assigns.visit, Logger.metadata()[:visit], Logger.metadata()[:surface]} ==
+             {nil, nil, "page"}
+  end
+
+  test "a browser that turns on Global Privacy Control loses the visit it was given before" do
+    visit = String.duplicate("a", 22)
+
+    page =
+      conn(:get, "/docs")
+      |> put_req_header("sec-gpc", "1")
+      |> Plug.Test.put_req_cookie("_visit", visit)
+      |> VisitLog.call([])
+
+    assert %{max_age: 0} = page.resp_cookies["_visit"]
+    assert page.assigns.visit == nil
   end
 
   test "a page's own path is written as its route, and a page the site lacks as unmatched" do

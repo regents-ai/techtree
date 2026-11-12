@@ -44,8 +44,10 @@ defmodule TechtreeWeb.VisitLog do
   - `step`: one of `steps/0`, the shared journey from first look to a paired
     agent, with the agent's harness where there is one.
 
-  A browser that sends Global Privacy Control (`Sec-GPC: 1`) writes neither, on
-  any page of its visit; its other lines are written as everyone's are.
+  A browser that sends Global Privacy Control (`Sec-GPC: 1`) starts no visit: it
+  gets no `_visit` cookie, none of its requests or pages carries a `visit`, and it
+  writes no `arrival` or `step` line. Its other lines are written without a
+  visit, like calls from outside a page, so nothing groups them into one visit.
   """
 
   @behaviour Plug
@@ -223,15 +225,18 @@ defmodule TechtreeWeb.VisitLog do
   @impl Plug
   def call(conn, _opts) do
     conn = fetch_cookies(conn)
+    # Global Privacy Control: no visit, cookie, `arrival` or `step` line for this browser.
+    gpc = get_req_header(conn, "sec-gpc") == ["1"]
     {surface, client} = surface(conn)
-    {conn, visit} = visit(conn, surface)
-    surface = if surface == "agent_http" and visit, do: "page", else: surface
+    {conn, visit} = if gpc, do: {forget(conn), nil}, else: visit(conn, surface)
+    # Only a browser sends Global Privacy Control, so its API calls are its page's own.
+    surface = if surface == "agent_http" and (visit || gpc), do: "page", else: surface
     Logger.metadata(visit: visit, surface: surface)
-    Process.put(@gpc, gpc?(conn))
+    Process.put(@gpc, gpc)
 
     conn
     |> assign(:visit, visit)
-    |> assign(:gpc, gpc?(conn))
+    |> assign(:gpc, gpc)
     |> put_private(:visit_log_client, client)
     |> put_private(:visit_log_caller, caller(conn, surface))
   end
@@ -282,13 +287,16 @@ defmodule TechtreeWeb.VisitLog do
         same_site: "Lax",
         secure: conn.scheme == :https
       )
-      |> assign(:arrival, unless(gpc?(conn), do: arrival(conn)))
+      |> assign(:arrival, arrival(conn))
 
     {conn, visit}
   end
 
-  @doc "Whether the browser sent Global Privacy Control: no `arrival` or `step` lines for it."
-  def gpc?(conn), do: get_req_header(conn, "sec-gpc") == ["1"]
+  # A browser that now asks not to be tracked loses the visit it was given before.
+  defp forget(%Plug.Conn{cookies: %{@cookie => _visit}} = conn),
+    do: delete_resp_cookie(conn, @cookie)
+
+  defp forget(conn), do: conn
 
   @doc "Where a visit that starts with this request came from (see the moduledoc)."
   def arrival(conn) do
