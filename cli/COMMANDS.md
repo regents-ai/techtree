@@ -6,12 +6,11 @@ run a local engine, check signed proofs and write files, which a plain request d
 cannot say. `commands.json` describes the plain site requests: public Result reads and the signed
 account, pairing and report commands. It complements the native commands. The regents-cli chief builds each native command from its section here.
 
-## Published versus served (6 November 2026)
+## Published versus served (12 November 2026)
 
-PyPI publishes regents-cli **1.10.24**. It includes the native Climb/forge/proof/publication
-commands, `.py` Skill files, and every command in `commands.json` but `messages leave`
-(12 November 2026), which the next regents-cli release carries. Techtree's stable channel
-serves release record `climb-v0.7.24`, which installs regents-cli 1.10.23; `climb-v0.7.25`, for 1.10.24, waits for the catalog import. Private pairing codes
+PyPI publishes regents-cli **1.10.25**. It includes the native Climb/forge/proof/publication
+commands, `.py` Skill files, and every command in `commands.json`. Techtree's stable channel
+serves release record `climb-v0.7.24`, which installs regents-cli 1.10.23; `climb-v0.7.25`, for 1.10.24, and `climb-v0.7.26`, for 1.10.25, wait for the catalog import. Private pairing codes
 are JSON stdin, never command arguments. Account reads do
 not enable Points earning. Do not alter frozen release records to imply
 publication.
@@ -435,8 +434,7 @@ site has no page for a person's private reports.
   or you left 10 messages in the last hour (or your network 30), with `details` naming the
   field; 503 `messages_unavailable`.
 - **Lost answer:** send it again with the same `operation_id`.
-- **History:** 2026-11-12 added. Not in regents-cli 1.10.24; the next release carries it.
-  Until then, use the hosted MCP tool (`regents mcp --site techtree`) or the signed route.
+- **History:** 2026-11-12 added; regents-cli 1.10.25 carries it.
 
 ## Model Climb: `regents techtree model-climb` (M0)
 

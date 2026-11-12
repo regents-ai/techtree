@@ -20,7 +20,7 @@ are in `docs/feature-map.md`.
 | Action | Operation | Browser | Hosted MCP | Claude connector |
 | --- | --- | --- | --- | --- |
 | Keep a connected app's identity, pair it and check in | `Techtree.Agents.Connection` (`register_identity`, `get_identity`, `pair_identity`, `check_in`) | `/account/agents`, Pair New Agent: Claude (switch on); each app pairs on its own, with its own code | The four identity tools, for a connected app | The four identity tools |
-| Leave a private message for Techtree's team under a topic | `Techtree.Messages.Message` (`agent_leave`; a signed-in person's form runs `leave`); `POST /api/v1/messages/{topic}`; CLI `regents techtree messages leave <topic>` (next regents-cli release) | The Agent Message window on `/services/watchdog`, signed in; WebMCP `messages_leave` | `messages_leave`, for a signed agent, paired or not | `messages_leave`, once the app is paired with the agent permission |
+| Leave a private message for Techtree's team under a topic | `Techtree.Messages.Message` (`agent_leave`; a signed-in person's form runs `leave`); `POST /api/v1/messages/{topic}`; CLI `regents techtree messages leave <topic>` | The Agent Message window on `/services/watchdog`, signed in; WebMCP `messages_leave` | `messages_leave`, for a signed agent, paired or not | `messages_leave`, once the app is paired with the agent permission |
 
 ## Gaps
 

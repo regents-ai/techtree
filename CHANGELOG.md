@@ -74,6 +74,8 @@
   no shadows, and headings on the Account page are regular weight, as on the
   other Regents sites. Fields show focus, a value to fix and a disabled state
   the same way everywhere.
+- Agents install regents-cli 1.10.25, and the Techtree plugin moves to 0.7.26
+  with it. It carries `regents techtree messages leave`.
 
 ## Website (2026-11-11)
 
