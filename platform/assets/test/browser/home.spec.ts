@@ -69,12 +69,12 @@ const shownGlyphs = (picture: Locator) =>
     glyphs.filter(glyph => getComputedStyle(glyph).opacity === "1").map(glyph => glyph.getAttribute("data-glyph")),
   )
 
-// Every block of words in the hero, the Stack and the On-ramp. A filled button's
-// fill is painted by Regent UI's cut skin, under its label, where the contrast
-// reading cannot see it, so the buttons are left out.
+// Every block of words in the hero, the Stack and the On-ramp, and every button
+// in them, the last Start's included.
 const wordBlocks = (page: Page) =>
-  page.locator(["#hero :is(.mk-pill, h1, .mk-hero__display, .mk-hero__lede, .mk-hero__built, .mk-hero__prompt, .mk-result)",
-    "#stack :is(header, .mk-tile)", "#onramp :is(h2, .mk-band__line, .mk-band__more, .mk-path__stop)"].join(", "))
+  page.locator(["#hero :is(.mk-pill, h1, .mk-hero__display, .mk-hero__lede, .mk-hero__built, .mk-hero__prompt, .mk-result, .rg-button)",
+    "#stack :is(header, .mk-tile)", "#onramp :is(h2, .mk-band__line, .mk-band__more, .mk-path__stop, .rg-button)",
+    "#begin .rg-button"].join(", "))
 
 for (const width of [1280, 390, 320]) {
   test.describe(`${width} wide`, () => {

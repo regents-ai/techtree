@@ -122,7 +122,9 @@ export async function layoutProblems(page: Page): Promise<string[]> {
 
 // Text inside `scope` whose contrast with what is behind it falls under WCAG's
 // 4.5:1, as the page renders it: each colour is drawn onto a canvas and read
-// back, so any colour the stylesheet mixes is measured as shown.
+// back, so any colour the stylesheet mixes is measured as shown. A Regent UI
+// button paints its fill on its `::before` skin, under its label, so a button's
+// skin is read before its own background.
 export async function lowContrast(scope: Locator): Promise<string[]> {
   return scope.evaluate(root => {
     const canvas = document.createElement("canvas")
@@ -136,8 +138,11 @@ export async function lowContrast(scope: Locator): Promise<string[]> {
     }
     const background = (el: Element | null): number[] => {
       for (; el; el = el.parentElement) {
-        const [r, g, b, a] = rgba(getComputedStyle(el).backgroundColor)
-        if (a === 255) return [r, g, b]
+        const layers = el.classList.contains("rg-button") ? [getComputedStyle(el, "::before"), getComputedStyle(el)] : [getComputedStyle(el)]
+        for (const layer of layers) {
+          const [r, g, b, a] = rgba(layer.backgroundColor)
+          if (a === 255) return [r, g, b]
+        }
       }
       return [255, 255, 255]
     }
