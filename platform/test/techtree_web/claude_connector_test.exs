@@ -28,6 +28,37 @@ defmodule TechtreeWeb.ClaudeConnectorTest do
     "x-timestamp" => "1",
     "x-agent-chain-id" => "8453"
   }
+  # Claude's published identity, as claude.ai serves it.
+  @claude "https://claude.ai/oauth/mcp-oauth-client-metadata"
+  @claude_callback "https://claude.ai/api/mcp/auth_callback"
+  @verifier String.duplicate("v", 43)
+
+  defmodule ClaudeDocument do
+    @moduledoc false
+    @claude "https://claude.ai/oauth/mcp-oauth-client-metadata"
+
+    # Claude's document, served without a network; each read is sent to the test.
+    def request(:get, @claude = url, _opts) do
+      send(Application.fetch_env!(:techtree, __MODULE__), {:read, url})
+
+      {:ok,
+       %{
+         status: 200,
+         headers: [{"content-type", "application/json"}],
+         body:
+           Jason.encode!(%{
+             "client_id" => @claude,
+             "client_name" => "Claude",
+             "client_uri" => "https://claude.ai",
+             "redirect_uris" => ["https://claude.ai/api/mcp/auth_callback"],
+             "grant_types" => ["authorization_code", "refresh_token"],
+             "response_types" => ["code"],
+             "token_endpoint_auth_method" => "none"
+           })
+       }}
+    end
+  end
+
   # Every request the hosted signer may be asked to sign for this site.
   @agent_scopes "regent.identity.manage " <> Techtree.OAuth.agent_scope()
   @signable [
@@ -163,6 +194,84 @@ defmodule TechtreeWeb.ClaudeConnectorTest do
       end
 
       assert page("/llms.txt").resp_body =~ TechtreeWeb.PublicDocuments.url("/mcp")
+    end
+
+    test "Claude connects by its published identity: consent here, its code, a working token and a refresh" do
+      put_env(:regent_http, :public_client, __MODULE__.ClaudeDocument)
+      put_env(:techtree, __MODULE__.ClaudeDocument, self())
+      subject = "did:privy:connector-published"
+      browser = sign_in!(subject)
+
+      metadata = @endpoint.call(conn(:get, "/.well-known/oauth-authorization-server"), [])
+      assert json(metadata)["client_id_metadata_document_supported"] == true
+
+      page =
+        conn(:get, "/oauth/authorize?" <> authorize_query(@claude))
+        |> init_test_session(browser)
+        |> put_req_header("accept", "text/html")
+        |> @endpoint.call([])
+
+      assert page.status == 200
+      assert_received {:read, @claude}
+
+      pending = get_session(page, :regent_oauth_request)
+      csrf = Plug.CSRFProtection.get_csrf_token()
+
+      approved =
+        conn(:post, "/oauth/authorize", %{
+          "approval_key" => pending["nonce"],
+          "decision" => "allow",
+          "_csrf_token" => csrf
+        })
+        |> init_test_session(
+          Map.merge(browser, %{
+            "regent_oauth_request" => pending,
+            "_csrf_token" => Plug.CSRFProtection.dump_state()
+          })
+        )
+        |> put_req_header("accept", "text/html")
+        |> @endpoint.call([])
+
+      assert approved.status == 303
+      [location] = get_resp_header(approved, "location")
+      assert String.starts_with?(location, @claude_callback <> "?")
+      code = URI.decode_query(URI.parse(location).query)["code"]
+
+      exchanged =
+        conn(:post, "/oauth/token", %{
+          "grant_type" => "authorization_code",
+          "client_id" => @claude,
+          "code" => code,
+          "code_verifier" => @verifier,
+          "redirect_uri" => @claude_callback,
+          "resource" => RegentOAuth.resource()
+        })
+        |> put_req_header("accept", "application/json")
+        |> @endpoint.call([])
+
+      assert exchanged.status == 200, exchanged.resp_body
+      %{"access_token" => access, "refresh_token" => refresh_token} = json(exchanged)
+
+      assert "register_identity" in tool_names(access)
+      assert {200, %{"access_token" => _}} = refresh(@claude, refresh_token)
+
+      # Only consent reads the address; the token endpoint uses the record.
+      refute_received {:read, @claude}
+    end
+
+    test "one address may open consent 30 times a minute, as it may register; the 31st waits" do
+      open = fn ->
+        conn(:get, "/oauth/authorize?" <> authorize_query(@claude))
+        |> Map.put(:remote_ip, {198, 51, 100, 31})
+        |> put_req_header("accept", "text/html")
+        |> @endpoint.call([])
+      end
+
+      for _ <- 1..30, do: refute(open.().status == 429)
+
+      waited = open.()
+      assert waited.status == 429
+      assert get_resp_header(waited, "retry-after") == ["60"]
     end
 
     test "a first request with no token is asked to connect, so the app starts its sign-in" do
@@ -570,8 +679,8 @@ defmodule TechtreeWeb.ClaudeConnectorTest do
   end
 
   # Switches the connector on for one test as config/runtime.exs does with
-  # TECHTREE_CLAUDE_CONNECTOR_ENABLED=true, and starts its sign-in store in
-  # this test's transaction; everything is put back after.
+  # TECHTREE_CLAUDE_CONNECTOR_ENABLED=true; its sign-in keeps its rows through
+  # the site's repository, in this test's transaction. Everything is put back after.
   defp connector_on(_context) do
     origin = "http://127.0.0.1:4002"
 
@@ -596,25 +705,11 @@ defmodule TechtreeWeb.ClaudeConnectorTest do
 
     put_env(:regent_agents, :hosted_pairing, [:claude])
     put_env(:regent_mcp_agents, :req_options, plug: {Req.Test, RegentMCPAgents.HostedSigner})
-    for key <- [RegentOAuth.Repo, :site, :prefix], do: keep_env(:regent_oauth, key)
+    keep_env(:regent_oauth, :site)
     keep_env(:boruta, Boruta.Oauth)
 
     :ok = RegentOAuth.configure(Techtree.OAuth)
     :ok = RegentMCPAgents.configure!()
-
-    Application.put_env(
-      :regent_oauth,
-      RegentOAuth.Repo,
-      Keyword.put(
-        Application.fetch_env!(:regent_oauth, RegentOAuth.Repo),
-        :pool,
-        Ecto.Adapters.SQL.Sandbox
-      )
-    )
-
-    start_supervised!(RegentOAuth.Repo)
-    oauth = Ecto.Adapters.SQL.Sandbox.start_owner!(RegentOAuth.Repo, shared: true)
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(oauth) end)
 
     test = self()
 
@@ -695,6 +790,19 @@ defmodule TechtreeWeb.ClaudeConnectorTest do
       )
 
     %{client_id: client.id, access: token.value, refresh: token.refresh_token}
+  end
+
+  defp authorize_query(client_id) do
+    URI.encode_query(%{
+      "client_id" => client_id,
+      "redirect_uri" => @claude_callback,
+      "response_type" => "code",
+      "scope" => RegentOAuth.scope(),
+      "state" => "state",
+      "resource" => RegentOAuth.resource(),
+      "code_challenge" => :crypto.hash(:sha256, @verifier) |> Base.url_encode64(padding: false),
+      "code_challenge_method" => "S256"
+    })
   end
 
   defp refresh(client_id, refresh_token) do
@@ -813,28 +921,34 @@ defmodule TechtreeWeb.ClaudeConnectorTest do
     for [_, policy] <- Regex.scan(~r/"([^"]+)"/, header), do: policy
   end
 
-  # How many calls the sign-in store took while `fun` ran. It sends nothing to
-  # telemetry, so this process's calls into it are traced, to a process of their
-  # own: a process is never its own tracer.
+  # How many queries this process sent to the sign-in's tables while `fun` ran,
+  # from the site repository's own query events.
   defp oauth_calls(fun) do
     test = self()
-    tracer = spawn_link(fn -> count_calls(test, 0) end)
-    :erlang.trace_pattern({RegentOAuth.Repo, :_, :_}, true, [])
-    :erlang.trace(test, true, [:call, {:tracer, tracer}])
-    fun.()
-    :erlang.trace(test, false, [:call])
-    :erlang.trace_pattern({RegentOAuth.Repo, :_, :_}, false, [])
-    delivered = :erlang.trace_delivered(test)
-    assert_receive {:trace_delivered, ^test, ^delivered}
-    send(tracer, :done)
-    assert_receive {:calls, calls}
-    calls
+    handler = {__MODULE__, test}
+    :ok = :telemetry.attach(handler, [:techtree, :repo, :query], &__MODULE__.oauth_query/4, test)
+
+    try do
+      fun.()
+    after
+      :telemetry.detach(handler)
+    end
+
+    count_oauth_queries(0)
   end
 
-  defp count_calls(test, calls) do
+  @doc false
+  def oauth_query(_event, _measurements, %{source: "oauth_" <> _table}, test)
+      when test == self(),
+      do: send(test, :oauth_query)
+
+  def oauth_query(_event, _measurements, _metadata, _test), do: :ok
+
+  defp count_oauth_queries(count) do
     receive do
-      {:trace, ^test, :call, {RegentOAuth.Repo, _name, _args}} -> count_calls(test, calls + 1)
-      :done -> send(test, {:calls, calls})
+      :oauth_query -> count_oauth_queries(count + 1)
+    after
+      0 -> count
     end
   end
 

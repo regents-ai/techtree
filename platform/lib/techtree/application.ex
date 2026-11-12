@@ -25,9 +25,6 @@ defmodule Techtree.Application do
         TechtreeWeb.Telemetry,
         Techtree.Accounts.RequestRateLimiter,
         Techtree.Repo,
-        # The connector's sign-in store: the site's database with a small pool of
-        # its own, only while the connector is on.
-        if(RegentOAuth.enabled?(), do: RegentOAuth.Repo),
         {DNSCluster, query: Application.get_env(:techtree, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: Techtree.PubSub},
         # The figures every reader it admits sees alike, then the readers that
