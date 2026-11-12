@@ -2,6 +2,10 @@ import Config
 browser_port = String.to_integer(System.get_env("PORT", "4002"))
 config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 
+# Every write inside a transaction runs in one Ash started (`Ash.transact/2`), so
+# a notification left unsent fails the test instead of warning in production.
+config :ash, :missed_notifications, :raise
+
 # Configure your database
 #
 # The MIX_TEST_PARTITION environment variable can be used

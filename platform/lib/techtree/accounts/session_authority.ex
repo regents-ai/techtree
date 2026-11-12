@@ -197,7 +197,7 @@ defmodule Techtree.Accounts.SessionAuthority do
   @spec revoke(claim() | nil) :: String.t() | nil
   def revoke(%{lineage: lineage}) do
     {:ok, _row} =
-      Repo.transaction(fn ->
+      Ash.transact(__MODULE__, fn ->
         ensure(lineage, DateTime.utc_now())
         lineage |> lock() |> revoke!()
       end)
@@ -298,14 +298,15 @@ defmodule Techtree.Accounts.SessionAuthority do
 
   # Bind and refresh may ensure the unbound generation-zero row the claim names,
   # so the absent-row order of a race takes the same lock as the present-row one.
-  # `Repo.transaction`, not `Ash.transact`: an exhausted lineage is revoked and
-  # then answers `{:error, :reset}`, and that revocation must commit, while
-  # `Ash.transact` rolls back whenever the function returns an error.
+  # `Ash.transact` sends what the updates inside notify once it commits. A
+  # refused transition still commits what it wrote (the seeded row, or an
+  # exhausted lineage's revocation before it answers `{:error, :reset}`), so its
+  # answer is wrapped: `Ash.transact` rolls back an `{:error, _}` returned as is.
   defp locked(%{lineage: lineage, generation: generation}, callback) do
-    {:ok, result} =
-      Repo.transaction(fn ->
+    {:ok, {:committed, result}} =
+      Ash.transact(__MODULE__, fn ->
         if generation == 0, do: ensure(lineage, nil)
-        lineage |> lock() |> callback.()
+        {:committed, lineage |> lock() |> callback.()}
       end)
 
     result
