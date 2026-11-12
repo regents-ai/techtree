@@ -295,7 +295,8 @@ config :techtree, :metrics_listener, ip: {127, 0, 0, 1}, port: 0
 config :telemetry_poller, :default, period: 10_000
 
 # Configure esbuild (the version is required). Code split out with a dynamic
-# import, such as the homepage crown, is its own chunk, loaded only on demand.
+# import, such as the home page's moving pictures, is its own chunk, loaded
+# only on demand.
 config :esbuild,
   version: "0.28.2",
   techtree: [

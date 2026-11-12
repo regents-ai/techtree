@@ -83,9 +83,9 @@ defmodule TechtreeWeb.OutagePagesTest do
   test "Home says its Climbs and install command can't be shown", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/") end)
 
-    assert has_element?(live, "[role=status]", "Climbs can't be shown")
-    assert has_element?(live, ".installer [role=status]", "can't be shown")
-    refute has_element?(live, ".installer p", "no version of Techtree")
+    assert has_element?(live, "#climbs [role=status]", "Climbs can't be shown")
+    assert has_element?(live, "#agents-cli [role=status]", "can't be shown")
+    refute has_element?(live, "#agents-cli p", "no version of Techtree")
   end
 
   test "Start and Docs say the install steps can't be shown, not that there's nothing to install",

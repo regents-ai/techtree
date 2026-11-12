@@ -21,7 +21,6 @@ import {LiveSocket} from "phoenix_live_view"
 import {installAgentMessage} from "./agent_message"
 import {mountPageCopyButton, type CopyHook} from "./copy_feedback"
 import {installCopyButtons} from "./copy_buttons"
-import {crownHook} from "./hooks/crown"
 import {ThemeSwitch} from "./hooks/theme_switch"
 import {ValueCard} from "./hooks/value_card"
 import {mountMotion} from "./motion"
@@ -30,12 +29,14 @@ import {MotionList, MotionRefusal} from "./hooks/motion/moments"
 import {MotionCascade} from "./hooks/motion/reveals"
 import {installPublicTools} from "./public_tools"
 import {installSiteMenu} from "./site_menu"
-import {showingTheme, syncTheme} from "./theme"
+import {marketingHooks, mountEntrance} from "./marketing"
+import {syncTheme} from "./theme"
 import {installVisitLog} from "./visit_log"
 
 // First, so an error anywhere below is reported too.
 installVisitLog()
 mountMotion(document)
+mountEntrance(document)
 installPublicTools()
 installCopyButtons()
 installAgentMessage()
@@ -55,12 +56,12 @@ const labHooks = document.querySelector("main.motion-lab")
   ? (await import("./motion_lab")).hooks : {}
 
 const Hooks: Record<string, object> = {
-  // Each theme has its own crown.
-  Crown: crownHook(() => (showingTheme() === "light" ? 2 : 4)),
   MotionList,
   ThemeSwitch,
   // The home page's product cards.
   ValueCard,
+  // The home page's moving pictures, Results, figures and loops.
+  ...marketingHooks,
   ...labHooks,
 }
 

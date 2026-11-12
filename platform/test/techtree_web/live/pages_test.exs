@@ -143,8 +143,9 @@ defmodule TechtreeWeb.PagesTest do
         refute markup =~ "<input"
         refute markup =~ ~s|type="file"|
 
-        # Most controls are local-only. The proof detail's task filters ask the
-        # LiveView to show a subset of evidence but submit no data.
+        # Most controls are local-only, like the home page's carousel dots and
+        # Pause. The proof detail's task filters ask the LiveView to show a
+        # subset of evidence but submit no data.
         for [attributes] <-
               Regex.scan(~r/<button([^>]*)>/, markup, capture: :all_but_first) do
           assert attributes =~ ~s|type="button"|, "#{page} has a button that could submit"
@@ -152,8 +153,9 @@ defmodule TechtreeWeb.PagesTest do
           assert attributes =~ "rg-copy" or attributes =~ "copycommand" or
                    attributes =~ ~s|role="switch"| or
                    attributes =~ ~s|data-account-target="sign-in"| or
+                   attributes =~ "masthead__trigger" or
                    attributes =~ "masthead__menu-button" or
-                   attributes =~ "regent-footer__guide" or
+                   attributes =~ "data-carousel-" or
                    attributes =~ ~s|phx-click="filter_tasks"|,
                  "#{page} has a button that is not a local-only control"
 

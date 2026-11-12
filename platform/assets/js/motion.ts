@@ -21,11 +21,9 @@ import {backdrop, drawer, list, menu, settle, sheet, unlist} from "./hooks/motio
 
 // A menu's summary is its button; other summaries open disclosures in the
 // page's own flow and stay still. A switch moves its own knob, and the lab's
-// presses, named with `data-press`, answer for themselves. The footer's Agent
-// guide reads as one of the links beside it, which never move, so it keeps
-// still too.
+// presses, named with `data-press`, answer for themselves.
 const PRESSABLE =
-  ":is(button, .rg-button, [role='button'], summary:has(~ [data-panel='menu'])):not([role='switch'], .regent-footer__guide, [data-press])"
+  ":is(button, .rg-button, [role='button'], summary:has(~ [data-panel='menu'])):not([role='switch'], [data-press])"
 
 const live = (el: Element) => el.closest("[data-phx-session]") !== null
 

@@ -118,10 +118,10 @@ test("on a phone, the open Menu puts the page and footer out of reach, and the a
   expect((await inert()).length).toBeGreaterThan(0)
 
   await page.getByRole("button", {name: "Menu"}).tap()
-  const list = page.locator("#site-pages")
+  const list = page.locator("#site-menu")
   await expect(list).toBeVisible()
   const listBox = (await list.boundingBox())!
-  expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("#site-pages") !== null,
+  expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("#site-menu") !== null,
     [listBox.x + listBox.width / 2, listBox.y + listBox.height - 8] as const)).toBe(true)
   await expect.poll(async () => [...new Set(await inert())]).toEqual([true])
   await page.keyboard.press("Escape")

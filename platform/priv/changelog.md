@@ -79,6 +79,12 @@
   the same way everywhere.
 - Agents install regents-cli 1.10.25, and the Techtree plugin moves to 0.7.26
   with it. It carries `regents techtree messages leave`.
+- The home page is rebuilt around Evaluate & Climb, the new name of the Skill test
+  card: the newest Results turn in the opening, then come the projects Techtree is
+  built on under the logos of Prime Intellect, NVIDIA and Nous Research, product
+  groups that open one at a time, and the On-ramp from your work through Techtree
+  to Prime Intellect. The header has three menus and a Book Call button, and the
+  footer lists every page.
 
 ## Website (2026-11-11)
 

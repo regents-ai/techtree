@@ -7,8 +7,8 @@ defmodule TechtreeWeb.ServiceLive do
   `/services/watchdog`, the monthly subscription that watches sites a team
   proves it owns, with its own shape (how it works, the rules, what you get and
   the price). Every page starts an email whose body already asks for what we
-  need (`mailto/1`); Watchdog also links Book Call when an address for it is
-  set (`book_call/0`), and has the Agent Message button
+  need (`mailto/1`); Watchdog also shows Book Call when an address for it is
+  set (`TechtreeWeb.Components.BookCall`), and has the Agent Message button
   (`TechtreeWeb.Components.AgentMessage`, topic `watchdog`): its window gives an
   agent three ways to leave the team a private message, and a signed-in person a
   form for one. The window's form acts for the signed-in person, so these pages
@@ -25,7 +25,7 @@ defmodule TechtreeWeb.ServiceLive do
 
   use TechtreeWeb, :live_view
 
-  alias TechtreeWeb.Components.AgentMessage
+  alias TechtreeWeb.Components.{AgentMessage, BookCall}
   alias TechtreeWeb.{Outage, WalletBenchScores}
 
   on_mount {TechtreeWeb.Live.Session, :load_visitor}
@@ -150,18 +150,14 @@ defmodule TechtreeWeb.ServiceLive do
        offer: offer,
        bench: figures(),
        mailto: mailto(socket.assigns.live_action),
-       book_call: book_call()
+       book_call: BookCall.address()
      )}
   end
-
-  @doc "The address Watchdog's Book Call opens (`TECHTREE_BOOK_CALL_URL`), or nil when none is set."
-  @spec book_call() :: String.t() | nil
-  def book_call, do: Application.get_env(:techtree, :book_call)
 
   @doc "Watchdog's Markdown line for booking a call: empty when no address is set."
   @spec book_call_markdown() :: String.t()
   def book_call_markdown do
-    case book_call() do
+    case BookCall.address() do
       nil -> ""
       address -> "[Book a call](#{address}), or write to us.\n\n"
     end
@@ -294,15 +290,7 @@ defmodule TechtreeWeb.ServiceLive do
           <h2>Contact</h2>
           <p>{@offer.start_line}</p>
           <div class="service-intro__actions">
-            <a
-              :if={@book_call}
-              class="rg-button rg-button--primary"
-              href={@book_call}
-              target="_blank"
-              rel="noopener"
-            >
-              Book Call
-            </a>
+            <BookCall.book_call />
             <a
               class={["rg-button", (@book_call && "rg-button--secondary") || "rg-button--primary"]}
               href={@mailto}

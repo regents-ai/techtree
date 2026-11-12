@@ -2,10 +2,10 @@
   position: relative;
 }
 
-/* The account control and its menu, at the right end of the header's one row.
+/* The account control and its menu, near the right end of the header's one row.
    Signed out, the theme switch sits beside Sign in; signed in, it is a row of
    the account menu. */
-.masthead__account { grid-row: 1; grid-column: 3; justify-self: end; min-width: 0; }
+.masthead__account { min-width: 0; }
 .account-menu-control { display: flex; align-items: center; gap: var(--space-1); }
 /* On the narrowest phones the header's switch is at its smallest, so the header
    keeps its one row. */
