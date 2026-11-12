@@ -86,8 +86,7 @@ defmodule TechtreeWeb.TrainLive.Show do
                 <:fact term="Arm"><code>{arm.name}</code></:fact>
                 <:fact term="Mean reward">{Copy.percent(arm.mean_reward)}</:fact>
                 <:fact term="Solved">{Copy.solved(arm, @comparison.environment.task_count)}</:fact>
-                <:fact term="Prompt tokens">{Copy.number(arm.tokens.prompt)}</:fact>
-                <:fact term="Completion tokens">{Copy.number(arm.tokens.completion)}</:fact>
+                <:fact term="Completion tokens">{Copy.number(arm.completion_tokens)}</:fact>
                 <:fact :if={arm.skill_digest} term="Skill">
                   <.copyable
                     id={"arm-#{arm.name}-skill"}

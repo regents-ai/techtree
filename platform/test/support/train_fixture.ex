@@ -159,7 +159,7 @@ defmodule Techtree.TrainFixture do
       "name" => name,
       "mean_reward" => Enum.sum(rewards) / length(rewards),
       "solved" => Enum.count(tasks, &Enum.at(&1["solved"], side)),
-      "tokens" => %{"prompt" => 41_216 + side * 52_480, "completion" => 9_830 + side * 1_204}
+      "completion_tokens" => 9_830 + side * 1_204
     }
   end
 

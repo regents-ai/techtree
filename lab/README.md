@@ -40,9 +40,11 @@ ties and losses, and the 95% interval of the difference.
 uv run --project lab techtree-lab train-config
 ```
 
-Writes `configs/hosted/payment-terms-nemotron-3.5-lightning.toml`: LoRA RL on
-NVIDIA Nemotron 3.5 Lightning for 50 steps with the train split, in the shape
-`prime train` accepts. It only writes the file; starting a run is a separate decision.
+Writes `configs/hosted/payment-terms-nemotron-3-nano-30b.toml`: LoRA RL on
+NVIDIA Nemotron 3 Nano 30B-A3B for 50 steps with the train split, on one 96 GB card
+training and one serving, with the 64 held-out tasks measured before the first step
+and after the last. `prime train validate` accepts it. It only writes the file;
+starting a run is a separate decision.
 
 Each command takes `--json` for machine-readable output.
 

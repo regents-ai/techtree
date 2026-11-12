@@ -1,5 +1,5 @@
 {
-  "digest": "sha256:36dfb2ac8c832ff8e374ce42bc056e750b8333aa3b9518468fb5148eb75a9590",
+  "digest": "sha256:e89a05bd154aa105a8fbd76ddfa8bf5720f5c6d361ef76a6ce5006f65d32ab21",
   "kind": "Comparison",
   "operational": {
     "cost_usd": "0.00",
@@ -39,22 +39,16 @@
     "results": {
       "arms": [
         {
+          "completion_tokens": 9830,
           "mean_reward": 0.5390625,
           "name": "baseline",
-          "solved": 20,
-          "tokens": {
-            "completion": 9830,
-            "prompt": 41216
-          }
+          "solved": 20
         },
         {
+          "completion_tokens": 11034,
           "mean_reward": 0.84375,
           "name": "skill",
-          "solved": 44,
-          "tokens": {
-            "completion": 11034,
-            "prompt": 93696
-          }
+          "solved": 44
         }
       ],
       "outcome": "uplift",

@@ -21,7 +21,6 @@ def _result(task_id: str, correct: int) -> TaskResult:
         reply=f"reply {correct}",
         reward=correct / 12,
         solved=correct == 12,
-        prompt_tokens=100,
         completion_tokens=20 + correct,
     )
 
@@ -122,7 +121,7 @@ def test_rewards_round_to_four_places() -> None:
     results = _comparison([(11, 7)])[0]["spec"]["results"]
     assert results["per_task"][0]["rewards"] == [0.9167, 0.5833]
     assert results["paired"]["mean_difference"] == -0.3334
-    assert results["arms"][0]["tokens"] == {"prompt": 100, "completion": 31}
+    assert results["arms"][0]["completion_tokens"] == 31
 
 
 def test_arms_must_run_the_same_tasks() -> None:

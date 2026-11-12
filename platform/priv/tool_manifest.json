@@ -348,7 +348,7 @@
     {
       "name": "train_comparisons",
       "title": "List Train comparisons",
-      "description": "List the Train comparisons, newest first: an NVIDIA Nemotron model measured before and after one change, a Skill or RL training on Prime Intellect, on the same held-out tasks with the same settings. Each has its title, both arms with their mean reward, solved count and tokens, the paired wins, ties and losses, the mean difference with its 95% interval and the method, the outcome (uplift, tie, regression or inconclusive), the environment, model and sampling settings, the report and traces digests, and the addresses of its page, its report and its traces. Reads only; needs no sign-in.",
+      "description": "List the Train comparisons, newest first: an NVIDIA Nemotron model measured before and after one change, a Skill or RL training on Prime Intellect, on the same held-out tasks with the same settings. Each has its title, both arms with their mean reward, solved count and completion tokens, the paired wins, ties and losses, the mean difference with its 95% interval and the method, the outcome (uplift, tie, regression or inconclusive), the environment, model and sampling settings, the report and traces digests, and the addresses of its page, its report and its traces. Reads only; needs no sign-in.",
       "input_schema": {
         "type": "object",
         "properties": {},

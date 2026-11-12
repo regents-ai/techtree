@@ -89,7 +89,7 @@ def test_compare_writes_a_report_the_page_accepts(ollama: str, tmp_path: Path) -
     baseline, skill = spec["results"]["arms"]
     assert (baseline["mean_reward"], baseline["solved"]) == (0.9167, 0)
     assert (skill["mean_reward"], skill["solved"]) == (1.0, 64)
-    assert baseline["tokens"] == {"prompt": 64 * 50, "completion": 64 * 9}
+    assert baseline["completion_tokens"] == 64 * 9
     assert spec["results"]["paired"]["wins"] == 64
     assert spec["results"]["outcome"] == "uplift"
 

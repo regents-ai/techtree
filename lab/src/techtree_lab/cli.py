@@ -113,10 +113,7 @@ def _summary(results: list[runner.TaskResult]) -> dict[str, Any]:
         "task_count": len(results),
         "mean_reward": report.round4(sum(r.reward for r in results) / len(results)),
         "solved": sum(r.solved for r in results),
-        "tokens": {
-            "prompt": sum(r.prompt_tokens for r in results),
-            "completion": sum(r.completion_tokens for r in results),
-        },
+        "completion_tokens": sum(r.completion_tokens for r in results),
     }
 
 
@@ -154,14 +151,13 @@ def _eval(args: argparse.Namespace) -> None:
         )
         return
     table = Table(title=f"{escape(args.model)} on {split}")
-    for column in ("Tasks", "Mean reward", "Solved", "Prompt tokens", "Completion tokens"):
+    for column in ("Tasks", "Mean reward", "Solved", "Completion tokens"):
         table.add_column(column, justify="right")
     table.add_row(
         str(summary["task_count"]),
         f"{summary['mean_reward']:.4f}",
         str(summary["solved"]),
-        str(summary["tokens"]["prompt"]),
-        str(summary["tokens"]["completion"]),
+        str(summary["completion_tokens"]),
     )
     out.print(table)
 
@@ -237,7 +233,7 @@ def _compare(args: argparse.Namespace) -> None:
 def _print_comparison(comparison: dict[str, Any], report_path: Path, traces_path: Path) -> None:
     results = comparison["spec"]["results"]
     table = Table(title=TITLE)
-    for column in ("Arm", "Mean reward", "Solved", "Prompt tokens", "Completion tokens"):
+    for column in ("Arm", "Mean reward", "Solved", "Completion tokens"):
         table.add_column(column, justify="left" if column == "Arm" else "right")
     task_count = comparison["spec"]["environment"]["task_count"]
     for arm in results["arms"]:
@@ -245,8 +241,7 @@ def _print_comparison(comparison: dict[str, Any], report_path: Path, traces_path
             arm["name"],
             f"{arm['mean_reward']:.4f}",
             f"{arm['solved']}/{task_count}",
-            str(arm["tokens"]["prompt"]),
-            str(arm["tokens"]["completion"]),
+            str(arm["completion_tokens"]),
         )
     out.print(table)
     paired = results["paired"]

@@ -42,8 +42,8 @@ defmodule TechtreeWeb.TrainMD do
     arms =
       Enum.map_join(comparison.arms, "\n", fn arm ->
         "- #{Copy.arm_label(comparison, arm)} (`#{arm.name}`): mean reward #{Copy.percent(arm.mean_reward)}, " <>
-          "#{Copy.solved(arm, environment.task_count)}, #{Copy.number(arm.tokens.prompt)} prompt and " <>
-          "#{Copy.number(arm.tokens.completion)} completion tokens#{change(arm)}"
+          "#{Copy.solved(arm, environment.task_count)}, " <>
+          "#{Copy.number(arm.completion_tokens)} completion tokens#{change(arm)}"
       end)
 
     [before, changed] = Enum.map(comparison.arms, &Copy.arm_label(comparison, &1))

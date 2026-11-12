@@ -43,7 +43,8 @@ def test_prime_accepts_the_shape(tmp_path: Path) -> None:
     assert said.getvalue() == ""
     assert "type" not in raw
 
-    for key in ("image_tag", "gpu_type", "volume", "volume_size"):
+    assert rl._config_string(raw, "gpu_type", path) == train_config.GPU_TYPE
+    for key in ("image_tag", "volume", "volume_size"):
         assert rl._config_string(raw, key, path) is None
     assert rl._selected_source_ref(None, raw.get("source_ref"), path) is None
 
@@ -60,9 +61,27 @@ def test_config_trains_lora_on_the_train_split() -> None:
     config = train_config.config()
     assert config["mode"] == "rl"
     assert config["max_steps"] == 50
-    assert config["model"]["name"] == "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16"
+    assert config["model"]["name"] == "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16"
     assert config["trainer"]["model"]["lora"]["rank"] > 0
-    source = config["orchestrator"]["train"]["source"]
-    assert source["taskset"] == {"id": "regents/payment-terms", "split": "train", "seed": 0}
-    assert source["agent"]["harness"] == {"id": "null"}
+    train = config["orchestrator"]["train"]
+    [source] = train["source"]
+    assert source["env"]["taskset"] == {"id": "regents/payment-terms", "split": "train", "seed": 0}
+    assert source["env"]["agent"]["harness"] == {"id": "null"}
+    assert config["orchestrator"]["batch_size"] % train["group_size"] == 0
     assert config["deployment"]["num_infer_gpus"] > 0 and "inference" in config
+
+
+def test_held_out_is_measured_before_the_first_step_and_after_the_last() -> None:
+    config = train_config.config()
+    evaluation = config["orchestrator"]["eval"]
+    [source] = evaluation["source"]
+    assert source["env"]["taskset"] == {
+        "id": "regents/payment-terms",
+        "split": "held_out",
+        "seed": 0,
+    }
+    assert evaluation["interval"] == config["max_steps"] and "skip_first_step" not in evaluation
+    assert evaluation["sampling"] == {"temperature": 0.0}
+    sampling = source["env"]["agent"]["sampling"]
+    assert sampling == {"max_tokens": 512, "chat_template_kwargs": {"enable_thinking": False}}
+    assert config["orchestrator"]["train"]["source"][0]["env"]["agent"] == source["env"]["agent"]

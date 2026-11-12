@@ -37,7 +37,6 @@ class TaskResult:
     """The model's reply, as scored."""
     reward: float
     solved: bool
-    prompt_tokens: int
     completion_tokens: int
 
 
@@ -148,7 +147,6 @@ def _result(trace: vf.Trace) -> TaskResult:
         reply=trace.last_reply,
         reward=fields.score,
         solved=trace.metrics["solved"] == 1.0,
-        prompt_tokens=usage.prompt_tokens,
         completion_tokens=usage.completion_tokens,
     )
 

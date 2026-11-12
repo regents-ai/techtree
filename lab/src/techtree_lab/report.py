@@ -97,10 +97,7 @@ def results(baseline: Arm, changed: Arm) -> dict[str, Any]:
                 "name": arm.name,
                 "mean_reward": round4(sum(r[side] for r in rewards) / len(rewards)),
                 "solved": sum(result.solved for result in arm.results),
-                "tokens": {
-                    "prompt": sum(result.prompt_tokens for result in arm.results),
-                    "completion": sum(result.completion_tokens for result in arm.results),
-                },
+                "completion_tokens": sum(result.completion_tokens for result in arm.results),
             }
             for side, arm in enumerate((baseline, changed))
         ],

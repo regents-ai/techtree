@@ -74,7 +74,7 @@ defmodule TechtreeWeb.TrainController do
       "adapter" => arm.adapter,
       "mean_reward" => arm.mean_reward,
       "solved" => arm.solved,
-      "tokens" => arm.tokens
+      "completion_tokens" => arm.completion_tokens
     }
   end
 

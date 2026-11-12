@@ -14,9 +14,11 @@ techtree.sh/train:
 1. **Skill comparison (free, runs now).** Nemotron 3 Nano 4B on the Mac, without and with
    a Techtree Skill, on 64 held-out tasks. Paired wins, ties and losses, mean reward, and
    the exact settings.
-2. **RL comparison (needs Sean's go).** Nemotron 3.5 Lightning 30B-A3B trained with LoRA RL
-   on Prime Intellect's Hosted Training, measured before and after on the same held-out
-   tasks through Prime Inference.
+2. **RL comparison (Sean's go: one run, at most $20).** Nemotron 3 Nano 30B-A3B trained
+   with LoRA RL on Prime Intellect's Hosted Training, one 96 GB card training and one
+   serving, measured on the same 64 held-out tasks before the first step and after the
+   last, inside the run. Sean approved Nemotron 3.5 Lightning; Hosted Training cannot
+   train it (12 Nov), so the switch to Nano 30B-A3B waits on his word.
 
 The environment is Techtree's own: **payment-terms**. Each task describes a paid offer in
 words (price, network, payee, resource) and asks for the x402 payment requirements as JSON.
@@ -31,9 +33,9 @@ and it is the kind of bespoke environment a private customer would bring.
 | --- | --- | --- |
 | Verifiers (Prime Intellect) | 0.4.1 (3 Nov), v1 tasksets, harnesses and runtimes; `vf-run` | The environment and the local runner |
 | prime-rl | 0.10.0 (19 Oct), IPO loss default, Nemotron-H supported | Behind Hosted Training |
-| Prime Lab Hosted Training | on-demand, per GPU-hour; lists `nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16` | The RL run |
+| Prime Lab Hosted Training | on-demand, $3.89 per RTX PRO 6000 96 GB hour, per second; trains `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16`, not 3.5 Lightning | The RL run |
 | prime CLI | 0.20.3 (Mac has 0.18.0) | Pinned inside the lab project, never upgraded globally |
-| Nemotron 3.5 Lightning | 30B total, 3B active, OpenMDW-1.1, NeMo RL and NeMo Gym support | The trained model |
+| Nemotron 3 Nano 30B-A3B | 30B total, 3B active, Nemotron-H; 3.5 Lightning is on Prime Inference only | The trained model |
 | Nemotron 3 Nano 4B | 17 Mar 2026, Ollama `nemotron-3-nano:4b`, 2.84 GB | The free local model |
 
 NVIDIA's own tutorial trained Nemotron 3 Nano 30B-A3B on Prime Lab for 100 LoRA RL steps
@@ -73,7 +75,7 @@ The edges decide only who may run, who pays and who may read. Neither changes th
 
 1. **Lab project** (`lab/`, Python with uv): the payment-terms environment on Verifiers
    0.4.1, the `techtree-lab` runner (eval, compare, train config), the real local Skill
-   comparison, and the Hosted Training config for Nemotron 3.5 Lightning.
+   comparison, and the Hosted Training config for Nemotron 3 Nano 30B-A3B.
 2. **Train page** on main: techtree.sh/train, Markdown and JSON at the same address,
    reading the committed reports. Ships as ordinary work.
 3. **Edges** on the side branch `tt/train-edges`: the core run resource and its Oban

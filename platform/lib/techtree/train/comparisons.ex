@@ -60,7 +60,7 @@ defmodule Techtree.Train.Comparisons do
           adapter: String.t() | nil,
           mean_reward: number(),
           solved: non_neg_integer(),
-          tokens: %{prompt: non_neg_integer(), completion: non_neg_integer()}
+          completion_tokens: non_neg_integer()
         }
 
   @type task :: %{
@@ -324,17 +324,17 @@ defmodule Techtree.Train.Comparisons do
       "name" => ^name,
       "mean_reward" => mean_reward,
       "solved" => solved,
-      "tokens" => %{"prompt" => prompt, "completion" => completion}
+      "completion_tokens" => completion_tokens
     } = result
 
     true = is_binary(name) and name != "" and reward?(mean_reward)
-    true = count?(prompt) and count?(completion)
+    true = count?(completion_tokens)
     ^solved = Enum.count(tasks, &elem(&1.solved, side))
 
     Map.merge(arm, %{
       mean_reward: mean_reward,
       solved: solved,
-      tokens: %{prompt: prompt, completion: completion}
+      completion_tokens: completion_tokens
     })
   end
 

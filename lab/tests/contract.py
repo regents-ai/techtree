@@ -42,7 +42,7 @@ def check_contract(comparison: dict[str, Any], traces: bytes) -> None:
     for side, arm in enumerate(results["arms"]):
         assert arm["solved"] == sum(t["solved"][side] for t in per_task)
         assert 0 <= arm["mean_reward"] <= 1 and arm["mean_reward"] == round(arm["mean_reward"], 4)
-        assert all(isinstance(n, int) and n >= 0 for n in arm["tokens"].values())
+        assert isinstance(arm["completion_tokens"], int) and arm["completion_tokens"] >= 0
     paired = results["paired"]
     pairs = [t["rewards"] for t in per_task]
     assert paired["wins"] == sum(c > b for b, c in pairs)
