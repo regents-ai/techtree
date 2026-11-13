@@ -41,7 +41,7 @@ check-required-fixes:
 
 # The command description check is regents-cli's own checker at the commit pinned
 # here, run by uv straight from GitHub. Move the pin in a commit.
-REGENTS_CLI_REV := 8b3240b6402551aa29ef960418fd1d2ea4bf41c7
+REGENTS_CLI_REV := 2e4a571c2d09d5d5a3503aaae551c84f6a152a3b
 check-cli:
 	uv run --no-project --with "regents-cli[check] @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" \
 	  python -m regents_cli.check_commands cli/commands.json platform/priv/public/openapi.json

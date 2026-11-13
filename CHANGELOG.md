@@ -118,6 +118,8 @@
 - **Moved.** /start, /verify, /docs/method, /repo2rlenv, /train, /services/verify,
   /services/cyber-assist, /services/watchdog and the two offers' sample reports
   now send you on for good to the page that took their place.
+- Agents install regents-cli 1.10.26, and the Techtree plugin moves to 0.7.27
+  with it. Techtree's commands are the same.
 
 ### Removed
 
