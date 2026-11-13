@@ -24,12 +24,13 @@ defmodule TechtreeWeb.PageCopy do
       <Regent.Primitives.button
         type="button"
         variant={@variant}
-        class="pagecopy__main rg-copy"
+        arrow={false}
+        class="pagecopy__main"
         id="copy-page"
         phx-hook="CopyCommandPage"
         phx-update="ignore"
       >
-        <span data-copy-label>Copy page</span>
+        <.words />
       </Regent.Primitives.button>
       <span
         class="offscreen"
@@ -49,7 +50,7 @@ defmodule TechtreeWeb.PageCopy do
             phx-hook="CopyCommandPage"
             phx-update="ignore"
           >
-            <span data-copy-label>Copy page</span>
+            <.words />
             <small>Copy page as Markdown for agents</small>
           </Regent.Primitives.button>
           <span
@@ -72,6 +73,19 @@ defmodule TechtreeWeb.PageCopy do
         </div>
       </details>
     </div>
+    """
+  end
+
+  # The button's three words, stacked, so it keeps the width of the widest and
+  # its answer never moves the menu beside it. The hook shows one by setting
+  # `data-copy-state` (assets/js/copy_feedback.ts).
+  defp words(assigns) do
+    ~H"""
+    <span class="pagecopy__words" data-copy-words>
+      <span class="pagecopy__idle">Copy page</span>
+      <span class="pagecopy__copied">Copied</span>
+      <span class="pagecopy__failed">Couldn't copy</span>
+    </span>
     """
   end
 end

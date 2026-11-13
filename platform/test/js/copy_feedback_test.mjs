@@ -24,8 +24,8 @@ class TestStatus {
 }
 
 class TestButton {
-  constructor(idleLabel) {
-    this.label = {textContent: idleLabel}
+  constructor() {
+    this.words = {dataset: {}}
     this.nextElementSibling = new TestStatus()
     this.listeners = []
   }
@@ -35,7 +35,7 @@ class TestButton {
   }
 
   querySelector(selector) {
-    return selector === "[data-copy-label]" ? this.label : null
+    return selector === "[data-copy-words]" ? this.words : null
   }
 
   click() {
@@ -103,7 +103,7 @@ function deferred() {
 
 test("page copy blocks overlap and reannounces repeated Markdown failure", async () => {
   const clock = installWindow()
-  const button = new TestButton("Copy page")
+  const button = new TestButton()
   const firstWrite = deferred()
   const writes = []
   const failureMessage =
@@ -140,7 +140,7 @@ test("page copy blocks overlap and reannounces repeated Markdown failure", async
   assert.equal(clock.runFrame(firstFrameId), false)
   assert.equal(clock.runTimer(firstTimerId), false)
   assert.equal(button.nextElementSibling.textContent, "")
-  assert.equal(button.label.textContent, "Couldn't copy")
+  assert.equal(button.words.dataset.copyState, "failed")
   assert.equal(clock.runFrame(secondFrameId), true)
   assert.equal(button.nextElementSibling.textContent, failureMessage)
 
@@ -156,11 +156,11 @@ test("page copy blocks overlap and reannounces repeated Markdown failure", async
 
   assert.deepEqual(writes, ["# Techtree\n", "# Techtree\n", "# Techtree\n"])
   assert.deepEqual(refused, [button, button, button])
-  assert.equal(button.label.textContent, "Couldn't copy")
+  assert.equal(button.words.dataset.copyState, "failed")
   assert.deepEqual(button.nextElementSibling.values, ["", "", failureMessage, "", failureMessage])
   assert.deepEqual(clock.pendingTimerIds(), [thirdTimerId])
   assert.equal(clock.timerDelay(thirdTimerId), 4000)
   assert.equal(clock.runTimer(thirdTimerId), true)
-  assert.equal(button.label.textContent, "Copy page")
+  assert.equal(button.words.dataset.copyState, undefined)
   assert.equal(button.nextElementSibling.textContent, "")
 })

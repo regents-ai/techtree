@@ -38,6 +38,12 @@
 - **Process.** The home page's three steps now name the baseline, the one bounded
   improvement and the running cost in the report.
 
+### Fixed
+
+- **Copy page.** The Copy page button on the docs pages copies the page again;
+  it had been leaving the clipboard empty. It now keeps one width whether it says
+  Copy page, Copied or Couldn't copy, so nothing beside it moves.
+
 ## Website (2026-11-12)
 
 ### Added
