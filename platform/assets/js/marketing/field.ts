@@ -13,16 +13,12 @@ import {shaderFor, uniforms, type Colours, type Scene} from "./scenes"
 export type FieldRenderer = IslandRenderer & {
   /** The pointer's place across the picture, each axis 0 to 1, or null once it has left. */
   point(at: readonly [number, number] | null): void
-  /** Melts the dot screen into another shape. */
-  morph(shape: number): void
   /** New colours, such as after the theme turned. */
   paint(colours: Colours): void
 }
 
 /** How much of the way to the pointer the picture moves each frame. */
 const EASE = 0.12
-/** How long the dot screen takes to melt from one shape into the next. */
-const MORPH_MS = 900
 
 export async function createFieldRenderer(
   canvas: HTMLCanvasElement,
@@ -49,20 +45,16 @@ export async function createFieldRenderer(
     let seconds = 40 + Math.random() * 40
     const now = {x: 0.5, y: 0.5, z: 0}
     const target = {x: 0.5, y: 0.5, z: 0}
-    const shapes = {from: shape, to: shape, since: -Infinity}
 
-    const state = () => {
-      const along = Math.min(1, (performance.now() - shapes.since) / MORPH_MS)
-      return uniforms({
-        width,
-        height,
-        scale: width / Math.max(1, canvas.clientWidth),
-        seconds,
-        pointer: [now.x, now.y, now.z],
-        colours: paints,
-        shape: [shapes.from, shapes.to, along],
-      })
-    }
+    const state = () => uniforms({
+      width,
+      height,
+      scale: width / Math.max(1, canvas.clientWidth),
+      seconds,
+      pointer: [now.x, now.y, now.z],
+      colours: paints,
+      shape,
+    })
 
     const pass = effect(gpu, prepareShader(shaderFor(scene), `field_${scene}.wgsl`), {
       label: `field-${scene}.pass`,
@@ -79,12 +71,6 @@ export async function createFieldRenderer(
         }
         if (now.z < 0.01) Object.assign(now, {x: at[0], y: at[1]})
         Object.assign(target, {x: at[0], y: at[1], z: 1})
-      },
-      morph(next) {
-        if (next === shapes.to) return
-        shapes.from = shapes.to
-        shapes.to = next
-        shapes.since = performance.now()
       },
       paint(next) {
         paints = next

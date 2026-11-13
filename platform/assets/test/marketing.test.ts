@@ -30,7 +30,7 @@ describe("the moving pictures", () => {
     seconds: 12,
     pointer: [0.25, 0.75, 1] as const,
     colours: {ground: "#0d1611", ink: "#c8f25c", glow: "#2fa866"},
-    shape: [1, 3, 0.5] as const,
+    shape: 3,
   }
 
   it("sends every uniform as four numbers, in the struct's order", () => {
@@ -38,7 +38,7 @@ describe("the moving pictures", () => {
     expect(Object.keys(params)).toEqual(["size", "pointer", "ground", "ink", "glow", "shape"])
     for (const member of Object.values(params)) expect(member).toHaveLength(4)
     expect(params.size).toEqual([640, 360, 1.5, 12])
-    expect(params.shape.slice(0, 3)).toEqual([1, 3, 0.5])
+    expect(params.shape).toEqual([3, 0, 0, 0])
   })
 
   it("mixes colours in linear light", () => {

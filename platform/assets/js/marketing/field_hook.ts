@@ -19,8 +19,6 @@ const colours = (root: HTMLElement): Colours => {
   return {ground: read("--field-ground"), ink: read("--field-ink"), glow: read("--field-glow")}
 }
 
-const shapeOf = (root: HTMLElement) => Number(root.dataset.fieldShape ?? 0)
-
 export const MarketingField = {
   mounted(this: FieldHook) {
     const root = this.el
@@ -33,9 +31,9 @@ export const MarketingField = {
       continuous: true,
       browserLoad: async (canvas, size, onDeviceLost) => {
         const {createFieldRenderer} = await import("./field")
-        return createFieldRenderer(canvas, size, onDeviceLost, scene, colours(root), shapeOf(root))
+        return createFieldRenderer(canvas, size, onDeviceLost, scene, colours(root), Number(root.dataset.fieldShape ?? 0))
       },
-      interact({canvas, renderer, onReady}) {
+      interact({canvas, renderer}) {
         const events = new AbortController()
         const options = {passive: true, signal: events.signal}
         root.addEventListener("pointermove", (event: PointerEvent) => {
@@ -53,16 +51,9 @@ export const MarketingField = {
         const scheme = matchMedia("(prefers-color-scheme: dark)")
         scheme.addEventListener("change", repaint, {signal: events.signal})
 
-        // The accordion beside a dot screen names the shape to draw next.
-        const shape = new MutationObserver(() => renderer()?.morph(shapeOf(root)))
-        shape.observe(root, {attributes: true, attributeFilter: ["data-field-shape"]})
-        // A shape chosen while the picture was still loading is the one it starts on.
-        onReady(() => renderer()?.morph(shapeOf(root)))
-
         return () => {
           events.abort()
           theme.disconnect()
-          shape.disconnect()
         }
       },
     })

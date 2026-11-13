@@ -132,7 +132,7 @@ defmodule TechtreeWeb.Components.Marketing do
       id={@id}
       class={["mk-field", "mk-field--#{@scene}", @class]}
       phx-hook="MarketingField"
-      phx-mounted={JS.ignore_attributes(["data-field-ready", "data-field-shape"])}
+      phx-mounted={JS.ignore_attributes(["data-field-ready"])}
       data-field={@scene}
       data-field-shape={@shape}
       aria-hidden="true"

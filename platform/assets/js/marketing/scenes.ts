@@ -4,8 +4,7 @@
  *
  * - `glow`: the light behind the hero's Results, a dot matrix whose dots swell
  *   where two slow lights drift and where the mouse is.
- * - `screen`: a dot screen that draws one shape at a time and melts into the
- *   next, beside each group of products.
+ * - `screen`: a dot screen that draws one shape, with a light sweeping down it.
  * - `mark`: square ripples spreading from the middle of the closing band, the
  *   shape of the mark's own squares.
  * - `backdrop`: contour lines that drift across the top of a service card.
@@ -44,8 +43,8 @@ export type Frame = {
   /** The pointer across the picture, each axis 0 to 1 with y down, and how present it is. */
   pointer: readonly [number, number, number]
   colours: Colours
-  /** The shape the screen is leaving, the one it is reaching, and how far along it is, 0 to 1. */
-  shape: readonly [number, number, number]
+  /** The number of the shape the dot screen draws (`SHAPES`). */
+  shape: number
 }
 
 /** Every member of the shared uniform struct, for one frame. */
@@ -56,14 +55,14 @@ export const uniforms = (frame: Frame) => ({
     ground: linear(frame.colours.ground),
     ink: linear(frame.colours.ink),
     glow: linear(frame.colours.glow),
-    shape: [...frame.shape, 0],
+    shape: [frame.shape, 0, 0, 0],
   },
 })
 
 const shared = /* wgsl */ `
 // Size (width, height, canvas pixels per CSS pixel, seconds), the pointer (x, y
-// with y down, how present it is), three colours in linear light, and the shape
-// (leaving, reaching, how far along).
+// with y down, how present it is), three colours in linear light, and the shape's
+// number.
 struct Params {
   size: vec4f,
   pointer: vec4f,
@@ -216,11 +215,7 @@ fn shape(i: i32, p: vec2f) -> f32 {
   let c = cell(uv, 9.0);
   let q = (c.at - vec2f(0.5)) * a * 2.3;
   let p = vec2f(q.x, -q.y);
-  let k = params.shape.z;
-  let along = k * k * (3.0 - 2.0 * k);
-  // Partway, the dots between the two shapes scatter a little, so the melt reads as one.
-  let wobble = (noise(c.at * 24.0 + vec2f(t * 0.6)) - 0.5) * 0.5 * sin(along * 3.14159);
-  let d = mix(shape(i32(params.shape.x), p), shape(i32(params.shape.y), p), along) + wobble;
+  let d = shape(i32(params.shape.x), p);
   let inside = 1.0 - smoothstep(-0.04, 0.06, d);
   let rim = exp(-abs(d) * 9.0);
   let across = (c.at.y - fract(t * 0.09) * 1.4 + 0.2) * 6.0;
