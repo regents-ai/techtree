@@ -96,7 +96,7 @@
 }
 /* Behind words, a darker middle keeps them easy to read over the picture. */
 .mk-hero__field::after, .mk-band__field::after, .mk-closing__field::after { content: ""; position: absolute; inset: 0; }
-.mk-hero__field::after { background: radial-gradient(56% 48% at 50% 34%, rgb(13 22 17 / .86), rgb(13 22 17 / .4) 72%, transparent); }
+.mk-hero__field::after { background: radial-gradient(72% 64% at 50% 42%, rgb(13 22 17 / .92), rgb(13 22 17 / .62) 72%, transparent); }
 .mk-band__field::after { background: linear-gradient(90deg, rgb(13 22 17 / .9) 30%, rgb(13 22 17 / .2)); }
 .mk-closing__field::after { background: radial-gradient(60% 70% at 50% 50%, rgb(13 22 17 / .82), rgb(13 22 17 / .3)); }
 .mk-hero__field, .mk-band__field, .mk-closing__field, .mk-service__field { position: absolute; inset: 0; }
@@ -115,17 +115,22 @@
   line-height: 1; letter-spacing: -.045em; text-wrap: balance;
 }
 .mk-hero__lede {
-  max-width: 38rem; margin-top: var(--space-3); color: var(--color-fg-muted);
+  max-width: 38rem; margin-top: var(--space-3); color: color-mix(in srgb, var(--color-fg) 86%, transparent);
   font-size: clamp(1rem, 1.4vw, 1.1875rem); line-height: 1.55; text-wrap: pretty;
 }
 .mk-hero__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-4); }
 
 /* The services: four tall cards, each in its own colours, with its price
-   level. The colours also draw each service's picture on its own page. */
-.mk-services { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-5); }
+   level. The colours also draw each service's picture on its own page. Side by
+   side, the cards share their rows, so every name, promise, tool line and
+   price sits level with its neighbour's however long each promise runs. */
+.mk-services {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: minmax(10rem, auto) auto auto auto;
+  gap: var(--space-3); margin-top: var(--space-5);
+}
 .mk-service {
   position: relative; isolation: isolate; overflow: hidden;
-  display: flex; min-height: 24rem; border: 1px solid var(--hairline);
+  display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: var(--space-2); border: 1px solid var(--hairline);
   background: var(--mk-service-ground); color: var(--mk-service-ink);
 }
 .mk-service--skills { --mk-service-ground: #C8F25C; --mk-service-ink: #0F1B14; --field-ground: #C8F25C; --field-ink: #0F1B14; --field-glow: #2FA866; }
@@ -134,11 +139,11 @@
 .mk-service--models { --mk-service-ground: #E4EEE6; --mk-service-ink: #0F1B14; --field-ground: #E4EEE6; --field-ink: #1E6B45; --field-glow: #2FA866; }
 .mk-service--security { --field-ground: #0D1611; --field-ink: #7ED8A9; --field-glow: #C8F25C; }
 .mk-service__words {
-  position: relative; display: grid; align-content: end; gap: var(--space-2); width: 100%;
+  position: relative; display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; gap: var(--space-2); width: 100%;
   padding: var(--space-6) var(--space-3) var(--space-3);
   background: linear-gradient(to top, var(--mk-service-ground) 55%, transparent);
 }
-.mk-service .mk-service__words h3 { font-size: clamp(1.625rem, 2.2vw, 2.25rem); line-height: 1.05; letter-spacing: -.035em; overflow-wrap: break-word; }
+.mk-service .mk-service__words h3 { font-size: clamp(1.625rem, 2.2vw, 2.25rem); line-height: 1.05; letter-spacing: -.035em; overflow-wrap: break-word; align-self: end; }
 .mk-service__words p { max-width: 20rem; margin-top: 0; }
 /* The tools a service uses, one quiet line under its promise. */
 .mk-service__words .mk-service__tools {
@@ -274,13 +279,15 @@
 .mk-closing__line { margin-top: var(--space-2); font-family: var(--font-family-title); font-size: clamp(2.25rem, 6vw, 5rem); line-height: 1; letter-spacing: -.045em; text-wrap: balance; }
 
 @media (max-width: 71.99rem) {
-  .mk-services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mk-service { min-height: 20rem; }
+  .mk-services { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(9rem, auto) auto auto auto); }
 }
 @media (max-width: 47.99rem) {
   .mk-section { padding-block: var(--space-6); }
   .mk-split, .mk-news, .mk-services { grid-template-columns: minmax(0, 1fr); }
-  .mk-service { min-height: 17rem; }
+  /* One card to a row: each keeps its own height, words at the foot. */
+  .mk-services { grid-template-rows: none; }
+  .mk-service { display: flex; grid-row: auto; min-height: 17rem; }
+  .mk-service__words { grid-template-rows: none; align-content: end; }
 }
 @media (max-width: 36rem) {
   .mk-tile { min-height: 0; }
