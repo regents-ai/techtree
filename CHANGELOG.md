@@ -37,6 +37,8 @@
   happens when training is not the answer.
 - **Process.** The home page's three steps now name the baseline, the one bounded
   improvement and the running cost in the report.
+- Agents install regents-cli 1.10.27, and the Techtree plugin moves to 0.7.28
+  with it. Techtree's commands are the same.
 
 ### Fixed
 
