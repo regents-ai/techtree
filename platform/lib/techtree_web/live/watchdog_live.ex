@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.WatchdogLive do
   @moduledoc """
-  The signed-in Watchdog page: a person adds the sites they own and the
+  The signed-in sites page of Security's monitoring: a person adds the sites they own and the
   addresses on them, sees each site's proof state, gets the exact record or file
   to publish, and presses Check to prove ownership. Only public addresses are
   kept in this slice. Everything is read and changed as the signed-in person, so
@@ -21,7 +21,7 @@ defmodule TechtreeWeb.WatchdogLive do
     {:ok,
      socket
      |> assign(
-       page_title: "Watchdog",
+       page_title: "Your sites",
        notice: nil,
        field_errors: %{},
        signed_in?: false,
@@ -194,7 +194,7 @@ defmodule TechtreeWeb.WatchdogLive do
     <Layouts.page>
       <article class="watchdog" aria-labelledby="watchdog-title">
         <header class="editorial-heading">
-          <p class="eyebrow">Watchdog</p>
+          <p class="eyebrow">Security</p>
           <h1 id="watchdog-title">Your sites</h1>
           <p class="lede">
             Add the sites you own and the addresses on them. Prove each site is yours, and

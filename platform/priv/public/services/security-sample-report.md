@@ -1,6 +1,6 @@
-# Techtree Cyber Assist sample report
+# Security sample report
 
-A sample that reviews Techtree's own Agent Wallet Bench, which we own and may examine, the way a Cyber Assist customer's product would be reviewed. The review read the bench's source and its public pages on 27 October 2026, and sent no crafted requests to any live site.
+A sample that reviews Techtree's own Agent Wallet Bench, which we own and may examine, the way a customer's product would be reviewed in a one-off Security review. The review read the bench's source and its public pages on 27 October 2026, and sent no crafted requests to any live site.
 
 ## Result
 
@@ -70,4 +70,4 @@ Not covered, or still uncertain:
 - No new wallet test has run through a simulated terminal since the release.
 - The separate regents command and its agent sign-in, account sign-in, and anything that needs a live probe.
 
-Start a conversation about [Techtree Cyber Assist](/services/cyber-assist).
+Start a conversation about [Security](/services/security).

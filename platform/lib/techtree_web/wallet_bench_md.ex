@@ -21,8 +21,8 @@ defmodule TechtreeWeb.WalletBenchMD do
     Which coding agent can set up and use which wallet tool, from Techtree's
     AgentWalletBench. The same results as #{url(~p"/wallet-bench")}.
 
-    To have your own agent wallet flow checked, see Techtree
-    Verify: #{url(~p"/services/verify")}.
+    To have an eval built for your own agent wallet flow, see
+    Evals: #{url(~p"/services/evals")}.
 
     Each score is the pair's newest result out of 10, from the judge's nine
     checks (an open check counts half, a clean pass adds a point, a pass that

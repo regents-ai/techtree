@@ -2,7 +2,7 @@ import type {Locator} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
 import {layoutProblems, signIn, watchErrors} from "./support/visitor"
 
-// The Agent Message button on the Watchdog offer at a desktop and a phone width.
+// The Agent Message button on the Security page at a desktop and a phone width.
 // It opens its window: each of the three texts fits the screen and copies exactly
 // what it shows, and Escape closes it. A signed-in person leaves a message from
 // its form and sees the receipt, after an empty message is refused when the field
@@ -23,7 +23,7 @@ for (const width of [1280, 390]) {
     const errors = watchErrors(page)
     const press = (target: Locator) => (hasTouch ? target.tap() : target.click())
 
-    await page.goto("/services/watchdog", {waitUntil: "networkidle"})
+    await page.goto("/services/security", {waitUntil: "networkidle"})
     await expect(page.locator(".phx-connected").first()).toBeAttached()
 
     const open = page.getByRole("button", {name: "Agent Message"})
@@ -42,7 +42,7 @@ for (const width of [1280, 390]) {
 
     const cli = texts.first()
     // By its id: once pressed, the button's name is its answer, not "Copy".
-    const copy = cli.locator("#watchdog-message-copy-cli")
+    const copy = cli.locator("#security-message-copy-cli")
     await expect(copy).toHaveAccessibleName("Copy")
     await press(copy)
     await expect(copy).toHaveAttribute("data-copy-state", "copied")
@@ -55,7 +55,7 @@ for (const width of [1280, 390]) {
     await press(open)
     await expect(dialog).toBeVisible()
 
-    const form = dialog.locator("#watchdog-message-person-form")
+    const form = dialog.locator("#security-message-person-form")
     const body = form.getByRole("textbox", {name: "Message", exact: true})
     const replyTo = form.getByRole("textbox", {name: "Reply to"})
     await body.fill("x")
@@ -67,7 +67,7 @@ for (const width of [1280, 390]) {
     await body.fill(`We run three sites and want them watched (${width}).`)
     await replyTo.fill("walk@example.com")
     await press(form.getByRole("button", {name: "Send"}))
-    const receipt = dialog.locator("#watchdog-message-person-receipt")
+    const receipt = dialog.locator("#security-message-person-receipt")
     await expect(receipt).toBeVisible()
     await expect(receipt.locator("code")).toHaveText(/^[0-9a-f-]{36}$/)
     await expect(body).toHaveValue("")
@@ -94,7 +94,7 @@ for (const width of [1280, 390]) {
 
 test("a visitor opens the window and sees the three texts and no form", async ({page}) => {
   const errors = watchErrors(page)
-  await page.goto("/services/watchdog", {waitUntil: "networkidle"})
+  await page.goto("/services/security", {waitUntil: "networkidle"})
   await expect(page.locator(".phx-connected").first()).toBeAttached()
 
   await page.getByRole("button", {name: "Agent Message"}).click()

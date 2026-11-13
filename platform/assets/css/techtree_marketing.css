@@ -38,20 +38,22 @@
 /* Each link in the row is its own press, so its line is a full 24 pixels. */
 .mk-opening__copy > .mk-links { margin-top: var(--space-3); color: var(--color-fg-muted); font-size: .875rem; line-height: 1.5rem; }
 .mk-opening__tools { margin-top: var(--space-3); }
+/* A service's price level under its booking actions, and the one line on money. */
+.mk-opening__price { display: grid; justify-items: start; gap: var(--space-1); margin-top: var(--space-4); }
+.mk-opening__price > p { color: var(--color-fg-muted); font-size: .875rem; }
 /* A title that changes in place takes focus without a ring: it is where the
    reader is, not a control. */
 .mk-opening__title[tabindex]:focus { outline: none; }
 /* The picture keeps the band's dark colours whatever the theme; a service's
-   picture takes the service's own (`.mk-service--*`). */
+   picture takes the service's own (`.mk-service--*`, in techtree_home.css). */
 .mk-opening__picture {
   justify-self: end; width: min(100%, 26rem); aspect-ratio: 1;
   border: 1px solid var(--hairline-strong);
 }
-.mk-opening .mk-field--screen { --field-ground: #0F1A14; --field-ink: #C8F25C; --field-glow: #2FA866; }
 .mk-opening__picture .mk-field__still { display: grid; place-items: center; }
 .mk-opening .mk-opening__glyph { inline-size: 38%; block-size: auto; aspect-ratio: 1; color: var(--field-ink); stroke-width: 1; }
 
-/* Two ways in, as two tiles side by side. */
+/* Ways on, as tiles side by side. */
 .mk-paths {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: var(--space-4);
   border: 1px solid var(--hairline); background: var(--hairline);
@@ -68,22 +70,29 @@
 .mk-sequence p { margin-top: 0; color: var(--color-fg-muted); font-size: .875rem; }
 
 /* Facts beside what to copy: the section's two halves. */
-.mk-section > .mk-split, .mk-section > .mk-panel, .mk-section > .mk-cards, .mk-section > .facts { margin-top: var(--space-4); }
+.mk-section > .mk-split, .mk-section > .facts { margin-top: var(--space-4); }
 .mk-section > .command { margin-top: var(--space-4); }
 .mk-section > .mk-links { margin-top: var(--space-3); }
-.mk-panel .facts { margin-top: 0; }
 .mk-split > .command, .mk-split > .facts { margin: 0; }
-/* Cards over a panel: the cards take the wider share. */
-.mk-split--wide { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); align-items: start; }
-.mk-card .mk-sequence__index { margin-bottom: var(--space-1); }
-.mk-card h3 { font-size: 1.25rem; line-height: 1.25; }
-.mk-card__more { margin-top: auto; padding-top: var(--space-2); font-size: .875rem; }
 .mk-section__note { max-width: var(--measure); margin-top: var(--space-4); color: var(--color-fg-muted); font-size: .875rem; }
+
+/* A service's work in order (what the customer brings, what we do, what they
+   receive), or Security's two options side by side: each a ruled list under
+   an accent rule. */
+.mk-offer { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5) var(--rg-track-gap); }
+.mk-offer--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.mk-section__head + .mk-offer { margin-top: var(--space-4); }
+.mk-offer > section { display: grid; align-content: start; gap: var(--space-1); min-width: 0; padding-top: var(--space-2); border-top: 2px solid var(--color-accent); }
+.mk-offer > section > :is(h2, h3) { font-size: 1.5rem; line-height: 1.2; }
+.mk-offer > section > p { margin-top: 0; color: var(--color-fg-muted); }
+.mk-offer ul { margin-top: var(--space-2); border-top: 1px solid var(--hairline); }
+.mk-offer li { padding: var(--space-1) 0; border-bottom: 1px solid var(--hairline); font-size: .9375rem; line-height: 1.5; }
+.mk-offer > section > .text-link { justify-self: start; margin-top: var(--space-2); }
 /* A Result's withdrawn and held-out notes, before what it compared. */
 .run-notices { display: grid; gap: var(--space-3); }
 .run-notices .callout { margin-block: 0; }
 
-/* The blog's posts, the home page's news cards with each post's picture. */
+/* The blog's posts: each card opens on the post's picture. */
 .mk-news--posts { margin-top: 0; }
 .mk-news__picture {
   width: calc(100% + 2 * var(--space-3)); max-width: none; height: auto; aspect-ratio: 16 / 9;
@@ -114,32 +123,20 @@
 }
 .mk-tallies dt { max-width: 28ch; color: var(--color-fg-muted); font-size: .875rem; }
 
-/* A ruled list beside its heading, and the marks a sample report gives each line. */
+/* A ruled list beside its heading. */
 .mk-split > .mk-section__head { max-width: none; }
 .mk-split > .mk-facts, .mk-split > .mk-status { margin-top: 0; }
-.mk-outcomes > li { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); padding-block: var(--space-2); border-bottom: 1px solid var(--hairline); font-size: .875rem; }
-.mk-outcomes > li:first-child { border-top: 1px solid var(--hairline); }
-.mk-outcome { display: inline-flex; align-items: center; gap: .4rem; flex-shrink: 0; font-weight: 400; white-space: nowrap; }
-.mk-outcome::before { content: ""; width: .5rem; height: .5rem; background: var(--hairline-strong); }
-.mk-outcome--pass::before, .mk-outcome--fixed::before { background: var(--color-success); }
-.mk-outcome--fail::before { background: var(--color-error); }
 
 /* A dark band's copy with a command or actions in it. */
 .mk-band__copy > .command { margin-top: var(--space-4); }
 .mk-band__copy > .mk-status { margin-top: var(--space-3); }
 
-/* A last word before the footer: the next step, beside its button. */
-.mk-next { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); }
-.mk-next__copy { max-width: 40rem; }
-.mk-next__copy h2 { margin-top: 0; }
-.mk-next__copy p:last-child { margin-top: var(--space-2); color: var(--color-fg-muted); }
-
 @media (max-width: 63.99rem) {
-  .mk-opening--picture, .mk-split--wide { grid-template-columns: minmax(0, 1fr); }
+  .mk-opening--picture { grid-template-columns: minmax(0, 1fr); }
   .mk-opening__picture { display: none; }
 }
 @media (max-width: 47.99rem) {
-  .mk-paths { grid-template-columns: minmax(0, 1fr); }
+  .mk-paths, .mk-offer, .mk-offer--two { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
   .mk-opening { background: none; color: inherit; }

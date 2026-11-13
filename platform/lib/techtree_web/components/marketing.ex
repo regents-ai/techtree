@@ -2,8 +2,8 @@ defmodule TechtreeWeb.Components.Marketing do
   @moduledoc """
   The marketing site's shared pieces: the dark opening band every inner page
   starts with, a moving picture over the still the stylesheet draws, and a
-  group of items one open at a time beside a dot picture. The home page and
-  the inner pages use the same ones; their styles are in
+  service's price level. The
+  home page and the inner pages use the same ones; their styles are in
   `assets/css/techtree_home.css` and `assets/css/techtree_marketing.css`, and
   their motion is the hooks in `assets/js/marketing`.
   """
@@ -97,6 +97,25 @@ defmodule TechtreeWeb.Components.Marketing do
     """
   end
 
+  attr :level, :integer, values: [1, 2, 3, 4], required: true
+  attr :id, :string, default: nil
+
+  @doc """
+  A service's price level: four diamonds, the first `level` of them filled,
+  beside the word Price. It is never a figure. Its name says the level in
+  words, and the marks are hidden from screen readers.
+  """
+  def price(assigns) do
+    ~H"""
+    <div id={@id} class="mk-price" role="img" aria-label={"Price level #{@level} of 4"}>
+      <span class="mk-price__label" aria-hidden="true">Price</span>
+      <span class="mk-price__marks" aria-hidden="true">
+        <span :for={mark <- 1..4} class={["mk-price__mark", mark <= @level && "mk-price__mark--on"]}></span>
+      </span>
+    </div>
+    """
+  end
+
   attr :id, :string, required: true
   attr :scene, :string, values: ~w(glow screen mark backdrop), required: true
   attr :shape, :integer, default: nil
@@ -121,69 +140,6 @@ defmodule TechtreeWeb.Components.Marketing do
       <div class="mk-field__still">{render_slot(@inner_block)}</div>
       <canvas id={"#{@id}-canvas"} class="mk-field__canvas" phx-update="ignore" data-field-canvas></canvas>
     </div>
-    """
-  end
-
-  attr :id, :string, required: true
-  attr :name, :string, required: true
-  attr :line, :string, required: true
-  attr :flip, :boolean, default: false, doc: "put the picture before the items"
-
-  slot :item, required: true do
-    attr :title, :string, required: true
-    attr :icon, :string, required: true
-    attr :shape, :integer, required: true, doc: "the dot picture's shape (SHAPES in scenes.ts)"
-    attr :capability, :atom
-    attr :open, :boolean
-    attr :id, :string
-  end
-
-  @doc """
-  One group of items, one open at a time, beside a dot picture that draws the
-  open item's shape (`assets/js/marketing/accordion.ts`).
-  """
-  def group(assigns) do
-    assigns = assign(assigns, :first, Enum.find(assigns.item, & &1[:open]) || hd(assigns.item))
-
-    ~H"""
-    <section
-      id={@id}
-      class={["mk-section", "mk-group", @flip && "mk-group--flip"]}
-      aria-labelledby={"#{@id}-title"}
-      phx-hook="MarketingAccordion"
-    >
-      <div class="mk-group__items">
-        <h2 id={"#{@id}-title"}>{@name}</h2>
-        <p class="mk-group__line">{@line}</p>
-        <details
-          :for={{item, index} <- Enum.with_index(@item)}
-          id={item[:id] || "#{@id}-#{index}"}
-          class="mk-item"
-          name={@id}
-          open={item[:open]}
-          data-shape={item.shape}
-          phx-mounted={JS.ignore_attributes(["open"])}
-        >
-          <summary class="mk-item__summary">
-            <Regent.Icons.icon name={item.icon} class="mk-item__icon" />
-            <h3 class="mk-item__title">{item.title}</h3>
-            <.capability_status :if={item[:capability]} capability={item.capability} />
-            <Regent.Icons.icon name="plus" class="mk-item__toggle" />
-          </summary>
-          <div class="mk-item__body" data-item-body>
-            {render_slot(item)}
-          </div>
-        </details>
-      </div>
-      <.field id={"#{@id}-picture"} scene="screen" shape={@first.shape} class="mk-group__picture">
-        <Regent.Icons.icon
-          :for={item <- @item}
-          name={item.icon}
-          class="mk-group__glyph"
-          data-glyph={item.shape}
-        />
-      </.field>
-    </section>
     """
   end
 end

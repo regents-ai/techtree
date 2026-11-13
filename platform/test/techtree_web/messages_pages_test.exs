@@ -1,12 +1,12 @@
 defmodule TechtreeWeb.MessagesPagesTest do
-  # The Agent Message button and its window on the Watchdog offer, as the page
+  # The Agent Message button and its window on the Security page, as the page
   # renders:
   # - the button opens the window, which holds the three texts
   #   `AgentMessage.texts/1` gives for the topic `watchdog`, each with its copy
   #   button, naming the tool and the command the site publishes;
   # - a visitor sees no form, and a signed-in person sees one;
-  # - the offer's Markdown tells an agent the same three ways;
-  # - no other offer has the button;
+  # - the page's Markdown tells an agent the same three ways;
+  # - no other service page has the button;
   # - /admin/messages shows the team every message, newest first, and is the
   #   not-found page for anyone who is not one of the site's admins.
   # The form's own presses are in the browser tests
@@ -19,10 +19,10 @@ defmodule TechtreeWeb.MessagesPagesTest do
   alias Techtree.Actors.System
   alias TechtreeWeb.Components.AgentMessage
 
-  @window "#watchdog-message"
+  @window "#security-message"
 
-  test "the Watchdog offer's button opens a window with the three texts", %{conn: conn} do
-    page = page(conn, ~p"/services/watchdog")
+  test "the Security page's button opens a window with the three texts", %{conn: conn} do
+    page = page(conn, ~p"/services/security")
 
     assert [button] =
              page
@@ -35,7 +35,7 @@ defmodule TechtreeWeb.MessagesPagesTest do
       assert page |> LazyHTML.query("#{@window}-text-#{id}") |> LazyHTML.text() == text
 
       assert page
-             |> LazyHTML.query(~s|#{@window} [data-copy-target="watchdog-message-text-#{id}"]|)
+             |> LazyHTML.query(~s|#{@window} [data-copy-target="security-message-text-#{id}"]|)
              |> Enum.count() == 1
     end
 
@@ -59,28 +59,28 @@ defmodule TechtreeWeb.MessagesPagesTest do
   end
 
   test "a visitor sees no form, and a signed-in person sees one", %{conn: conn} do
-    visitor = page(conn, ~p"/services/watchdog")
+    visitor = page(conn, ~p"/services/security")
     assert Enum.empty?(LazyHTML.query(visitor, "#{@window} form"))
 
-    person = page(signed_in(conn), ~p"/services/watchdog")
+    person = page(signed_in(conn), ~p"/services/security")
     assert [_form] = Enum.to_list(LazyHTML.query(person, "#{@window}-person-form"))
     assert [_body] = Enum.to_list(LazyHTML.query(person, "#{@window}-person-form textarea"))
   end
 
-  test "the offer's Markdown tells an agent the same three ways", %{conn: conn} do
+  test "the Security page's Markdown tells an agent the same three ways", %{conn: conn} do
     text =
       conn
       |> put_req_header("accept", "text/markdown")
-      |> get(~p"/services/watchdog")
+      |> get(~p"/services/security")
       |> response(200)
 
     for %{text: way} <- AgentMessage.texts("watchdog"), do: assert(text =~ way)
     refute text =~ "{{"
   end
 
-  test "no other offer has the button", %{conn: conn} do
-    for path <- [~p"/services/verify", ~p"/services/cyber-assist"] do
-      page = page(conn, path)
+  test "no other service page has the button", %{conn: conn} do
+    for service <- TechtreeWeb.Services.all() do
+      page = page(conn, TechtreeWeb.Services.path(service.id))
       assert Enum.empty?(LazyHTML.query(page, "[data-agent-message-open], [data-agent-message]"))
     end
   end

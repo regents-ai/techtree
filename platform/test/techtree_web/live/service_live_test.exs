@@ -1,215 +1,162 @@
 defmodule TechtreeWeb.ServiceLiveTest do
   @moduledoc """
-  The two offer pages count their Agent Wallet Bench figures from the scores
-  `/wallet-bench.json` serves, on the page and in its Markdown, so neither can
-  say a different number from the bench.
+  The service pages, each built from its entry in `TechtreeWeb.Services`:
+  Skills, Evals, Environments and Models with what the customer brings, what
+  we do (naming the open-source projects we use, by their own links), what
+  they receive, the price level and booking; Security with its two options,
+  its rules and the Agent Message button. Each page's Markdown says the same.
 
   The pages are read as they render: they read the sign-in from the socket's
   connect info, which the LiveView test harness does not carry. The connected
-  Watchdog offer is exercised in the browser tests
+  Agent Message window is exercised in the browser tests
   (`assets/test/browser/agent_message.spec.ts`).
   """
 
   use TechtreeWeb.ConnCase, async: false
 
-  alias Techtree.WalletBenchFixture
-  alias TechtreeWeb.WalletBenchScores
+  alias TechtreeWeb.Components.AgentMessage
+  alias TechtreeWeb.Services
 
-  setup do
-    WalletBenchScores.delete_all()
-    on_exit(fn -> WalletBenchScores.delete_all() end)
+  @booking "https://calendar.example/techtree"
 
-    tests = WalletBenchFixture.seed!()
-    # The wallet pass left a key in a plain file, and Claude Code's install,
-    # on a later day, was a safety failure.
-    WalletBenchFixture.flag_wallet_pass!(tests.passed)
-    safety_failure!(~U[2026-11-02 09:00:00.000000Z])
-    WalletBenchScores.delete_all()
-    :ok
-  end
+  @projects %{
+    skills: ["https://github.com/NVIDIA/SkillEvaluator", "https://github.com/microsoft/SkillOpt"],
+    evals: [
+      "https://github.com/PrimeIntellect-ai/verifiers",
+      "https://github.com/PrimeIntellect-ai/prime-rl"
+    ],
+    environments: [
+      "https://github.com/NVlabs/Skill2Env",
+      "https://github.com/huggingface/Repo2RLEnv",
+      "https://github.com/PrimeIntellect-ai/verifiers"
+    ],
+    models: ["https://github.com/PrimeIntellect-ai/prime-rl"]
+  }
 
-  defp safety_failure!(at) do
-    machine = Techtree.WalletBench.Machine |> Ash.read!(authorize?: false) |> hd()
-
-    attempt =
-      Ash.Seed.seed!(Techtree.WalletBench.Attempt, %{
-        batch_id: machine.batch_id,
-        replicate: 1,
-        harness_id: "H05",
-        wallet_id: "W03",
-        state: :done,
-        plan: :wallet,
-        machine_id: machine.id,
-        inserted_at: at
-      })
-
-    Ash.Seed.seed!(Techtree.WalletBench.Turn, %{
-      attempt_id: attempt.id,
-      test: :T1a,
-      state: :judged,
-      prompt: "Install the wallet tool.",
-      wall_seconds: Decimal.new(30),
-      inserted_at: at,
-      judgment: %{
-        "outcome" => "FAILED_SAFETY",
-        "criteria" => Map.new(1..9, &{"C#{&1}", %{"value" => "true", "reason" => "r"}})
-      }
-    })
-  end
-
-  # The figures counted again here from the feed itself: its scored boxes,
-  # their agents, the wallet passes and the flagged ones among them.
-  defp from_feed(conn) do
-    tests = conn |> get(~p"/wallet-bench.json") |> json_response(200) |> Map.fetch!("tests")
-
-    scored =
-      for test <- tests,
-          row <- test["rows"],
-          %{"state" => "scored"} = cell <- row["cells"],
-          do: {test["test"], row["agent"], cell["outcome"]}
-
-    working =
-      for {"wallet", _agent, outcome} <- scored,
-          outcome == "Pass" or String.starts_with?(outcome, "Pass, flagged"),
-          do: outcome
-
-    %{
-      agents: scored |> Enum.map(&elem(&1, 1)) |> Enum.uniq() |> length(),
-      working: length(working),
-      plain_file: Enum.count(working, &String.starts_with?(&1, "Pass, flagged")),
-      judged: length(scored),
-      safety: Enum.count(scored, &(elem(&1, 2) == "Safety failure"))
-    }
-  end
-
-  test "each offer page shows the figures the scores feed counts", %{conn: conn} do
-    feed = from_feed(conn)
-    assert feed == %{agents: 2, working: 1, plain_file: 1, judged: 4, safety: 1}
-
-    for path <- [~p"/services/verify", ~p"/services/cyber-assist"] do
-      page = page(conn, path)
-
-      assert figures(page) == [
-               {"#{feed.agents}", "coding agents tested"},
-               {"#{feed.plain_file} of #{feed.working}",
-                "working wallet they set up left their key or unlock password in a plain file"},
-               {"#{feed.safety}", "safety failure in #{feed.judged} judged tests"}
-             ]
-
-      assert text(page, "#bench .mk-eyebrow") =~
-               "Our own bench, tests run 14 October to 2 November 2026"
-    end
-  end
-
-  test "each offer's Markdown says the same figures in words", %{conn: conn} do
-    feed = from_feed(conn)
-
-    for path <- [~p"/services/verify", ~p"/services/cyber-assist"] do
-      text = conn |> put_req_header("accept", "text/markdown") |> get(path) |> response(200)
-
-      assert text =~
-               "Our own bench, tests run 14 October to 2 November 2026: " <>
-                 "#{feed.agents} coding agents tested; " <>
-                 "#{feed.plain_file} of #{feed.working} working wallet they set up left their key or unlock password in a plain file. " <>
-                 "#{feed.safety} safety failure in #{feed.judged} judged tests. [See the bench](/wallet-bench)."
-
-      refute text =~ "{{"
-    end
-  end
-
-  test "each offer's page and Markdown start the same email", %{conn: conn} do
-    for {offer, path} <- [verify: ~p"/services/verify", cyber_assist: ~p"/services/cyber-assist"] do
-      mailto = TechtreeWeb.ServiceLive.mailto(offer)
-      page = page(conn, path)
-      text = conn |> put_req_header("accept", "text/markdown") |> get(path) |> response(200)
-
-      assert has?(page, ~s|#contact a[href="#{mailto}"]|)
-      assert text =~ "(#{mailto})"
-      assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
-      assert %{"subject" => _subject, "body" => body} = URI.decode_query(query)
-      assert ["Company:", "Product:" | _rest] = String.split(body, "\r\n")
-    end
-  end
-
-  test "the Watchdog page shows its sections, no figure for money, and links the other offers",
+  test "each service page has exactly what you bring, what we do, what you receive and booking",
        %{conn: conn} do
-    page = page(conn, ~p"/services/watchdog")
-    offer = text(page, "main")
+    for service <- Services.all() do
+      page = page(conn, Services.path(service.id))
 
-    assert text(page, "h1") == "Watchdog"
-    assert text(page, "h1 + .mk-opening__line") == "Keep watch on the sites you own."
-    assert text(page, "h2") =~ "Steps"
-    assert text(page, "h2") =~ "Rules"
-    assert text(page, "h2") =~ "You get"
-    assert text(page, "#watchdog-rules li") =~ "Only sites you've proven you own."
-    refute offer =~ ~r/[$£€]\s?\d/
-    assert has?(page, ~s|#other-offers a[href="/services/verify"]|)
-    assert has?(page, ~s|#other-offers a[href="/services/cyber-assist"]|)
+      assert ids(page, "main > section") == ["opening", "work", "contact"]
+      assert ids(page, "#work-list > section") == ["bring", "do", "receive"]
+      assert texts(page, "#bring li") == service.bring
+      assert texts(page, "#receive li") == service.receive
+      assert length(texts(page, "#do li")) == length(service.work)
+      assert text(page, "h1") == service.name
+    end
   end
 
-  test "the Watchdog page and Markdown start the same Company/Sites/Contact email", %{conn: conn} do
-    mailto = TechtreeWeb.ServiceLive.mailto(:watchdog)
-    page = page(conn, ~p"/services/watchdog")
-
-    text =
-      conn
-      |> put_req_header("accept", "text/markdown")
-      |> get(~p"/services/watchdog")
-      |> response(200)
-
-    assert has?(page, ~s|#contact a[href="#{mailto}"]|)
-    assert text =~ "(#{mailto})"
-    refute text =~ "{{"
-
-    assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
-    assert %{"subject" => "Techtree Watchdog", "body" => body} = URI.decode_query(query)
-    assert String.split(body, "\r\n") == ["Company:", "Sites:", "Contact:"]
+  test "each service page names the projects it uses by their own links", %{conn: conn} do
+    for service <- Services.all() do
+      page = page(conn, Services.path(service.id))
+      assert hrefs(page, "#do a") == @projects[service.id], "#{service.name}'s projects"
+    end
   end
 
-  test "the Watchdog page and Markdown link a booking address only when one is set", %{conn: conn} do
-    address = "https://calendar.example/techtree"
+  test "each service page shows its price level beside booking, and its Markdown says it in words",
+       %{conn: conn} do
+    for service <- Services.all() do
+      path = Services.path(service.id)
+      page = page(conn, path)
 
-    markdown = fn ->
-      conn
-      |> put_req_header("accept", "text/markdown")
-      |> get(~p"/services/watchdog")
-      |> response(200)
+      assert [price] =
+               Enum.to_list(LazyHTML.query(page, ~s|#opening #price[role="img"]|))
+
+      assert attribute(price, "aria-label") == "Price level #{service.price} of 4"
+
+      assert length(Enum.to_list(LazyHTML.query(page, "#price .mk-price__mark--on"))) ==
+               service.price
+
+      assert has?(page, ~s|#price .mk-price__marks[aria-hidden="true"]|)
+
+      assert markdown(conn, path) =~ "Price level: #{service.price} of 4."
     end
 
-    page = page(conn, ~p"/services/watchdog")
-    refute has?(page, ~s|#contact a:not([href^="mailto:"])|)
-    refute markdown.() =~ "calendar.example"
+    page = page(conn, ~p"/services/security")
+    refute has?(page, ".mk-price")
+    refute markdown(conn, ~p"/services/security") =~ "Price level"
+  end
 
-    Application.put_env(:techtree, :book_call, address)
+  test "no service page, its search-engine data or its Markdown shows a figure for money",
+       %{conn: conn} do
+    money = ~r/[$£€]\s?\d|priceCurrency|"price":/
+
+    for path <- [~p"/" | paths()] do
+      refute conn |> get(path) |> html_response(200) =~ money
+      refute markdown(conn, path) =~ money
+    end
+  end
+
+  test "Security offers a review and monitoring, with its rules, its sample report and Your sites",
+       %{conn: conn} do
+    security = Services.security()
+    page = page(conn, ~p"/services/security")
+
+    assert ids(page, "#options-list > section") == Enum.map(security.options, & &1.id)
+
+    assert hrefs(page, "#options-list .text-link") == [
+             "/services/security/sample-report",
+             "/watchdog"
+           ]
+
+    assert texts(page, "#rules li") == security.rules
+    assert has?(page, "#contact #security-message-button")
+    assert has?(page, "#security-message[data-agent-message]")
+
+    assert markdown(conn, ~p"/services/security") =~ AgentMessage.markdown("watchdog")
+    assert conn |> get(~p"/services/security/sample-report") |> html_response(200)
+  end
+
+  test "each page and its Markdown start the same email, named for the service", %{conn: conn} do
+    for service <- Services.all() ++ [Services.security()] do
+      path = Services.path(service.id)
+      [mailto] = hrefs(page(conn, path), ~s|#contact a[href^="mailto:"]|)
+
+      assert %URI{path: "build@regents.sh", query: query} = URI.parse(mailto)
+      assert %{"subject" => subject} = URI.decode_query(query)
+      assert subject == service.name
+      assert markdown(conn, path) =~ "(#{mailto})"
+    end
+  end
+
+  test "each page and its Markdown link a booking address only when one is set", %{conn: conn} do
+    for path <- paths() do
+      refute has?(page(conn, path), ~s|#contact a:not([href^="mailto:"])[target="_blank"]|)
+      refute markdown(conn, path) =~ "calendar.example"
+    end
+
+    Application.put_env(:techtree, :book_call, @booking)
     on_exit(fn -> Application.put_env(:techtree, :book_call, nil) end)
 
-    page = page(conn, ~p"/services/watchdog")
-    assert has?(page, ~s|#contact a[href="#{address}"]|)
-    assert has?(page, ~s|#contact a[href^="mailto:"]|)
-    assert markdown.() =~ "(#{address})"
+    for path <- paths() do
+      page = page(conn, path)
+      assert hrefs(page, "#opening .rg-button--primary") == [@booking]
+      assert has?(page, ~s|#contact a[href="#{@booking}"][target="_blank"]|)
+      assert markdown(conn, path) =~ "(#{@booking})"
+    end
   end
 
-  test "with nothing judged yet the pages say so, not a range of days", %{conn: conn} do
-    Techtree.Repo.query!("UPDATE wallet_bench_turns SET judgment = NULL")
-    WalletBenchScores.delete_all()
-
-    page = page(conn, ~p"/services/verify")
-    assert text(page, "#bench .mk-eyebrow") =~ "Our own bench, no tests judged yet"
-    assert [{"0", "coding agents tested"} | _figures] = figures(page)
-  end
+  defp paths, do: Enum.map(Services.all() ++ [Services.security()], &Services.path(&1.id))
 
   defp page(conn, path), do: conn |> get(path) |> html_response(200) |> LazyHTML.from_document()
+
+  defp markdown(conn, path),
+    do: conn |> put_req_header("accept", "text/markdown") |> get(path) |> response(200)
+
   defp has?(page, selector), do: not Enum.empty?(LazyHTML.query(page, selector))
+
+  defp ids(page, selector),
+    do: for(node <- LazyHTML.query(page, selector), do: attribute(node, "id"))
+
+  defp hrefs(page, selector),
+    do: for(node <- LazyHTML.query(page, selector), do: attribute(node, "href"))
+
+  defp texts(page, selector),
+    do: for(node <- LazyHTML.query(page, selector), do: node |> LazyHTML.text() |> String.trim())
 
   defp text(page, selector),
     do: page |> LazyHTML.query(selector) |> LazyHTML.text() |> String.trim()
 
-  defp figures(page) do
-    page
-    |> LazyHTML.query("#bench-figures > div")
-    |> Enum.map(fn div ->
-      {div |> LazyHTML.query("dd") |> LazyHTML.text() |> String.trim(),
-       div |> LazyHTML.query("dt") |> LazyHTML.text() |> String.trim()}
-    end)
-  end
+  defp attribute(node, name), do: node |> LazyHTML.attribute(name) |> List.first()
 end

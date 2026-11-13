@@ -129,13 +129,13 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         eyebrow="AgentWalletBench"
         title="Wallet Bench"
         line="Which agent can use which wallet?"
-        more="We also check companies’ own wallet flows."
+        more="We also build evals for a company’s own wallet flows."
         shape={5}
         icon="wallet"
       >
         <:actions>
-          <.link navigate={~p"/services/verify"} class="rg-button rg-button--primary">
-            Techtree Verify
+          <.link navigate={~p"/services/evals"} class="rg-button rg-button--primary">
+            Evals
           </.link>
         </:actions>
       </.opening>
