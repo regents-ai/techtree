@@ -10,3 +10,6 @@ local-only-*
 
 # Python caches the script checks leave behind.
 __pycache__/
+
+# The private delivery repository sits here on a working Mac; it is its own repository.
+/uplift-factory/
