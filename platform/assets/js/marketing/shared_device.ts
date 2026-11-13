@@ -1,8 +1,8 @@
 /**
- * One GPU device for every panel on a page. A row of cards is many small
- * pictures, so the first panel asks for the device, the rest draw on the same
+ * One GPU device for every moving picture on a page. A page holds several
+ * small pictures, so the first asks for the device, the rest draw on the same
  * one, and the last to go gives it back. When the browser takes the device
- * away every panel on it is told, and the next panel to ask gets a new one.
+ * away every picture on it is told, and the next one to ask gets a new one.
  */
 
 /** What sharing needs of a device: to hear that it is lost, and to give it back. */

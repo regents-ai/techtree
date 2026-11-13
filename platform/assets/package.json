@@ -8,8 +8,7 @@
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:browser": "playwright test",
-    "stills:value-cards": "node js/value_cards/stills.mjs"
+    "test:browser": "playwright test"
   },
   "dependencies": {
     "@privy-io/react-auth": "3.51.1",

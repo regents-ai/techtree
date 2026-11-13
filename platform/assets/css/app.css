@@ -15,7 +15,6 @@
 @import "./train.css";
 @import "./components/motion.css";
 @import "./components/theme_switch.css";
-@import "./components/value_cards.css";
 @import "./animations.css";
 
 /* Palette, type, cut skins and interaction sweeps come from Regent UI.
@@ -134,8 +133,6 @@ code { font-size: .9em; }
 .command__block code::before { content: "$ "; }
 .command--prose .command__block { white-space: normal; overflow-wrap: anywhere; overflow-x: visible; }
 .digest { max-width: 100%; font-size: .8125rem; overflow-wrap: anywhere; }
-
-.release-state { margin-top: var(--space-2); font-size: .875rem; }
 
 /* Docs keep their own optional rail; all in-document links remain available. */
 .docs-layout { display: grid; grid-template-columns: var(--rg-rail-width) minmax(0, 1fr); gap: var(--rg-track-gap); align-items: start; }

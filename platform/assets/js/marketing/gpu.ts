@@ -4,6 +4,6 @@
  * it back. Loaded only with the pictures, once one is really going to be shown.
  */
 import {init} from "vgpu"
-import {shareDevice} from "../value_cards/shared_device"
+import {shareDevice} from "./shared_device"
 
 export const device = shareDevice(() => init())

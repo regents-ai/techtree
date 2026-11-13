@@ -28,8 +28,6 @@ defmodule Techtree.Network.Query do
   page could render one by accident.
   """
 
-  require Ash.Query
-
   alias Techtree.Catalog.Route
   alias Techtree.Network
   alias Techtree.Network.AgentVersions
@@ -80,28 +78,6 @@ defmodule Techtree.Network.Query do
       end
 
     %{entries: entries, next_before_sequence: next, runs: runs(entries)}
-  end
-
-  @doc """
-  The newest `limit` entries still standing, newest first; none when every one
-  is withdrawn or none has arrived.
-  """
-  @spec standing(pos_integer()) :: [PublicationEntry.t()]
-  def standing(limit) do
-    PublicationEntry
-    |> Ash.Query.for_read(:list_log, %{})
-    |> Ash.Query.filter(is_nil(withdrawn_at))
-    |> Ash.Query.limit(limit)
-    |> Ash.read!()
-  end
-
-  @doc "How many entries on the log still stand: every one not withdrawn."
-  @spec standing_count() :: non_neg_integer()
-  def standing_count do
-    PublicationEntry
-    |> Ash.Query.for_read(:list_log, %{})
-    |> Ash.Query.filter(is_nil(withdrawn_at))
-    |> Ash.count!()
   end
 
   @doc """

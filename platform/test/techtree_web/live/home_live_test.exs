@@ -1,8 +1,9 @@
 defmodule TechtreeWeb.HomeLiveTest do
   @moduledoc """
-  The home page: one promise and its actions, the projects Techtree is built
-  on, Evaluate & Climb at the core, the products in groups, the On-ramp to
-  Prime Intellect, and every moving picture over a still.
+  The home page: the promise with Book Call, the four services with their
+  price levels, the case study from the published Skill comparison, the
+  process, the makers whose projects we build on, a last Book Call, and every
+  moving picture over a still. Its header, sheet and footer are every page's.
   """
 
   use TechtreeWeb.ConnCase, async: false
@@ -11,273 +12,182 @@ defmodule TechtreeWeb.HomeLiveTest do
 
   alias Techtree.Catalog.Importer
   alias Techtree.CatalogFixture
-  alias Techtree.NetworkFixture
-  alias TechtreeWeb.HomeLive
-  alias TechtreeWeb.SiteMenu
+  alias Techtree.Train.Comparisons
+  alias TechtreeWeb.Services
+  alias TechtreeWeb.TrainCopy
 
-  describe "with a release published" do
-    setup do
-      CatalogFixture.use_bundle(CatalogFixture.root())
-      Importer.import!(CatalogFixture.root())
-      :ok
-    end
+  @booking "https://calendar.example/techtree"
 
-    test "the opening has the one page heading, one Start and the agent's instruction",
-         %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/")
-      document = LazyHTML.from_document(html)
-
-      assert ["Techtree"] = for(h1 <- LazyHTML.query(document, "h1"), do: trim(h1))
-      assert has_element?(live, "#hero h1#hero-title")
-      assert has_element?(live, ~s|#hero-display[phx-update="ignore"]|)
-      assert hrefs(document, "#hero .rg-button--primary") == ["/start"]
-      assert copied_text(html, "copy-home-agent-line") == HomeLive.agent_line()
-
-      # With nothing published there is no Result to turn through.
-      refute has_element?(live, "#hero-results")
-    end
-
-    test "Evaluate & Climb is the core: its statement, the first Measure item and the first menu entry",
-         %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/")
-      document = LazyHTML.from_document(html)
-
-      assert has_element?(live, "#evaluate h2#evaluate-title", "Evaluate & Climb")
-
-      assert [first | _rest] = Enum.to_list(LazyHTML.query(document, "#measure details"))
-      assert attribute(first, "open") != nil
-      assert first |> LazyHTML.query("summary h3") |> trim() == "Evaluate & Climb"
-      assert "/start" in hrefs(first, "a")
-
-      [entry | _rest] = Enum.to_list(LazyHTML.query(document, "#menu-products .menu-page"))
-      assert attribute(entry, "href") == "/start"
-      assert entry |> LazyHTML.query(".menu-page__name") |> trim() == "Evaluate & Climb"
-    end
-
-    test "SkillEvaluator is credited with a link, and its checks are marked Soon", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/")
-      document = LazyHTML.from_document(html)
-      skill_evaluator = "https://github.com/NVIDIA/SkillEvaluator"
-
-      for place <- ["#hero", "#evaluate", "#measure", "#stack"] do
-        assert skill_evaluator in hrefs(document, "#{place} a"),
-               "#{place} leaves out SkillEvaluator's link"
-      end
-
-      soon =
-        for card <- LazyHTML.query(document, "#evaluate .mk-card"),
-            into: %{},
-            do:
-              {card |> LazyHTML.query("h4") |> trim(),
-               Enum.any?(LazyHTML.query(card, ".mk-soon"))}
-
-      assert %{"Validate" => true, "Deduplicate" => true, "Live run" => false} = soon
-      assert has_element?(live, ~s|#stack-list a[href="#{skill_evaluator}"] .mk-soon|)
-    end
-
-    test "the Stack shows each maker's logo over that maker's projects, and no logo elsewhere",
-         %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
-      document = LazyHTML.from_document(html)
-
-      makers =
-        for maker <- LazyHTML.query(document, "#stack-list > li.mk-maker") do
-          logo = LazyHTML.query(maker, "h3 > img")
-          tiles = Enum.map(LazyHTML.query(maker, "a.mk-tile"), &stack_tile/1)
-          {attribute(logo, "alt"), attribute(logo, "src"), tiles}
-        end
-
-      expected =
-        for projects <- Enum.chunk_by(SiteMenu.stack().pages, & &1.by) do
-          tiles = for page <- projects, do: {page.href, page.by, page.name}
-          {String.trim_trailing(hd(projects).by, "’s"), tiles}
-        end
-
-      assert for({name, _src, tiles} <- makers, do: {name, tiles}) == expected
-      assert Enum.map(makers, &elem(&1, 0)) == ["Prime Intellect", "NVIDIA", "Nous Research"]
-      assert Enum.all?(makers, fn {_name, src, _tiles} -> src =~ ~r|\A/images/built-on/| end)
-      assert Enum.all?(SiteMenu.stack().pages, &String.starts_with?(&1.href, "https://"))
-
-      assert Enum.count(LazyHTML.query(document, "img[src*='/images/built-on/']")) ==
-               length(makers)
-
-      assert hrefs(document, "#stack-list a.mk-tile--path") == ["#onramp"]
-    end
-
-    test "the On-ramp runs from your work through Techtree to Prime Intellect", %{conn: conn} do
-      {:ok, live, html} = live(conn, ~p"/")
-      document = LazyHTML.from_document(html)
-
-      assert has_element?(live, "#onramp.mk-dark h2#onramp-title")
-
-      assert for(
-               stop <- LazyHTML.query(document, "#onramp-path > li"),
-               do: stop |> LazyHTML.query("h3") |> trim()
-             ) ==
-               ["Your work", "Techtree", "Prime Intellect"]
-
-      # A link into each stop after the first, drawn and never read aloud.
-      assert [_, _] =
-               Enum.to_list(
-                 LazyHTML.query(document, ~s|#onramp-path [data-link][aria-hidden="true"]|)
-               )
-
-      assert [] =
-               Enum.to_list(LazyHTML.query(document, "#onramp-path > li:first-child [data-link]"))
-
-      # Techtree's mark, square by square, in the middle stop.
-      for part <- ["data-outline", "data-block"] do
-        assert length(
-                 Enum.to_list(LazyHTML.query(document, ".mk-path__stop--techtree [#{part}]"))
-               ) == 13
-      end
-
-      assert "https://www.primeintellect.ai/" in hrefs(document, "#onramp-path a")
-      assert "mailto:build@regents.sh" in hrefs(document, "#onramp a")
-    end
-
-    test "each product group opens one item at a time and pictures the open one", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
-      document = LazyHTML.from_document(html)
-
-      for group <- ["measure", "prove", "build"] do
-        items = Enum.to_list(LazyHTML.query(document, "##{group} details.mk-item"))
-        assert length(items) > 1
-        assert Enum.all?(items, &(attribute(&1, "name") == group))
-        assert [open] = Enum.filter(items, &attribute(&1, "open"))
-
-        [picture] = Enum.to_list(LazyHTML.query(document, "##{group}-picture"))
-        assert attribute(picture, "data-field-shape") == attribute(open, "data-shape")
-      end
-    end
-
-    test "every moving picture is hidden from screen readers and drawn over a still", %{
-      conn: conn
-    } do
-      {:ok, _live, html} = live(conn, ~p"/")
-      document = LazyHTML.from_document(html)
-      fields = Enum.to_list(LazyHTML.query(document, ".mk-field"))
-
-      assert length(fields) >= 7
-
-      for field <- fields do
-        id = attribute(field, "id")
-        assert attribute(field, "aria-hidden") == "true", "#{id} is read aloud"
-        assert [_still] = Enum.to_list(LazyHTML.query(field, ".mk-field__still"))
-        assert [_canvas] = Enum.to_list(LazyHTML.query(field, "canvas##{id}-canvas"))
-      end
-    end
-
-    test "the newest news leads to its changelog day or its post", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
-      cards = html |> LazyHTML.from_document() |> hrefs("#news .mk-news__card")
-
-      assert length(cards) in 1..3
-
-      assert Enum.all?(cards, fn href ->
-               String.starts_with?(href, "/changelog#blog-section-website-") or
-                 String.starts_with?(href, "/blog/")
-             end)
-    end
-
-    @tag :tmp_dir
-    test "the command line is one copyable release-derived block", %{conn: conn, tmp_dir: tmp_dir} do
-      bundle = CatalogFixture.copy!(tmp_dir)
-      CatalogFixture.rewrite_bootstrap!(bundle, &CatalogFixture.concrete_release/1)
-      CatalogFixture.use_bundle(bundle)
-      Importer.import!(bundle)
-
-      {:ok, live, html} = live(conn, ~p"/")
-      release = TechtreeWeb.ReleaseInfo.current()
-
-      expected =
-        Enum.join(release.install_argv, " ") <>
-          "\n" <>
-          "regents techtree forge inspect-skill path/to/your-skill"
-
-      assert has_element?(live, "#agents-cli #copy-home-cli")
-      assert copied_text(html, "copy-home-cli") == expected
-    end
-
-    test "the page invents no activity, no checking and no relationship", %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/")
-      text = String.downcase(html)
-
-      for fabrication <- [
-            "participants so far",
-            "runs completed",
-            "leaderboard",
-            "trending",
-            "join thousands",
-            "independently verified",
-            "verified by techtree",
-            "partner",
-            "official",
-            "endorsed",
-            "certified",
-            "in collaboration with"
-          ] do
-        refute text =~ fabrication
-      end
-
-      refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)\b/i
-      refute html =~ ~r/\+\d+(\.\d+)?%/
-    end
+  setup do
+    Application.put_env(:techtree, :book_call, @booking)
+    on_exit(fn -> Application.put_env(:techtree, :book_call, nil) end)
   end
 
-  describe "with a Result published" do
-    setup do
-      CatalogFixture.use_bundle(CatalogFixture.root())
-      Importer.import!(CatalogFixture.root())
-      keys = NetworkFixture.key_pair()
-      files = NetworkFixture.resign(NetworkFixture.scored(), keys: keys)
-      {:ok, entry, :recorded} = NetworkFixture.publish(NetworkFixture.submission(files))
-      {:ok, entry: entry, keys: keys}
-    end
+  test "the opening has the one page heading, Book Call first and the services next",
+       %{conn: conn} do
+    {:ok, live, html} = live(conn, ~p"/")
+    document = LazyHTML.from_document(html)
 
-    test "the newest Result sits in the middle of the opening, with its figures and how sure it is",
-         %{conn: conn, entry: entry} do
-      {:ok, live, html} = live(conn, ~p"/")
-      card = ~s|#hero-newest-result[data-carousel-card][data-slot="centre"]|
-      verdict = entry.assessment |> Techtree.Network.Verdict.of() |> Atom.to_string()
+    assert [_one] = Enum.to_list(LazyHTML.query(document, "h1"))
+    assert has_element?(live, ~s|#hero-title[phx-update="ignore"]|)
+
+    assert hrefs(document, "#hero .rg-button") == [@booking, "#services"]
+    assert hrefs(document, "#hero .rg-button--primary[target=_blank]") == [@booking]
+    assert hrefs(document, "#begin .rg-button") == [@booking, "mailto:build@regents.sh"]
+  end
+
+  test "each service card leads to its page and carries its price level", %{conn: conn} do
+    {:ok, live, html} = live(conn, ~p"/")
+    document = LazyHTML.from_document(html)
+
+    cards =
+      for card <- LazyHTML.query(document, "#services-list > li.mk-service") do
+        {attribute(card, "id"), hrefs(card, "a")}
+      end
+
+    assert cards ==
+             for(
+               service <- Services.all(),
+               do: {"service-#{service.id}", [Services.path(service.id)]}
+             )
+
+    for service <- Services.all() do
+      card = "#service-#{service.id}"
 
       assert has_element?(
                live,
-               ~s|#{card} .mk-result__link[href="/results/#{entry.bundle_digest}"]|,
-               "Hello World Skill vs baseline"
+               ~s|#{card} [role="img"][aria-label="Price level #{service.price} of 4"]|
              )
 
-      assert has_element?(live, "#{card} .verdict--#{verdict}")
-      assert has_element?(live, card, "1 run")
+      assert has_element?(live, ~s|#{card} .mk-price__marks[aria-hidden="true"]|)
 
-      figures =
-        for figure <- LazyHTML.query(LazyHTML.from_document(html), "#{card} [data-figure]"),
-            do: trim(figure)
-
-      assert figures == Enum.map([entry.wins, entry.ties, entry.losses], &to_string/1)
-
-      # One Result does not turn: no dots and no Pause.
-      refute has_element?(live, "#hero-results button")
-      assert has_element?(live, ~s|#figures a[href="/results"] [data-tally]|, "1")
+      marks = Enum.to_list(LazyHTML.query(document, "#{card} .mk-price__mark"))
+      filled = Enum.to_list(LazyHTML.query(document, "#{card} .mk-price__mark--on"))
+      assert {length(marks), length(filled)} == {4, service.price}
     end
 
-    test "a withdrawn Result leaves the count of published Results",
-         %{conn: conn, entry: entry, keys: keys} do
-      {:ok, _marked, :recorded} =
-        NetworkFixture.withdraw(NetworkFixture.withdrawal(entry.bundle_digest, keys))
+    assert Enum.map(Services.all(), & &1.price) == [1, 2, 3, 4]
+    refute has_element?(live, "#service-security")
+  end
 
-      {:ok, live, _html} = live(conn, ~p"/")
+  test "the case study shows the published Skill comparison's own figures, its page and how to check it",
+       %{conn: conn} do
+    comparison = Enum.find(Comparisons.list(), &(&1.change == :skill))
+    [without, with] = comparison.arms
+    tasks = comparison.environment.task_count
 
-      refute has_element?(live, ~s|#figures a[href="/results"]|)
+    {:ok, _live, html} = live(conn, ~p"/")
+    document = LazyHTML.from_document(html)
+
+    figures = for dd <- LazyHTML.query(document, "#case-study-figures dd"), do: trim(dd)
+
+    assert figures == [
+             TrainCopy.percent(without.mean_reward),
+             TrainCopy.percent(with.mean_reward),
+             "#{comparison.paired.wins} of #{tasks}",
+             "#{with.solved} of #{tasks}"
+           ]
+
+    assert hrefs(document, "#case-study a") == [
+             "/train/#{comparison.slug}",
+             "/docs/verify#blog-section-skill-comparisons"
+           ]
+  end
+
+  test "the credits show each maker's logo over its projects, and no logo elsewhere",
+       %{conn: conn} do
+    {:ok, _live, html} = live(conn, ~p"/")
+    document = LazyHTML.from_document(html)
+
+    makers =
+      for maker <- LazyHTML.query(document, "#stack-list > li.mk-maker") do
+        logo = LazyHTML.query(maker, "h3 > img")
+        {attribute(logo, "alt"), attribute(logo, "src"), hrefs(maker, ".mk-maker__projects a")}
+      end
+
+    assert Enum.map(makers, &elem(&1, 0)) == ["Prime Intellect", "NVIDIA", "Nous Research"]
+    assert Enum.all?(makers, fn {_name, src, _links} -> src =~ ~r|\A/images/built-on/| end)
+
+    assert Enum.all?(makers, fn {_name, _src, links} ->
+             links != [] and Enum.all?(links, &String.starts_with?(&1, "https://"))
+           end)
+
+    assert Enum.count(LazyHTML.query(document, "img[src*='/images/built-on/']")) == 3
+
+    for path <- [~p"/services/skills", ~p"/results", ~p"/docs", ~p"/about"] do
+      refute conn |> get(path) |> html_response(200) =~ "/images/built-on/",
+             "#{path} shows a maker's logo"
     end
   end
 
-  test "the landing page needs no catalog to render", %{conn: conn} do
-    {:ok, live, html} = live(conn, ~p"/")
+  test "every moving picture is hidden from screen readers and drawn over a still", %{
+    conn: conn
+  } do
+    {:ok, _live, html} = live(conn, ~p"/")
+    document = LazyHTML.from_document(html)
+    fields = Enum.to_list(LazyHTML.query(document, ".mk-field"))
 
-    assert visible_text(html) =~ HomeLive.agent_line()
-    refute html =~ "copy-home-cli"
-    refute has_element?(live, "#hero-results")
+    assert length(fields) == 6
+
+    for field <- fields do
+      id = attribute(field, "id")
+      assert attribute(field, "aria-hidden") == "true", "#{id} is read aloud"
+      assert [_still] = Enum.to_list(LazyHTML.query(field, ".mk-field__still"))
+      assert [_canvas] = Enum.to_list(LazyHTML.query(field, "canvas##{id}-canvas"))
+    end
+  end
+
+  test "the page invents no activity, no checking and no relationship", %{conn: conn} do
+    {:ok, _live, html} = live(conn, ~p"/")
+    text = String.downcase(html)
+
+    for fabrication <- [
+          "participants so far",
+          "leaderboard",
+          "trending",
+          "join thousands",
+          "independently verified",
+          "verified by techtree",
+          "partner",
+          "official",
+          "endorsed",
+          "certified",
+          "in collaboration with",
+          "perfected",
+          "affordable"
+        ] do
+      refute text =~ fabrication
+    end
+
+    refute html =~ ~r/\d+\s+(participants|teams|runs|submissions)\b/i
+    refute html =~ ~r/\+\d+(\.\d+)?%/
+    # A price level, never a figure.
+    refute html =~ ~r/\$\s*\d/
+  end
+
+  test "its Markdown has the same services, each with its page and price level", %{conn: conn} do
+    markdown =
+      conn
+      |> put_req_header("accept", "text/markdown")
+      |> get(~p"/")
+      |> response(200)
+
+    for service <- Services.all() do
+      assert markdown =~
+               "[#{service.name}](#{Services.path(service.id)}): #{service.promise} " <>
+                 "Price level: #{service.price} of 4."
+    end
+
+    assert markdown =~ "[Security](/services/security)"
+    assert markdown =~ "[Book a call](#{@booking})"
+    refute markdown =~ ~r/\$\s*\d/
+  end
+
+  test "the landing page needs no catalog to render", %{conn: conn} do
+    {:ok, live, _html} = live(conn, ~p"/")
+
+    assert has_element?(live, "#services-list")
+    assert has_element?(live, "#case-study")
   end
 
   test "the project source link does not depend on a published release", %{conn: conn} do
@@ -289,7 +199,6 @@ defmodule TechtreeWeb.HomeLiveTest do
     assert html =~
              ~s|class="masthead__github" href="https://github.com/regents-ai/techtree" target="_blank"|
 
-    assert html =~ "Star on GitHub"
     refute html =~ "masthead__github-mark"
   end
 
@@ -326,53 +235,46 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute html =~ ~s|<a class="masthead__name" data-phx-link|
   end
 
-  test "every page carries the same three menus, the same Menu sheet and the same footer",
+  test "every page carries the same Services menu, links, Menu sheet and footer",
        %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
-    stack = for page <- SiteMenu.stack().pages, do: page.href
+
+    services =
+      for service <- Services.all() ++ [Services.security()], do: Services.path(service.id)
 
     for path <- [
           ~p"/",
           ~p"/docs",
+          ~p"/docs/run-locally",
           ~p"/results",
-          ~p"/verify",
-          ~p"/start",
+          ~p"/services/evals",
+          ~p"/services/security",
           ~p"/climbs/hello-world-climb"
         ] do
-      {:ok, live, html} = live(conn, path)
+      # Read as rendered: the service pages read the sign-in from the socket's
+      # connect info, which the LiveView test harness does not carry.
+      html = conn |> get(path) |> html_response(200)
       document = LazyHTML.from_document(html)
 
-      # Each menu's button opens its own panel.
+      # The one menu's button opens its own panel: the four services, then Security.
       assert for(
                trigger <- LazyHTML.query(document, ".masthead__trigger"),
                do: {trim(trigger), attribute(trigger, "popovertarget")}
-             ) == [
-               {"Products", "menu-products"},
-               {"Agents", "menu-agents"},
-               {"Resources", "menu-resources"}
+             ) == [{"Services", "menu-services"}]
+
+      assert [_one] = Enum.to_list(LazyHTML.query(document, "#menu-services[popover]"))
+      assert hrefs(document, "#menu-services a") == services
+
+      assert hrefs(document, "#menu-services .menu-columns__column--also a") == [
+               "/services/security"
              ]
 
-      for panel <- ["menu-products", "menu-agents", "menu-resources"] do
-        assert [_one] = Enum.to_list(LazyHTML.query(document, "##{panel}[popover]"))
-      end
-
-      menus = hrefs(document, "[data-mega] a")
-
-      for page <- ~w(/start /results /wallet-bench /train /verify /formal /repo2rlenv
-                     /services/verify /services/cyber-assist /services/watchdog /agents
-                     /agents.md /llms.txt /docs/api /docs /changelog /blog /about) do
-        assert page in menus, "#{path}: the menus leave out #{page}"
-      end
-
-      # Resources ends with the Stack, each entry naming whose project it is.
-      assert hrefs(document, "#menu-resources .menu-columns__column:last-child a") == stack
-
-      assert length(Enum.to_list(LazyHTML.query(document, "#menu-resources .menu-page__by"))) ==
-               length(stack)
+      assert hrefs(document, ".masthead__link") == ["/results", "/docs"]
 
       # Below a wide screen, Menu opens the same pages in one sheet; the footer lists them too.
-      assert hrefs(document, "#site-menu .menu-columns a") == menus
+      assert hrefs(document, "#site-menu .menu-columns a") == services
+      assert hrefs(document, "#site-menu .sheet__link") == ["/results", "/docs"]
 
       assert attribute(
                Enum.at(LazyHTML.query(document, ".masthead__menu-button"), 0),
@@ -380,50 +282,49 @@ defmodule TechtreeWeb.HomeLiveTest do
              ) == "site-menu"
 
       footer = hrefs(document, ".regent-footer__columns a")
-      assert Enum.all?(menus, &(&1 in footer))
-      assert hrefs(document, ~s|ul[aria-labelledby="footer-stack"] a|) == stack
+
+      assert Enum.all?(
+               services ++ ["/results", "/docs", "/docs/run-locally", "/about"],
+               &(&1 in footer)
+             )
+
       assert hrefs(document, ".regent-footer__legal a") == ["/privacy", "/terms"]
 
-      current = hrefs(document, "[data-mega] a[aria-current=page]")
-      if path in [~p"/start", ~p"/docs", ~p"/results", ~p"/verify"], do: assert(current == [path])
-      if path == ~p"/climbs/hello-world-climb", do: assert(current == [])
+      current = hrefs(document, ".masthead__nav a[aria-current=page]")
+
+      case path do
+        "/" -> assert current == []
+        "/climbs/hello-world-climb" -> assert current == []
+        "/docs/run-locally" -> assert current == ["/docs"]
+        _page -> assert current == [path]
+      end
 
       # Signed out, the header carries the one theme switch, a real switch.
       assert [_one] = Regex.scan(~r/<button[^>]*role="switch"[^>]*aria-label="Light theme"/, html)
       assert html =~ ~r|<div id="site-theme-switch"[^>]*phx-hook="ThemeSwitch"|
-      assert has_element?(live, "main")
 
       assert html =~
                ~r|<a class="skip-link" href="#main-content">\s*Skip to main content\s*</a>|
 
-      assert has_element?(live, "main#main-content")
-      assert has_element?(live, "footer.regent-footer")
+      assert [_one] = Enum.to_list(LazyHTML.query(document, "main#main-content"))
+      assert [_one] = Enum.to_list(LazyHTML.query(document, "footer.regent-footer"))
       refute html =~ ~s|>Sign in<|
     end
   end
 
   test "Book Call shows in the header and its Menu only when a booking page is set", %{conn: conn} do
-    address = "https://calendar.example/techtree"
     docs = fn -> conn |> get(~p"/docs") |> html_response(200) end
 
-    refute docs.() =~ "Book Call"
-
-    Application.put_env(:techtree, :book_call, address)
-    on_exit(fn -> Application.put_env(:techtree, :book_call, nil) end)
-
     document = LazyHTML.from_document(docs.())
-    assert hrefs(document, ".masthead__book[target=_blank]") == [address]
-    assert hrefs(document, "#site-menu .sheet__end a.rg-button") == [address]
+    assert hrefs(document, ".masthead__book[target=_blank]") == [@booking]
+    assert hrefs(document, "#site-menu .sheet__end a.rg-button") == [@booking]
+
+    Application.put_env(:techtree, :book_call, nil)
+    refute docs.() =~ "Book Call"
   end
 
   defp hrefs(document, selector) do
     for link <- LazyHTML.query(document, selector), do: attribute(link, "href")
-  end
-
-  # A Stack tile as its address, whose project it is and its name, without Soon.
-  defp stack_tile(tile) do
-    name = tile |> LazyHTML.query(".mk-tile__name") |> trim() |> String.replace(~r/\s*Soon$/, "")
-    {attribute(tile, "href"), tile |> LazyHTML.query(".mk-tile__by") |> trim(), name}
   end
 
   defp attribute(node, name), do: node |> LazyHTML.attribute(name) |> List.first()

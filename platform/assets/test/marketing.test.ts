@@ -1,27 +1,9 @@
-// The home page's motion kit (js/marketing): where each Result card sits as the
-// carousel turns, how a figure is read and written again as it counts, and what
-// every moving picture sends its shader.
+// The marketing pages' motion kit (js/marketing): how a figure is read and
+// written again as it counts, and what every moving picture sends its shader.
 import {prepareShader} from "@vgpu/wgsl/prepare"
 import {describe, expect, it} from "vitest"
-import {slotOf} from "../js/marketing/carousel"
 import {SCENES, SHAPES, linear, shaderFor, uniforms} from "../js/marketing/scenes"
 import {reading, written} from "../js/marketing/tally"
-
-describe("the carousel's places", () => {
-  it("puts exactly one card in the middle and its neighbours either side, for any count and turn", () => {
-    for (const count of [2, 3, 4, 7]) {
-      for (let current = 0; current < count; current += 1) {
-        const slots = Array.from({length: count}, (_, index) => slotOf(index, current, count))
-        expect(slots[current]).toBe("centre")
-        expect(slots.filter(slot => slot === "centre")).toHaveLength(1)
-        expect(slots[(current + 1) % count]).toBe("next")
-        if (count > 2) expect(slots[(current - 1 + count) % count]).toBe("prev")
-        expect(slots.filter(slot => slot === "next")).toHaveLength(1)
-        expect(slots.filter(slot => slot === "prev")).toHaveLength(count > 2 ? 1 : 0)
-      }
-    }
-  })
-})
 
 describe("a figure counting up", () => {
   it("reads the number, its decimals and its grouping from the text", () => {

@@ -22,7 +22,6 @@ import {installAgentMessage} from "./agent_message"
 import {mountPageCopyButton, type CopyHook} from "./copy_feedback"
 import {installCopyButtons} from "./copy_buttons"
 import {ThemeSwitch} from "./hooks/theme_switch"
-import {ValueCard} from "./hooks/value_card"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionRefusal} from "./hooks/motion/moments"
@@ -58,9 +57,7 @@ const labHooks = document.querySelector("main.motion-lab")
 const Hooks: Record<string, object> = {
   MotionList,
   ThemeSwitch,
-  // The home page's product cards.
-  ValueCard,
-  // The home page's moving pictures, Results, figures and loops.
+  // The marketing pages' moving pictures, rows that rise in and figures that count up.
   ...marketingHooks,
   ...labHooks,
 }

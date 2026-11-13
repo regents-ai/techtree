@@ -1,18 +1,12 @@
 /**
- * Figures that count up to the number the server wrote: the hero's Result
- * figures each time a card comes to the middle (`carousel.ts`), and the proof
- * band's counts the first time they scroll into view (`MarketingTally`). The
- * figure keeps its width while it counts, so nothing beside it moves, and ends
- * on exactly the text it started with.
+ * Figures that count up to the number the server wrote, the first time they
+ * scroll into view (`MarketingTally`): the home page's case study. The figure
+ * keeps its width while it counts, so nothing beside it moves, and ends on
+ * exactly the text it started with.
  */
-import {animate, createScope, type JSAnimation, type Scope} from "animejs"
+import {animate, createScope, type Scope} from "animejs"
 import {onFirstSight} from "../hooks/motion/reveals"
 import {EASE_OUT, still} from "../hooks/motion/shared"
-
-// The text each figure was drawn with, kept from its first count, and the count
-// still running on it.
-const finals = new WeakMap<HTMLElement, string>()
-const running = new WeakMap<HTMLElement, JSAnimation>()
 
 /** The number in a figure's text, how many decimals it shows, and whether it groups thousands. */
 export const reading = (text: string) => {
@@ -36,19 +30,16 @@ export const written = (text: string, value: number) => {
   return text.replace(read.written, number)
 }
 
-export function countUp(figure: HTMLElement, duration: number) {
-  running.get(figure)?.cancel()
-  const text = finals.get(figure) ?? figure.textContent ?? ""
-  finals.set(figure, text)
+function countUp(figure: HTMLElement, duration: number) {
+  const text = figure.textContent ?? ""
   const read = reading(text)
   if (!read) return
 
-  figure.textContent = text
   figure.style.minWidth = `${figure.getBoundingClientRect().width}px`
   const count = {value: 0}
   const write = () => { figure.textContent = written(text, count.value) }
   write()
-  running.set(figure, animate(count, {
+  animate(count, {
     value: read.value,
     duration,
     ease: EASE_OUT,
@@ -56,9 +47,8 @@ export function countUp(figure: HTMLElement, duration: number) {
     onComplete: () => {
       figure.textContent = text
       figure.style.minWidth = ""
-      running.delete(figure)
     },
-  }))
+  })
 }
 
 type TallyHook = {el: HTMLElement; scope?: Scope}

@@ -1,25 +1,22 @@
 /**
- * The home page arriving: the hero's parts as the page opens, and each
- * section's heading the first time it scrolls into view. Nothing is hidden
+ * A marketing page arriving: its opening band's parts as the page opens, and
+ * each row of tiles the first time it scrolls into view. Nothing is hidden
  * before it moves, so a visitor who asked for less motion, or whose script
  * never ran, sees the whole page as the server drew it.
  */
 import {createScope, splitText, stagger, type Scope} from "animejs"
 import {onFirstSight} from "../hooks/motion/reveals"
-import {CLIPPED_WORD, EASE_OUT, SLOW, play, still} from "../hooks/motion/shared"
+import {CLIPPED_WORD, EASE_OUT, play, still} from "../hooks/motion/shared"
 
 /**
- * The hero as the page opens: the news line drops in, the headline's words
- * rise one after another, then the rest settles in below it. It runs on the
- * page as the server sent it, before the live connection joins, so its
- * headline is `phx-update="ignore"`: the join leaves the risen words alone.
+ * The opening band as the page opens: the headline's words rise one after
+ * another, then the rest settles in below it. It runs on the page as the
+ * server sent it, before the live connection joins, so its headline is
+ * `phx-update="ignore"`: the join leaves the risen words alone.
  */
 export function mountEntrance(doc: Document) {
   const hero = doc.querySelector<HTMLElement>("[data-entrance]")
   if (hero === null || still(hero)) return
-
-  const news = hero.querySelector("[data-entrance-news]")
-  if (news) play(news, {opacity: {from: 0}, y: {from: -8}, duration: SLOW, ease: EASE_OUT})
 
   const display = hero.querySelector<HTMLElement>("[data-entrance-display]")
   if (display) {
@@ -32,29 +29,7 @@ export function mountEntrance(doc: Document) {
   if (parts.length) play(parts, {opacity: {from: 0}, y: {from: 12}, delay: stagger(90, {start: 380}), duration: 560, ease: EASE_OUT})
 }
 
-type RiseHook = {el: HTMLElement; scope?: Scope}
-
-/**
- * A section heading whose words rise into place the first time it scrolls
- * into view. The heading is `phx-update="ignore"`, so the page never redraws
- * it while its words are apart.
- */
-export const MarketingRise = {
-  mounted(this: RiseHook) {
-    const heading = this.el
-    const scope = createScope({root: heading})
-    this.scope = scope.add(() =>
-      onFirstSight(heading, () => {
-        if (still(heading)) return
-        const split = splitText(heading, {words: CLIPPED_WORD})
-        play(split.words, {y: ["100%", "0%"], delay: stagger(60), duration: 560, ease: EASE_OUT})
-          .then(() => split.revert())
-      }))
-  },
-  destroyed(this: RiseHook) {
-    this.scope?.revert()
-  },
-}
+type StaggerHook = {el: HTMLElement; scope?: Scope}
 
 /**
  * A row of tiles (`data-stagger`) that rise in one after another, from the
@@ -62,7 +37,7 @@ export const MarketingRise = {
  * `phx-update="ignore"`, so the page never redraws a tile while it moves.
  */
 export const MarketingStagger = {
-  mounted(this: RiseHook) {
+  mounted(this: StaggerHook) {
     const row = this.el
     const scope = createScope({root: row})
     this.scope = scope.add(() =>
@@ -72,7 +47,7 @@ export const MarketingStagger = {
         play(tiles, {opacity: {from: 0}, y: {from: 18}, delay: stagger(55, {from: "center"}), duration: 620, ease: EASE_OUT})
       }))
   },
-  destroyed(this: RiseHook) {
+  destroyed(this: StaggerHook) {
     this.scope?.revert()
   },
 }
