@@ -1,135 +1,186 @@
 # Techtree
 
-**Better agents for your business, with results you can measure.**
+**Better agents for your business.**
 
-Techtree is one shared build-and-test system behind four services: Skills,
-Evals, Environments and Models, with Security beside them. Each is a paid custom
-project around a customer's own workflow, built with off-the-shelf open-source
-libraries ([which one does which job](#services-and-their-libraries)), and each
-ends on a final test on cases the work never saw. The
-[services](https://techtree.sh/#services) are described on techtree.sh.
+Techtree is for a team that runs an agent workflow that matters and has no time to
+learn six new open-source systems. NVIDIA, Prime Intellect, Microsoft, Hugging Face
+and others now publish open tools for agent Skills, evals, environments and model
+training. We put those tools to work on your workflow in a small, bounded project,
+and every project ends on a final test on cases the work never saw.
 
-The same system is open to everyone. It starts with one controlled comparison:
-the same configured agent, the same tasks, and one changed Skill. Prime
-Intellect’s Verifiers evaluates both sides; Techtree packages the results into
-a signed bundle that others can check offline.
+Open-source tools. Paid custom projects.
 
-The working entry point today is testing one of your own Skills, with the
-Hello World Climb as the quick look. Published Results are public to read, and
-anyone can check a Result's bundle on their own computer.
+[Book a call](https://calendly.com/techtree/agent-env-intro) ·
+[build@regents.sh](mailto:build@regents.sh) · [techtree.sh](https://techtree.sh)
 
-[Run locally](https://techtree.sh/docs/run-locally) · [Results](https://techtree.sh/results) ·
-[Docs](https://techtree.sh/docs) · [Agent guide](https://techtree.sh/agents.md) ·
-[Techtree skill](https://techtree.sh/skill.md) ·
-[Changelog](https://techtree.sh/changelog) ·
-[Star on GitHub](https://github.com/regents-ai/techtree)
+## Role
 
-[![The Techtree homepage](docs/assets/techtree-home.png)](https://techtree.sh/)
+Techtree is an independent company. We help teams adopt what NVIDIA, Prime Intellect
+and others publish in the open, and we take on the smaller engagements: one Skill,
+one eval suite, one environment or one specialist model. When a team needs training
+at scale, we hand it an environment and an eval we have already checked, built to
+run on those makers' own tools. We have no agreement with any of these companies and
+do not speak for them.
 
-## What you can use today
+## Services
 
-The served release is the one the
-[bootstrap contract](https://techtree.sh/api/v1/bootstrap) names; the release
-table below lists every record. The current Climbs are Hello World, Frontier-CS
-Open-Ended and HF Tasksmith.
-Techtree's commands come from
-[regents-cli](https://github.com/regents-ai/regents-cli) as `regents techtree …`.
-Its main feature, from 0.3.0, is creating an environment from a Skill. Techtree
-looks at a Skill without running it, plans tasks from it with your approval,
-builds and checks them offline, and lets you accept them as a frozen
-collection you can run, verify and export for someone else. Comparing Skills
-on that collection stays optional. The commands are `regents techtree forge
-inspect-skill` through `regents techtree forge export`, from [regents-cli](https://github.com/regents-ai/regents-cli); the
-[0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
-[task set](docs/plan/v0.3.0-task-set.md) describe them. The active
-[bootstrap contract](https://techtree.sh/api/v1/bootstrap) remains the authority
-for installable CLI and plugin coordinates.
+Each service is a paid project around one of your workflows, quoted on a call.
 
-The served release also signs an agent's identity, pairs it with its person's
-account and reads that account. Points earning and money tests remain off.
+### Skills
 
-Before it, 0.2.1 brought the Hello World Climb and a first trial of building
-repair tasks from a repository. That trial is no longer offered.
+Bring an existing Skill, the agent and model that use it, and examples of work it got
+right and wrong. You receive the revised Skill, instructions to install it, and a
+report on success, cost and regressions.
+[How it works](factory/skills/README.md) · [techtree.sh](https://techtree.sh/services/skills)
 
-| Capability | Status | Where it lives |
+### Evals
+
+Bring a workflow, representative examples, the failures you already know about and
+your definition of success, or an eval you already have. You receive reviewed test
+cases, graders, baseline results, an analysis of the failures, and one command that
+reruns the suite.
+[How it works](factory/evals/README.md) · [techtree.sh](https://techtree.sh/services/evals)
+
+### Environments
+
+Bring a Skill, a repository or a description of your workflow and its tools, or an
+environment you already have. You receive a resettable environment with realistic
+tasks, their tools and fixtures, reference solutions, scoring, and entry points for
+evaluation and training.
+[How it works](factory/environments/README.md) · [techtree.sh](https://techtree.sh/services/environments)
+
+### Models
+
+Bring the one task you repeat, real inputs with the outputs you accepted, and what
+you run today with its cost. You receive a smaller model as a checkpoint or adapter,
+its training recipe, an evaluation package you can rerun, a deployment handover, and
+a comparison with your current model that includes the cost per successful task.
+[How it works](factory/models/README.md) · [techtree.sh](https://techtree.sh/services/models)
+
+### Security
+
+A one-off review of an application or agent integration, or a monthly watch on sites
+you own. [techtree.sh](https://techtree.sh/services/security)
+
+### Terms
+
+The four services are sold on the same terms:
+
+- Model and compute usage is billed separately, under a cap we agree first.
+- If you already have an eval or an environment, we reuse it. Missing foundations
+  are quoted separately.
+- You pay for the scoped work and its evidence. If the result shows no improvement,
+  you still receive it, with the reason.
+
+## Libraries
+
+These are the open-source projects behind the four services, grouped by maker. Each
+one is its maker's work. For each: what it does, why we chose it (from its own
+documentation), and what it gives you.
+
+| Library | Service | What it does | Why we chose it | What you get | Status |
+| --- | --- | --- | --- | --- | --- |
+| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | All four | Defines tasks, runs them and scores them. | One environment serves both evaluation and training, and it works with prime-rl and the Environments Hub. | The final test and any training share one task definition. | Runs here today |
+| Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Evals, Models | Runs supervised fine-tuning, reinforcement learning and evaluation. | It covers post-training end to end, reads Verifiers environments natively, and scales to 1000+ GPUs. | A training recipe you can run again at a larger scale. | Used in delivery |
+| Prime Intellect's [Environments Hub](https://app.primeintellect.ai/dashboard/environments) | Environments | Hosts Verifiers environments for others to install. | Verifiers and prime-rl both load environments from it. | Your environment, ready to publish at a pinned version if you choose to. | Runs here today |
+| NVIDIA's [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Skills | Checks a Skill and measures its effect on task results. | Its static check needs no API key, GPU or Docker, so problems show up before any paid run. | A Skill checked for safety and form, then measured with the agent. | Used in delivery |
+| NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env) | Environments | Turns an Agent Skill into terminal tasks. | Its tasks come out ready for reinforcement learning, in Harbor's task format. | Practice tasks drawn from your own Skill. | Runs here today |
+| NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw) | Models (optional) | Runs supported agents, Hermes among them, inside NVIDIA OpenShell sandboxes. | It adds network policy and egress control around the agent. | An agent that runs only under the rules you set. | Used in delivery |
+| NVIDIA's [NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Any (optional) | Records an agent's model calls, tool calls and turns during a run. | It wraps the calls without rewriting the agent, and exports trajectories or OpenTelemetry traces. | A record of what the agent did, kept as supporting evidence beside the score. | Used in delivery |
+| NVIDIA's [NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Any (optional) | Runs many agent harnesses through one interface. | It has adapters for 17 harnesses, Claude Code, Codex and Hermes Agent among them, with models, tools and Skills configured the same way. | Your own agent, tested under the same settings as the others. | Used in delivery |
+| NVIDIA's [Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/) | Models | A family of open models built for agents. | NVIDIA publishes the weights and the training data on Hugging Face. | A small open model you can host yourself. | Runs here today |
+| Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt) | Skills | Rewrites a Skill's instructions from scored attempts while the model stays fixed. | It keeps an edit only when the edit raises a held-out validation score. | A compact revised Skill document. | Used in delivery |
+| Hugging Face's [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Environments | Turns a repository into verifiable environments for coding agents. | It builds tasks from material that already exists: merged pull requests, commit history, security advisories and recorded agent sessions. | Practice tasks from your own code history. | Used in delivery |
+| Nous Research's [Hermes](https://github.com/NousResearch/hermes-agent) | Skills | An open agent that creates and improves Skills as it works. | Its Skills follow the agentskills.io open standard. | The agent every Climb evaluates, and the host the [plugin](plugin/) adds Techtree to. | Runs here today |
+| [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Evals, Environments | Evaluates agents in containers and generates rollouts for reinforcement learning. | One task format serves evaluation and training, for agents such as Claude Code, OpenHands and Codex CLI. | Tasks that need a working software environment, packaged so other tools can run them. | Used in delivery |
+| [OpenEnv](https://github.com/openenv/OpenEnv), from its technical committee | Environments | Builds isolated environments for agent reinforcement learning, with a Gymnasium-style interface. | Twelve organizations steer its interface together, NVIDIA, Prime Intellect and Hugging Face among them. | An OpenEnv environment you already have, reviewed for reuse instead of rebuilt. | Used in delivery |
+
+**Runs here today** means this repository, with the public
+[regents-cli](https://github.com/regents-ai/regents-cli) command line it installs,
+uses it now. **Used in delivery** means it is part of how a paid project is done and
+does not run from this repository.
+
+- Prime Intellect's Verifiers runs every Climb and the [`lab/`](lab/) comparison.
+- The Environments Hub supplies the HF Tasksmith Climb's environment, pinned by
+  digest.
+- The experimental `regents techtree forge` builder follows Skill2Env's task layout
+  and adapts its planning and building steps, pinned to one revision. Skill2Env's own
+  generator is used in delivery.
+- [`lab/`](lab/) compares NVIDIA Nemotron 3 Nano 4B without and with a Skill, and
+  writes a training settings file for Nemotron 3 Nano 30B-A3B in prime-rl's shape.
+  No training run starts from this repository.
+- The tasks `forge` builds follow Harbor's task format.
+
+## Method
+
+Every project follows one chain:
+
+1. You show us examples of the work: real inputs, accepted outputs and the failures
+   you know about.
+2. We agree in writing what success means before anything changes.
+3. We measure a baseline: what you run today, and a cheaper option where one exists.
+4. We make one bounded improvement: a Skill, an eval, an environment or a model.
+5. We run a final test on cases the work never saw, with everything else held fixed.
+6. You receive the deliverable, a report, and the command that reruns the test.
+
+Along the way we turn your workflow into tasks, environments, evals and reward
+signals, and we build each piece so your team can run, inspect and extend it. Every
+experimental choice goes in the report: the model and its settings, the cases held
+back, and every score.
+
+Three rules hold on every project:
+
+- We say whether a gain came from the change under test or from something else, such
+  as the data, the harness, inference settings or infrastructure. Everything except
+  the change is held fixed, so the comparison can tell them apart.
+- A result with no improvement is still delivered, with the reason.
+- Results from our own runs are a Techtree-run evaluation, not an independent audit.
+
+## Expect
+
+| Service | Outcome |
+| --- | --- |
+| Skills | A revised Skill, with a before and after on unseen cases that counts cost and regressions. Sometimes the finding is that the Skill was not the problem, and the report says what was. |
+| Evals | A suite that catches the failures you already know about and scores the same work the same way twice. A stricter suite can lower your pass rate, because it stops counting answers that only looked right. |
+| Environments | Resettable practice tasks whose tests accept good work and reject bad work, each checked against a reference solution and a deliberately wrong one. |
+| Models | A smaller specialist measured against what you run today, counting hosting, retries, response time and running cost, or a clear reason not to train. |
+
+The [published example](#results) below shows the shape of a result. One example is
+not a promise of the same gain on your work.
+
+## Results
+
+On 12 Nov 2026 Techtree ran NVIDIA Nemotron 3 Nano 4B on 64 held-out payment-terms
+tasks, once without a Skill and once with one, with the same settings: temperature 0,
+at most 512 tokens, no thinking. Each task asks for one JSON object, and every field
+is scored exactly. The run used Prime Intellect's Verifiers 0.4.1.
+
+| | Without the Skill | With the Skill |
 | --- | --- | --- |
-| Hello World Climb: a local Skill comparison with Hermes and Verifiers | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree climb`), [`plugin/`](plugin/) (`/techtree demo`) |
-| Signed result bundles and offline verification | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree proof verify`) |
-| Publishing a verified run, and public Results pages | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree publish`, `regents techtree withdraw`), [`platform/`](platform/) ([Results](https://techtree.sh/results)) |
-| Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Run locally](https://techtree.sh/docs/run-locally), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
-| Structured machine responses (`--json`) for agents and scripts | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) |
-| Create an environment from a Skill: inspect, plan, build, accept, run, verify, export | Experimental | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree forge inspect-skill` through `regents techtree forge export`) |
-| Browser tools for agents (WebMCP), listed at [/capabilities.json](https://techtree.sh/capabilities.json): public reads of the install guide, the Climbs and the Results; signed identity and account reads; and `techtree_publication`, which publishes or withdraws a signed Result | Available now | [`platform/`](platform/) |
-| An MCP connector for other agents | Planned | — |
-| Hosted environment building and hosted execution | Planned | — |
+| Average score (fields right) | 0% | 96% |
+| Tasks fully right | 0 of 64 | 34 of 64 |
 
-The active Run locally guide controls exact installation coordinates. Historical
-release documents can still name the old plugin repository or the `techtree`
-command; the plugin is developed in this monorepo’s `plugin/` directory and the
-command-line tool in regents-cli. Do not replace a pinned release
-coordinate with an arbitrary branch.
+The Skill scored higher on all 64 tasks, with a 95% interval of +95 to +97 points.
 
-## Release compatibility
+The Skill teaches the answer format these tasks are scored on, and it is the only
+thing that differs between the two sides. The result shows how well a small model
+follows a written Skill. It does not show a smarter model, a gain on other tasks or
+other models, or that anyone else has repeated the run.
 
-Each release record under [`platform/priv/releases/`](platform/priv/releases/)
-pins one CLI build, one Hermes plugin commit and one catalog. The values below
-are read from those records (`bootstrap.json`, `release-core.json`,
-`checksums.json`) and from `platform/priv/catalog/sources/`. From `climb-v0.4.0`
-the plugin is installed from this repository's `plugin/` folder; earlier
-records name commits of the archived `regents-ai/techtree-hermes`.
+- [The comparison's page](https://techtree.sh/train/payment-terms-nemotron-3-nano-4b-skill),
+  with every task, the settings, and the report and traces to download. All
+  published Results are at [techtree.sh/results](https://techtree.sh/results).
+- Check it offline: `shasum -a 256 payment-terms-nemotron-3-nano-4b-skill.traces.jsonl`
+  prints the traces digest the page shows. The report and traces are also in this
+  repository under [`platform/priv/train/`](platform/priv/train/), and
+  [Proof](https://techtree.sh/docs/verify) explains every digest.
+- Run it again on your own computer with [`lab/`](lab/README.md).
 
-| Release record | CLI on PyPI | CLI source revision | Hermes plugin commit | Catalog source revision | Catalog index | Host Hermes | Published to the stable channel |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| [`climb-v0.1.0`](platform/priv/releases/climb-v0.1.0/) | `techtree` 0.1.1 | `614daff` (former `regents-ai/techtree-python`) | `ca22ee7` | `614daff` | `sha256:10a7fcc5…` | 0.20.1 | 2026-08-20 |
-| [`climb-v0.2.0`](platform/priv/releases/climb-v0.2.0/) | `techtree` 0.2.0 | `70e75c7` (tag `v0.2.0`) | `4567937` | `70e75c7` | `sha256:4d216571…` | 0.20.1 | 2026-09-18 |
-| [`climb-v0.2.1`](platform/priv/releases/climb-v0.2.1/) | `techtree` 0.2.1 | `a1b9c05` (tag `v0.2.1`) | `d891b3b` | `a1b9c05` | `sha256:4d216571…` | 0.20.1 | 2026-09-21 |
-| [`climb-v0.3.0`](platform/priv/releases/climb-v0.3.0/) | `techtree` 0.3.0 | `74d87d3` (tag `v0.3.0`) | `e0765e6` | `74d87d3` | `sha256:4d216571…` | 0.21.3 | 2026-09-27 |
-| [`climb-v0.3.1`](platform/priv/releases/climb-v0.3.1/) | `regents-cli` 1.0.0 | `fdddd9f` (regents-cli tag `v1.0.0`) | `8f7831a` | `fdddd9f` | `sha256:9c20fb90…` | 0.21.3 | 2026-09-29 |
-| [`climb-v0.4.0`](platform/priv/releases/climb-v0.4.0/) | `regents-cli` 1.2.1 | `1b10a38` (regents-cli tag `v1.2.1`) | `149f4bf` (`plugin/`) | `1b10a38` | `sha256:0fd83a73…` | 0.21.3 | 2026-09-29 |
-| [`climb-v0.5.0`](platform/priv/releases/climb-v0.5.0/) | `regents-cli` 1.3.0 | `9bc532d` (regents-cli tag `v1.3.0`) | `c46a588` (`plugin/`) | `9bc532d` | `sha256:86f62d0f…` | 0.21.3 | 2026-09-30 |
-| [`climb-v0.5.1`](platform/priv/releases/climb-v0.5.1/) | `regents-cli` 1.3.1 | `4d9002a` (regents-cli tag `v1.3.1`) | `38957a4` (`plugin/`) | `4d9002a` | `sha256:86f62d0f…` | 0.21.3 | 2026-10-01 |
-| [`climb-v0.5.2`](platform/priv/releases/climb-v0.5.2/) | `regents-cli` 1.3.2 | `7a5ad0b` (regents-cli tag `v1.3.2`) | `4e93fc7` (`plugin/`) | `7a5ad0b` | `sha256:86f62d0f…` | 0.21.3 | 2026-10-01 |
-| [`climb-v0.5.3`](platform/priv/releases/climb-v0.5.3/) | `regents-cli` 1.3.3 | `7d5e82c` (regents-cli tag `v1.3.3`) | `9fc4622` (`plugin/`) | `7d5e82c` | `sha256:86f62d0f…` | 0.21.3 | 2026-10-01 |
-| [`climb-v0.5.4`](platform/priv/releases/climb-v0.5.4/) | `regents-cli` 1.3.4 | `158421c` (regents-cli tag `v1.3.4`) | `97475f1` (`plugin/`) | `158421c` | `sha256:86f62d0f…` | 0.21.3 | 2026-10-02 |
-| [`climb-v0.6.0`](platform/priv/releases/climb-v0.6.0/) | `regents-cli` 1.4.0 | `64b8b45` (regents-cli tag `v1.4.0`) | `826ae5a` (`plugin/`) | `64b8b45` | `sha256:836079f1…` | 0.21.3 | 2026-10-04 |
-| [`climb-v0.6.1`](platform/priv/releases/climb-v0.6.1/) | `regents-cli` 1.5.0 | `aa149a3` (regents-cli tag `v1.5.0`) | `e6ea3c5` (`plugin/`) | `aa149a3` | `sha256:836079f1…` | 0.21.3 | 2026-10-04 |
-| [`climb-v0.7.0`](platform/priv/releases/climb-v0.7.0/) | `regents-cli` 1.6.0 | `5b0926b` (regents-cli tag `v1.6.0`) | `58b86cb` (`plugin/`) | `5b0926b` | `sha256:2b81f26f…` | 0.21.3 | 2026-10-06 |
-| [`climb-v0.7.1`](platform/priv/releases/climb-v0.7.1/) | `regents-cli` 1.7.2 | `781ec97` (regents-cli tag `v1.7.2`) | `5d8e757` (`plugin/`) | `781ec97` | `sha256:2b81f26f…` | 0.21.3 | 2026-10-07 |
-| [`climb-v0.7.2`](platform/priv/releases/climb-v0.7.2/) | `regents-cli` 1.7.3 | `b1c9385` (regents-cli tag `v1.7.3`) | `6aee0dc` (`plugin/`) | `b1c9385` | `sha256:2b81f26f…` | 0.21.3 | 2026-10-08 |
-| [`climb-v0.7.3`](platform/priv/releases/climb-v0.7.3/) | `regents-cli` 1.10.2 | `1bc4817` (regents-cli tag `v1.10.2`) | `a469830` (`plugin/`) | `1bc4817` | `sha256:2b81f26f…` | 0.21.3 | 2026-10-13 |
-| [`climb-v0.7.16`](platform/priv/releases/climb-v0.7.16/) | `regents-cli` 1.10.15 | `3cc224d` (regents-cli tag `v1.10.15`) | `abb6804` (`plugin/`) | `3cc224d` | `sha256:2b81f26f…` | 0.21.3 | 2026-10-21 |
-| [`climb-v0.7.17`](platform/priv/releases/climb-v0.7.17/) | `regents-cli` 1.10.16 | `2c98218` (regents-cli tag `v1.10.16`) | `00ba176` (`plugin/`) | `2c98218` | `sha256:2b81f26f…` | 0.21.3 | 2026-10-23 |
-| [`climb-v0.7.18`](platform/priv/releases/climb-v0.7.18/) | `regents-cli` 1.10.17 | `773f8a6` (regents-cli tag `v1.10.17`) | `5ebe7d2` (`plugin/`) | `773f8a6` | `sha256:2b81f26f…` | 0.21.3 | 2026-10-23 |
-| [`climb-v0.7.20`](platform/priv/releases/climb-v0.7.20/) | `regents-cli` 1.10.19 | `02f8961` (regents-cli tag `v1.10.19`) | `c630e30` (`plugin/`) | `02f8961` | `sha256:b0ab3945…` | 0.21.3 | 2026-10-28 |
-| [`climb-v0.7.21`](platform/priv/releases/climb-v0.7.21/) | `regents-cli` 1.10.20 | `0e3768f` (regents-cli tag `v1.10.20`) | `91a4fd7` (`plugin/`) | `0e3768f` | `sha256:e0319bae…` | 0.21.3 | 2026-10-28 |
-| [`climb-v0.7.23`](platform/priv/releases/climb-v0.7.23/) | `regents-cli` 1.10.22 | `0b08d4a` (regents-cli tag `v1.10.22`) | `0bd9f4b` (`plugin/`) | `0b08d4a` | `sha256:e0319bae…` | 0.21.3 | 2026-11-02 |
-| [`climb-v0.7.24`](platform/priv/releases/climb-v0.7.24/) | `regents-cli` 1.10.23 | `8e8f2af` (regents-cli tag `v1.10.23`) | `56d1641` (`plugin/`) | `8e8f2af` | `sha256:e0319bae…` | 0.21.3 | 2026-11-04 |
-| [`climb-v0.7.25`](platform/priv/releases/climb-v0.7.25/) | `regents-cli` 1.10.24 | `fd32543` (regents-cli tag `v1.10.24`) | `31875a4` (`plugin/`) | `fd32543` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-06 |
-| [`climb-v0.7.26`](platform/priv/releases/climb-v0.7.26/) | `regents-cli` 1.10.25 | `8b3240b` (regents-cli tag `v1.10.25`) | `72cdb0f` (`plugin/`) | `8b3240b` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-12 |
-| [`climb-v0.7.27`](platform/priv/releases/climb-v0.7.27/) | `regents-cli` 1.10.26 | `2e4a571` (regents-cli tag `v1.10.26`) | `dcdcf07` (`plugin/`) | `2e4a571` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-13 |
+## Try it
 
-The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0`, Hermes
-v2026.7.20 from `climb-v0.3.1`, and Hermes v2026.9.24 with GPT-6 Luna at high
-reasoning from `climb-v0.5.0`, and each record names
-the Hello World Climb (`hello-world-climb@1`) as its introduction. From
-`climb-v0.4.0` a record also names the starter Skill of every Climb it
-publishes. The full
-40-character revisions and digests are in the records themselves.
-
-Host Hermes is the minimum Hermes version each published record accepts, and
-that published value is the one that applies.
-
-The site at techtree.sh serves one active release per channel; the live answer
-is always [`/api/v1/bootstrap`](https://techtree.sh/api/v1/bootstrap). The
-commit the site itself runs is `build.commit` at
-[`/capabilities.json`](https://techtree.sh/capabilities.json).
-
-The [changelog](CHANGELOG.md) lists what each release changed, and what the
-0.3.0 release does not yet show.
-
-## Start with Hello World
-
-Give your Hermes agent this instruction:
+The Hello World Climb runs the same agent on the same small tasks without a Skill and
+with a starter Skill, then shows the difference. It needs Hermes, Docker and a model
+provider. Give your Hermes agent this instruction:
 
 ```text
 Read https://techtree.sh/docs/run-locally and use the exact release it publishes.
@@ -139,10 +190,6 @@ Explain the prerequisites and ask before installing software. Run Techtree
 Doctor and prepare the Hello World Climb. Show the model provider and cost
 limit. Obtain approval before paid inference and separately before publishing.
 ```
-
-The guide supplies the CLI and plugin versions and runtime prerequisites.
-Doctor checks readiness before a run. Your everyday Hermes is the **operator**;
-the evaluated **subject** is a separate, pinned instance.
 
 ```text
 Fixed tasks + configured subject + evaluation limits
@@ -158,155 +205,64 @@ Fixed tasks + configured subject + evaluation limits
               Verify locally → optionally publish
 ```
 
-Hello World uses small synthetic tasks to demonstrate the mechanism. It is
-not a benchmark of general intelligence or production usefulness. A valid
-result can show improvement, a tie, or a regression.
+Your everyday Hermes is the operator; the agent under test is a separate, pinned
+instance. Hello World's tasks are synthetic, so a result there says nothing about
+your own Skill. A valid result can show improvement, a tie or a regression.
 
-Local execution and offline verification do not require a Techtree account.
-Model inference still requires the configured provider and may cost money.
-
-## What a result proves
-
-A result bundle contains **participant-attested evidence**. Verify a bundle
-someone has shared with you:
+Local runs and offline checks need no Techtree account. Model calls go to the
+provider you configure and may cost money there. Check a signed Result bundle without
+rerunning a model:
 
 ```sh
 regents techtree proof verify path/to/result-bundle
 ```
 
-Verification checks supplied files, signatures, configuration, task membership,
-and recorded aggregation without rerunning a model. A signature identifies the
-key attesting to the result. It does not establish an honest machine or an
-independent reproduction.
+The [Run locally guide](https://techtree.sh/docs/run-locally) has the full steps,
+including testing your own Skill. [Proof](docs/proof.md) says what a Result does and
+does not prove.
 
-Keep three questions separate: did the bytes verify, was the comparison valid,
-and did performance improve? A commitment to unavailable private evidence does
-not let a reader recompute that evidence. A good score on these tasks does not
-guarantee improvement elsewhere.
+## Agents
 
-<details>
-<summary>How a controlled comparison works</summary>
+- Working in this repository: [AGENTS.md](AGENTS.md).
+- Using Techtree: [techtree.sh/agents.md](https://techtree.sh/agents.md).
+- A short index of the site: [techtree.sh/llms.txt](https://techtree.sh/llms.txt).
 
-A **Skill** is reusable agent instruction. A **harness** controls context,
-tools, memory, and execution. An **environment** defines tasks and available
-actions; its **verifier** scores the outcome.
+## Repository
 
-A **Campaign** freezes the comparison configuration. A **Climb** is the
-invitation to participate under its rules. A Skill comparison holds the model
-coordinate, harness, task membership, scorer, tools, sampling, and limits fixed
-while changing the declared Skill. Equal limits do not require equal actual
-spend; both arms should report their observed usage.
-
-Identical Skill bytes do not guarantee identical exposure in different
-harnesses. Compare each harness with and without the Skill before attributing a
-cross-harness difference to the Skill.
-A mutable model alias is also weaker evidence than an immutable model build.
-
-</details>
-
-## Services and their libraries
-
-Techtree connects existing systems instead of building another evaluator,
-harness runtime, trajectory format, or trainer. Each service uses the
-open-source libraries below on a customer's project. They are their makers'
-work; Techtree uses them and is not affiliated with them. Status says what this
-repository's own commands run today.
-
-| Service | Library | Its job | Status |
-| --- | --- | --- | --- |
-| Skills | [NVIDIA’s SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Checks a Skill's quality and measures how the agent behaves with it. | For customer projects; not in the commands |
-| Skills | [Microsoft’s SkillOpt](https://github.com/microsoft/SkillOpt) | Proposes changes to a Skill's instructions from scored attempts. It improves the instructions only; repairing a Skill's scripts is separate work. | For customer projects; a Climb template is [planned](docs/plan/skillopt-climb-template.md) |
-| Skills, Evals, Environments, Models | [Prime Intellect’s Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Defines tasks, runs them and scores them, the same way for training and for the final test. | Available now: the Hello World Climb runs through a pinned Verifiers engine, and [`lab/`](lab/) runs the Train page's comparison on Verifiers 0.4.1 |
-| Evals, Models | [Prime Intellect’s prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Runs a full evaluation, supervised fine-tuning and reinforcement learning. | For customer projects; [`lab/`](lab/) writes a training configuration in its shape (`techtree-lab train-config`) and starts no run |
-| Evals | [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Packages tasks that need a working software environment. | For customer projects; not in the commands |
-| Environments | [NVIDIA’s Skill2Env](https://github.com/NVlabs/Skill2Env) | Generates Harbor tasks from a Skill. | Experimental: `regents techtree forge` follows its task package shape and planning criteria, pinned to one revision (Apache-2.0); generating with Skill2Env itself is project work |
-| Environments | [Hugging Face’s Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Generates tasks from a repository, its past fixes and recorded agent sessions. | For customer projects; not in the commands (the 0.2.1 repository trial is no longer offered) |
-| Models (optional) | [NVIDIA’s NemoClaw](https://github.com/NVIDIA/NemoClaw) | Runs supported agents inside OpenShell, under the rules a customer sets, when a project needs it. | For customer projects that need it; not in the commands |
-| Every Climb | [Nous Research’s Hermes](https://github.com/NousResearch/hermes-agent) | The agent a Climb evaluates, and the host the [`plugin/`](plugin/) adapts. | Available now |
-| — | Techtree | Frozen comparisons, evidence reconciliation, signed results and publication. | — |
-
-Every service follows the same chain: examples of the work, an agreed
-definition of success, a baseline, one bounded improvement, a final test on
-unseen cases, then the deliverable and a report. Results from Techtree's own
-runs are a Techtree-run evaluation, not an independent audit.
-
-Using Verifiers, calling a model through Prime, and using Prime-hosted
-execution are three different choices. Every released path runs on your own
-machine; hosted execution is planned.
-
-## Roadmap
-
-| Stage | User outcome |
+| Folder | Holds |
 | --- | --- |
-| **0.3.0 — create an environment from a Skill** (released) | Inspect a supported Skill without running it; review and approve a plan; build and check tasks offline; accept a frozen collection; run one agent on it without any comparison; verify it and export a private copy for someone else. Comparing Skills on the collection stays optional. |
-| **Later** (planned) | An MCP connector for other agents, hosted environment building and execution, and private hosting. |
-| **Optional later** | NVIDIA's NeMo Fabric harnesses and NeMo Relay process evidence. |
+| [`factory/`](factory/README.md) | One page per service: what you bring and receive, the libraries, what runs here, and the limits. |
+| [`plugin/`](plugin/README.md) | The Hermes plugin that runs Techtree from a conversation. |
+| [`cli/`](cli/COMMANDS.md) | The descriptions of every `regents techtree` command. The command line itself is [regents-cli](https://github.com/regents-ai/regents-cli). |
+| [`lab/`](lab/README.md) | The Nemotron comparison and the training settings file. |
+| [`platform/`](platform/README.md) | The site at techtree.sh: install guide, Results, service pages and the changelog. |
 
-The [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
-[task set](docs/plan/v0.3.0-task-set.md) are the current product and delivery
-documents. Earlier plans and handoffs (for example
-[`docs/plan/v0.2.md`](docs/plan/v0.2.md) and [HANDOFF.md](HANDOFF.md)) are kept
-as historical records and say so at the top.
+More: [`contracts/`](contracts/README.md) (the registry contract),
+[`formal/`](formal/wallet_bench_funding/README.md) (the Wallet Bench funding model),
+[`blog/`](blog/README.md), and [`docs/`](docs/), including
+[Open tools](docs/open-tools.md) (what each release offers and pins),
+[Proof](docs/proof.md) (what a Result proves, and privacy) and
+[Development](docs/development.md) (setup and checks).
+[SECURITY.md](SECURITY.md) covers vulnerability reports and where code runs;
+[CHANGELOG.md](CHANGELOG.md) lists every change; [LICENSE](LICENSE) has the terms.
 
-## Privacy
+## Contribute
 
-Publication is explicit. Local Episodes, Traces, logs, and proposals are not
-automatically uploaded. Local-first execution can still send requests to a
-model provider. Inspect those destinations before approving a run.
+Outside contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Public result material must exclude credentials and private evidence. Downloading
-or buying an artifact does not make it safe to execute. A shared Regent profile
-does not grant authority over another participant’s publication key or wallet.
+- To add an environment or an eval, follow
+  [`lab/environments/payment_terms`](lab/environments/payment_terms/README.md): an
+  environment for Prime Intellect's Verifiers with a train split, a held-out split
+  and exact scoring, checked by `make -C lab check`.
+- To add an integration, start from [`plugin/`](plugin/README.md), which runs one
+  command with fixed arguments and reads one JSON answer back. A new command starts
+  as a section in [`cli/COMMANDS.md`](cli/COMMANDS.md).
+- Run `make check` before you open a pull request. It starts no paid model call.
 
-[SECURITY.md](SECURITY.md#where-code-runs) says where code runs: which steps may
-use the internet, and which run offline in throwaway containers.
+## Start
 
-## How the repository is organised
+Tell us the workflow and what better would mean. We will say on the call whether a
+project makes sense.
 
-regents-cli executes, the plugin adapts, the platform publishes, and the
-contracts own the registry.
-
-| Part | Role | What it owns | Guide |
-| --- | --- | --- | --- |
-| [regents-cli](https://github.com/regents-ai/regents-cli) | **Executes** | Everything that runs, builds or verifies, on your own machine, under `regents techtree`: Climbs and runs, Skill environments (`regents techtree forge`), signing and offline proof checks, and publication. | [regents-cli](https://github.com/regents-ai/regents-cli#techtree) |
-| [`plugin/`](plugin/) | **Adapts** | A thin Hermes adapter over regents-cli: it runs `regents techtree` with fixed arguments, reads one JSON answer back, and asks the person before anything that spends or publishes. No evaluation logic, and no network of its own. | [Plugin](plugin/README.md) |
-| [`platform/`](platform/) | **Publishes** | techtree.sh: the install guide and bootstrap, the catalog, publication intake, Results and verification pages, and the changelog. | [Platform](platform/README.md) |
-| [`contracts/`](contracts/) | **Registry** | The `TechtreeGraphRegistryV1` Solidity contract, its deployment scripts and Foundry tests. | [Contracts](contracts/README.md) |
-
-For plugin development, install Python 3.12 and
-[uv](https://docs.astral.sh/uv/), then:
-
-```sh
-git clone https://github.com/regents-ai/techtree.git
-cd techtree
-make -C plugin install
-make -C plugin check
-```
-
-The command-line tool is developed in [regents-cli](https://github.com/regents-ai/regents-cli).
-
-Platform development additionally needs Erlang/Elixir, Node, PostgreSQL, and the
-shared library setup described in the [platform guide](platform/README.md#development).
-Follow that guide before `mix setup`.
-
-`make check` runs the full model-free repository gate, including platform asset
-setup and registry checks. It requires the platform prerequisites, Foundry,
-pinned Solidity dependencies, and Node for the pinned Quint that checks the
-[Wallet Bench funding model](formal/wallet_bench_funding/README.md). It does not start paid inference, publish
-results, release packages, deploy, or transfer money. Setup can download dependencies.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for the
-contributor workflow, [SECURITY.md](SECURITY.md) for vulnerability reporting,
-and [LICENSE](LICENSE) for terms.
-
-## Related Regent products
-
-| Product | Purpose | Source |
-| --- | --- | --- |
-| [Regents](https://regents.sh) | Agent identity and operations | [regents](https://github.com/regents-ai/regents) |
-| [Autolaunch](https://autolaunch.sh) | Token auctions and launch operations | [autolaunch](https://github.com/regents-ai/autolaunch) |
-| [Patchbay](https://patchbay.help) | Agent tool reports and bounded browser-tool repairs | [patchbay](https://github.com/regents-ai/patchbay) |
-
-Shared presentation lives in [design-system](https://github.com/regents-ai/design-system);
-common Elixir libraries live in [elixir-utils](https://github.com/regents-ai/elixir-utils).
-Products share useful foundations while keeping their own authorization boundaries.
+[Book a call](https://calendly.com/techtree/agent-env-intro) ·
+[build@regents.sh](mailto:build@regents.sh)

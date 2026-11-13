@@ -112,6 +112,13 @@ nothing; the signed reads change only the time the site last saw the agent.
 | With the connector on, Claude may connect by its published identity (`https://claude.ai/oauth/mcp-oauth-client-metadata`) instead of registering: discovery says `client_id_metadata_document_supported`, consent on this site reads and records the document, the code trades for tokens that work at `/mcp` and refresh, and only consent reads the address; one address may open consent 30 times a minute | `claude_connector_test.exs` |
 | Use the `regents techtree` commands | `make check-cli` (the command descriptions); **Gap:** commands not run end to end here |
 
+## Repository
+
+| What a reader can do on GitHub | Proved by |
+| --- | --- |
+| Read the offer on the front page (`README.md`): the four services, the libraries each one uses grouped by maker with each one's status, the method, what to expect, the published example, and Book a call at the top and the end; then open each service's page in `factory/` for what runs here today, delivery and limits | **Gap:** no automated check reads these pages or their links; the relative links were checked when the pages were written |
+| Read the release table, proof and privacy notes, and development setup in `docs/open-tools.md`, `docs/proof.md` and `docs/development.md` | **Gap:** as above |
+
 ## Development checks
 
 The shared runner is proved by `scripts/tests/test_check_change.py`: changed and new

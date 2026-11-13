@@ -1,6 +1,6 @@
 # Techtree v0.2 WP0 founder approval packet
 
-> Historical (2026-09-25): superseded by the shipped releases in [release compatibility](../../README.md#release-compatibility). Kept as a record.
+> Historical (2026-09-25): superseded by the shipped releases in [release compatibility](../open-tools.md#release-compatibility). Kept as a record.
 
 Prepared: 2026-09-01  
 Ticket: `techtree-31k.1.8` — WP0.8  

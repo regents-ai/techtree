@@ -398,5 +398,5 @@ minimum applies to the plugin commit it installs.
 Which plugin commit is installable is decided by the active
 release that [techtree.sh/start](https://techtree.sh/start) publishes;
 repository presence alone is not a public release signal. The monorepo
-[README](../README.md#release-compatibility) lists every released plugin commit
+[release table](../docs/open-tools.md#release-compatibility) lists every released plugin commit
 beside its CLI version and catalog.

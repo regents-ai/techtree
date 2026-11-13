@@ -1,5 +1,23 @@
 # Changelog
 
+## Repository (2026-11-13)
+
+### Changed
+
+- **Front page.** The GitHub README now opens with the offer: who Techtree is for,
+  its role as an independent company, the four services, and the open-source
+  libraries behind them, grouped by maker, each with what it does, why we chose it,
+  what it gives you and whether it runs here today or is used in delivery. Then the
+  method, what to expect from each service, the published Nemotron example with its
+  real figures, and Book a call at the top and the end. It quotes no prices.
+- **Factory.** A new `factory/` folder has one page per service (Skills, Evals,
+  Environments and Models): what you bring, what we do, what you receive, the
+  libraries with their licenses, the commands that run from this repository today,
+  how delivery works and the service's limits.
+- The release table and roadmap moved to `docs/open-tools.md`, what a Result proves
+  and the privacy notes to `docs/proof.md`, and setup, checks and related products to
+  `docs/development.md`.
+
 ## Website (2026-11-13)
 
 ### Changed
