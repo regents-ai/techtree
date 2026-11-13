@@ -10,7 +10,7 @@ account, pairing and report commands. It complements the native commands. The re
 
 PyPI publishes regents-cli **1.10.27**. It includes the native Climb/forge/proof/publication
 commands, `.py` Skill files, and every command in `commands.json`. Techtree's stable channel
-serves release record `climb-v0.7.26`, which installs regents-cli 1.10.25; `climb-v0.7.28`, for
+serves release record `climb-v0.7.27`, which installs regents-cli 1.10.26; `climb-v0.7.28`, for
 1.10.27, waits for the catalog import. Private pairing codes
 are JSON stdin, never command arguments. Account reads do
 not enable Points earning. Do not alter frozen release records to imply
