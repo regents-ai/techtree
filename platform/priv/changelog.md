@@ -43,6 +43,9 @@
 - **Copy page.** The Copy page button on the docs pages copies the page again;
   it had been leaving the clipboard empty. It now keeps one width whether it says
   Copy page, Copied or Couldn't copy, so nothing beside it moves.
+- **Phones.** Tapping a service card on the home page, a tile under More on the
+  Results page or a post on the Blog no longer leaves its hover look on; a mouse
+  still shows it, and keyboard focus still marks a tile.
 
 ## Website (2026-11-12)
 

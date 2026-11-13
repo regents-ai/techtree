@@ -155,16 +155,14 @@
 .mk-service__tool:not(:last-child)::after { content: "·"; margin-left: .5em; }
 .mk-service__link { color: inherit; text-decoration: none; }
 .mk-service__link::after { content: ""; position: absolute; inset: 0; }
-.mk-service__link:hover, .mk-service__link:focus-visible { color: inherit; }
+.mk-service__link:hover, .mk-service__link:focus-visible { color: inherit; text-decoration: none; }
 .mk-service__link:focus-visible { outline: none; }
 .mk-service:has(.mk-service__link:focus-visible) { outline: 2px solid var(--color-focus); outline-offset: 3px; }
-.mk-service:hover .mk-service__link { text-decoration: underline; text-underline-offset: .12em; text-decoration-thickness: 2px; }
 .mk-service__foot {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
   margin-top: var(--space-1); padding-top: var(--space-2); border-top: 1px solid color-mix(in srgb, currentColor 28%, transparent);
 }
 .mk-service__arrow { width: 1.25rem; height: 1.25rem; flex: none; transition: transform var(--duration-fast) var(--ease-out); }
-.mk-service:hover .mk-service__arrow { transform: translateX(3px); }
 
 /* A service's price level: the word Price, then four diamonds, the first ones
    filled. Never a figure. On a card the marks take the card's own ink. */
@@ -225,9 +223,8 @@
   content: ""; position: absolute; inset: auto 0 0; height: 2px; background: var(--color-accent);
   transform: scaleX(0); transform-origin: left center; transition: transform var(--duration-base) var(--ease-out);
 }
-.mk-tile:hover { background: var(--color-surface); color: inherit; text-decoration: none; }
-.mk-tile:hover::after, .mk-tile:focus-visible::after { transform: scaleX(1); }
-.mk-tile:hover .mk-tile__arrow { transform: translate(2px, -2px); color: var(--color-fg); }
+.mk-tile:hover { color: inherit; text-decoration: none; }
+.mk-tile:focus-visible::after { transform: scaleX(1); }
 
 /* Facts, one ruled row each. */
 .mk-facts { border-top: 1px solid var(--hairline); }
@@ -265,8 +262,7 @@
 .mk-news .mk-news__title { font-size: 1.375rem; line-height: 1.2; }
 .mk-news__line { color: var(--color-fg-muted); font-size: .9375rem; }
 .mk-news__more { display: inline-flex; align-items: center; gap: var(--space-1); margin-top: auto; font-size: .875rem; }
-.mk-news__card:hover { border-color: var(--color-fg); color: inherit; text-decoration: none; }
-.mk-news__card:hover .mk-news__more { text-decoration: underline; text-underline-offset: .2em; }
+.mk-news__card:hover { color: inherit; text-decoration: none; }
 
 /* The closing Contact, dark, before the footer. */
 .mk-closing {
@@ -292,6 +288,17 @@
 @media (max-width: 36rem) {
   .mk-tile { min-height: 0; }
   .mk-facts > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+/* The hover looks come only with a mouse: a finger's tap would leave them on.
+   The hover rules above only keep the page's link underline off the cards. */
+@media (hover: hover) and (pointer: fine) {
+  .mk-service:hover .mk-service__link { text-decoration: underline; text-underline-offset: .12em; text-decoration-thickness: 2px; }
+  .mk-service:hover .mk-service__arrow { transform: translateX(3px); }
+  .mk-tile:hover { background: var(--color-surface); }
+  .mk-tile:hover::after { transform: scaleX(1); }
+  .mk-tile:hover .mk-tile__arrow { transform: translate(2px, -2px); color: var(--color-fg); }
+  .mk-news__card:hover { border-color: var(--color-fg); }
+  .mk-news__card:hover .mk-news__more { text-decoration: underline; text-underline-offset: .2em; }
 }
 /* On a touch screen a card's name and a ruled list's link get a finger's 44
    pixels of height. */
