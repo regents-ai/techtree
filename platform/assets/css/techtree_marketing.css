@@ -88,6 +88,33 @@
 .mk-offer ul { margin-top: var(--space-2); border-top: 1px solid var(--hairline); }
 .mk-offer li { padding: var(--space-1) 0; border-bottom: 1px solid var(--hairline); font-size: .9375rem; line-height: 1.5; }
 .mk-offer > section > .text-link { justify-self: start; margin-top: var(--space-2); }
+/* A comparison's question, before what it sets side by side. */
+.mk-offer > section > .mk-offer__question {
+  color: var(--color-fg); font-family: var(--font-family-title); font-size: 1.125rem;
+  line-height: 1.35; letter-spacing: -.01em;
+}
+
+/* A stage's result, under what we do in it. */
+.mk-sequence > li > .mk-sequence__result {
+  margin-top: var(--space-1); padding-top: var(--space-1); border-top: 1px solid var(--hairline);
+  color: var(--color-fg);
+}
+
+/* The open-source tools a service uses: each project named with its maker,
+   linked, beside its job on the project, one ruled row each. */
+.mk-tools { border-top: 1px solid var(--hairline); }
+.mk-tools > div {
+  display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) 0; border-bottom: 1px solid var(--hairline);
+}
+.mk-tools dt { min-width: 0; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
+.mk-tools__name { color: var(--color-fg); font-weight: 600; text-decoration-color: var(--hairline-strong); text-underline-offset: .2em; }
+.mk-tools__name:hover { color: var(--color-fg); text-decoration-color: currentColor; }
+.mk-tools__maker { color: var(--color-fg-muted); font-weight: 400; }
+.mk-tools dd { color: var(--color-fg-muted); font-size: .875rem; line-height: 1.5; }
+
+/* A ruled list of sentences: the terms, a service's notes. */
+.mk-status--prose li { display: block; font-size: .9375rem; line-height: 1.55; }
 /* A Result's withdrawn and held-out notes, before what it compared. */
 .run-notices { display: grid; gap: var(--space-3); }
 .run-notices .callout { margin-block: 0; }
@@ -137,6 +164,9 @@
 }
 @media (max-width: 47.99rem) {
   .mk-paths, .mk-offer, .mk-offer--two { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 36rem) {
+  .mk-tools > div { grid-template-columns: minmax(0, 1fr); }
 }
 @media print {
   .mk-opening { background: none; color: inherit; }

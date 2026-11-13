@@ -1,11 +1,12 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
   The home page, in six parts: the promise with Book Call; the four services
-  as cards with their price levels (`TechtreeWeb.Services`); one case study,
-  the newest Skill comparison (`Techtree.Train.Comparisons`), with exactly what
-  its evidence shows, its page and how to check it; how a project runs, in
-  three steps; the open-source projects we build on, under each maker's logo;
-  and a last Book Call.
+  as cards with their price levels and the tools each uses
+  (`TechtreeWeb.Services`); one case study, the newest Skill comparison
+  (`Techtree.Train.Comparisons`), with exactly what its evidence shows, its
+  page and how to check it; how a project runs, in three steps; the
+  open-source projects we build on, under each maker's logo or name, drawn
+  from the services' tools so the two never differ; and a last Book Call.
 
   The page reads no database. The moving parts are the hooks in
   `assets/js/marketing`; every one of them starts from the page as the server
@@ -30,9 +31,9 @@ defmodule TechtreeWeb.HomeLive do
     {"Agree",
      "You share examples of the work. Together we agree what success means and how it is scored."},
     {"Improve",
-     "We measure a baseline first, then improve within the budget and limits agreed up front."},
+     "We measure a baseline on what you run today, then make one bounded improvement within the budget and limits agreed up front."},
     {"Prove",
-     "The final test runs on cases the work never saw. You receive the Skill, eval, environment or model, with a report of what changed."}
+     "The final test runs on cases the work never saw. You receive the Skill, eval, environment or model, with a report of what changed and what it costs to run."}
   ]
   @closing "Tell us about the workflow you want to improve."
   @mailto "mailto:build@regents.sh"
@@ -60,7 +61,7 @@ defmodule TechtreeWeb.HomeLive do
     services =
       Enum.map_join(Services.all(), "\n", fn service ->
         "- [#{service.name}](#{Services.path(service.id)}): #{service.promise} " <>
-          "Price level: #{service.price} of 4."
+          "Price level: #{service.price} of 4. Tools: #{tool_names(service)}."
       end)
 
     security = Services.security()
@@ -73,7 +74,7 @@ defmodule TechtreeWeb.HomeLive do
     makers =
       Enum.map_join(makers(), "\n", fn maker ->
         "- #{maker.name}: " <>
-          Enum.map_join(maker.projects, ", ", fn {name, href} -> "[#{name}](#{href})" end)
+          Enum.map_join(maker.projects, ", ", &"[#{Services.label(&1)}](#{&1.href})")
       end)
 
     """
@@ -187,6 +188,11 @@ defmodule TechtreeWeb.HomeLive do
                 </.link>
               </h3>
               <p>{service.promise}</p>
+              <p class="mk-service__tools">
+                <span :for={tool <- service.tools} class="mk-service__tool">
+                  {Services.label(tool)}
+                </span>
+              </p>
               <div class="mk-service__foot">
                 <.price level={service.price} />
                 <Regent.Icons.icon name="arrow-right" class="mk-service__arrow" />
@@ -220,18 +226,21 @@ defmodule TechtreeWeb.HomeLive do
         </header>
         <ul id="stack-list" class="mk-stack__list" phx-hook="MarketingStagger" phx-update="ignore">
           <li :for={maker <- @makers} class="mk-maker" data-stagger>
-            <h3 class="mk-maker__plate">
+            <h3 :if={maker.logo} class="mk-maker__plate">
               <img
                 class={["mk-maker__logo", "mk-maker__logo--#{maker.id}"]}
-                src={maker.logo}
+                src={maker.logo.src}
                 alt={maker.name}
-                width={maker.width}
-                height={maker.height}
+                width={maker.logo.width}
+                height={maker.logo.height}
               />
             </h3>
+            <h3 :if={!maker.logo} class="mk-maker__plate mk-maker__plate--name">{maker.name}</h3>
             <ul class="mk-maker__projects">
-              <li :for={{name, href} <- maker.projects}>
-                <a href={href} class="text-link">{name}</a>
+              <li :for={project <- maker.projects}>
+                <a href={project.href} class="text-link">
+                  <span><span class="mk-maker__of">{project.maker}’s</span> {project.name}</span>
+                </a>
               </li>
             </ul>
           </li>
@@ -307,44 +316,44 @@ defmodule TechtreeWeb.HomeLive do
   # Where the case study's evidence is explained.
   defp check, do: ~p"/docs/verify" <> "#blog-section-skill-comparisons"
 
+  # A service's tools, by name, for its line in the Markdown.
+  defp tool_names(service), do: Enum.map_join(service.tools, " · ", &Services.label/1)
+
   # Whose open-source projects we build on: each maker's own logo, unchanged
-  # (`priv/static/images/built-on/`), over its projects. These are the only
-  # logos on the site.
+  # (`priv/static/images/built-on/`), or its name where we have no logo file,
+  # over its projects. A maker's projects are the services' tools it made
+  # (`Services.tools/0`), then the ones we credit beside them. These are the
+  # only logos on the site.
   defp makers do
+    tools = Services.tools()
+
     [
       %{
         id: "prime-intellect",
         name: "Prime Intellect",
-        logo: ~p"/images/built-on/prime-intellect.svg",
-        width: 899,
-        height: 161,
-        projects: [
-          # The founder's ruling names Verifiers only with its maker.
-          {"Prime Intellect’s Verifiers", "https://github.com/PrimeIntellect-ai/verifiers"},
-          {"prime-rl", "https://github.com/PrimeIntellect-ai/prime-rl"},
-          {"Environments Hub", "https://app.primeintellect.ai/dashboard/environments"}
-        ]
+        logo: %{src: ~p"/images/built-on/prime-intellect.svg", width: 899, height: 161},
+        also: [{"Environments Hub", "https://app.primeintellect.ai/dashboard/environments"}]
       },
       %{
         id: "nvidia",
         name: "NVIDIA",
-        logo: ~p"/images/built-on/nvidia.svg",
-        width: 2560,
-        height: 1440,
-        projects: [
-          {"SkillEvaluator", "https://github.com/NVIDIA/SkillEvaluator"},
-          {"Skill2Env", "https://github.com/NVlabs/Skill2Env"},
+        logo: %{src: ~p"/images/built-on/nvidia.svg", width: 2560, height: 1440},
+        also: [
           {"Nemotron", "https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/"}
         ]
       },
       %{
         id: "nous-research",
         name: "Nous Research",
-        logo: ~p"/images/built-on/nous-research.svg",
-        width: 200,
-        height: 280,
-        projects: [{"Hermes", "https://github.com/NousResearch/hermes-agent"}]
-      }
+        logo: %{src: ~p"/images/built-on/nous-research.svg", width: 200, height: 280},
+        also: [{"Hermes", "https://github.com/NousResearch/hermes-agent"}]
+      },
+      %{id: "microsoft", name: "Microsoft", logo: nil, also: []},
+      %{id: "hugging-face", name: "Hugging Face", logo: nil, also: []}
     ]
+    |> Enum.map(fn maker ->
+      also = for {name, href} <- maker.also, do: %{maker: maker.name, name: name, href: href}
+      Map.put(maker, :projects, Enum.filter(tools, &(&1.maker == maker.name)) ++ also)
+    end)
   end
 end

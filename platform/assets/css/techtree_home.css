@@ -140,6 +140,14 @@
 }
 .mk-service .mk-service__words h3 { font-size: clamp(1.625rem, 2.2vw, 2.25rem); line-height: 1.05; letter-spacing: -.035em; overflow-wrap: break-word; }
 .mk-service__words p { max-width: 20rem; margin-top: 0; }
+/* The tools a service uses, one quiet line under its promise. */
+.mk-service__words .mk-service__tools {
+  display: flex; flex-wrap: wrap; column-gap: .5em;
+  font-family: var(--font-family-mono); font-size: .75rem; line-height: 1.5; letter-spacing: .01em;
+}
+/* Each tool's name stays whole; the dot between two goes with the first. */
+.mk-service__tool { white-space: nowrap; }
+.mk-service__tool:not(:last-child)::after { content: "·"; margin-left: .5em; }
 .mk-service__link { color: inherit; text-decoration: none; }
 .mk-service__link::after { content: ""; position: absolute; inset: 0; }
 .mk-service__link:hover, .mk-service__link:focus-visible { color: inherit; }
@@ -165,25 +173,32 @@
 .mk-price__mark--on { background: currentColor; }
 .mk-service .mk-price, .mk-service .mk-price__label { color: inherit; }
 
-/* What we build on, compact: each maker's logo, with its projects under it as
-   links in Techtree's own type, rising in the first time the row is seen. The
-   heading's lines are balanced, so its last word never stands alone, and
-   "open-source" never breaks at its hyphen. */
+/* What we build on, compact: each maker's logo, or its name, with its projects
+   under it as links in Techtree's own type, rising in the first time the row is
+   seen. The makers wrap as the width allows and each row's plates share it, so
+   no row ends on an empty cell. The heading's lines are balanced, so its last
+   word never stands alone, and "open-source" never breaks at its hyphen. */
 .mk-stack h2 { text-wrap: balance; }
 .mk-stack__whole { white-space: nowrap; }
 .mk-stack__list {
-  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px;
+  display: flex; flex-wrap: wrap; gap: 1px;
   margin-top: var(--space-4); border: 1px solid var(--hairline); background: var(--hairline);
 }
-.mk-stack__list > li { display: flex; flex-direction: column; background: var(--color-bg); }
+.mk-stack__list > li { display: flex; flex: 1 1 14rem; flex-direction: column; min-width: 0; background: var(--color-bg); }
 /* The logos are the makers' own files, unchanged, so each sits on the same light
    plate in both themes rather than being recoloured. NVIDIA's file carries its
-   own clear space around the mark, so its box is taller for the same mark. */
+   own clear space around the mark, so its box is taller for the same mark. A
+   maker we have no logo file for is its name on the same plate, in dark ink. */
 .mk-maker__plate { display: grid; place-items: center; height: 5.5rem; padding: 0 var(--space-3); background: #F4F5F2; }
+.mk-stack .mk-maker__plate--name {
+  color: #0F1B14; font-family: var(--font-family-title); font-size: 1.5rem; font-weight: 600;
+  line-height: 1; letter-spacing: -.03em; white-space: nowrap;
+}
 .mk-maker__logo { width: auto; }
 .mk-maker__logo--prime-intellect { height: 1.25rem; }
 .mk-maker__logo--nvidia { height: 4.25rem; }
 .mk-maker__logo--nous-research { height: 2.25rem; }
+.mk-maker__of { color: var(--color-fg-muted); }
 .mk-maker__projects { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); padding: var(--space-2) var(--space-3); font-size: .9375rem; line-height: 1.75rem; }
 
 /* Two ways on, as tiles. */
@@ -264,7 +279,7 @@
 }
 @media (max-width: 47.99rem) {
   .mk-section { padding-block: var(--space-6); }
-  .mk-split, .mk-news, .mk-services, .mk-stack__list { grid-template-columns: minmax(0, 1fr); }
+  .mk-split, .mk-news, .mk-services { grid-template-columns: minmax(0, 1fr); }
   .mk-service { min-height: 17rem; }
 }
 @media (max-width: 36rem) {

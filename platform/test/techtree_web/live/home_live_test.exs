@@ -94,7 +94,7 @@ defmodule TechtreeWeb.HomeLiveTest do
            ]
   end
 
-  test "the credits show each maker's logo over its projects, and no logo elsewhere",
+  test "the credits show each maker's logo or name over its projects, every tool among them, and no logo elsewhere",
        %{conn: conn} do
     {:ok, _live, html} = live(conn, ~p"/")
     document = LazyHTML.from_document(html)
@@ -102,15 +102,28 @@ defmodule TechtreeWeb.HomeLiveTest do
     makers =
       for maker <- LazyHTML.query(document, "#stack-list > li.mk-maker") do
         logo = LazyHTML.query(maker, "h3 > img")
-        {attribute(logo, "alt"), attribute(logo, "src"), hrefs(maker, ".mk-maker__projects a")}
+        name = LazyHTML.query(maker, "h3.mk-maker__plate--name")
+
+        {attribute(logo, "alt") || trim(name), attribute(logo, "src"),
+         hrefs(maker, ".mk-maker__projects a")}
       end
 
-    assert Enum.map(makers, &elem(&1, 0)) == ["Prime Intellect", "NVIDIA", "Nous Research"]
-    assert Enum.all?(makers, fn {_name, src, _links} -> src =~ ~r|\A/images/built-on/| end)
+    assert Enum.map(makers, &elem(&1, 0)) ==
+             ["Prime Intellect", "NVIDIA", "Nous Research", "Microsoft", "Hugging Face"]
+
+    assert Enum.map(makers, &((elem(&1, 1) || "") =~ ~r|\A/images/built-on/|)) ==
+             [true, true, true, false, false]
 
     assert Enum.all?(makers, fn {_name, _src, links} ->
              links != [] and Enum.all?(links, &String.starts_with?(&1, "https://"))
            end)
+
+    # Every tool from a credited maker sits under that maker.
+    credited = Map.new(makers, fn {name, _src, links} -> {name, links} end)
+
+    for tool <- Services.tools(), links = credited[tool.maker] do
+      assert tool.href in links, "#{tool.name} is missing from #{tool.maker}'s credits"
+    end
 
     assert Enum.count(LazyHTML.query(document, "img[src*='/images/built-on/']")) == 3
 

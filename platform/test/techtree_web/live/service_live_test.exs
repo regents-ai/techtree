@@ -2,9 +2,10 @@ defmodule TechtreeWeb.ServiceLiveTest do
   @moduledoc """
   The service pages, each built from its entry in `TechtreeWeb.Services`:
   Skills, Evals, Environments and Models with what the customer brings, what
-  we do (naming the open-source projects we use, by their own links), what
-  they receive, the price level and booking; Security with its two options,
-  its rules and the Agent Message button. Each page's Markdown says the same.
+  we do, what they receive, the open-source tools we use (by their own
+  links), the shared terms, the price level and booking, and Models with its
+  stages and comparisons; Security with its two options, its rules and the
+  Agent Message button. Each page's Markdown says the same.
 
   The pages are read as they render: they read the sign-in from the socket's
   connect info, which the LiveView test harness does not carry. The connected
@@ -20,37 +21,62 @@ defmodule TechtreeWeb.ServiceLiveTest do
   @booking "https://calendar.example/techtree"
 
   @projects %{
-    skills: ["https://github.com/NVIDIA/SkillEvaluator", "https://github.com/microsoft/SkillOpt"],
+    skills: [
+      "https://github.com/NVIDIA/SkillEvaluator",
+      "https://github.com/microsoft/SkillOpt",
+      "https://github.com/PrimeIntellect-ai/verifiers"
+    ],
     evals: [
       "https://github.com/PrimeIntellect-ai/verifiers",
-      "https://github.com/PrimeIntellect-ai/prime-rl"
+      "https://github.com/PrimeIntellect-ai/prime-rl",
+      "https://github.com/harbor-framework/harbor"
     ],
     environments: [
       "https://github.com/NVlabs/Skill2Env",
       "https://github.com/huggingface/Repo2RLEnv",
       "https://github.com/PrimeIntellect-ai/verifiers"
     ],
-    models: ["https://github.com/PrimeIntellect-ai/prime-rl"]
+    models: [
+      "https://github.com/PrimeIntellect-ai/prime-rl",
+      "https://github.com/PrimeIntellect-ai/verifiers",
+      "https://github.com/NVIDIA/NemoClaw"
+    ]
   }
 
-  test "each service page has exactly what you bring, what we do, what you receive and booking",
+  # The parts each page has between the work and the contact band.
+  @parts %{
+    skills: ~w(tools terms notes),
+    evals: ~w(tools terms notes),
+    environments: ~w(tools terms notes),
+    models: ~w(stages comparisons tools terms notes)
+  }
+
+  test "each service page has what you bring, what we do, what you receive, its parts and booking",
        %{conn: conn} do
     for service <- Services.all() do
       page = page(conn, Services.path(service.id))
 
-      assert ids(page, "main > section") == ["opening", "work", "contact"]
+      assert ids(page, "main > section") ==
+               ["opening", "work"] ++ @parts[service.id] ++ ["contact"]
+
       assert ids(page, "#work-list > section") == ["bring", "do", "receive"]
       assert texts(page, "#bring li") == service.bring
       assert texts(page, "#receive li") == service.receive
       assert length(texts(page, "#do li")) == length(service.work)
       assert text(page, "h1") == service.name
+      assert texts(page, "#terms li") == Services.terms()
     end
   end
 
-  test "each service page names the projects it uses by their own links", %{conn: conn} do
+  test "each service page names the tools it uses by their own links, and its work agrees",
+       %{conn: conn} do
     for service <- Services.all() do
       page = page(conn, Services.path(service.id))
-      assert hrefs(page, "#do a") == @projects[service.id], "#{service.name}'s projects"
+      tools = @projects[service.id]
+
+      assert hrefs(page, "#tools dt a") == tools, "#{service.name}'s tools"
+      assert Enum.all?(hrefs(page, "#do a"), &(&1 in tools)), "#{service.name}'s work"
+      assert markdown(conn, Services.path(service.id)) =~ "## Tools"
     end
   end
 

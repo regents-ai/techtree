@@ -1,11 +1,18 @@
 # Techtree
 
-**Improve an agent’s Skills. Measure the difference. Share the evidence.**
+**Better agents for your business, with results you can measure.**
 
-Techtree is research infrastructure for improving agent systems. It starts with
-one controlled comparison: the same configured agent, the same tasks, and one
-changed Skill. Prime Intellect’s Verifiers evaluates both sides; Techtree
-packages the results into a signed bundle that others can check offline.
+Techtree is one shared build-and-test system behind four services: Skills,
+Evals, Environments and Models, with Security beside them. Each is a paid custom
+project around a customer's own workflow, built with off-the-shelf open-source
+libraries ([which one does which job](#services-and-their-libraries)), and each
+ends on a final test on cases the work never saw. The
+[services](https://techtree.sh/#services) are described on techtree.sh.
+
+The same system is open to everyone. It starts with one controlled comparison:
+the same configured agent, the same tasks, and one changed Skill. Prime
+Intellect’s Verifiers evaluates both sides; Techtree packages the results into
+a signed bundle that others can check offline.
 
 The working entry point today is testing one of your own Skills, with the
 Hello World Climb as the quick look. Published Results are public to read, and
@@ -55,7 +62,6 @@ repair tasks from a repository. That trial is no longer offered.
 | Browser tools for agents (WebMCP), listed at [/capabilities.json](https://techtree.sh/capabilities.json): public reads of the install guide, the Climbs and the Results; signed identity and account reads; and `techtree_publication`, which publishes or withdraws a signed Result | Available now | [`platform/`](platform/) |
 | An MCP connector for other agents | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
-| NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
 
 The active Run locally guide controls exact installation coordinates. Historical
 release documents can still name the old plugin repository or the `techtree`
@@ -198,33 +204,31 @@ A mutable model alias is also weaker evidence than an immutable model build.
 
 </details>
 
-## How Prime and NVIDIA fit together
+## Services and their libraries
 
 Techtree connects existing systems instead of building another evaluator,
-harness runtime, trajectory format, or trainer.
+harness runtime, trajectory format, or trainer. Each service uses the
+open-source libraries below on a customer's project. They are their makers'
+work; Techtree uses them and is not affiliated with them. Status says what this
+repository's own commands run today.
 
-| System | Role | Status |
-| --- | --- | --- |
-| [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. The Hello World Climb runs through a pinned Verifiers engine. | Available now |
-| [Hugging Face Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Turns a repository's history into repair tasks. | Planned |
-| [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental |
-| [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs, so other agents can be evaluated. | Planned |
-| [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional and observe-only. | Planned |
-| Techtree | Frozen comparisons, evidence reconciliation, signed results and publication. | — |
+| Service | Library | Its job | Status |
+| --- | --- | --- | --- |
+| Skills | [NVIDIA’s SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Checks a Skill's quality and measures how the agent behaves with it. | Used on customer projects; not in the commands |
+| Skills | [Microsoft’s SkillOpt](https://github.com/microsoft/SkillOpt) | Proposes changes to a Skill's instructions from scored attempts. It improves the instructions only; repairing a Skill's scripts is separate work. | Used on customer projects; a Climb template is [planned](docs/plan/skillopt-climb-template.md) |
+| Skills, Evals, Environments, Models | [Prime Intellect’s Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Defines tasks, runs them and scores them, the same way for training and for the final test. | Available now: the Hello World Climb runs through a pinned Verifiers engine, and [`lab/`](lab/) runs the Train page's comparison on Verifiers 0.4.1 |
+| Evals, Models | [Prime Intellect’s prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Runs a full evaluation, supervised fine-tuning and reinforcement learning. | Used on customer projects; [`lab/`](lab/) writes a training configuration in its shape (`techtree-lab train-config`) and starts no run |
+| Evals | [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Packages tasks that need a working software environment. | Used on customer projects; not in the commands |
+| Environments | [NVIDIA’s Skill2Env](https://github.com/NVlabs/Skill2Env) | Generates Harbor tasks from a Skill. | Experimental: `regents techtree forge` follows its task package shape and planning criteria, pinned to one revision (Apache-2.0); generating with Skill2Env itself is project work |
+| Environments | [Hugging Face’s Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Generates tasks from a repository, its past fixes and recorded agent sessions. | Used on customer projects; not in the commands (the 0.2.1 repository trial is no longer offered) |
+| Models (optional) | [NVIDIA’s NemoClaw](https://github.com/NVIDIA/NemoClaw) | Runs supported agents inside OpenShell, under the rules a customer sets, when a project needs it. | Used on customer projects that need it; not in the commands |
+| Every Climb | [Nous Research’s Hermes](https://github.com/NousResearch/hermes-agent) | The agent a Climb evaluates, and the host the [`plugin/`](plugin/) adapts. | Available now |
+| — | Techtree | Frozen comparisons, evidence reconciliation, signed results and publication. | — |
 
-```text
-Techtree Campaign
-    → Verifiers task and scoring runtime
-        → admitted Fabric adapter → Hermes or Codex subject
-        → optional Relay process evidence
-    → Techtree comparison and signed result
-```
-
-This is the **planned** architecture, not a claim that every bridge is
-finished. Each combination needs exact-version compatibility evidence. Fabric
-capabilities vary by harness; a successful invocation is not a correct task
-answer. Relay records what is instrumented and cannot prove lossless capture
-merely because an export completed.
+Every service follows the same chain: examples of the work, an agreed
+definition of success, a baseline, one bounded improvement, a final test on
+unseen cases, then the deliverable and a report. Results from Techtree's own
+runs are a Techtree-run evaluation, not an independent audit.
 
 Using Verifiers, calling a model through Prime, and using Prime-hosted
 execution are three different choices. Every released path runs on your own
@@ -235,7 +239,8 @@ machine; hosted execution is planned.
 | Stage | User outcome |
 | --- | --- |
 | **0.3.0 — create an environment from a Skill** (released) | Inspect a supported Skill without running it; review and approve a plan; build and check tasks offline; accept a frozen collection; run one agent on it without any comparison; verify it and export a private copy for someone else. Comparing Skills on the collection stays optional. |
-| **Later** (planned) | An MCP connector for other agents, hosted environment building and execution, private hosting, and NeMo Fabric and Relay. |
+| **Later** (planned) | An MCP connector for other agents, hosted environment building and execution, and private hosting. |
+| **Optional later** | NVIDIA's NeMo Fabric harnesses and NeMo Relay process evidence. |
 
 The [0.3.0 plan](docs/plan/v0.3.0-skill-environments.md) and its
 [task set](docs/plan/v0.3.0-task-set.md) are the current product and delivery

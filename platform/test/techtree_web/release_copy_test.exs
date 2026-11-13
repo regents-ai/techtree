@@ -189,6 +189,8 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @informational_addresses [
     "https://github.com/PrimeIntellect-ai/verifiers",
     "https://github.com/PrimeIntellect-ai/prime-rl",
+    "https://github.com/harbor-framework/harbor",
+    "https://github.com/NVIDIA/NemoClaw",
     "https://github.com/NVIDIA/SkillEvaluator",
     "https://github.com/microsoft/SkillOpt",
     "https://github.com/NousResearch/hermes-agent",

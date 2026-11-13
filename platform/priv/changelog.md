@@ -1,5 +1,25 @@
 # Changelog
 
+## Website (2026-11-13)
+
+### Changed
+
+- **Tools.** Each service page lists the open-source libraries used on a project,
+  each named with its maker and linked, with its job: NVIDIA's SkillEvaluator,
+  Microsoft's SkillOpt, Prime Intellect's Verifiers and prime-rl, Harbor, NVIDIA's
+  Skill2Env and NemoClaw, and Hugging Face's Repo2RLEnv. The home page's service
+  cards name them too, and the credits add NemoClaw, Microsoft and Hugging Face.
+- **Terms.** Each of the four service pages states the same terms: model and
+  compute usage billed separately under an agreed cap, existing evals and
+  environments reused, and the scoped work delivered with its evidence even when it
+  shows no improvement. Still no figure on any page.
+- **Models** is now the offer of a smaller model for the work you repeat: what to
+  bring, four stages (Qualify, Baseline, Candidate, Handover) with what each
+  gives you, the two comparisons it reports separately, and plain notes on what
+  happens when training is not the answer.
+- **Process.** The home page's three steps now name the baseline, the one bounded
+  improvement and the running cost in the report.
+
 ## Website (2026-11-12)
 
 ### Added
