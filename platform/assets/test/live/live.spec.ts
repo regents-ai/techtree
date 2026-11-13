@@ -5,11 +5,11 @@ import {layoutProblems, watchErrors} from "../browser/support/visitor"
 
 // The live site, signed out, read as a visitor's and an agent's browser read it
 // (skills/regent-workflow, "Live checks"): it runs the commit this checkout is at,
-// every public page opens and fits the screen, the documents answer in their own
-// type, the home page offers exactly this checkout's browser tools and every public
-// read that takes no input answers, the Agent Message window opens, and the theme
-// switch turns the theme. Nothing is written: no form is sent and no signed tool is
-// called.
+// every public page opens and fits the screen, every moved address sends a visitor
+// on for good, the documents answer in their own type, the home page offers exactly
+// this checkout's browser tools and every public read that takes no input answers,
+// the Agent Message window opens, and the theme switch turns the theme. Nothing is
+// written: no form is sent and no signed tool is called.
 const checkout = process.env.CHECKOUT_COMMIT
 if (!checkout) throw new Error("Set CHECKOUT_COMMIT to the commit the site should run. Run it through make live-check.")
 
@@ -39,6 +39,20 @@ const documents = [
   ["/agents.md", "text/markdown"],
   ["/llms.txt", "text/plain"],
   ["/sitemap.xml", "xml"],
+]
+
+// The addresses that moved, each to the page that took its place.
+const moved = [
+  ["/start", "/docs/run-locally"],
+  ["/verify", "/docs/verify"],
+  ["/docs/method", "/docs/verify"],
+  ["/repo2rlenv", "/services/environments"],
+  ["/train", "/services/models"],
+  ["/services/verify", "/services/evals"],
+  ["/services/verify/sample-report", "/services/evals"],
+  ["/services/cyber-assist", "/services/security"],
+  ["/services/cyber-assist/sample-report", "/services/security/sample-report"],
+  ["/services/watchdog", "/services/security"],
 ]
 
 // A stand-in document.modelContext holds what the page registers, as
@@ -88,10 +102,18 @@ for (const path of publicPages) {
   })
 }
 
-test("the first Train comparison opens from the Train page", async ({page}) => {
+test("every moved address sends a visitor on for good", async ({page}) => {
+  for (const [from, to] of moved) {
+    const answer = await page.request.get(from, {maxRedirects: 0})
+    expect(answer.status(), from).toBe(301)
+    expect(answer.headers()["location"], from).toBe(to)
+  }
+})
+
+test("the first comparison opens from Results", async ({page}) => {
   const errors = watchErrors(page)
-  await page.goto("/train", {waitUntil: "networkidle"})
-  await page.locator("main a[href^='/train/']").first().click()
+  await page.goto("/results", {waitUntil: "networkidle"})
+  await page.locator("#comparisons a[href^='/train/']").first().click()
   await expect(page).toHaveURL(/\/train\/[a-z0-9-]+$/)
   await expect(page.locator("main h1")).toBeVisible()
   expect(await layoutProblems(page)).toEqual([])
@@ -107,7 +129,7 @@ test("addresses with nothing behind them say so", async ({page}) => {
 
 test("the Agent Message window opens with its three texts and no form", async ({page}, info) => {
   const errors = watchErrors(page)
-  await page.goto("/services/watchdog", {waitUntil: "networkidle"})
+  await page.goto("/services/security", {waitUntil: "networkidle"})
   await expect(page.locator(".phx-connected").first()).toBeAttached()
   const open = page.getByRole("button", {name: "Agent Message"})
   await (info.project.name === "phone" ? open.tap() : open.click())

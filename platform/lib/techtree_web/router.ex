@@ -210,6 +210,26 @@ defmodule TechtreeWeb.Router do
     get "/skill.md", PublicPagesController, :skill_guide
   end
 
+  # Retired addresses, each sent on for good to the page that took its place.
+  scope "/", TechtreeWeb do
+    get "/start", RedirectController, :show, assigns: %{to: "/docs/run-locally"}
+    get "/verify", RedirectController, :show, assigns: %{to: "/docs/verify"}
+    get "/docs/method", RedirectController, :show, assigns: %{to: "/docs/verify"}
+    get "/repo2rlenv", RedirectController, :show, assigns: %{to: "/services/environments"}
+    get "/train", RedirectController, :show, assigns: %{to: "/services/models"}
+    get "/services/verify", RedirectController, :show, assigns: %{to: "/services/evals"}
+
+    get "/services/verify/sample-report", RedirectController, :show,
+      assigns: %{to: "/services/evals"}
+
+    get "/services/cyber-assist", RedirectController, :show, assigns: %{to: "/services/security"}
+
+    get "/services/cyber-assist/sample-report", RedirectController, :show,
+      assigns: %{to: "/services/security/sample-report"}
+
+    get "/services/watchdog", RedirectController, :show, assigns: %{to: "/services/security"}
+  end
+
   scope "/", TechtreeWeb do
     pipe_through [:public_page, :browser, :visitor_browser]
 
@@ -226,13 +246,12 @@ defmodule TechtreeWeb.Router do
       live "/docs", DocsLive
       live "/docs/:slug", DocsLive
       live "/changelog", ChangelogLive
-      live "/verify", ProofsLive
-      live "/repo2rlenv", Repo2RLEnvLive
-      live "/services/verify", ServiceLive, :verify
-      live "/services/cyber-assist", ServiceLive, :cyber_assist
-      live "/services/watchdog", ServiceLive, :watchdog
-      get "/services/verify/sample-report", PublicPagesController, :show
-      get "/services/cyber-assist/sample-report", PublicPagesController, :show
+      live "/services/skills", ServiceLive, :skills
+      live "/services/evals", ServiceLive, :evals
+      live "/services/environments", ServiceLive, :environments
+      live "/services/models", ServiceLive, :models
+      live "/services/security", ServiceLive, :security
+      get "/services/security/sample-report", PublicPagesController, :show
       live "/formal", FormalLive
       live "/results", RunsLive.Index
       live "/results/:bundle_digest", RunsLive.Show
@@ -241,11 +260,9 @@ defmodule TechtreeWeb.Router do
       live "/wallet-bench/:id", WalletBenchLive.Show
       get "/wallet-bench/:id/evidence/:turn/:file", WalletBenchEvidenceController, :show
       get "/wallet-bench/:id/results.zip", WalletBenchEvidenceController, :results
-      live "/train", TrainLive.Index
       live "/train/:slug", TrainLive.Show
 
-      # The addresses release documents already point at, unchanged.
-      live "/start", StartLive
+      # The address release documents already point at, unchanged.
       live "/climbs/:slug", ClimbsLive.Show
     end
   end
