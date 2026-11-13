@@ -146,7 +146,8 @@ defmodule TechtreeWeb.AccountShellLive do
         id="account-shell"
         class="account-shell"
         phx-hook="AccountShell"
-        data-route={@route_spec.path}
+        data-destination={@route_spec.path}
+        data-variant={TechtreeWeb.Motion.standard("tabs")}
       >
         <.opening
           eyebrow="Account"
@@ -155,7 +156,7 @@ defmodule TechtreeWeb.AccountShellLive do
           rise={false}
           book_call={false}
         >
-          <nav class="account-shell__tabs" aria-label="Account views">
+          <nav class="account-shell__tabs" aria-label="Account views" data-shell-nav>
             <.link
               :for={tab <- @tabs}
               patch={tab.path}
@@ -165,7 +166,7 @@ defmodule TechtreeWeb.AccountShellLive do
             </.link>
           </nav>
         </.opening>
-        <div class="account-shell__body">
+        <div id="route-content" class="account-shell__body">
           <AccountLive.profile
             :if={@route_spec.route_id == :account}
             signed_out_reason={@signed_out_reason}

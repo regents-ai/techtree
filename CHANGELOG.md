@@ -39,6 +39,13 @@
   improvement and the running cost in the report.
 - Agents install regents-cli 1.10.27, and the Techtree plugin moves to 0.7.28
   with it. Techtree's commands are the same.
+- **Account.** A tab picked with a mouse or finger slides in from its side, from
+  the right for a tab further along and from the left for one before it; the
+  title and the tabs stay still. A tab picked from the keyboard or reached with
+  Back opens at once, and so does every tab with less motion.
+- **Your sites.** A site you add fades in where it lands, and when you remove one
+  the sites below it spring up to close the gap while the ones above stay still.
+  With less motion both happen at once.
 
 ### Fixed
 
@@ -48,6 +55,8 @@
 - **Phones.** Tapping a service card on the home page, a tile under More on the
   Results page or a post on the Blog no longer leaves its hover look on; a mouse
   still shows it, and keyboard focus still marks a tile.
+- **Your sites.** Removing a site no longer makes the page start over; it now
+  says Site removed.
 
 ## Website (2026-11-12)
 
