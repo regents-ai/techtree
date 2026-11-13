@@ -112,6 +112,11 @@
 .mk-tools__name:hover { color: var(--color-fg); text-decoration-color: currentColor; }
 .mk-tools__maker { color: var(--color-fg-muted); font-weight: 400; }
 .mk-tools dd { color: var(--color-fg-muted); font-size: .875rem; line-height: 1.5; }
+/* On a phone the name is a link on its own, so it gets a finger's height. */
+@media (pointer: coarse) {
+  .mk-tools__name { display: inline-flex; flex-wrap: wrap; align-items: center; column-gap: .25em; min-height: 2.75rem; }
+  .mk-tools > div { align-items: center; }
+}
 
 /* A ruled list of sentences: the terms, a service's notes. */
 .mk-status--prose li { display: block; font-size: .9375rem; line-height: 1.55; }
