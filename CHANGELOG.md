@@ -39,6 +39,10 @@
   improvement and the running cost in the report.
 - Agents install regents-cli 1.10.27, and the Techtree plugin moves to 0.7.28
   with it. Techtree's commands are the same.
+- **Account.** A tab picked with a mouse or finger slides in from its side, from
+  the right for a tab further along and from the left for one before it; the
+  title and the tabs stay still. A tab picked from the keyboard or reached with
+  Back opens at once, and so does every tab with less motion.
 
 ### Fixed
 

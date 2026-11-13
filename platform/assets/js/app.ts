@@ -25,7 +25,8 @@ import {ThemeSwitch} from "./hooks/theme_switch"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
 import {MotionList, MotionRefusal} from "./hooks/motion/moments"
-import {MotionCascade} from "./hooks/motion/reveals"
+import {MotionCascade, ShellViews} from "./hooks/motion/reveals"
+import {composeHooks} from "./hook_composition"
 import {installPublicTools} from "./public_tools"
 import {installSiteMenu} from "./site_menu"
 import {marketingHooks, mountEntrance} from "./marketing"
@@ -191,7 +192,9 @@ Hooks.CopyCommandPageView = {
   },
 }
 
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell, MenuAgents, VerifiedConnections, MotionRefusal, MotionCascade})
+// The account tabs: focus moves to the new tab's heading, and a tab picked with a
+// mouse or finger glides in (ShellViews); one picked from the keyboard is there at once.
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell: composeHooks(AccountShell, ShellViews), MenuAgents, VerifiedConnections, MotionRefusal, MotionCascade})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
