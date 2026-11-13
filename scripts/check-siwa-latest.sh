@@ -18,7 +18,7 @@ set -euo pipefail
 
 # Where this site keeps them. A site copying this script sets these three and keeps
 # every check below the same.
-guide=platform/priv/releases/climb-v0.7.27/bootstrap.json
+guide=platform/priv/releases/climb-v0.7.28/bootstrap.json
 install_lines=(plugin/README.md cli)
 capabilities=platform/priv/tool_manifest.json
 
