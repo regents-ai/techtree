@@ -99,12 +99,10 @@ lib/techtree/catalog/
 ## The published surface
 
 ```text
-GET /                           what Techtree Climb is
-GET /start                      the two supported ways to run a Climb
+GET /                           the four services, a case study and Book Call
 GET /climbs/:slug               one Climb in full
-GET /verify                     what verification establishes
 GET /docs                       every guide, grouped
-GET /docs/:slug                 one guide (install, test-a-skill, verify, publish, ...)
+GET /docs/:slug                 one guide (run-locally, install, test-a-skill, verify, ...)
 GET /skill.md                   the Techtree skill: what to watch, how to check back
 GET /.well-known/agent-skills/index.json  the skills index, with the skill as a zip
 GET /agents/:agent/skill.md     the skill plus steps for one agent (hermes, codex, ...)
@@ -113,12 +111,18 @@ GET /wallet-bench               Wallet Bench scores; /wallet-bench.json for agen
 GET /wallet-bench/:id           one wallet test; /wallet-bench/:id/results.json its record
 GET /results                    published Results, newest first
 GET /results/:bundle_digest     one published Result in full
-GET /repo2rlenv                 the planned Repo2RLEnv service
-GET /services/verify           Techtree Verify, a paid offer; /sample-report its sample
-GET /services/cyber-assist     Techtree Cyber Assist, a paid offer; /sample-report its sample
+GET /train/:slug                one comparison Techtree ran itself, listed on Results
+GET /services/skills            the Skills service: what to bring, what we do, what you receive
+GET /services/evals             the Evals service
+GET /services/environments      the Environments service
+GET /services/models            the Models service
+GET /services/security          the Security service; /sample-report its sample
 GET /formal                     Techtree Formal: formal verification, recent advances, code to prove
-GET /services/watchdog         Techtree Watchdog, a paid monthly watch on sites you own
-GET /watchdog                  Signed in: add sites and addresses, prove ownership (Watchdog)
+GET /watchdog                   Signed in: add sites and addresses, prove ownership (Security)
+
+GET /start, /verify, /docs/method, /repo2rlenv, /train, /services/verify,
+    /services/cyber-assist, /services/watchdog and their sample reports
+                                moved for good (301) to the page that took their place
 GET /admin/messages            The team only: the messages left for it, newest first
 GET /blog, /blog/:slug          published posts
 
@@ -399,7 +403,7 @@ monorepo root.
 | `PHX_HOST`, `PORT` | endpoint |
 | `TECHTREE_CATALOG_ROOT` | a bundle deployed beside the release, optional |
 | `REGENT_CREDITS_ADMINS` | the Privy ids of the accounts that run the site, comma-separated; they read the messages left for the team at `/admin/messages`. Optional: without it no one can open that page, and messages are kept unread |
-| `TECHTREE_BOOK_CALL_URL` | the address the Watchdog page's Book Call opens, an https address; optional, and the page shows no such link without it |
+| `TECHTREE_BOOK_CALL_URL` | the address every Book Call on the site opens, an https address; optional, and the pages show no such link without it |
 | `TECHTREE_BOOTSTRAP_CHANNEL` | the release channel to import and serve; `development` unless set, `stable` in production |
 | `TECHTREE_SHOWCASE` | `public` or `off`: whether the motion lab at `/animations` exists; required in production, `public` elsewhere unless set |
 | `SIWA_ACTIVITY_READ_TOKEN` | the reader key for the sign-in service's agent activity, which gives the account menu each agent's last active site and the Agents page each agent's sites by day (`Techtree.Agents.ActivityReading` keeps each reading five minutes); optional, and unset means neither shows activity |

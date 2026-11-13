@@ -97,6 +97,34 @@
 - **Prices.** The offers, Formal and About no longer show prices: the work is
   scoped with each team by email.
 - The home page's count of published Results leaves out any that were withdrawn.
+- **Services.** The site now sells four services, Skills, Evals, Environments and
+  Models, with Security beside them. The home page opens with "Better agents for
+  your business." and Book Call, then the four services, a case study from the
+  Skill comparison Techtree ran itself, the three steps a project takes, the
+  open-source projects Techtree is built on, and Book Call again. The header has a
+  Services menu, Results, Docs, Book Call and Sign in.
+- **Service pages.** Each service says what you bring, what we do and with which
+  open-source projects, and what you receive, then Book Call or email. Security
+  brings the Cyber Assist review and Watchdog monitoring together on one page.
+- **Price level.** Each of the four services shows its price level as one to four
+  marks, and each service page adds that it is quoted on a call. No page shows a
+  figure.
+- **Results.** Results lists the comparisons Techtree ran itself, newest first,
+  with Wallet Bench and Formal linked below.
+- **Docs.** Start is now Run locally, the first guide in the Docs. Offline check
+  and Method are one guide, Proof.
+- **About** is shorter, and opens on the dark band like the other pages, with
+  "Open-source tools. Paid custom projects." under its name.
+- **Moved.** /start, /verify, /docs/method, /repo2rlenv, /train, /services/verify,
+  /services/cyber-assist, /services/watchdog and the two offers' sample reports
+  now send you on for good to the page that took their place.
+
+### Removed
+
+- The home page's Products cards, the Results that turned in its opening, its
+  product groups and the On-ramp, and the Train, Repo2RLEnv, Techtree Verify and
+  Verify sample report pages. Their addresses move to the services and guides
+  that took their place.
 
 ## Website (2026-11-11)
 

@@ -11,7 +11,7 @@ The working entry point today is testing one of your own Skills, with the
 Hello World Climb as the quick look. Published Results are public to read, and
 anyone can check a Result's bundle on their own computer.
 
-[Start](https://techtree.sh/start) · [Results](https://techtree.sh/results) ·
+[Run locally](https://techtree.sh/docs/run-locally) · [Results](https://techtree.sh/results) ·
 [Docs](https://techtree.sh/docs) · [Agent guide](https://techtree.sh/agents.md) ·
 [Techtree skill](https://techtree.sh/skill.md) ·
 [Changelog](https://techtree.sh/changelog) ·
@@ -49,15 +49,15 @@ repair tasks from a repository. That trial is no longer offered.
 | Hello World Climb: a local Skill comparison with Hermes and Verifiers | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree climb`), [`plugin/`](plugin/) (`/techtree demo`) |
 | Signed result bundles and offline verification | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree proof verify`) |
 | Publishing a verified run, and public Results pages | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree publish`, `regents techtree withdraw`), [`platform/`](platform/) ([Results](https://techtree.sh/results)) |
-| Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Start](https://techtree.sh/start), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
+| Pinned install guide and release coordinates | Available now | [`platform/`](platform/) ([Run locally](https://techtree.sh/docs/run-locally), [bootstrap](https://techtree.sh/api/v1/bootstrap)), [`platform/priv/releases/`](platform/priv/releases/) |
 | Structured machine responses (`--json`) for agents and scripts | Available now | [regents-cli](https://github.com/regents-ai/regents-cli) |
 | Create an environment from a Skill: inspect, plan, build, accept, run, verify, export | Experimental | [regents-cli](https://github.com/regents-ai/regents-cli) (`regents techtree forge inspect-skill` through `regents techtree forge export`) |
-| Browser tools for agents (WebMCP), listed at [/capabilities.json](https://techtree.sh/capabilities.json): public reads of the Start guide, the Climbs and the Results; signed identity and account reads; and `techtree_publication`, which publishes or withdraws a signed Result | Available now | [`platform/`](platform/) |
+| Browser tools for agents (WebMCP), listed at [/capabilities.json](https://techtree.sh/capabilities.json): public reads of the install guide, the Climbs and the Results; signed identity and account reads; and `techtree_publication`, which publishes or withdraws a signed Result | Available now | [`platform/`](platform/) |
 | An MCP connector for other agents | Planned | — |
 | Hosted environment building and hosted execution | Planned | — |
 | NVIDIA NeMo Fabric harnesses and optional NeMo Relay evidence | Planned | — |
 
-The active start guide controls exact installation coordinates. Historical
+The active Run locally guide controls exact installation coordinates. Historical
 release documents can still name the old plugin repository or the `techtree`
 command; the plugin is developed in this monorepo’s `plugin/` directory and the
 command-line tool in regents-cli. Do not replace a pinned release
@@ -125,7 +125,7 @@ The [changelog](CHANGELOG.md) lists what each release changed, and what the
 Give your Hermes agent this instruction:
 
 ```text
-Read https://techtree.sh/start and use the exact release it publishes.
+Read https://techtree.sh/docs/run-locally and use the exact release it publishes.
 If no installable release is active, stop and tell me.
 
 Explain the prerequisites and ask before installing software. Run Techtree
@@ -205,7 +205,7 @@ harness runtime, trajectory format, or trainer.
 | System | Role | Status |
 | --- | --- | --- |
 | [Prime Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Task environments, evaluation execution, rewards, and native evidence. The Hello World Climb runs through a pinned Verifiers engine. | Available now |
-| Repo2RLEnv | Turns a repository's history into repair tasks. | Planned |
+| [Hugging Face Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Turns a repository's history into repair tasks. | Planned |
 | [NVlabs Skill2Env](https://github.com/NVlabs/Skill2Env) | The task package shape and planning criteria that Skill environments follow, pinned to one revision (Apache-2.0). | Experimental |
 | [NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Harness configuration, capability checks, execution lifecycle, and normalized outputs, so other agents can be evaluated. | Planned |
 | [NVIDIA NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Instrumented lifecycle and process evidence. Optional and observe-only. | Planned |

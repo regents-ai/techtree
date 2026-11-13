@@ -30,7 +30,7 @@ showcase =
 config :techtree, :showcase, showcase
 
 # The Book Call button's booking page (TechtreeWeb.Components.BookCall): in the
-# header, on the home page and on the Watchdog offer. Unset, no page shows the
+# header and on every page that offers a call. Unset, no page shows the
 # button; set, it is an https address or the boot stops.
 book_call =
   case System.get_env("TECHTREE_BOOK_CALL_URL") do
