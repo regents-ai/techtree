@@ -14,6 +14,11 @@ defmodule TechtreeWeb.WatchdogLive do
   alias Techtree.Watchdog
   alias Techtree.Watchdog.{Host, Limits, Ownership}
 
+  # How long a removed site stays, hidden, before the list drops it: until the
+  # list's spring (LAYOUTS.bounce in hooks/motion/moments.ts) has settled, which
+  # anime.js puts at 920ms. Dropping it sooner restarts the spring mid-glide.
+  @leave_ms 920
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket), do: subscribe(socket)
@@ -59,8 +64,23 @@ defmodule TechtreeWeb.WatchdogLive do
     )
   end
 
+  # The removed site stays on the page, hidden, so the list's motion (MotionList)
+  # can take it out while the sites under it close the gap; then the list is read
+  # again.
   def handle_event("remove_site", %{"id" => id}, socket) do
-    update_host(socket, id, &Watchdog.remove_host/2, "Site removed.", :success)
+    with %Human{} = actor <- actor(socket),
+         {:ok, host} <- Ash.get(Host, id, actor: actor),
+         :ok <- Watchdog.remove_host(host, actor: actor) do
+      Process.send_after(self(), :removed, @leave_ms)
+
+      {:noreply,
+       socket
+       |> inform(:success, "Site removed.")
+       |> update(:leaving, &[host.id | &1])}
+    else
+      {:error, error} -> {:noreply, inform_error(socket, error, "That couldn't be done.")}
+      nil -> {:noreply, socket}
+    end
   end
 
   def handle_event("add_address", %{"host_id" => host_id, "url" => url}, socket) do
@@ -90,6 +110,7 @@ defmodule TechtreeWeb.WatchdogLive do
   end
 
   @impl true
+  def handle_info(:removed, socket), do: {:noreply, load_list(socket)}
   def handle_info(%{__struct__: Host}, socket), do: {:noreply, load_list(socket)}
   def handle_info(_message, socket), do: {:noreply, socket}
 
@@ -126,10 +147,10 @@ defmodule TechtreeWeb.WatchdogLive do
           |> Enum.reject(&(&1.state == :removed))
           |> Enum.group_by(& &1.host_id)
 
-        assign(socket, signed_in?: true, hosts: hosts, routes: routes)
+        assign(socket, signed_in?: true, hosts: hosts, routes: routes, leaving: [])
 
       nil ->
-        assign(socket, signed_in?: false, hosts: [], routes: %{})
+        assign(socket, signed_in?: false, hosts: [], routes: %{}, leaving: [])
     end
   end
 
@@ -260,8 +281,21 @@ defmodule TechtreeWeb.WatchdogLive do
             Add a site above to get its proof and start.
           </Regent.Primitives.empty_state>
 
-          <ol class="watchdog-sites">
-            <li :for={host <- @hosts}>
+          <ol
+            id="watchdog-sites"
+            class="watchdog-sites"
+            phx-hook="MotionList"
+            data-layout-id="watchdog-sites"
+            data-children="[data-site]"
+            data-variant={TechtreeWeb.Motion.standard("list")}
+          >
+            <li
+              :for={host <- @hosts}
+              id={"watchdog-site-#{host.id}"}
+              data-site
+              data-layout-id={"watchdog-site-#{host.id}"}
+              hidden={host.id in @leaving}
+            >
               <Regent.Structure.panel class="watchdog-site rg-panel__body">
                 <div class="watchdog-site__head">
                   <h2>{host.origin}</h2>
