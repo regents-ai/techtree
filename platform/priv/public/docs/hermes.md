@@ -1,6 +1,6 @@
 # Use Hermes
 
-[Hermes](https://github.com/NousResearch/hermes-agent) can run every step itself, like any coding agent. Give it the instruction on [Start](/start).
+[Hermes](https://github.com/NousResearch/hermes-agent) can run every step itself, like any coding agent. Give it the instruction on [Run locally](/docs/run-locally).
 
 Hermes may prepare commands and explain their output. Techtree still stops before every model call and waits for your own yes.
 

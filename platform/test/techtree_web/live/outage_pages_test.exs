@@ -80,25 +80,19 @@ defmodule TechtreeWeb.OutagePagesTest do
     result
   end
 
-  test "Home says its Climbs and install command can't be shown", %{conn: conn} do
+  test "Home shows its services and case study, which need no database", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/") end)
 
-    assert has_element?(live, "#climbs [role=status]", "Climbs can't be shown")
-    assert has_element?(live, "#agents-cli [role=status]", "can't be shown")
-    refute has_element?(live, "#agents-cli p", "no version of Techtree")
+    assert has_element?(live, "#services-list")
+    assert has_element?(live, "#case-study")
   end
 
-  test "Start and Docs say the install steps can't be shown, not that there's nothing to install",
+  test "Run locally and Docs say the install steps can't be shown, not that there's nothing to install",
        %{conn: conn} do
-    {:ok, start, _html} = quietly(fn -> live(conn, ~p"/start") end)
+    {:ok, run, _html} = quietly(fn -> live(conn, ~p"/docs/run-locally") end)
 
-    assert has_element?(
-             start,
-             "#setup-unavailable [role=status] p",
-             "install steps can't be shown"
-           )
-
-    refute has_element?(start, ".setup-unavailable p", "no version of Techtree")
+    assert has_element?(run, "#run-unavailable[role=status]", "install steps can't be shown")
+    refute has_element?(run, "#run-unavailable", "no version of Techtree")
 
     {:ok, docs, _html} = quietly(fn -> live(conn, ~p"/docs/install") end)
     assert has_element?(docs, ".doc-section [role=status]", "install steps can't be shown")
@@ -155,34 +149,6 @@ defmodule TechtreeWeb.OutagePagesTest do
     assert has_element?(live, "[role=status]", "Wallet tests can't be shown")
 
     refute has_element?(live, "[role=status]", "No wallet tests have run yet")
-  end
-
-  test "an offer page says its bench figures can't be shown, and so does its Markdown", %{
-    conn: conn
-  } do
-    TechtreeWeb.WalletBenchScores.delete_all()
-
-    # Read as it renders: the offer pages read the sign-in from the socket's
-    # connect info, which the LiveView test harness does not carry.
-    page =
-      quietly(fn -> get(conn, ~p"/services/verify") end)
-      |> html_response(200)
-      |> LazyHTML.from_document()
-
-    assert page |> LazyHTML.query("#bench [role=status]") |> LazyHTML.text() =~
-             "figures can't be shown"
-
-    assert Enum.empty?(LazyHTML.query(page, "#bench-figures"))
-
-    text =
-      quietly(fn ->
-        conn
-        |> Plug.Conn.put_req_header("accept", "text/markdown")
-        |> get(~p"/services/cyber-assist")
-      end)
-      |> response(200)
-
-    assert text =~ "The bench figures can't be shown right now."
   end
 
   # A browser that holds a sign-in, made without the database: the claim's own

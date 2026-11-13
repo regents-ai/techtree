@@ -32,25 +32,27 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   alias Techtree.CatalogFixture
   alias Techtree.NetworkFixture
 
+  # The service pages, read as they render (`page_html/2`).
+  @service_pages ~w(/services/skills /services/evals /services/environments /services/models
+                    /services/security)
+
   @pages [
            "/",
            "/docs",
-           "/verify",
-           "/start",
            "/climbs/hello-world-climb",
            "/results",
            "/results/" <> Techtree.NetworkFixture.bundle_digest(),
            "/examples/tdd"
-         ] ++ Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
+         ] ++ Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++ @service_pages
 
   @pages_without_catalog [
                            "/",
                            "/docs",
-                           "/verify",
-                           "/start",
                            "/results",
                            "/examples/tdd"
-                         ] ++ Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
+                         ] ++
+                           Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++
+                           @service_pages
 
   # A claim that the machine keeps everything, which the remote model calls a
   # trial makes contradict unless the same passage says so.
@@ -180,21 +182,20 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   @pinned_address ~r|\Ahttps://github\.com/[\w.-]+/[\w.-]+/tree/[0-9a-f]{40}(?:/[\w.-]+)*\z|
 
   # The GitHub addresses that are informational rather than installable: the
-  # verifiers hover card, the home page's tool notes and the Stack link projects'
-  # homes, and the masthead links this project's repository and its stargazers
-  # page. Nothing a reader installs is ever taken from any of them, so the
-  # immutable-revision rule does not apply.
+  # open-source projects the home page credits and the service pages name, the
+  # guides' project homes, and the masthead links this project's repository and
+  # its stargazers page. Nothing a reader installs is ever taken from any of
+  # them, so the immutable-revision rule does not apply.
   @informational_addresses [
     "https://github.com/PrimeIntellect-ai/verifiers",
-    "https://github.com/PrimeIntellect-ai/prime-agent",
+    "https://github.com/PrimeIntellect-ai/prime-rl",
     "https://github.com/NVIDIA/SkillEvaluator",
+    "https://github.com/microsoft/SkillOpt",
     "https://github.com/NousResearch/hermes-agent",
     "https://github.com/FrontierCS/Frontier-CS",
     "https://github.com/FrontierCS/FrontierSmith",
     "https://github.com/NVlabs/Skill2Env",
-    "https://github.com/NVIDIA-NeMo",
-    "https://github.com/NVIDIA/NeMo-Fabric",
-    "https://github.com/NVIDIA/NeMo-Relay",
+    "https://github.com/huggingface/Repo2RLEnv",
     "https://github.com/regents-ai",
     "https://github.com/regents-ai/techtree",
     "https://github.com/regents-ai/techtree/stargazers"
@@ -284,7 +285,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
     test "no public source or rendered install page promises a scanner question Hermes never asks",
          %{conn: conn} do
-      sources = page_sources() ++ rendered(conn, ["/start"])
+      sources = page_sources() ++ rendered(conn, ["/docs/run-locally"])
 
       for {label, source} <- sources, pattern <- @scan_promises_question do
         refute source =~ pattern,
@@ -306,14 +307,14 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
     test "the page a reader is sent to for a proof says what is and is not there",
          %{conn: conn} do
-      {:ok, _live, html} = live(conn, ~p"/verify")
+      {:ok, _live, html} = live(conn, ~p"/docs/verify")
       text = visible_text(html)
 
-      # This route owns the verifier boundary; published evidence lives at /results.
-      assert text =~ "Offline check"
+      # This guide owns the verifier boundary; published evidence lives at /results.
       assert text =~ "Checks"
       assert text =~ "Limits"
-      assert text =~ "Techtree did not watch the run happen."
+      assert text =~ "It does not prove that"
+      assert text =~ "Techtree watched the run"
       assert text =~ "regents techtree proof verify path/to/result-bundle"
       refute text =~ CatalogFixture.campaign_digest()
       refute text =~ "arrives in a later release"
@@ -550,19 +551,23 @@ defmodule TechtreeWeb.ReleaseCopyTest do
   # -- Where the words come from --------------------------------------------
 
   defp rendered(conn, pages) do
-    Enum.map(pages, fn page ->
-      {:ok, _live, html} = live(conn, page)
-      {"the page at #{page}", visible_text(html)}
-    end)
+    Enum.map(pages, &{"the page at #{&1}", conn |> page_html(&1) |> visible_text()})
   end
 
   # The same pages as markup, for the claims that live in an address rather
   # than in a sentence: a link's target is a promise a reader never reads.
   defp markup(conn, pages) do
-    Enum.map(pages, fn page ->
-      {:ok, _live, html} = live(conn, page)
-      {"the page at #{page}", html}
-    end)
+    Enum.map(pages, &{"the page at #{&1}", page_html(conn, &1)})
+  end
+
+  # The service pages read the sign-in from the socket's connect info, which
+  # the LiveView test harness does not carry, so they are read as they render.
+  defp page_html(conn, "/services/" <> _service = page),
+    do: conn |> get(page) |> html_response(200)
+
+  defp page_html(conn, page) do
+    {:ok, _live, html} = live(conn, page)
+    html
   end
 
   defp page_sources do

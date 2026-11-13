@@ -4,7 +4,9 @@ defmodule TechtreeWeb.DocsLive do
   has its own page at `/docs/<slug>`.
 
   Commands containing release coordinates are rendered from the active release
-  rather than copied into these pages.
+  rather than copied into these pages. Run locally also states what the example
+  Climb asks of the person running it (its model, routes, tasks and limits),
+  read from the Campaign of the Climb the release introduces.
   """
 
   use TechtreeWeb, :live_view
@@ -19,32 +21,57 @@ defmodule TechtreeWeb.DocsLive do
   alias TechtreeWeb.Outage
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.ReleaseInfo
-  alias TechtreeWeb.StartLive
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(instruction: StartLive.instruction()) |> assign(release_reads())}
+    {:ok, socket |> assign(instruction: instruction()) |> assign(release_reads())}
   end
 
-  # The active release and the routes of the Climbs it names are read together, so a
+  @doc """
+  The instruction a person copies to their agent. It starts with the Techtree
+  skill, then names the agent guide rather than a version, so it stays true as
+  releases move.
+  """
+  @spec instruction() :: String.t()
+  def instruction do
+    "Strongly recommended but optional: install the Techtree skill with " <>
+      "`npx skills add regents-ai/techtree --skill techtree`. " <>
+      "The same information is at #{url(~p"/agents.md")}. " <>
+      "Help me test one of my Skills with Techtree. " <>
+      "Install the exact Techtree release that page names, " <>
+      "or check that the one I have matches. Ask me where my Skill is, and whether to " <>
+      "compare it with no Skill or with an earlier version of it. " <>
+      "Then use Techtree one step at a time to make the tasks, run them both ways and compare. " <>
+      "Show me each review exactly as Techtree prints it, " <>
+      "and stop for my answer whenever it asks for a review or approval. " <>
+      "Never approve anything for me."
+  end
+
+  # The active release and the Campaigns of the Climbs it names are read together, so a
   # connection lost during any of them shows the outage note rather than failing the page.
   defp release_reads do
     case Outage.read(&read_release/0) do
-      {:ok, {release, frontier, introductory_routes, frontier_routes}} ->
+      {:ok, {release, frontier, introductory, frontier_trial}} ->
         [
           release: release,
           install: :read,
+          minimums: release_minimums(release),
           plugin_commands: plugin_commands(release),
-          introductory_routes: introductory_routes,
+          setup: setup(release, introductory),
+          example: example(introductory),
+          introductory_routes: introductory && introductory.routes,
           frontier: frontier,
-          frontier_routes: frontier_routes
+          frontier_routes: frontier_trial && frontier_trial.routes
         ]
 
       :database_down ->
         [
           release: nil,
           install: :unreadable,
+          minimums: %{},
           plugin_commands: nil,
+          setup: nil,
+          example: nil,
           introductory_routes: nil,
           frontier: nil,
           frontier_routes: nil
@@ -55,8 +82,11 @@ defmodule TechtreeWeb.DocsLive do
   defp read_release do
     release = ReleaseInfo.current()
     frontier = release && ReleaseInfo.climb(release, "frontier-cs-open-ended-climb")
-    {release, frontier, release && routes(release.introductory_reference), routes(frontier)}
+    {release, frontier, trial(release && release.introductory_reference), trial(frontier)}
   end
+
+  defp release_minimums(nil), do: %{}
+  defp release_minimums(release), do: release.minimums
 
   @impl true
   def handle_params(params, _uri, socket) do
@@ -87,15 +117,17 @@ defmodule TechtreeWeb.DocsLive do
     <Layouts.page wide flush>
       <article class="docs-index" data-markdown-root>
         <.opening
-          eyebrow="Resources"
+          eyebrow="Guides"
           title="Docs"
-          line="Install, test, check and publish."
+          line="Run locally, check and publish."
           more={DocsGuides.lede()}
           shape={7}
           icon="book-open"
         >
           <:actions>
-            <.link navigate={~p"/docs/install"} class="rg-button rg-button--primary">Install</.link>
+            <.link navigate={~p"/docs/run-locally"} class="rg-button rg-button--primary">
+              Run locally
+            </.link>
           </:actions>
           <div class="mk-opening__tools"><.page_copy variant="secondary" /></div>
         </.opening>
@@ -136,6 +168,9 @@ defmodule TechtreeWeb.DocsLive do
             release={@release}
             install={@install}
             instruction={@instruction}
+            minimums={@minimums}
+            setup={@setup}
+            example={@example}
             plugin_commands={@plugin_commands}
             introductory_routes={@introductory_routes}
             frontier={@frontier}
@@ -191,6 +226,64 @@ defmodule TechtreeWeb.DocsLive do
   defp prose(assigns) do
     ~H"""
     <div class="docs-prose">{raw(@html)}</div>
+    """
+  end
+
+  defp guide(%{slug: "run-locally"} = assigns) do
+    ~H"""
+    <section class="doc-section">
+      <p :if={@install == :unreadable} id="run-unavailable" role="status">
+        The install steps can't be shown right now. Try again in a minute.
+      </p>
+      <p :if={@install == :read and is_nil(@setup)} id="run-unavailable">
+        There's no version of Techtree to install yet. The steps below explain how a test works in the meantime.
+      </p>
+      <h2 id="your-skill">Your Skill</h2>
+      <p>
+        Give this to a coding agent that can use your terminal, or to Hermes. It sets Techtree up, asks where your Skill is, and stops at every review for your answer.
+      </p>
+      <.prompt_block :if={@setup} id="copy-run-instruction" label="Agent prompt" text={@instruction} />
+      <.definition_list>
+        <:fact term="You need">
+          <.requirements minimums={@minimums} provider hermes />
+        </:fact>
+        <:fact term="Time">
+          About 15 minutes to set up. Making the tasks and running the comparison then take longer, depending on your Skill and your model.
+        </:fact>
+      </.definition_list>
+      <.command_block :if={@setup} id="copy-run-setup" label="Manual setup" lines={@setup.cli} />
+
+      <h2 id="example">Example</h2>
+      <p>
+        The Hello World Climb is a small, fixed challenge that ships with the release. It runs the same tasks without a Skill and with a starter Skill, then shows the difference. It shows how a run works; its toy tasks say nothing about your own Skill.
+      </p>
+      <.definition_list :if={@example}>
+        <:fact term="You need">
+          <.requirements minimums={@minimums} provider={false} hermes={false}>
+            <li :if={length(@example.routes) > 1}>One of these, chosen for each run:</li>
+            <li :for={route <- @example.routes}>{ModelAccess.needs!(route)}</li>
+          </.requirements>
+        </:fact>
+        <:fact term="Model">
+          The Climb fixes the model: <code>{@example.model_id}</code>, whichever way you run it.
+        </:fact>
+        <:fact term="Limits">
+          Each task is tried once with the Skill and once without. Each try stops starting model calls after {@example.calls} calls, {@example.input_tokens} input tokens or {@example.output_tokens} output tokens. With {@example.tasks} tasks, a run can make up to {@example.run_calls} model calls.
+          <span :if={@example.maximum_usd}>
+            On your own Prime key, a run also stops once it has spent {@example.maximum_usd}.
+          </span>
+          Before anything runs, Techtree shows these limits and waits for your yes.
+        </:fact>
+        <:fact term="Time">
+          About 15 minutes to set up. How long the run takes depends on the model service.
+        </:fact>
+        <:fact term="Your data">
+          The model calls go to {ModelAccess.destinations(@example.routes)}, only after you approve.
+        </:fact>
+      </.definition_list>
+      <.command_block :if={@setup} id="copy-run-example" label="Example run" lines={@setup.example} />
+      <.prose html={@text.body_html} />
+    </section>
     """
   end
 
@@ -438,7 +531,6 @@ defmodule TechtreeWeb.DocsLive do
         label="Verify"
       />
       <.prose html={@text.body_html} />
-      <p><.link navigate={~p"/verify"}>Read exactly what a check establishes.</.link></p>
     </section>
     """
   end
@@ -482,13 +574,60 @@ defmodule TechtreeWeb.DocsLive do
 
   defp plugin_commands(_release), do: nil
 
-  # The routes a Climb offers, each with its own prepare command.
-  defp routes(nil), do: nil
+  # What a Climb asks of the person running it, from its Campaign: the routes it
+  # offers (each with its own prepare command), its model, tasks and limits.
+  defp trial(nil), do: nil
 
-  defp routes(reference),
-    do:
-      reference
-      |> Query.get_climb_by_reference!()
-      |> CampaignFacts.trial!()
-      |> Map.fetch!(:routes)
+  defp trial(reference),
+    do: reference |> Query.get_climb_by_reference!() |> CampaignFacts.trial!()
+
+  # The commands Run locally offers: setting up to test your own Skill, and
+  # running the example Climb the release introduces.
+  defp setup(
+         %{
+           installable?: true,
+           install_argv: [_ | _] = install_argv,
+           introductory_reference: reference
+         },
+         %{routes: routes}
+       ) do
+    %{
+      cli: [
+        {:command, install_argv},
+        {:command, ["regents", "techtree", "forge", "inspect-skill", "path/to/your-skill"]},
+        {:comment, "Then plan with a provider and model you choose:"},
+        {:command, ["regents", "techtree", "forge", "plan", "--help"]},
+        {:comment, "Every review waits for your answer."}
+      ],
+      example:
+        [
+          {:command, install_argv},
+          {:command, ["regents", "techtree", "setup"]},
+          {:command, ["regents", "techtree", "doctor", "--climb", reference]},
+          {:command, ["regents", "techtree", "skill", "starter"]},
+          {:comment, "Prepare with the Skill it placed, then run the start command it prints."}
+        ] ++
+          ModelAccess.prepare_lines(
+            routes,
+            ["regents", "techtree", "climb", "prepare", reference, "--skill", "path/to/skill"]
+          )
+    }
+  end
+
+  defp setup(_release, _trial), do: nil
+
+  defp example(nil), do: nil
+
+  defp example(trial) do
+    %{
+      routes: trial.routes,
+      model_id: trial.model_id,
+      maximum_usd: trial.maximum_usd && ModelAccess.dollars(trial.maximum_usd),
+      tasks: CampaignFacts.count(trial.tasks),
+      calls: CampaignFacts.count(trial.calls),
+      input_tokens: CampaignFacts.count(trial.input_tokens),
+      output_tokens: CampaignFacts.count(trial.output_tokens),
+      run_calls: trial |> CampaignFacts.run_total() |> Map.fetch!(:calls) |> CampaignFacts.count()
+    }
+  end
 end

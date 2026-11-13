@@ -7,6 +7,12 @@ defmodule TechtreeWeb.DocsGuides do
 
   @guides [
     %{
+      slug: "run-locally",
+      group: "Get started",
+      title: "Run locally",
+      summary: "Test a Skill on your own computer, or run the example."
+    },
+    %{
       slug: "install",
       group: "Get started",
       title: "Install",
@@ -39,8 +45,8 @@ defmodule TechtreeWeb.DocsGuides do
     %{
       slug: "verify",
       group: "Results",
-      title: "Verifying",
-      summary: "Check a Result's evidence on your own computer."
+      title: "Proof",
+      summary: "What a Result proves, and how to check one yourself."
     },
     %{
       slug: "publish",
@@ -67,12 +73,6 @@ defmodule TechtreeWeb.DocsGuides do
       summary: "Pair an agent with your account, and what it can then read."
     },
     %{
-      slug: "method",
-      group: "Background",
-      title: "Proof",
-      summary: "The comparison, the proof bundle, and what a Result does not prove."
-    },
-    %{
       slug: "where-this-goes",
       group: "Background",
       title: "Roadmap",
@@ -94,9 +94,9 @@ defmodule TechtreeWeb.DocsGuides do
 
   @by_slug Map.new(@guides, &{&1.slug, &1})
 
-  @lede "Install the release, test a Skill against no Skill or its earlier version, check a " <>
-          "Result, and publish one to the public Results. Reading the catalog and Results " <>
-          "needs no account."
+  @lede "Run Techtree on your own computer, test a Skill against no Skill or its earlier " <>
+          "version, check a Result, and publish one to the public Results. Reading the " <>
+          "catalog and Results needs no account."
 
   @type guide :: %{slug: String.t(), group: String.t(), title: String.t(), summary: String.t()}
 

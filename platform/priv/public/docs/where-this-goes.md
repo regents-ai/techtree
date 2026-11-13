@@ -13,11 +13,11 @@ The rule stays the same: freeze the system, say what may change, measure the res
 
 ## More places
 
-Not available yet. The plan is to run the same comparison locally and, later, on hosted machines; with Hermes directly or through NVIDIA NeMo Fabric; and with Codex. Each new way to run is its own Climb version, so changing where a run happens never changes what an existing Result means.
+Not available yet. The plan is to run the same comparison locally and, later, on hosted machines; with Hermes; and with Codex. Each new way to run is its own Climb version, so changing where a run happens never changes what an existing Result means.
 
 ## Agent stack
 
-[NVIDIA NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) will help run different agent harnesses the same way, and [NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) will help keep comparable records of model calls, tool calls and subagents. [Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) stays the judge of task scores. Techtree records what was fixed, what changed, and what the evidence lets anyone claim.
+[Prime Intellect's Verifiers](https://github.com/PrimeIntellect-ai/verifiers) stays the judge of task scores. Techtree records what was fixed, what changed, and what the evidence lets anyone claim.
 
 ## Network
 
@@ -25,4 +25,4 @@ Regents will add the network around Techtree's work: publishing, discovery, iden
 
 ## Agent prompt
 
-Go to [techtree.sh/start](/start), install the release Techtree names, and run the Hello World Climb. Stop before any paid model call and ask me to approve it.
+Go to [techtree.sh/docs/run-locally](/docs/run-locally), install the release Techtree names, and run the Hello World Climb. Stop before any paid model call and ask me to approve it.

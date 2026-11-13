@@ -5,11 +5,10 @@ defmodule TechtreeWeb.CampaignFacts do
 
   A Climb's summary is a projection, and projections are deliberately small.
   What a reader needs beyond it — the limits on each try, the routes a person
-  may run it on, how many tasks the run covers, and what the publisher's own
-  check of the tasks concluded — is written in documents this site already
-  publishes under a content address. It is read from those exact bytes here
-  rather than added to the summary, so a page that shows it is showing the
-  document, not a copy of it that could drift.
+  may run it on and how many tasks the run covers — is written in documents
+  this site already publishes under a content address. It is read from those
+  exact bytes here rather than added to the summary, so a page that shows it
+  is showing the document, not a copy of it that could drift.
 
   A Campaign that offers the person's own Prime key also sets the most a run
   may spend there, in dollars. The ChatGPT plan shows no dollars, so a run on
@@ -24,7 +23,7 @@ defmodule TechtreeWeb.CampaignFacts do
 
   alias Techtree.Catalog.Query
 
-  @type t :: %{membership: map(), validation: map()}
+  @type t :: %{membership: map()}
 
   @type trial :: %{
           model_id: String.t(),
@@ -41,41 +40,12 @@ defmodule TechtreeWeb.CampaignFacts do
   # Each task is tried without the Skill and with it.
   @sides 2
 
-  @empty %{membership: %{}, validation: %{}}
-
   @doc """
-  The published task membership and validation outcome behind one Climb, or
-  empty values when this release publishes neither.
-  """
-  @spec for_climb(map() | nil) :: t()
-  def for_climb(%{projection: facts}), do: for_campaign(object(facts["campaign_spec_digest"]))
-  def for_climb(_climb), do: @empty
-
-  @doc """
-  The published task membership and validation outcome of one Campaign.
+  The published task membership of one Campaign.
   """
   @spec for_campaign(map() | nil) :: t()
-  def for_campaign(nil), do: @empty
-
-  def for_campaign(campaign) do
-    %{
-      membership: membership(campaign),
-      validation: validation(get_in(campaign, ["taskset", "validation_receipt_digest"]))
-    }
-  end
-
-  @doc """
-  How many of the published tasks the publisher's check found valid, in words.
-  """
-  @spec validation_words(map()) :: String.t() | nil
-  def validation_words(%{"valid" => count, "total" => count}) when is_integer(count),
-    do: "#{count} tasks validated"
-
-  def validation_words(%{"valid" => valid, "total" => total})
-      when is_integer(valid) and is_integer(total),
-      do: "#{valid} of #{total} tasks valid"
-
-  def validation_words(_validation), do: nil
+  def for_campaign(nil), do: %{membership: %{}}
+  def for_campaign(campaign), do: %{membership: membership(campaign)}
 
   @doc """
   What one Climb asks of the person running it, read from its Campaign: the
@@ -202,30 +172,4 @@ defmodule TechtreeWeb.CampaignFacts do
 
   defp task_count(hashes) when is_list(hashes), do: length(hashes)
   defp task_count(_hashes), do: nil
-
-  defp validation(digest) do
-    case object(digest) do
-      nil ->
-        %{}
-
-      receipt ->
-        %{
-          "status" => receipt["status"],
-          "method" => get_in(receipt, ["method", "kind"]),
-          "valid" => get_in(receipt, ["upstream_summary", "valid"]),
-          "total" => get_in(receipt, ["upstream_summary", "total"])
-        }
-    end
-  end
-
-  defp object(digest) when is_binary(digest) do
-    with {:ok, bytes, _entry} <- Query.object_bytes(digest),
-         {:ok, document} when is_map(document) <- Jason.decode(bytes) do
-      document
-    else
-      _error -> nil
-    end
-  end
-
-  defp object(_digest), do: nil
 end

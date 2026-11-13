@@ -285,7 +285,7 @@ defmodule TechtreeWeb.TddShowcaseLive do
       </section>
 
       <p class="small quiet section">
-        <a href={~p"/results"}>Published Results</a> · <a href={~p"/start"}>Start</a>
+        <a href={~p"/results"}>Published Results</a> · <a href={~p"/docs/run-locally"}>Run locally</a>
       </p>
     </Layouts.page>
     """
