@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.PublicPagesController do
   @moduledoc """
-  About, Privacy, Terms, the two sample reports under `/services` and the agents'
+  About, Privacy, Terms, Security's sample report and the agents'
   pages under `/agents` as pages, the Docs list as JSON at `/api/v1/docs`, and the
   files agents and crawlers read first: the short start for
   agents at `/llms.txt`, the OpenAPI
@@ -31,6 +31,7 @@ defmodule TechtreeWeb.PublicPagesController do
     end
   end
 
+  defp template("/about"), do: :about
   defp template("/agents" <> _rest), do: :agent
   defp template(_path), do: :show
 

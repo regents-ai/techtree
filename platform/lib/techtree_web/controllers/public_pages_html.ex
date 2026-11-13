@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.PublicPagesHTML do
   @moduledoc """
-  About, Privacy, Terms and the sample reports in the site's document layout,
-  and the agents' pages under the marketing site's opening band.
+  Privacy, Terms and Security's sample report in the site's document layout,
+  and About and the agents' pages under the marketing site's opening band.
   """
 
   use TechtreeWeb, :html
@@ -22,6 +22,24 @@ defmodule TechtreeWeb.PublicPagesHTML do
       <article class="public-document rg-blog__prose">
         {raw(@page.body_html)}
       </article>
+    </Layouts.page>
+    """
+  end
+
+  attr :page, :map, required: true
+
+  # About, its one line as the band's promise; PublicDocuments.page/1 renders
+  # only committed Markdown.
+  # sobelow_skip ["XSS.Raw"]
+  def about(assigns) do
+    ~H"""
+    <Layouts.page wide flush>
+      <.opening eyebrow="Company" title={@page.title} line={@page.lede} shape={8} icon="building-2" />
+      <section class="mk-section">
+        <article class="public-document rg-blog__prose">
+          {raw(@page.body_html)}
+        </article>
+      </section>
     </Layouts.page>
     """
   end

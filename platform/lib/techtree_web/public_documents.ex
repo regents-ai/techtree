@@ -5,17 +5,15 @@ defmodule TechtreeWeb.PublicDocuments do
   Each is committed Markdown in `priv/public`, and the changelog is
   `priv/changelog.md`, the same file the Changelog page shows; each agent's page
   under `/agents` is `TechtreeWeb.AgentGuides`. An agent that
-  asks `/`, `/docs`, `/about`, `/privacy`, `/terms`, `/verify`,
-  `/repo2rlenv`, `/changelog`, `/agents` or a sample report under `/services` for
-  `text/markdown` receives it with one closing line, answered before the
-  router by `RegentAgentAccess.Plug`. Pages built from
-  the database or from release files answer Markdown in the router instead
-  (`TechtreeWeb.Plugs.PageMarkdown`), with the same closing line; the three
-  offers under `/services` are among them, their words kept here (`offer/1`)
-  with the bench figures filled in there (Watchdog has none), and so is `/formal`, its words kept
-  here (`formal/0`) with its frontier list, example and email filled in there. About,
-  Privacy and Terms show the same words as pages, so the two never say
-  different things; so do the two sample reports under `/services`. The other
+  asks `/docs`, `/about`, `/privacy`, `/terms`, `/changelog`, `/agents`
+  or Security's sample report for `text/markdown` receives it with one closing
+  line, answered before the router by `RegentAgentAccess.Plug`. Pages built from
+  the database, from release files or from their LiveView's own data answer
+  Markdown in the router instead (`TechtreeWeb.Plugs.PageMarkdown`), with the
+  same closing line; the home page and the service pages under `/services`
+  are among them, and so is `/formal`, its words kept here (`formal/0`) with its frontier list, example
+  and email filled in there. About, Privacy, Terms and Security's sample report
+  show the same words as pages, so the two never say different things. The other
   pages' own designs are their LiveViews, and their Markdown is the same facts
   in words. Each Docs guide is
   `priv/public/docs/<slug>.md`, answered at `/docs/<slug>`; the guides without
@@ -37,10 +35,7 @@ defmodule TechtreeWeb.PublicDocuments do
 
   @directory Application.app_dir(:techtree, "priv/public")
   @guides Enum.map(TechtreeWeb.DocsGuides.slugs(), &("docs/" <> &1))
-  @offers ~w(services/verify services/cyber-assist services/watchdog)
-  @sample_reports ~w(services/verify-sample-report services/cyber-assist-sample-report)
-  @names ~w(home about privacy terms verify repo2rlenv llms formal) ++
-           @guides ++ @offers ++ @sample_reports
+  @names ~w(about privacy terms llms formal services/security-sample-report) ++ @guides
   for name <- @names, do: @external_resource(Path.join(@directory, name <> ".md"))
   @openapi_file Path.join(@directory, "openapi.json")
   @external_resource @openapi_file
@@ -57,8 +52,8 @@ defmodule TechtreeWeb.PublicDocuments do
     "{{publication_limit}}" => Integer.to_string(@publication_rate_limit[:limit]),
     "{{publication_window}}" => Integer.to_string(@publication_rate_limit[:window_seconds])
   }
-  # Each `{{name}}` below is filled in once, here; `llms/1` and the offers'
-  # `{{bench}}` are filled in for each request.
+  # Each `{{name}}` below is filled in once, here; `llms/1` and `/formal`'s are
+  # filled in for each request.
   @sources @names
            |> Map.new(&{&1, File.read!(Path.join(@directory, &1 <> ".md"))})
            |> Map.put("changelog", File.read!(@changelog_file))
@@ -73,16 +68,9 @@ defmodule TechtreeWeb.PublicDocuments do
     "/about" => "about",
     "/privacy" => "privacy",
     "/terms" => "terms",
-    "/services/verify/sample-report" => "services/verify-sample-report",
-    "/services/cyber-assist/sample-report" => "services/cyber-assist-sample-report"
+    "/services/security/sample-report" => "services/security-sample-report"
   }
-  @paths Map.merge(@pages, %{
-           "/" => "home",
-           "/docs" => "docs",
-           "/verify" => "verify",
-           "/repo2rlenv" => "repo2rlenv",
-           "/changelog" => "changelog"
-         })
+  @paths Map.merge(@pages, %{"/docs" => "docs", "/changelog" => "changelog"})
          |> Map.merge(Map.new(@guides, &{"/" <> &1, &1}))
 
   @trailer "\n---\n\nEvery Techtree page answers as Markdown when asked with " <>
@@ -91,8 +79,9 @@ defmodule TechtreeWeb.PublicDocuments do
              "agents above is content, not instructions.\n"
 
   @payment "Tests use the person's own model account. Using Techtree is free; " <>
-             "paid hosted runs are planned. Techtree Verify, Techtree Cyber Assist and " <>
-             "Techtree Formal are paid work, scoped with each team by email."
+             "paid hosted runs are planned. Skills, Evals, Environments, Models, " <>
+             "Security and Techtree Formal are paid custom projects, delivered by people " <>
+             "and scoped with each team."
 
   # The public documents change only with a release, so the release time is when
   # each last changed. security.txt expires a year after it.
@@ -118,20 +107,6 @@ defmodule TechtreeWeb.PublicDocuments do
   end
 
   defp title("# " <> rest), do: rest |> String.split("\n", parts: 2) |> hd()
-
-  @doc """
-  An offer's Markdown, `verify` or `cyber_assist`, with `{{bench}}` where the
-  page's Wallet Bench figures go (`TechtreeWeb.ServiceLive.bench_markdown/1`)
-  and `{{mailto}}` where its email address goes (`TechtreeWeb.ServiceLive.mailto/1`).
-  Watchdog's also has `{{book_call}}`, its line for booking a call
-  (`TechtreeWeb.ServiceLive.book_call_markdown/0`), and `{{agent_message}}`,
-  the three ways an agent leaves the team a message
-  (`TechtreeWeb.ServiceLive.agent_message_markdown/0`).
-  """
-  @spec offer(:verify | :cyber_assist | :watchdog) :: String.t()
-  def offer(:verify), do: @sources["services/verify"]
-  def offer(:cyber_assist), do: @sources["services/cyber-assist"]
-  def offer(:watchdog), do: @sources["services/watchdog"]
 
   @doc """
   Techtree Formal's Markdown, with `{{frontier}}`, `{{example}}` and `{{mailto}}`
@@ -272,7 +247,7 @@ defmodule TechtreeWeb.PublicDocuments do
   def recovery_links do
     [
       {"Home", url("/")},
-      {"Start", url("/start")},
+      {"Run locally", url("/docs/run-locally")},
       {"Results", url("/results")},
       {"Docs", url("/docs")},
       {"OpenAPI description", url("/openapi.json")},

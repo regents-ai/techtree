@@ -21,21 +21,18 @@ defmodule TechtreeWeb.PublicMarkdownTest do
            "/terms",
            "/docs",
            "/changelog",
-           "/verify",
-           "/repo2rlenv",
-           "/services/verify",
-           "/services/verify/sample-report",
-           "/services/cyber-assist",
-           "/services/cyber-assist/sample-report",
+           "/services/skills",
+           "/services/evals",
+           "/services/environments",
+           "/services/models",
+           "/services/security",
+           "/services/security/sample-report",
            "/formal",
-           "/services/watchdog",
-           "/start",
            "/results",
            "/results/" <> NetworkFixture.bundle_digest(),
            "/climbs/hello-world-climb",
            "/examples/tdd",
            "/wallet-bench",
-           "/train",
            "/train/nemotron-nano-skill"
          ] ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++
@@ -57,11 +54,11 @@ defmodule TechtreeWeb.PublicMarkdownTest do
     assert_markdown(conn, @pages)
   end
 
-  test "Start and the short start still answer with no release being served", %{conn: conn} do
+  test "Run locally and the short start still answer with no release being served", %{conn: conn} do
     CatalogFixture.use_bundle(CatalogFixture.root())
     Importer.import!(CatalogFixture.root())
 
-    assert_markdown(conn, ["/start"])
+    assert_markdown(conn, ["/docs/run-locally"])
     assert conn |> get(~p"/llms.txt") |> response(200) =~ ~r/\A# Techtree\n/
   end
 

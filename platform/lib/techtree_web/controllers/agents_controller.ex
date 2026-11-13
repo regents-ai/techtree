@@ -236,8 +236,8 @@ defmodule TechtreeWeb.AgentsController do
     https://techtree.sh/wallet-bench.md: each pair's newest judged result, then
     every test with a result, each linked to its evidence.
 
-    To have a company's own agent wallet flow checked, read
-    https://techtree.sh/services/verify. To ask for it, the person writes to
+    To have an eval built for a company's own agent wallet flow, read
+    https://techtree.sh/services/evals. To ask for it, the person writes to
     build@regents.sh.
 
     ## Techtree Formal
@@ -247,28 +247,37 @@ defmodule TechtreeWeb.AgentsController do
     the person writes to build@regents.sh with the code, the property they need
     guaranteed and where it runs; the reply is a proposed scope.
 
-    ## Train
+    ## Comparisons
 
     To see an NVIDIA Nemotron model scored without and with one change on the
     same held-out tasks with the same settings, read
     https://techtree.sh/train.json or call `train_comparisons`: each
     comparison's mean rewards, paired wins, ties and losses, the 95% interval
     and the outcome, with its report and traces to download. `train_report`
-    reads one comparison's report with every task's result. Each page answers
-    Markdown too, at https://techtree.sh/train. The first comparison is a
-    Skill, which teaches the answer format the tasks are scored on; no training
-    run is published yet. Training on a team's own tasks is private: to ask for
-    it, the person writes to build@regents.sh.
+    reads one comparison's report with every task's result. Each comparison's
+    page answers Markdown too, and https://techtree.sh/results lists them. The
+    first comparison is a Skill, which teaches the answer format the tasks are
+    scored on; no training run is published yet.
+
+    ## Services
+
+    Skills, Evals, Environments and Models are paid custom projects, built
+    around a team's own workflows: https://techtree.sh/services/skills,
+    https://techtree.sh/services/evals, https://techtree.sh/services/environments
+    and https://techtree.sh/services/models. Security is a one-off review or
+    monthly monitoring of sites a team proves it owns:
+    https://techtree.sh/services/security. Each page answers Markdown. To ask
+    for one, the person writes to build@regents.sh.
 
     ## Message the team
 
     To leave Techtree's team a private message, such as a question about
-    Techtree Watchdog, call `messages_leave` with the topic `watchdog`, your
+    Security monitoring, call `messages_leave` with the topic `watchdog`, your
     message, where to answer you and a UUID you keep when retrying. It is a
     signed POST /api/v1/messages/{topic}, a browser tool and a tool on the
     hosted MCP server at https://techtree.sh/mcp. It needs your own signed
     request and no pairing, and only the team reads it.
-    https://techtree.sh/services/watchdog shows each way, ready to paste, and
+    https://techtree.sh/services/security shows each way, ready to paste, and
     answers Markdown.
 
     ## Related Regent products
