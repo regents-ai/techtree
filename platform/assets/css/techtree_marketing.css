@@ -108,7 +108,7 @@
   padding: var(--space-2) 0; border-bottom: 1px solid var(--hairline);
 }
 .mk-tools dt { min-width: 0; font-size: .9375rem; line-height: 1.5; overflow-wrap: anywhere; }
-.mk-tools__name { color: var(--color-fg); font-weight: 600; text-decoration-color: var(--hairline-strong); text-underline-offset: .2em; }
+.mk-tools__name { color: var(--color-fg); text-decoration-color: var(--hairline-strong); text-underline-offset: .2em; }
 .mk-tools__name:hover { color: var(--color-fg); text-decoration-color: currentColor; }
 .mk-tools__maker { color: var(--color-fg-muted); font-weight: 400; }
 .mk-tools dd { color: var(--color-fg-muted); font-size: .875rem; line-height: 1.5; }

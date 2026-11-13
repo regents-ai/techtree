@@ -191,7 +191,7 @@
    maker we have no logo file for is its name on the same plate, in dark ink. */
 .mk-maker__plate { display: grid; place-items: center; height: 5.5rem; padding: 0 var(--space-3); background: #F4F5F2; }
 .mk-stack .mk-maker__plate--name {
-  color: #0F1B14; font-family: var(--font-family-title); font-size: 1.5rem; font-weight: 600;
+  color: #0F1B14; font-family: var(--font-family-title); font-size: 1.5rem;
   line-height: 1; letter-spacing: -.03em; white-space: nowrap;
 }
 .mk-maker__logo { width: auto; }
