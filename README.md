@@ -214,14 +214,14 @@ repository's own commands run today.
 
 | Service | Library | Its job | Status |
 | --- | --- | --- | --- |
-| Skills | [NVIDIA’s SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Checks a Skill's quality and measures how the agent behaves with it. | Used on customer projects; not in the commands |
-| Skills | [Microsoft’s SkillOpt](https://github.com/microsoft/SkillOpt) | Proposes changes to a Skill's instructions from scored attempts. It improves the instructions only; repairing a Skill's scripts is separate work. | Used on customer projects; a Climb template is [planned](docs/plan/skillopt-climb-template.md) |
+| Skills | [NVIDIA’s SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Checks a Skill's quality and measures how the agent behaves with it. | For customer projects; not in the commands |
+| Skills | [Microsoft’s SkillOpt](https://github.com/microsoft/SkillOpt) | Proposes changes to a Skill's instructions from scored attempts. It improves the instructions only; repairing a Skill's scripts is separate work. | For customer projects; a Climb template is [planned](docs/plan/skillopt-climb-template.md) |
 | Skills, Evals, Environments, Models | [Prime Intellect’s Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Defines tasks, runs them and scores them, the same way for training and for the final test. | Available now: the Hello World Climb runs through a pinned Verifiers engine, and [`lab/`](lab/) runs the Train page's comparison on Verifiers 0.4.1 |
-| Evals, Models | [Prime Intellect’s prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Runs a full evaluation, supervised fine-tuning and reinforcement learning. | Used on customer projects; [`lab/`](lab/) writes a training configuration in its shape (`techtree-lab train-config`) and starts no run |
-| Evals | [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Packages tasks that need a working software environment. | Used on customer projects; not in the commands |
+| Evals, Models | [Prime Intellect’s prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Runs a full evaluation, supervised fine-tuning and reinforcement learning. | For customer projects; [`lab/`](lab/) writes a training configuration in its shape (`techtree-lab train-config`) and starts no run |
+| Evals | [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Packages tasks that need a working software environment. | For customer projects; not in the commands |
 | Environments | [NVIDIA’s Skill2Env](https://github.com/NVlabs/Skill2Env) | Generates Harbor tasks from a Skill. | Experimental: `regents techtree forge` follows its task package shape and planning criteria, pinned to one revision (Apache-2.0); generating with Skill2Env itself is project work |
-| Environments | [Hugging Face’s Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Generates tasks from a repository, its past fixes and recorded agent sessions. | Used on customer projects; not in the commands (the 0.2.1 repository trial is no longer offered) |
-| Models (optional) | [NVIDIA’s NemoClaw](https://github.com/NVIDIA/NemoClaw) | Runs supported agents inside OpenShell, under the rules a customer sets, when a project needs it. | Used on customer projects that need it; not in the commands |
+| Environments | [Hugging Face’s Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Generates tasks from a repository, its past fixes and recorded agent sessions. | For customer projects; not in the commands (the 0.2.1 repository trial is no longer offered) |
+| Models (optional) | [NVIDIA’s NemoClaw](https://github.com/NVIDIA/NemoClaw) | Runs supported agents inside OpenShell, under the rules a customer sets, when a project needs it. | For customer projects that need it; not in the commands |
 | Every Climb | [Nous Research’s Hermes](https://github.com/NousResearch/hermes-agent) | The agent a Climb evaluates, and the host the [`plugin/`](plugin/) adapts. | Available now |
 | — | Techtree | Frozen comparisons, evidence reconciliation, signed results and publication. | — |
 
