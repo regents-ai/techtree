@@ -24,9 +24,9 @@ defmodule TechtreeWeb.SitemapController do
   alias TechtreeWeb.PublicDocuments
   alias TechtreeWeb.Showcase
 
-  @fixed ~w(/ /start /results /train /verify /docs /changelog /repo2rlenv /about /privacy /terms
-            /services/verify /services/verify/sample-report /services/cyber-assist
-            /services/cyber-assist/sample-report /formal /services/watchdog) ++
+  @fixed ~w(/ /results /docs /changelog /about /privacy /terms /services/skills
+            /services/evals /services/environments /services/models /services/security
+            /services/security/sample-report /formal) ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
 
   # document/1 escapes every URL; the remaining values are ISO dates and fixed XML.

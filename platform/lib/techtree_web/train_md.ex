@@ -1,37 +1,13 @@
 defmodule TechtreeWeb.TrainMD do
   @moduledoc """
-  The Train pages as Markdown, the same comparisons and words as their HTML
-  (`TechtreeWeb.TrainCopy`), answered at the pages' own addresses
+  A comparison's page as Markdown, the same figures and words as its HTML
+  (`TechtreeWeb.TrainCopy`), answered at the page's own address
   (`TechtreeWeb.Plugs.PageMarkdown`).
   """
 
   use TechtreeWeb, :verified_routes
 
   alias TechtreeWeb.TrainCopy, as: Copy
-
-  @doc "`/train`: every comparison, newest first, then Private."
-  @spec index([Techtree.Train.Comparisons.t()]) :: String.t()
-  def index(comparisons) do
-    listed =
-      case comparisons do
-        [] ->
-          "No comparisons yet. Each one will show a Nemotron model's score before and after its change, task by task.\n"
-
-        comparisons ->
-          Enum.map_join(comparisons, "\n", &summary/1)
-      end
-
-    """
-    # Train
-
-    NVIDIA Nemotron models before and after one change, on the same held-out tasks with the same settings. The same list as JSON: #{url(~p"/train.json")}.
-
-    #{listed}
-    ## Private
-
-    #{Copy.private_offer()} [Email build@regents.sh](#{Copy.private_mailto()}).
-    """
-  end
 
   @doc "`/train/:slug`: one comparison in full."
   @spec show(Techtree.Train.Comparisons.t()) :: String.t()
@@ -91,20 +67,6 @@ defmodule TechtreeWeb.TrainMD do
     - Traces: `#{comparison.traces_digest}`, [download](#{url(~p"/train/#{comparison.slug}/traces.jsonl")})
     - Tasks: `#{environment.taskset_digest}`
     - Weights: `#{model.weights_digest}`
-    """
-  end
-
-  defp summary(comparison) do
-    """
-    ## #{comparison.title}
-
-    - #{figures(comparison)}
-    - Outcome: #{Copy.outcome(comparison.outcome)}, #{Copy.paired(comparison.paired)}, 95% interval #{Copy.interval(comparison.paired.ci95)} points, on #{comparison.environment.task_count} held-out tasks
-    - Model: NVIDIA #{comparison.model.family}, `#{comparison.model.name}`
-    - Finished: #{Copy.date(comparison.operational.finished_at)}
-    - [Details](#{url(~p"/train/#{comparison.slug}")}), [report](#{url(~p"/train/#{comparison.slug}/report.json")}), [traces](#{url(~p"/train/#{comparison.slug}/traces.jsonl")})
-
-    #{Copy.reading(comparison)}
     """
   end
 

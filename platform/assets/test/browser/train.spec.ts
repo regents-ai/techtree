@@ -1,11 +1,12 @@
 import {expect, keepOffline, test} from "./support/test"
 import {layoutProblems, signIn, watchErrors} from "./support/visitor"
 
-// The Train pages signed in, at a desktop and a phone width (pages.spec.ts walks
-// them signed out): they load and join, nothing errors, nothing scrolls sideways,
-// the newest comparison leads, and Settings on it opens the comparison's settings.
+// The comparisons signed in, at a desktop and a phone width (pages.spec.ts walks
+// them signed out): Results lists them newest first, a comparison opens from
+// there, nothing errors and nothing scrolls sideways, and its every-task table
+// opens.
 for (const width of [1280, 390]) {
-  test(`signed in at ${width} wide, Train leads with the newest comparison and Settings opens its settings`, async ({browser}) => {
+  test(`signed in at ${width} wide, Results lists the newest comparison first and it opens`, async ({browser}) => {
     const hasTouch = width < 768
     const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
     const outside = await keepOffline(context)
@@ -13,15 +14,17 @@ for (const width of [1280, 390]) {
     const page = await context.newPage()
     const errors = watchErrors(page)
 
-    await page.goto("/train", {waitUntil: "networkidle"})
+    await page.goto("/results", {waitUntil: "networkidle"})
     await expect(page.locator(".phx-connected").first()).toBeAttached()
     await expect(page.locator("#account-chip")).toBeVisible()
-    await expect(page.locator("#train-lead h2 a")).toHaveAttribute("href", "/train/nemotron-lightning-rl")
+    const first = page.locator("#comparisons li a").first()
+    await expect(first).toHaveAttribute("href", "/train/nemotron-lightning-rl")
     expect(await layoutProblems(page)).toEqual([])
 
-    await page.locator("#train-lead a[href='/train/nemotron-lightning-rl#settings']").click()
-    await expect(page).toHaveURL("/train/nemotron-lightning-rl#settings")
-    await expect(page.locator("#settings")).toBeInViewport()
+    await first.scrollIntoViewIfNeeded()
+    await (hasTouch ? first.tap() : first.click())
+    await expect(page).toHaveURL("/train/nemotron-lightning-rl")
+    await expect(page.locator("main h1")).toBeVisible()
     expect(await layoutProblems(page)).toEqual([])
 
     await page.goto("/train/nemotron-nano-skill", {waitUntil: "networkidle"})

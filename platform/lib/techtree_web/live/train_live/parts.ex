@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.TrainLive.Parts do
   @moduledoc """
-  The pieces both Train pages draw: a comparison's figures and its strip of
-  task results.
+  The pieces of a comparison's page: its figures, its strip of task results
+  and its outcome. Results lists comparisons with the outcome too.
   """
 
   use TechtreeWeb, :html

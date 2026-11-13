@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.TrainController do
   @moduledoc """
-  The Train comparisons for agents and other sites: `/train.json`, every
-  comparison the Train page shows, newest first, each with the addresses of
+  The comparisons for agents and other sites: `/train.json`, every
+  comparison, newest first, each with the addresses of
   its page, its report and its traces; and the two downloads of one
   comparison, its report and its traces, as the exact committed bytes.
 

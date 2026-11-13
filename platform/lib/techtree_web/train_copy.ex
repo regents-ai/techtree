@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.TrainCopy do
   @moduledoc """
-  The words and figures of the Train pages, shared by their HTML and their
+  The words and figures of a comparison's page, shared by its HTML and its
   Markdown (`TechtreeWeb.Plugs.PageMarkdown`), so both say the same thing.
 
   An arm is named by the change it carries: without and with the Skill, or
@@ -38,14 +38,6 @@ defmodule TechtreeWeb.TrainCopy do
   def reading(%{change: :rl}) do
     "RL training changes the model's weights, using other tasks from the same environment. " <>
       "These held-out tasks were never trained on."
-  end
-
-  @doc "The Private offer, in a paragraph."
-  @spec private_offer() :: String.t()
-  def private_offer do
-    "Training on your own tasks: an NVIDIA Nemotron model trained with RL on Prime Intellect's " <>
-      "hosted training, then scored the same way, before and after. No training run is " <>
-      "published here yet. Results stay private to your team."
   end
 
   @doc "A comparison's outcome, as a word."
@@ -134,15 +126,6 @@ defmodule TechtreeWeb.TrainCopy do
   @doc "A time to the minute, in UTC: \"10 Nov 2026, 09:42 UTC\"."
   @spec time(DateTime.t()) :: String.t()
   def time(datetime), do: Calendar.strftime(datetime, "%-d %b %Y, %H:%M UTC")
-
-  @doc "The email that asks about private training: to build@regents.sh, with what it needs."
-  @spec private_mailto() :: String.t()
-  def private_mailto do
-    body = Enum.join(["Company:", "Your tasks:", "Model:", "How a result is scored:"], "\r\n")
-
-    "mailto:build@regents.sh?" <>
-      URI.encode_query([subject: "Techtree Private Training", body: body], :rfc3986)
-  end
 
   defp count(1, one, _many), do: "1 #{one}"
   defp count(count, _one, many), do: "#{count} #{many}"

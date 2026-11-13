@@ -1,8 +1,9 @@
 defmodule TechtreeWeb.TrainControllerTest do
   @moduledoc """
-  The Train comparisons for agents: `/train.json` lists the test folder's two
-  reports newest first, each download is the committed file byte for byte
-  under its own digest, and both pages answer Markdown at their own address.
+  The comparisons for agents: `/train.json` lists the test folder's two reports
+  newest first, each download is the committed file byte for byte under its
+  own digest, and Results and each comparison answer Markdown at their own
+  address.
   """
 
   use TechtreeWeb.ConnCase, async: true
@@ -87,12 +88,13 @@ defmodule TechtreeWeb.TrainControllerTest do
     end
   end
 
-  test "both pages answer Markdown that links each comparison's page and files", %{conn: conn} do
-    index = conn |> put_req_header("accept", "text/markdown") |> get(~p"/train") |> response(200)
+  test "Results and each comparison answer Markdown that links each comparison's page and files",
+       %{conn: conn} do
+    results =
+      conn |> put_req_header("accept", "text/markdown") |> get(~p"/results") |> response(200)
 
     for slug <- ["nemotron-lightning-rl", "nemotron-nano-skill"] do
-      assert index =~ url(~p"/train/#{slug}")
-      assert index =~ url(~p"/train/#{slug}/report.json")
+      assert results =~ "(/train/#{slug})"
     end
 
     show =
@@ -102,6 +104,7 @@ defmodule TechtreeWeb.TrainControllerTest do
       |> response(200)
 
     {:ok, comparison} = Comparisons.fetch("nemotron-nano-skill")
+    assert show =~ url(~p"/train/nemotron-nano-skill/report.json")
     assert show =~ comparison.digest
     assert show =~ comparison.traces_digest
     assert Enum.all?(comparison.tasks, &(show =~ "`#{&1.id}`"))

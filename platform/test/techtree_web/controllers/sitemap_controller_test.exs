@@ -14,10 +14,12 @@ defmodule TechtreeWeb.SitemapControllerTest do
     end
   end
 
-  test "Train and each of its comparisons have a sitemap entry", %{conn: conn} do
+  test "each service page and each comparison have a sitemap entry", %{conn: conn} do
     sitemap = conn |> get(~p"/sitemap.xml") |> response(200)
 
-    assert sitemap =~ "/train<"
+    for service <- TechtreeWeb.Services.all() ++ [TechtreeWeb.Services.security()] do
+      assert sitemap =~ "#{TechtreeWeb.Services.path(service.id)}<"
+    end
 
     for comparison <- Techtree.Train.Comparisons.list() do
       assert sitemap =~ "/train/#{comparison.slug}<"

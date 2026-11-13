@@ -35,7 +35,12 @@ defmodule TechtreeWeb.RunsLiveTest do
       {:ok, live, html} = live(conn, ~p"/results")
 
       assert visible_text(html) =~ "Nobody has published a Result yet"
-      assert has_element?(live, ~s|.runs-index__empty a[href="/start"]|, "Start your first Climb")
+
+      assert has_element?(
+               live,
+               ~s|.runs-index__empty a[href="/docs/run-locally"]|,
+               "Run your first Climb"
+             )
     end
 
     test "does not claim it opened with runs it has not got", %{conn: conn} do
@@ -84,12 +89,15 @@ defmodule TechtreeWeb.RunsLiveTest do
              )
 
       # The Campaign states no unit, so means between 0 and 1 stay as recorded.
-      assert text =~ "0.25"
-      assert text =~ "0.472"
-      assert text =~ "+0.222"
-      refute text =~ "%"
-      refute text =~ "pts"
-      refute text =~ "P1"
+      ledger =
+        html |> LazyHTML.from_document() |> LazyHTML.query(".results-ledger") |> LazyHTML.text()
+
+      assert ledger =~ "0.25"
+      assert ledger =~ "0.472"
+      assert ledger =~ "+0.222"
+      refute ledger =~ "%"
+      refute ledger =~ "pts"
+      refute ledger =~ "P1"
       assert text =~ Calendar.strftime(entry.accepted_at, "%Y-%m-%d %H:%M UTC")
 
       for label <- [
@@ -152,7 +160,7 @@ defmodule TechtreeWeb.RunsLiveTest do
       assert text =~ "Signed by the publisher"
       assert text =~ "Not rerun by anyone else"
       assert text =~ "Newest submissions first, not ranked by score."
-      assert has_element?(live, ~s|a[href="/verify"]|, "How verification works")
+      assert has_element?(live, ~s|a[href="/docs/verify"]|, "How to check a Result")
 
       refute text =~ "the files match their recorded hashes"
       refute text =~ "It does not prove the Test happened as described."

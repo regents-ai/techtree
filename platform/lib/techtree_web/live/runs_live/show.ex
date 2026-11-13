@@ -254,7 +254,7 @@ defmodule TechtreeWeb.RunsLive.Show do
             </Regent.Primitives.status>
             <p>
               This site ran {@entry.verification_checks_run} checks on the Result's files when it accepted it, and every one succeeded. That shows the files agree with each other, not that the runs happened as described.
-              <a href={~p"/verify"}>How verification works.</a>
+              <a href={~p"/docs/verify"}>How to check a Result.</a>
             </p>
           </li>
           <li id="badge-not-reproduced" class="evidence-badge">
@@ -528,7 +528,7 @@ defmodule TechtreeWeb.RunsLive.Show do
 
       <p class="mk-section mk-links">
         <a href={~p"/results"} class="text-link">All Results</a>
-        <a href={~p"/verify"} class="text-link">How verification works</a>
+        <a href={~p"/docs/verify"} class="text-link">How to check it</a>
       </p>
     </Layouts.page>
     """

@@ -1,9 +1,10 @@
 defmodule TechtreeWeb.Plugs.PageMarkdown do
   @moduledoc """
   The Markdown answer of the public pages built from the database, from
-  release files or from their LiveView's own data: Start, Results, each Result,
-  each Climb, the Wallet Bench, the three offers under `/services`, Techtree
-  Formal, the tdd example, and Train with each of its comparisons. The
+  release files or from their LiveView's own data: the home page, Results,
+  each Result, each Climb, the Wallet Bench, the service pages under
+  `/services`, Techtree Formal, the tdd example, and each Skill or training
+  comparison. The
   database-free pages are answered before the router
   (`TechtreeWeb.PublicDocuments`); these wait for the router, so an HTML
   request reads nothing here and a Markdown one reads only what its page reads,
@@ -27,20 +28,19 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   alias TechtreeWeb.ClimbCopy
   alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.PublicDocuments
-  alias TechtreeWeb.ReleaseInfo
   alias TechtreeWeb.TddShowcase
+  alias TechtreeWeb.TrainCopy
   alias TechtreeWeb.TrainMD
 
   @pages %{
-    TechtreeWeb.StartLive => :start,
+    TechtreeWeb.HomeLive => :home,
     TechtreeWeb.RunsLive.Index => :results,
     TechtreeWeb.RunsLive.Show => :result,
     TechtreeWeb.ClimbsLive.Show => :climb,
     TechtreeWeb.WalletBenchLive.Index => :wallet_bench,
-    TechtreeWeb.ServiceLive => :offer,
+    TechtreeWeb.ServiceLive => :service,
     TechtreeWeb.FormalLive => :formal,
     TechtreeWeb.TddShowcaseLive => :tdd,
-    TechtreeWeb.TrainLive.Index => :train,
     TechtreeWeb.TrainLive.Show => :train_comparison
   }
 
@@ -84,7 +84,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     end
   end
 
-  defp markdown(:start, _conn), do: start(ReleaseInfo.current())
+  defp markdown(:home, _conn), do: TechtreeWeb.HomeLive.markdown()
 
   defp markdown(:results, conn) do
     case Query.read_page_options(conn.query_params) do
@@ -109,100 +109,21 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
   defp markdown(:tdd, _conn), do: tdd(TddShowcase.load!(TddShowcase.folder()))
 
-  defp markdown(:train, _conn), do: TrainMD.index(Comparisons.list())
-
   defp markdown(:train_comparison, %{path_params: %{"slug" => slug}}) do
     case Comparisons.fetch(slug) do
       {:ok, comparison} -> TrainMD.show(comparison)
-      :error -> raise TechtreeWeb.NotFoundError, "no Train comparison has that name"
+      :error -> raise TechtreeWeb.NotFoundError, "no comparison has that name"
     end
   end
 
-  defp markdown(:offer, %{private: %{phoenix_live_view: {_view, opts, _session}}}) do
-    offer = Keyword.fetch!(opts, :action)
-    figures = TechtreeWeb.ServiceLive.figures()
-
-    offer
-    |> PublicDocuments.offer()
-    |> String.replace("{{bench}}", TechtreeWeb.ServiceLive.bench_markdown(figures))
-    |> String.replace("{{mailto}}", TechtreeWeb.ServiceLive.mailto(offer))
-    |> String.replace("{{book_call}}", TechtreeWeb.ServiceLive.book_call_markdown())
-    |> String.replace("{{agent_message}}", TechtreeWeb.ServiceLive.agent_message_markdown())
-  end
+  defp markdown(:service, %{private: %{phoenix_live_view: {_view, opts, _session}}}),
+    do: opts |> Keyword.fetch!(:action) |> TechtreeWeb.ServiceLive.markdown()
 
   defp markdown(:formal, _conn) do
     PublicDocuments.formal()
     |> String.replace("{{frontier}}", TechtreeWeb.FormalLive.frontier_markdown())
     |> String.replace("{{example}}", TechtreeWeb.FormalLive.example_url())
     |> String.replace("{{mailto}}", TechtreeWeb.FormalLive.mailto())
-  end
-
-  defp start(%{installable?: true, introductory_reference: reference} = release) do
-    """
-    # Evaluate & Climb
-
-    To see what a Skill changes, Techtree makes tasks from it and your agent works them twice: once without the Skill, or with its earlier version, and once with it. Only the Skill changes, so the difference is the Skill's.
-
-    ## Your Skill
-
-    Give this to a coding agent that can use your terminal, or to Hermes:
-
-    > #{TechtreeWeb.StartLive.instruction()}
-
-    Manual setup:
-
-    ```sh
-    #{Enum.join(release.install_argv, " ")}
-    regents techtree forge inspect-skill path/to/your-skill
-    regents techtree forge plan --help
-    ```
-
-    Nothing is uploaded to Techtree. Making the tasks and running them send your Skill's files and the tasks to the model provider you chose, only after you approve the review that says so.
-
-    ## Example
-
-    #{quick_look(reference)}
-    The [agent guide](/agents.md) has every step.
-    """
-  end
-
-  defp start(_release) do
-    """
-    # Evaluate & Climb
-
-    There's no version of Techtree to install yet. The [Docs](/docs) explain how a test works in the meantime.
-    """
-  end
-
-  defp quick_look(reference) do
-    trial = reference |> Catalog.get_climb_by_reference!() |> CampaignFacts.trial!()
-
-    commands =
-      trial.routes
-      |> ModelAccess.prepare_lines([
-        "regents",
-        "techtree",
-        "climb",
-        "prepare",
-        reference,
-        "--skill",
-        "path/to/skill"
-      ])
-      |> Enum.map_join("\n", fn
-        {:comment, text} -> "# " <> text
-        {:command, argv} -> Enum.join(argv, " ")
-      end)
-
-    """
-    The Hello World Climb (`#{reference}`) is a small, fixed challenge that ships with the release, run without a Skill and with a starter Skill. Its toy tasks say nothing about your own Skill. The model is `#{trial.model_id}`, run on #{ModelAccess.destinations(trial.routes)}.
-
-    ```sh
-    regents techtree setup
-    regents techtree doctor --climb #{reference}
-    regents techtree skill starter
-    #{commands}
-    ```
-    """
   end
 
   defp results(%{entries: entries, next_before_sequence: next}) do
@@ -217,13 +138,31 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
         do: "\n\n[Older Results](/results?before_sequence=#{next})",
         else: ""
 
+    comparisons = Enum.map_join(Comparisons.list(), "\n", &comparison_row/1)
+
     """
     # Published Results
 
-    Every Climb run somebody has published, newest first. This site checked that each receipt is consistent and signed by the key it names; it did not watch the run or repeat it. Each Result's bundle can be checked offline with `regents techtree proof verify`. The same log as JSON: [/api/v1/publications](/api/v1/publications).
+    Every Climb run somebody has published, newest first. This site checked that each receipt is consistent and signed by the key it names; it did not watch the run or repeat it. Each Result's bundle can be checked offline with `regents techtree proof verify`: [how to check a Result](/docs/verify). The same log as JSON: [/api/v1/publications](/api/v1/publications).
 
     #{rows}#{more}
+
+    ## Comparisons
+
+    Comparisons Techtree ran itself: one model on the same held-out tasks before and after one change, a Skill or training, with the same settings. They are not signed; each page names its report and traces by digest: [how to check them](/docs/verify#blog-section-skill-comparisons).
+
+    #{comparisons}
+
+    ## More
+
+    - [Wallet Bench](/wallet-bench): which agent can use which wallet.
+    - [Formal](/formal): proofs that a precise model of your code keeps a stated property.
     """
+  end
+
+  defp comparison_row(comparison) do
+    figures = Enum.map_join(comparison.arms, " → ", &TrainCopy.percent(&1.mean_reward))
+    "- [#{comparison.title}](/train/#{comparison.slug}): #{figures}"
   end
 
   defp result_row(entry) do
@@ -281,7 +220,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
     - Model: `#{trial.model_id}`, run on #{ModelAccess.destinations(trial.routes)}
     - Reference: `#{climb.reference}`
 
-    Each Run works the same tasks without the Skill and with it. Run `regents techtree climb show #{climb.reference}` for this Climb's next steps, after installing the release [Start](/start) names. Published Results from it are at [Results](/results).
+    Each Run works the same tasks without the Skill and with it. Run `regents techtree climb show #{climb.reference}` for this Climb's next steps, after installing the release [Run locally](/docs/run-locally) names. Published Results from it are at [Results](/results).
     """
   end
 

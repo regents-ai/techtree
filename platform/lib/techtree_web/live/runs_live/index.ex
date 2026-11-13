@@ -59,6 +59,7 @@ defmodule TechtreeWeb.RunsLive.Index do
   use TechtreeWeb, :live_view
 
   import TechtreeWeb.Components.Marketing, only: [opening: 1]
+  import TechtreeWeb.TrainLive.Parts, only: [outcome: 1]
 
   alias Techtree.Catalog.Query, as: Catalog
   alias Techtree.Catalog.Route
@@ -66,14 +67,20 @@ defmodule TechtreeWeb.RunsLive.Index do
   alias Techtree.Network.Query
   alias Techtree.Network.ResultFilters
   alias Techtree.Network.Verdict
+  alias Techtree.Train.Comparisons
   alias TechtreeWeb.ModelAccess
   alias TechtreeWeb.Outage
   alias TechtreeWeb.ResultAssessment
   alias TechtreeWeb.ResultNames
+  alias TechtreeWeb.TrainCopy
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "Published Results")}
+    {:ok,
+     assign(socket,
+       page_title: "Published Results",
+       comparisons: Comparisons.list()
+     )}
   end
 
   @impl true
@@ -171,7 +178,7 @@ defmodule TechtreeWeb.RunsLive.Index do
     ~H"""
     <Layouts.page wide flush>
       <.opening
-        eyebrow="Measure"
+        eyebrow="Evidence"
         title="Results"
         line="Inspect what changed when a Skill changed."
         more="One harness. One model. One challenge. Newest submissions first, not ranked by score."
@@ -179,7 +186,9 @@ defmodule TechtreeWeb.RunsLive.Index do
         icon="list-checks"
       >
         <:actions>
-          <.link navigate={~p"/start"} class="rg-button rg-button--primary">Start</.link>
+          <.link navigate={~p"/docs/run-locally"} class="rg-button rg-button--primary">
+            Run locally
+          </.link>
         </:actions>
         <p id="results-scope" class="mk-opening__note">
           Only Climb runs can be published today. A test of your own Skill stays on your
@@ -329,7 +338,7 @@ defmodule TechtreeWeb.RunsLive.Index do
 
         <p :if={@empty == :log} class="runs-index__empty empty-state">
           Nobody has published a Result yet. Each Result comes from a Climb: the same agent on the same tasks, once without a Skill and once with it.
-          <.link navigate={~p"/start"}>Start your first Climb</.link>
+          <.link navigate={~p"/docs/run-locally"}>Run your first Climb</.link>
           to make one on your computer.
         </p>
 
@@ -349,7 +358,7 @@ defmodule TechtreeWeb.RunsLive.Index do
           role="status"
         >
           Results can't be shown right now. Try again in a minute.<br />
-          <.link navigate={~p"/verify"}>See how to check a Result yourself</.link>
+          <.link navigate={~p"/docs/verify"}>See how to check a Result yourself</.link>
         </p>
 
         <p :if={@empty == :no_earlier} id="results-no-earlier" class="runs-index__empty empty-state">
@@ -480,8 +489,59 @@ defmodule TechtreeWeb.RunsLive.Index do
         </p>
 
         <p class="runs-index__footer small quiet">
-          <a href={~p"/verify"}>How verification works</a>
+          <.link navigate={~p"/docs/verify"}>How to check a Result</.link>
         </p>
+      </section>
+
+      <section
+        :if={@comparisons != []}
+        id="comparisons"
+        class="mk-section"
+        aria-labelledby="comparisons-title"
+      >
+        <header class="mk-section__head">
+          <h2 id="comparisons-title">Comparisons</h2>
+          <p>
+            Comparisons Techtree ran itself: one model on the same held-out tasks before and after one change, a Skill or training, with the same settings. They are not signed; each page names its report and traces by digest.
+          </p>
+        </header>
+        <ul class="mk-status">
+          <li :for={comparison <- @comparisons} id={"comparison-#{comparison.slug}"}>
+            <.link navigate={~p"/train/#{comparison.slug}"}>
+              {comparison.title} · {Enum.map_join(
+                comparison.arms,
+                " → ",
+                &TrainCopy.percent(&1.mean_reward)
+              )}
+            </.link>
+            <.outcome outcome={comparison.outcome} />
+          </li>
+        </ul>
+        <p class="mk-links">
+          <.link navigate={~p"/docs/verify" <> "#blog-section-skill-comparisons"} class="text-link">
+            How to check them <span aria-hidden="true">→</span>
+          </.link>
+        </p>
+      </section>
+
+      <section id="more" class="mk-section" aria-labelledby="more-title">
+        <header class="mk-section__head">
+          <h2 id="more-title">More</h2>
+        </header>
+        <nav class="mk-paths" aria-labelledby="more-title">
+          <.link navigate={~p"/wallet-bench"} class="mk-tile">
+            <span class="mk-tile__name">Wallet Bench</span>
+            <span class="mk-tile__line">Which agent can use which wallet?</span>
+            <Regent.Icons.icon name="arrow-right" class="mk-tile__arrow" />
+          </.link>
+          <.link navigate={~p"/formal"} class="mk-tile">
+            <span class="mk-tile__name">Formal</span>
+            <span class="mk-tile__line">
+              Proofs that a precise model of your code keeps a stated property, every step checked by a computer.
+            </span>
+            <Regent.Icons.icon name="arrow-right" class="mk-tile__arrow" />
+          </.link>
+        </nav>
       </section>
     </Layouts.page>
     """

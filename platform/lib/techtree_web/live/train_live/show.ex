@@ -1,10 +1,11 @@
 defmodule TechtreeWeb.TrainLive.Show do
   @moduledoc """
-  One Train comparison: the two arms' mean rewards and their difference with
-  what that difference shows, the outcome with the paired wins, ties and
-  losses and the 95% interval, each
-  arm side by side, every task's result, the exact settings, environment and
-  model, and the digests with the report and its traces to download.
+  One comparison, reached from Results and the home page's case study: the two
+  arms' mean rewards and their difference with what that difference shows, the
+  outcome with the paired wins, ties and losses and the 95% interval, each arm
+  side by side, every task's result, the exact settings, environment and model,
+  and the digests with the report and its traces to download, and how to check
+  them.
 
   The comparison is one committed report (`Techtree.Train.Comparisons`); a
   slug the folder has no report for, or one that was refused, is a 404.
@@ -24,7 +25,7 @@ defmodule TechtreeWeb.TrainLive.Show do
         {:ok, assign(socket, page_title: comparison.title, comparison: comparison)}
 
       :error ->
-        raise TechtreeWeb.NotFoundError, "no Train comparison has that name"
+        raise TechtreeWeb.NotFoundError, "no comparison has that name"
     end
   end
 
@@ -33,7 +34,7 @@ defmodule TechtreeWeb.TrainLive.Show do
     ~H"""
     <Layouts.page wide>
       <div class="train">
-        <p class="back-link"><.link navigate={~p"/train"}>← Train</.link></p>
+        <p class="back-link"><.link navigate={~p"/results"}>← Results</.link></p>
 
         <header class="page-heading">
           <p class="eyebrow">
@@ -240,6 +241,14 @@ defmodule TechtreeWeb.TrainLive.Show do
               <Regent.Icons.icon name="download" /> Traces
             </a>
           </div>
+          <p class="mk-links">
+            <.link
+              navigate={~p"/docs/verify" <> "#blog-section-skill-comparisons"}
+              class="text-link"
+            >
+              How to check it <span aria-hidden="true">→</span>
+            </.link>
+          </p>
         </section>
       </div>
     </Layouts.page>

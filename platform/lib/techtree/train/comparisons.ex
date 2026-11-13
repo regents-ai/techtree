@@ -1,6 +1,6 @@
 defmodule Techtree.Train.Comparisons do
   @moduledoc """
-  The comparisons the Train pages show: an NVIDIA Nemotron model measured
+  The comparisons the site shows: an NVIDIA Nemotron model measured
   before and after one change, a Skill or RL training, on the same held-out
   tasks with the same settings.
 
