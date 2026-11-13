@@ -16,24 +16,6 @@ defmodule TechtreeWeb.CoreComponents do
 
   use Phoenix.Component
 
-  alias TechtreeWeb.Capabilities
-
-  @doc """
-  How ready a capability is, in the words every page uses for it.
-  """
-  attr :capability, :atom, required: true
-  attr :rest, :global
-
-  def capability_status(assigns) do
-    assigns = assign(assigns, :status, Capabilities.status(assigns.capability))
-
-    ~H"""
-    <Regent.Primitives.status class="badge" tone={status_tone(@status)} {@rest}>
-      {Capabilities.label(@status)}
-    </Regent.Primitives.status>
-    """
-  end
-
   @doc """
   Show the fingerprint a document is filed under, optionally linking to it.
 
@@ -286,10 +268,6 @@ defmodule TechtreeWeb.CoreComponents do
   defp report_words("private"), do: "Stays private."
   defp report_words("prohibited"), do: "Is not published."
   defp report_words(other), do: plain_words(other)
-
-  defp status_tone(:available), do: "success"
-  defp status_tone(:experimental), do: "warning"
-  defp status_tone(:planned), do: "neutral"
 
   defp plain_words(value) when is_binary(value) do
     value |> String.replace("_", " ") |> String.capitalize()

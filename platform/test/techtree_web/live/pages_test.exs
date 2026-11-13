@@ -16,8 +16,8 @@ defmodule TechtreeWeb.PagesTest do
   @pages [
     "/",
     "/docs",
-    "/verify",
-    "/start",
+    "/docs/verify",
+    "/docs/run-locally",
     "/climbs/hello-world-climb",
     "/results",
     "/results/" <> Techtree.NetworkFixture.bundle_digest()
@@ -25,26 +25,29 @@ defmodule TechtreeWeb.PagesTest do
   @pages_without_catalog [
     "/",
     "/docs",
-    "/verify",
-    "/start",
+    "/docs/verify",
+    "/docs/run-locally",
     "/results"
   ]
+
+  # The service pages, read as they render (`html/2`).
+  @service_pages ~w(/services/skills /services/evals /services/environments /services/models
+                    /services/security)
 
   # Every human-facing page is written for a reader who has never opened a
   # protocol document.
   @pages_in_plain_words [
-    "/",
-    "/verify",
-    "/start",
-    "/climbs/hello-world-climb",
-    "/results",
-    "/results/" <> Techtree.NetworkFixture.bundle_digest()
-  ]
+                          "/",
+                          "/docs/run-locally",
+                          "/climbs/hello-world-climb",
+                          "/results",
+                          "/results/" <> Techtree.NetworkFixture.bundle_digest()
+                        ] ++ @service_pages
 
-  # Docs carries the long-form method and roadmap. It may use
-  # the technical terms and bare library name that the shorter product pages
-  # deliberately avoid.
-  @product_pages List.delete(@pages, "/docs")
+  # Docs and its Proof guide carry the long-form method and roadmap. They may
+  # use the technical terms and bare library name that the shorter product
+  # pages deliberately avoid.
+  @product_pages (@pages -- ["/docs", "/docs/verify"]) ++ @service_pages
 
   describe "with a release being served" do
     setup do
@@ -74,8 +77,7 @@ defmodule TechtreeWeb.PagesTest do
 
     test "no page uses the vocabulary of the machinery", %{conn: conn} do
       for page <- @product_pages do
-        {:ok, _live, html} = live(conn, page)
-        body = html |> visible_text() |> String.downcase()
+        body = conn |> html(page) |> visible_text() |> String.downcase()
 
         for word <- forbidden_words() do
           refute body =~ word, "#{page} says #{inspect(word)}"
@@ -85,8 +87,7 @@ defmodule TechtreeWeb.PagesTest do
 
     test "no page names the machinery where a reader is being spoken to", %{conn: conn} do
       for page <- @pages_in_plain_words do
-        {:ok, _live, html} = live(conn, page)
-        body = html |> visible_text() |> String.downcase()
+        body = conn |> html(page) |> visible_text() |> String.downcase()
 
         for word <- protocol_words() do
           refute body =~ word, "#{page} says #{inspect(word)} to a reader"
@@ -102,8 +103,7 @@ defmodule TechtreeWeb.PagesTest do
       # sits directly against its own card, so a bare occurrence is also fine
       # when the definition follows it immediately. Anything else is refused.
       for page <- @product_pages do
-        {:ok, _live, html} = live(conn, page)
-        body = html |> visible_text() |> String.downcase()
+        body = conn |> html(page) |> visible_text() |> String.downcase()
         parts = String.split(body, "verifiers", trim: false)
         last = length(parts) - 2
 
@@ -273,6 +273,16 @@ defmodule TechtreeWeb.PagesTest do
     test "a Climb page is not found rather than empty", %{conn: conn} do
       assert_error_sent 404, fn -> live(conn, ~p"/climbs/hello-world-climb") end
     end
+  end
+
+  # A page as the reader sees it. The service pages read the sign-in from the
+  # socket's connect info, which the LiveView test harness does not carry, so
+  # they are read as they render.
+  defp html(conn, "/services/" <> _service = path), do: conn |> get(path) |> html_response(200)
+
+  defp html(conn, path) do
+    {:ok, _live, html} = live(conn, path)
+    html
   end
 
   # The names of protocol documents and of the machinery that produces them.

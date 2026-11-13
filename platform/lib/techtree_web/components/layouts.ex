@@ -1,21 +1,22 @@
 defmodule TechtreeWeb.Layouts do
   @moduledoc """
-  The frame every page is read inside. The header holds the name, three menus
-  of the site's pages (`TechtreeWeb.SiteMenu`), the project source, the account
-  control with the theme switch, and Book Call; below a wide screen the menus
-  fold into one Menu sheet. The footer lists the same pages in columns, with
-  the agent links, the legal pages and whose project this is.
+  The frame every page is read inside. The header holds the name, the
+  Services menu and the Results and Docs links (`TechtreeWeb.SiteMenu`), the
+  project source, the account control with the theme switch, and Book Call;
+  below a wide screen they fold into one Menu sheet. The footer lists the
+  services, the site's pages and the agent links in columns, with the legal
+  pages.
   """
 
   use TechtreeWeb, :html
 
   alias TechtreeWeb.Components.BookCall
+  alias TechtreeWeb.Services
   alias TechtreeWeb.SiteMenu
 
   embed_templates("layouts/*")
 
   @repository_url "https://github.com/regents-ai/techtree"
-  @buy_regent "https://app.uniswap.org/explore/tokens/base/0x6f89bcA4eA5931EdFCB09786267b251DeE752b07"
 
   @doc """
   Wrap one page.
@@ -39,15 +40,16 @@ defmodule TechtreeWeb.Layouts do
   attr(:current_path, :string, default: "/")
   slot(:inner_block, required: true, doc: "the account control, its menu and the theme switch")
 
-  # Each menu is a button and the popover it opens: the browser closes it on
+  # Services is a button and the popover it opens: the browser closes it on
   # Escape or a press outside it, and puts its links next in the Tab order.
-  # Below a wide screen the buttons give way to Menu, which opens every group
-  # in one sheet under the header (`assets/js/site_menu.ts`).
+  # Below a wide screen the menu and the links give way to Menu, which opens
+  # them in one sheet under the header (`assets/js/site_menu.ts`).
   defp masthead(assigns) do
     assigns =
       assign(assigns,
         repository_url: @repository_url,
-        groups: SiteMenu.groups(),
+        services: SiteMenu.services(),
+        links: SiteMenu.links(),
         github_stars: TechtreeWeb.GithubStars.count()
       )
 
@@ -60,19 +62,26 @@ defmodule TechtreeWeb.Layouts do
         </a>
         <nav class="masthead__nav" aria-label="Primary">
           <ul class="masthead__groups">
-            <li :for={group <- @groups}>
+            <li>
               <button
                 type="button"
                 class="masthead__trigger"
-                popovertarget={"menu-#{group.id}"}
-                data-menu-trigger
+                popovertarget="menu-services"
               >
-                {group.name}
-                <Regent.Icons.icon name="chevron-down" class="masthead__chevron" />
+                Services <Regent.Icons.icon name="chevron-down" class="masthead__chevron" />
               </button>
-              <div id={"menu-#{group.id}"} class="mega" popover data-mega>
-                <.menu_columns group={group} place="menu" current_path={@current_path} />
+              <div id="menu-services" class="mega" popover data-mega>
+                <.menu_columns columns={@services} place="menu" current_path={@current_path} />
               </div>
+            </li>
+            <li :for={link <- @links}>
+              <a
+                class="masthead__link"
+                href={link.href}
+                aria-current={current?(link.href, @current_path) && "page"}
+              >
+                {link.name}
+              </a>
             </li>
           </ul>
         </nav>
@@ -107,10 +116,20 @@ defmodule TechtreeWeb.Layouts do
       </div>
       <div id="site-menu" class="sheet" popover data-sheet>
         <nav class="sheet__nav" aria-label="Pages">
-          <div :for={group <- @groups} class="sheet__group">
-            <p class="sheet__title">{group.name}</p>
-            <.menu_columns group={group} place="sheet" current_path={@current_path} />
+          <div class="sheet__group">
+            <.menu_columns columns={@services} place="sheet" current_path={@current_path} />
           </div>
+          <ul class="sheet__group sheet__links">
+            <li :for={link <- @links}>
+              <a
+                class="sheet__link"
+                href={link.href}
+                aria-current={current?(link.href, @current_path) && "page"}
+              >
+                {link.name}
+              </a>
+            </li>
+          </ul>
           <div class="sheet__end">
             <a href={@repository_url} target="_blank" rel="noopener noreferrer" class="text-link">
               <.github_logo class="sheet__github" /> GitHub
@@ -123,20 +142,29 @@ defmodule TechtreeWeb.Layouts do
     """
   end
 
-  attr :group, :map, required: true
+  attr :columns, :list, required: true
   attr :place, :string, required: true, doc: "menu or sheet, so each list keeps an id of its own"
   attr :current_path, :string, required: true
 
   defp menu_columns(assigns) do
     ~H"""
     <div class="menu-columns">
-      <div :for={column <- @group.columns} class="menu-columns__column">
-        <p class="menu-columns__title" id={"#{@place}-#{@group.id}-#{column.id}"}>
-          {column.title}
-        </p>
-        <ul aria-labelledby={"#{@place}-#{@group.id}-#{column.id}"}>
+      <div
+        :for={column <- @columns}
+        class={["menu-columns__column", "menu-columns__column--#{column.id}"]}
+      >
+        <p class="menu-columns__title" id={"#{@place}-#{column.id}-title"}>{column.title}</p>
+        <ul aria-labelledby={"#{@place}-#{column.id}-title"}>
           <li :for={page <- column.pages}>
-            <.menu_page page={page} current_path={@current_path} />
+            <a
+              class="menu-page"
+              href={page.href}
+              aria-current={current?(page.href, @current_path) && "page"}
+            >
+              <Regent.Icons.icon name={page.icon} class="menu-page__icon" />
+              <span class="menu-page__name">{page.name}</span>
+              <span class="menu-page__line">{page.line}</span>
+            </a>
           </li>
         </ul>
       </div>
@@ -144,38 +172,8 @@ defmodule TechtreeWeb.Layouts do
     """
   end
 
-  attr :page, :map, required: true
-  attr :current_path, :string, required: true
-
-  # A page still to come with no address of its own is named, not linked.
-  defp menu_page(%{page: %{href: nil}} = assigns) do
-    ~H"""
-    <span class="menu-page">
-      <Regent.Icons.icon name={@page.icon} class="menu-page__icon" />
-      <span class="menu-page__name">
-        {@page.name} <span class="menu-page__soon">Soon</span>
-      </span>
-      <span class="menu-page__line">{@page.line}</span>
-    </span>
-    """
-  end
-
-  defp menu_page(assigns) do
-    ~H"""
-    <a
-      class="menu-page"
-      href={@page.href}
-      aria-current={if @page.href == @current_path, do: "page"}
-    >
-      <Regent.Icons.icon name={@page.icon} class="menu-page__icon" />
-      <span class="menu-page__name">
-        <span :if={@page.by} class="menu-page__by">{@page.by}</span>
-        {@page.name} <span :if={@page.soon} class="menu-page__soon">Soon</span>
-      </span>
-      <span class="menu-page__line">{@page.line}</span>
-    </a>
-    """
-  end
+  # A link is the page's own when the page is it or sits under it.
+  defp current?(href, path), do: path == href or String.starts_with?(path, href <> "/")
 
   attr :class, :string, required: true
 
@@ -279,7 +277,6 @@ defmodule TechtreeWeb.Layouts do
           "applicationCategory" => "DeveloperApplication",
           "operatingSystem" => "macOS, Linux",
           "license" => "https://opensource.org/licenses/MIT",
-          "offers" => %{"@type" => "Offer", "price" => "0", "priceCurrency" => "USD"},
           "publisher" => %{"@id" => organization}
         },
         %{
@@ -299,46 +296,26 @@ defmodule TechtreeWeb.Layouts do
     |> description_for_path()
   end
 
-  defp description_for_path("/start"),
-    do: "Try the example Climb or evaluate your own Skill."
-
   defp description_for_path("/results"),
     do: "Browse published Results: the same agent on the same tasks, with and without a Skill."
 
-  defp description_for_path("/verify"),
+  defp description_for_path("/services/security/sample-report"),
     do:
-      "How a Result is made, what checking one tells you and what it can’t, and how to check one yourself."
+      "A sample security review: one validated finding on the Agent Wallet Bench, fixed, verified and released."
 
-  defp description_for_path("/repo2rlenv"),
-    do:
-      "Repo2RLEnv will turn a repository’s history into practice tasks for agents. Ask to hear when it opens."
-
-  defp description_for_path("/services/verify"),
-    do:
-      "Techtree Verify: agreed workflow checks, reproducible failures, a suite you can run again and a clear report."
-
-  defp description_for_path("/services/verify/sample-report"),
-    do:
-      "A sample Techtree Verify report: 14 checks on the Agent Wallet Bench, each with its evidence."
-
-  defp description_for_path("/services/cyber-assist"),
-    do:
-      "Techtree Cyber Assist: validated security findings, reproduction evidence, repairs in priority order and verified fixes."
-
-  defp description_for_path("/services/cyber-assist/sample-report"),
-    do:
-      "A sample Techtree Cyber Assist report: one validated finding on the Agent Wallet Bench, fixed, verified and released."
+  defp description_for_path("/services/" <> _service = path) do
+    case Enum.find(Services.all() ++ [Services.security()], &(Services.path(&1.id) == path)) do
+      nil -> description_for_path("/")
+      service -> service.promise
+    end
+  end
 
   defp description_for_path("/formal"),
     do:
       "Techtree Formal: what formal verification proves and what it doesn't, recent advances with their sources, and how to send code to be proved."
 
-  defp description_for_path("/services/watchdog"),
-    do:
-      "Techtree Watchdog: a monthly watch on the sites you own, proven ownership, agreed limits, reproduced findings with fixes and a retest."
-
   defp description_for_path("/docs"),
-    do: "Install Techtree, test a Skill, check and publish a Result, and connect an agent."
+    do: "Run Techtree locally, check and publish a Result, and connect an agent."
 
   defp description_for_path("/docs/" <> slug) do
     case TechtreeWeb.DocsGuides.fetch(slug) do
@@ -357,8 +334,7 @@ defmodule TechtreeWeb.Layouts do
     do: "Inspect the fixed task contract for a published Techtree Climb."
 
   defp description_for_path("/about"),
-    do:
-      "What Techtree is, who runs it and how to reach them, what makes it different, and its key facts."
+    do: "Who runs Techtree, the experience behind it, and how to work with us."
 
   defp description_for_path("/privacy"),
     do: "What Techtree keeps about a visitor, what it never sees, and how to ask about either."
@@ -370,10 +346,6 @@ defmodule TechtreeWeb.Layouts do
   defp description_for_path("/animations"),
     do: "Every motion Techtree uses, side by side."
 
-  defp description_for_path("/train"),
-    do:
-      "NVIDIA Nemotron models before and after one change, on the same held-out tasks with the same settings."
-
   defp description_for_path("/train/" <> _slug),
     do:
       "One NVIDIA Nemotron model before and after one change: mean rewards, task results, settings and evidence."
@@ -382,15 +354,16 @@ defmodule TechtreeWeb.Layouts do
     do: "Inspect one published Techtree Result and its task-level evidence."
 
   defp description_for_path(_path),
-    do: "Improve a Skill under controlled conditions and produce a checkable local Result."
+    do:
+      "Custom Skills, evaluations, training environments, and open-weight models, built around your workflows, with results you can measure."
 
   @doc """
-  The footer under every page: the site's pages in columns (the header's
-  menus, `TechtreeWeb.SiteMenu`), the files to hand an agent, $REGENT, the
-  legal pages and the brand links.
+  The footer under every page: the services, the site's pages, $REGENT and the
+  files to hand an agent in columns (`TechtreeWeb.SiteMenu`), the legal pages
+  and the brand links.
   """
   def product_links(assigns) do
-    assigns = assign(assigns, :columns, footer_columns())
+    assigns = assign(assigns, :columns, SiteMenu.footer())
 
     ~H"""
     <Regent.Structure.row rail={false}>
@@ -400,7 +373,7 @@ defmodule TechtreeWeb.Layouts do
             <a class="regent-footer__name" href={~p"/"}>
               <.mark class="regent-footer__mark" /> Techtree
             </a>
-            <p class="regent-footer__line">Improve a Skill. Prove it worked.</p>
+            <p class="regent-footer__line">Open-source tools. Paid custom projects.</p>
             <div class="regent-footer__social">
               <a
                 href="https://x.com/regents_sh"
@@ -430,16 +403,12 @@ defmodule TechtreeWeb.Layouts do
               <ul aria-labelledby={"footer-#{column.id}"}>
                 <li :for={page <- column.pages}>
                   <a
-                    :if={page.href}
                     href={page.href}
                     target={external?(page.href) && "_blank"}
                     rel={external?(page.href) && "noopener noreferrer"}
                   >
-                    <span :if={page.by} class="regent-footer__by">{page.by}</span>
                     {page.name}
                   </a>
-                  <span :if={!page.href}>{page.name}</span>
-                  <span :if={page.soon} class="regent-footer__soon">Soon</span>
                 </li>
               </ul>
             </div>
@@ -456,25 +425,6 @@ defmodule TechtreeWeb.Layouts do
       </footer>
     </Regent.Structure.row>
     """
-  end
-
-  # The Products menu's columns as they are; each of the other two menus as one
-  # column, $REGENT with the resources, and the Stack on its own.
-  defp footer_columns do
-    [products, agents, resources] = SiteMenu.groups()
-    stack = SiteMenu.stack()
-    regent = %{name: "Buy $REGENT", by: nil, href: @buy_regent, soon: false}
-
-    products.columns ++
-      [
-        %{id: agents.id, title: agents.name, pages: Enum.flat_map(agents.columns, & &1.pages)},
-        %{
-          id: resources.id,
-          title: resources.name,
-          pages: Enum.flat_map(resources.columns -- [stack], & &1.pages) ++ [regent]
-        },
-        stack
-      ]
   end
 
   defp external?(href), do: String.starts_with?(href, "https://")

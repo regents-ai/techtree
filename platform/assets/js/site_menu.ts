@@ -1,13 +1,11 @@
 /**
- * The header's menus (`TechtreeWeb.Layouts`). Each menu is a popover its
- * button opens: the browser closes it on Escape or a press outside, and puts
- * its links next in the Tab order. What is left is done here:
+ * The header's Services menu and its Menu sheet (`TechtreeWeb.Layouts`). Each
+ * is a popover its button opens: the browser closes it on Escape or a press
+ * outside, and puts its links next in the Tab order. What is left is done here:
  *
- * - With one menu open, a mouse moving onto another menu's button opens that
- *   one instead, as a menu bar does.
  * - A menu opened by a mouse or a finger drops in and its columns follow one
  *   after another; one opened from the keyboard is simply there.
- * - Below a wide screen the menus are one sheet under the header
+ * - Below a wide screen the menu and links are one sheet under the header
  *   (#site-menu). While it is open the page and its footer are out of reach:
  *   every part of the frame but the header goes inert until it closes, so Tab
  *   and a press can't land on a link behind it.
@@ -25,7 +23,6 @@ export function installSiteMenu() {
     for (const panel of document.querySelectorAll<HTMLElement>(`${hidden}:popover-open`)) panel.hidePopover()
   })
 
-  document.addEventListener("pointerover", switchMenu)
   document.addEventListener("beforetoggle", arrive, true)
 
   document.addEventListener("toggle", event => {
@@ -37,15 +34,6 @@ export function installSiteMenu() {
   }, true)
 }
 
-function switchMenu(event: PointerEvent) {
-  if (event.pointerType !== "mouse" || !(event.target instanceof Element)) return
-  const trigger = event.target.closest("[data-menu-trigger]")
-  const open = document.querySelector("[data-mega]:popover-open")
-  if (trigger === null || open === null) return
-  const panel = document.getElementById(trigger.getAttribute("popovertarget") ?? "")
-  if (panel !== null && panel !== open) panel.showPopover()
-}
-
 // Started before the panel is first drawn, so its first frame is already the
 // start of the move.
 function arrive(event: Event) {
@@ -55,6 +43,6 @@ function arrive(event: Event) {
   if (!target.matches("[data-mega], #site-menu")) return
 
   play(target, {opacity: {from: 0}, y: {from: -8}, duration: BASE, ease: EASE_OUT})
-  const parts = [...target.querySelectorAll(".menu-columns__column, .sheet__title, .sheet__end")]
+  const parts = [...target.querySelectorAll(".menu-columns__column, .sheet__links, .sheet__end")]
   play(parts, {opacity: {from: 0}, y: {from: 8}, delay: stagger(35, {start: 40}), duration: SLOW, ease: EASE_OUT})
 }

@@ -24,10 +24,6 @@ defmodule Techtree.Capabilities do
   @spec tools() :: [map()]
   def tools, do: @manifest["tools"]
 
-  @doc "The tools every page registers."
-  @spec site_tools() :: [map()]
-  def site_tools, do: Enum.filter(tools(), &(&1["scope"] == "site"))
-
   @doc "What a tool needs from the person, in words."
   @spec needs(map()) :: String.t()
   def needs(tool), do: Map.fetch!(@needs, tool["requires"])

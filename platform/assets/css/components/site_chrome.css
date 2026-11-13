@@ -1,9 +1,10 @@
 /* The header and footer on every page (`TechtreeWeb.Layouts`).
 
-   The header is one row that stays at the top: the name, three menus, the
-   project source, the account control and Book Call. Each menu opens a panel
-   the width of the frame, under the header. Below a wide screen the menus fold
-   into Menu, a sheet over the page under the header (`assets/js/site_menu.ts`). */
+   The header is one row that stays at the top: the name, the Services menu,
+   the Results and Docs links, the project source, the account control and Book
+   Call. Services opens a panel the width of the frame, under the header. Below
+   a wide screen the menu and links fold into Menu, a sheet over the page under
+   the header (`assets/js/site_menu.ts`). */
 :root { --masthead-height: 4rem; }
 /* A link reached from the keyboard is never left under the header. */
 html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
@@ -37,6 +38,12 @@ html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
 .masthead__trigger:hover { color: var(--color-link); }
 .masthead__chevron { width: 1rem; height: 1rem; transition: transform var(--duration-base) var(--ease-out); }
 .masthead__trigger:has(+ :popover-open) .masthead__chevron { transform: rotate(180deg); }
+.masthead__link {
+  display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 var(--space-1);
+  color: inherit; font-size: .9375rem; text-decoration: none;
+}
+.masthead__link:hover { color: var(--color-link); text-decoration: none; }
+.masthead__link[aria-current="page"] { text-decoration: underline; text-underline-offset: .3em; }
 
 .masthead__end { display: flex; align-items: center; gap: var(--space-1); min-width: 0; margin-inline-start: auto; }
 .masthead__github {
@@ -69,7 +76,8 @@ html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
   .masthead__menu-button, .sheet { display: none; }
 }
 
-/* One menu's panel: the frame's width, under the header, its pages in columns. */
+/* The Services panel: the frame's width, under the header, the four services
+   two by two and Security beside them, set apart and smaller. */
 .mega {
   position: fixed; inset: calc(var(--masthead-height) + 1px) 0 auto; margin: 0 auto;
   width: min(calc(100% - 2 * var(--rg-page-gutter)), var(--rg-frame-max)); height: auto;
@@ -78,7 +86,13 @@ html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
   border: 1px solid var(--hairline-strong); border-top: 0;
   background: var(--color-surface-elevated); color: var(--color-fg);
 }
-.menu-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--space-4) var(--space-3); }
+.menu-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4) var(--space-3); }
+.menu-columns__column--services ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); column-gap: var(--space-3); }
+.menu-columns__column--also .menu-page__name { font-size: .875rem; }
+.menu-columns__column--also .menu-page__icon { width: 2rem; height: 2rem; padding: .4375rem; }
+.menu-columns__column--also .menu-page { grid-template-columns: 2rem minmax(0, 1fr); }
+.mega .menu-columns { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.mega .menu-columns__column--also { padding-left: var(--space-3); border-left: 1px solid var(--hairline); }
 .menu-columns__title, .regent-footer__title {
   display: flex; align-items: center; gap: .625rem; margin-bottom: var(--space-1);
   color: var(--color-fg-muted); font-family: var(--font-family-mono); font-size: .6875rem;
@@ -103,18 +117,12 @@ html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
 }
 .menu-page__name { display: flex; flex-wrap: wrap; align-items: center; gap: .125rem .5rem; font-size: .9375rem; line-height: 1.3; }
 .menu-page__line { grid-column: 2; color: var(--color-fg-muted); font-size: .8125rem; line-height: 1.35; }
-/* Whose project a Stack entry is, before its name: "NVIDIA’s". */
-.menu-page__by { color: var(--color-fg-muted); }
-.menu-page__soon, .regent-footer__soon {
-  display: inline-flex; align-items: center; padding: .0625rem .375rem;
-  border: 1px solid var(--hairline-strong); color: var(--color-fg-muted);
-  font-family: var(--font-family-mono); font-size: .625rem; letter-spacing: .08em; line-height: 1.4; text-transform: uppercase;
-}
 a.menu-page:hover { background: var(--color-surface); color: inherit; text-decoration: none; }
 a.menu-page:hover .menu-page__name, .menu-page[aria-current="page"] .menu-page__name { text-decoration: underline; text-underline-offset: .2em; }
 a.menu-page:hover .menu-page__icon { border-color: transparent; background: var(--color-accent); color: var(--color-fg-on-accent); }
 
-/* Menu below a wide screen: every group in one sheet under the header. */
+/* Menu below a wide screen: the services, then Results and Docs, in one sheet
+   under the header. */
 .sheet {
   position: fixed; inset: calc(var(--masthead-height) + 1px) 0 0; margin: 0;
   width: 100%; height: auto; max-width: none; max-height: none;
@@ -123,7 +131,11 @@ a.menu-page:hover .menu-page__icon { border-color: transparent; background: var(
   border: 0; border-top: 1px solid var(--hairline); background: var(--color-bg); color: var(--color-fg);
 }
 .sheet__group + .sheet__group { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--hairline); }
-.sheet__title { margin-bottom: var(--space-2); font-family: var(--font-family-title); font-size: 1.5rem; line-height: 1.2; }
+.sheet__link {
+  display: flex; align-items: center; min-height: 2.75rem;
+  color: inherit; font-family: var(--font-family-title); font-size: 1.5rem; line-height: 1.2; text-decoration: none;
+}
+.sheet__link[aria-current="page"] { text-decoration: underline; text-underline-offset: .2em; }
 .sheet__end {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2);
   margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--hairline);
@@ -131,7 +143,7 @@ a.menu-page:hover .menu-page__icon { border-color: transparent; background: var(
 .sheet__github { display: inline-block; width: 1.25rem; height: 1.25rem; fill: currentColor; }
 
 /* The footer: the name and brand links, the site's pages in columns, then
-   whose project this is and the legal pages, over the name drawn large. */
+   the legal pages, over the name drawn large. */
 .regent-footer {
   container-type: inline-size; overflow: hidden;
   padding: var(--space-7) var(--rg-panel-padding) 0;
@@ -151,12 +163,7 @@ a.menu-page:hover .menu-page__icon { border-color: transparent; background: var(
 .regent-footer__social > a { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; }
 .regent-footer__social > a svg { width: 1.5rem; height: 1.5rem; }
 .regent-footer__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-3); }
-.regent-footer__column li { display: flex; flex-wrap: wrap; align-items: center; column-gap: .5rem; }
-.regent-footer__column :is(a, span:not(.regent-footer__soon)) { display: inline-flex; align-items: center; min-height: 2.75rem; color: inherit; }
-.regent-footer__column span:not(.regent-footer__soon) { color: var(--color-fg-muted); }
-/* A Stack link names whose project it is on a small line above the project's name. */
-.regent-footer__column a:has(> .regent-footer__by) { flex-direction: column; align-items: flex-start; justify-content: center; padding-block: .25rem; }
-.regent-footer__column a > .regent-footer__by { min-height: 0; font-size: .75rem; }
+.regent-footer__column a { display: inline-flex; align-items: center; min-height: 2.75rem; color: inherit; overflow-wrap: anywhere; }
 .regent-footer__base {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--space-3);
   margin-top: var(--space-6); padding-top: var(--space-2); border-top: 1px solid var(--hairline);
@@ -174,7 +181,7 @@ a.menu-page:hover .menu-page__icon { border-color: transparent; background: var(
 }
 @media (min-width: 48rem) {
   .regent-footer__columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .regent-footer__column :is(a, span:not(.regent-footer__soon)) { min-height: 2.25rem; }
+  .regent-footer__column a { min-height: 2.25rem; }
 }
 @media (min-width: 64rem) {
   .regent-footer__top { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); }

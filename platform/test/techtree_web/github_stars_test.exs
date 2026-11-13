@@ -66,7 +66,7 @@ defmodule TechtreeWeb.GithubStarsTest do
     GithubStars.count()
     settled()
 
-    for path <- [~p"/", ~p"/docs", ~p"/start"] do
+    for path <- [~p"/", ~p"/docs", ~p"/docs/run-locally"] do
       assert github_link(path, @counted) |> LazyHTML.text() =~ "1.2k"
     end
   end
