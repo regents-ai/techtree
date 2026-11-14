@@ -46,7 +46,7 @@ owned by the **Techtree MCP lane**.
 | List the Train comparisons, newest first | `GET /train.json` | `train_comparisons` | None | Gap | Gap |
 | Read one Train comparison with every task | `GET /train/{slug}/report.json` | `train_report` | None | Gap | Gap |
 | Download a Train comparison's traces | `GET /train/{slug}/traces.jsonl` | None: `train_comparisons` gives each `traces_url` | None | Gap | Gap |
-| Send an enquiry about a service | None: the contact form only (`Techtree.Messages.Enquiry`, `send`); an agent reaches the team with `messages_leave` | None | None | Gap | Gap |
+| Send an inquiry about a service | None: the contact form only (`Techtree.Messages.Enquiry`, `send`); an agent reaches the team with `messages_leave` | None | None | Gap | Gap |
 | List my person's projects | `GET /api/v1/account/projects` | `account_projects` | None | Gap | Gap |
 | Read one of my person's projects | `GET /api/v1/account/projects/{id}` | `account_project` | None | Gap | Gap |
 | Download a project's package | `GET /api/v1/account/projects/{id}/package` | None: `account_project` gives the package's `url` | None | Gap | Gap |

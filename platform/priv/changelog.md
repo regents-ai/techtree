@@ -11,13 +11,13 @@
 - A paired agent reads its person's profile at `GET /api/v1/profile` and, when
   the person asks, changes their public name with `PATCH /api/v1/profile`,
   signing each request with its own key.
-- **Enquiry.** The home page and each service page have an enquiry form beside
+- **Inquiry.** The home page and each service page have an inquiry form beside
   Email us and Book Call: your name, work email, company, the service you want
   and what you want to improve. A service's page has its own service chosen.
   Once it is sent, a note says we reply by email, usually within two working
-  days. Each network address sends 5 an hour. Only the team reads enquiries, on
-  the Enquiries tab of its messages page, and the Privacy page says what an
-  enquiry keeps.
+  days. Each network address sends 5 an hour. Only the team reads inquiries, on
+  the Inquiries tab of its messages page, and the Privacy page says what an
+  inquiry keeps.
 - **Projects.** Your account has a Projects tab with the work Techtree's team
   delivered to you. A project's page gives its verdict, your original Skill and
   the selected one side by side on the final test, every case with the worse

@@ -237,7 +237,7 @@ defmodule TechtreeWeb.TeamMessagesLive do
           label="Team inbox"
           tabs={[
             %{label: "Messages", patch: tab_path(:messages, []), current: @show == :messages},
-            %{label: "Enquiries", patch: tab_path(:enquiries, []), current: @show == :enquiries},
+            %{label: "Inquiries", patch: tab_path(:enquiries, []), current: @show == :enquiries},
             %{label: "Projects", patch: tab_path(:projects, []), current: @show == :projects}
           ]}
         />
@@ -262,9 +262,9 @@ defmodule TechtreeWeb.TeamMessagesLive do
         </Primitives.empty_state>
         <Primitives.empty_state
           :if={@show == :enquiries and match?(%{state: :ready, value: %{results: []}}, @read)}
-          title="No enquiries"
+          title="No inquiries"
         >
-          Enquiries visitors send from the contact form show here.
+          Inquiries visitors send from the contact form show here.
         </Primitives.empty_state>
         <Primitives.empty_state
           :if={@show == :projects and match?(%{state: :ready, value: %{results: []}}, @read)}

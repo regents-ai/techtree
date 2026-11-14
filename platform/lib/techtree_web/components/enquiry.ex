@@ -77,7 +77,7 @@ defmodule TechtreeWeb.Components.Enquiry do
   def render(assigns) do
     ~H"""
     <section id={@id} class="mk-enquiry" aria-labelledby={"#{@id}-title"}>
-      <h3 id={"#{@id}-title"} class="mk-enquiry__title">Enquiry</h3>
+      <h3 id={"#{@id}-title"} class="mk-enquiry__title">Inquiry</h3>
       <div
         :if={@sent?}
         id={"#{@id}-sent"}
