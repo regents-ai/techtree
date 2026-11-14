@@ -6,27 +6,38 @@ defmodule TechtreeWeb.Services do
 
   Each service is one map: its name, a Lucide icon, a short line for the
   menus, its promise, its price level (1 to 4, shown as marks and never as a
-  figure), what the customer brings, what we do, what they receive, the
-  open-source tools we use on the project (each with its maker and its job
-  there), notes, and the line that asks for a call. Models also carries a
-  second opening line, its stages and the two comparisons it reports; a page
-  shows those parts only where its service has them. Security has no price
-  level. The terms (`terms/0`) are the same for all four. The header's
-  Services menu (`TechtreeWeb.SiteMenu`), the home page's cards and credits,
-  each service's page (`TechtreeWeb.ServiceLive`) and its Markdown all read
-  them from here, so they never say different things. A new fact about a
-  service is one more key.
+  figure), the steps of the work in order, what the customer receives, the
+  open-source tools for the project (each with its maker, its job there and
+  its status), notes, and the line that asks for a call. Models also carries
+  a second opening line and the two comparisons it reports; a page shows those
+  parts only where its service has them. Security has no price level. The
+  terms (`terms/0`) are the same for all four. The header's Services menu
+  (`TechtreeWeb.SiteMenu`), the home page's cards and credits, each service's
+  page (`TechtreeWeb.ServiceLive`) and its Markdown all read them from here, so
+  they never say different things. A new fact about a service is one more key.
 
-  A tool is another company's open-source project, named with its maker
-  (`label/1`) as one we use on a project, never as part of Techtree. A step of
-  the work or a note is a list of words and links: a link is `{text, href}`.
+  The steps are the whole plan, as the service is designed to run. A step
+  that runs something carries a status (`status_line/0`): Delivered on a
+  customer's project, Tested in Techtree's own runs, or Planned. A step that is
+  people agreeing, reviewing or handing over carries none. A tool is another
+  company's open-source project, named with its maker (`label/1`), never as
+  part of Techtree, and has a status of its own; a page groups a service's
+  tools by status (`by_status/1`) and leaves out a status none of them has. A
+  step or a note is a list of words and links: a link is `{text, href}`.
   """
 
   use TechtreeWeb, :verified_routes
 
   @type words :: [String.t() | {String.t(), String.t()}]
-  @type tool :: %{name: String.t(), maker: String.t(), href: String.t(), job: String.t()}
-  @type stage :: %{name: String.t(), work: String.t(), result: String.t()}
+  @type status :: :delivered | :tested | :planned
+  @type step :: %{name: String.t(), status: status() | nil, words: words()}
+  @type tool :: %{
+          name: String.t(),
+          maker: String.t(),
+          href: String.t(),
+          status: status(),
+          job: String.t()
+        }
   @type comparison :: %{name: String.t(), question: String.t(), answer: String.t()}
   @type service :: %{
           required(:id) => atom(),
@@ -36,13 +47,11 @@ defmodule TechtreeWeb.Services do
           required(:promise) => String.t(),
           required(:price) => 1..4,
           required(:call) => String.t(),
-          required(:bring) => [String.t()],
-          required(:work) => [words()],
+          required(:steps) => [step()],
           required(:receive) => [String.t()],
           required(:tools) => [tool()],
           required(:notes) => [words()],
           optional(:more) => String.t(),
-          optional(:stages) => [stage()],
           optional(:comparisons) => %{line: String.t(), items: [comparison()]}
         }
   @type option :: %{
@@ -63,39 +72,58 @@ defmodule TechtreeWeb.Services do
           rules: [String.t()]
         }
 
-  # Each library once; a service gives it its job there (`tool/2`).
+  @statuses [:delivered, :tested, :planned]
+
+  # Each library once, with its status; a service gives it its job there
+  # (`tool/2`).
   @skill_evaluator %{
     maker: "NVIDIA",
     name: "SkillEvaluator",
-    href: "https://github.com/NVIDIA/SkillEvaluator"
+    href: "https://github.com/NVIDIA/SkillEvaluator",
+    status: :tested
   }
   @skill_opt %{
     maker: "Microsoft",
     name: "SkillOpt",
-    href: "https://github.com/microsoft/SkillOpt"
+    href: "https://github.com/microsoft/SkillOpt",
+    status: :tested
   }
   @verifiers %{
     maker: "Prime Intellect",
     name: "Verifiers",
-    href: "https://github.com/PrimeIntellect-ai/verifiers"
+    href: "https://github.com/PrimeIntellect-ai/verifiers",
+    status: :tested
   }
   @prime_rl %{
     maker: "Prime Intellect",
     name: "prime-rl",
-    href: "https://github.com/PrimeIntellect-ai/prime-rl"
+    href: "https://github.com/PrimeIntellect-ai/prime-rl",
+    status: :planned
   }
   @harbor %{
     maker: "Terminal-Bench",
     name: "Harbor",
-    href: "https://github.com/harbor-framework/harbor"
+    href: "https://github.com/harbor-framework/harbor",
+    status: :tested
   }
-  @skill2env %{maker: "NVIDIA", name: "Skill2Env", href: "https://github.com/NVlabs/Skill2Env"}
+  @skill2env %{
+    maker: "NVIDIA",
+    name: "Skill2Env",
+    href: "https://github.com/NVlabs/Skill2Env",
+    status: :planned
+  }
   @repo2rlenv %{
     maker: "Hugging Face",
     name: "Repo2RLEnv",
-    href: "https://github.com/huggingface/Repo2RLEnv"
+    href: "https://github.com/huggingface/Repo2RLEnv",
+    status: :planned
   }
-  @nemoclaw %{maker: "NVIDIA", name: "NemoClaw", href: "https://github.com/NVIDIA/NemoClaw"}
+  @nemoclaw %{
+    maker: "NVIDIA",
+    name: "NemoClaw",
+    href: "https://github.com/NVIDIA/NemoClaw",
+    status: :planned
+  }
 
   @doc "The four services, in the order every list shows them."
   @spec all() :: [service()]
@@ -110,40 +138,58 @@ defmodule TechtreeWeb.Services do
         price: 1,
         call:
           "Bring the Skill and a few examples of good and bad work. We’ll agree what better means before anything changes.",
-        bring: [
-          "An existing Skill.",
-          "The agent and the model that use it.",
-          "Examples of work it got right, and work it got wrong."
-        ],
-        work: [
-          [
-            "We use ",
+        steps: [
+          step(
+            "Intake",
+            nil,
+            [
+              "You bring your Skill, the agent and model that use it, real examples of the work, and the failures you already know about."
+            ]
+          ),
+          step(
+            "Success",
+            nil,
+            [
+              "We agree what better means for you, such as more correct work, fewer serious mistakes or a lower cost, and set a budget cap before anything runs."
+            ]
+          ),
+          step("Quality check", :tested, [
             named(@skill_evaluator),
-            " to check the Skill’s quality and measure how the agent behaves with it."
-          ],
-          [
-            "We use ",
+            " reviews the Skill as it is written."
+          ]),
+          step("Baseline", :tested, [
+            "We measure your current Skill with your agent, several times over so chance is accounted for. The cases for the final test are set aside, and the improvement never sees them."
+          ]),
+          step("Improvement", :tested, [
             named(@skill_opt),
-            " to propose changes to its instructions from scored attempts. The cases it learns from are kept apart from the final test."
-          ],
-          [
-            "We use ",
+            " proposes revisions from scored attempts on the working cases. We measure a plain rewrite beside it, so you see what the automatic revisions add."
+          ]),
+          step("Selection", :tested, [
+            "The best revision is chosen on a separate set of cases."
+          ]),
+          step("Final test", :tested, [
+            "A single run on the untouched cases, scored by ",
             named(@verifiers),
-            " to run the final comparison on cases the work never saw, keeping the model, tools and budgets fixed."
-          ]
+            ", with the model, tools and limits held fixed."
+          ]),
+          step(
+            "Handover",
+            nil,
+            [
+              "You receive everything below. If the Skill did not improve, you still receive the result and the reason."
+            ]
+          )
         ],
         receive: [
-          "The revised Skill.",
-          "Instructions to install it.",
-          "A report on success, cost and regressions."
+          "The original Skill and the revised one.",
+          "A before-and-after report: cost, new mistakes, and how sure the result is.",
+          "The exact setup it ran on.",
+          "One command that reruns it."
         ],
         tools: [
-          tool(
-            @skill_evaluator,
-            "Checks the Skill’s quality and measures how the agent behaves with it."
-          ),
-          tool(@skill_opt, "Proposes changes to the Skill’s instructions from scored attempts."),
-          tool(@verifiers, "Runs the final comparison and scores it.")
+          tool(@skill_evaluator, "Reviews the Skill as it is written."),
+          tool(@skill_opt, "Proposes revisions to the Skill from scored attempts."),
+          tool(@verifiers, "Runs the final test and scores it.")
         ],
         notes: [
           [
@@ -160,36 +206,51 @@ defmodule TechtreeWeb.Services do
         price: 2,
         call:
           "Bring the workflow and a few examples. We’ll agree what success means before we write a test.",
-        bring: [
-          "A workflow and representative examples.",
-          "The failures you already know about.",
-          "Your definition of success.",
-          "Or an existing eval to improve."
-        ],
-        work: [
-          ["We use ", named(@verifiers), " to define the tasks and score them."],
-          ["We use ", named(@prime_rl), " to run the full evaluation."],
-          [
-            "Where a task needs a working software environment, we package it with ",
+        steps: [
+          step(
+            "Intake",
+            nil,
+            [
+              "You bring the job, with examples of good work and bad, or an eval you already have."
+            ]
+          ),
+          step("Success", nil, ["We agree what the test must tell you."]),
+          step("Review", nil, ["You approve the test cases before any of them count."]),
+          step("Build", :tested, [
+            "We package the cases and their scoring with ",
+            named(@verifiers),
+            ", and with ",
             named(@harbor),
-            "."
-          ]
+            " when a case needs working software around it."
+          ]),
+          step("Scoring check", :tested, [
+            "We show that the scoring accepts known-good work and rejects plausible mistakes."
+          ]),
+          step("Baseline", :tested, [
+            "We measure your current agent or model, several times over, and explain where it fails."
+          ]),
+          step("Full run", :planned, [
+            "For a large test, ",
+            named(@prime_rl),
+            " runs the whole evaluation at scale."
+          ]),
+          step("Handover", nil, ["You receive everything below."])
         ],
         receive: [
           "Reviewed test cases.",
-          "Graders.",
-          "Baseline results.",
+          "Scoring for every case.",
+          "Scores for what you run today.",
           "An analysis of the failures.",
-          "One command that reruns the suite."
+          "One command that reruns the whole test."
         ],
         tools: [
-          tool(@verifiers, "Defines the tasks and scores them."),
-          tool(@prime_rl, "Runs the full evaluation."),
-          tool(@harbor, "Packages the tasks that need a working software environment.")
+          tool(@verifiers, "Packages the cases, runs them and scores them."),
+          tool(@harbor, "Packages the cases that need working software around them."),
+          tool(@prime_rl, "Runs the whole evaluation at scale.")
         ],
         notes: [
           [
-            "A better eval catches the failures that matter and scores the same work the same way every time. It need not produce a higher pass rate."
+            "A better eval catches the failures that matter and scores the same work the same way every time. It need not produce a higher pass rate: it gives you a test you can trust."
           ]
         ]
       },
@@ -202,43 +263,53 @@ defmodule TechtreeWeb.Services do
         price: 3,
         call:
           "Bring the workflow, the Skill or the repository. We’ll agree which tasks the environment should hold.",
-        bring: [
-          "A Skill, a repository, or a description of your workflow and its tools.",
-          "Or an existing Harbor, Prime or OpenEnv environment."
-        ],
-        work: [
-          ["We use ", named(@skill2env), " to generate Harbor tasks from a Skill."],
-          [
-            "We use ",
+        steps: [
+          step(
+            "Intake",
+            nil,
+            [
+              "You bring the workflow, a Skill or a repository. An environment you already have, from Harbor, Prime or OpenEnv, starts with a review of what can be reused."
+            ]
+          ),
+          step("Success", nil, ["We agree what an agent should be able to practise."]),
+          step("Tasks", :planned, [
+            "Tasks come from you, or we generate them: from a Skill with ",
+            named(@skill2env),
+            ", or from a repository, its past fixes and recorded agent sessions with ",
             named(@repo2rlenv),
-            " to generate them from a repository, its past fixes and recorded agent sessions."
-          ],
-          ["We use ", named(@verifiers), " to run the tasks and score them."],
-          [
-            "An environment you already have, from Harbor, Prime or OpenEnv, starts with a compatibility review."
-          ],
-          [
-            "We make sure the environment represents your actual job, and check that its tests accept good work and reject bad work."
-          ]
+            "."
+          ]),
+          step("Soundness", :tested, [
+            "Every task is proven fair with ",
+            named(@harbor),
+            " in a sealed setup with no network: doing nothing scores zero, the worked solution passes and bad work fails."
+          ]),
+          step("Baseline", :planned, [
+            "We measure an agent on the tasks with ",
+            named(@verifiers),
+            "."
+          ]),
+          step("Handover", nil, ["You receive everything below."])
         ],
         receive: [
-          "A resettable environment.",
-          "Realistic tasks, with their tools and fixtures.",
-          "Reference solutions.",
+          "An environment that resets between runs.",
+          "Realistic tasks, with their tools and sample data.",
+          "A worked solution for each task.",
           "Scoring.",
-          "Entry points for evaluation and training."
+          "Ready-made commands to test agents on it and to train them."
         ],
         tools: [
-          tool(@skill2env, "Generates Harbor tasks from a Skill."),
+          tool(@skill2env, "Generates practice tasks from a Skill."),
           tool(
             @repo2rlenv,
             "Generates tasks from a repository, its past fixes and recorded agent sessions."
           ),
+          tool(@harbor, "Proves each task fair in a sealed setup with no network."),
           tool(@verifiers, "Runs the tasks and scores them.")
         ],
         notes: [
           [
-            "For ongoing work, failed attempts can propose new practice tasks, each one checked before it is admitted. The idea comes from ",
+            "For ongoing work, failed attempts can propose new practice tasks, each one checked before it is added. The idea comes from ",
             {"the AutoEnvScaling research", "https://auto-env-scaling.github.io/"},
             "."
           ]
@@ -255,61 +326,51 @@ defmodule TechtreeWeb.Services do
         price: 4,
         call:
           "Bring the one task you repeat and what it costs you today. We’ll agree the quality bar and the final test before any training.",
-        bring: [
-          "One repeated task, not a whole field: “classify a failed integration and pick the supported recovery step”, not “technical support”.",
-          "Real inputs, and the outputs you accepted.",
-          "What you run today, and what it costs."
-        ],
-        work: [
-          [
-            "We use ",
-            named(@prime_rl),
-            " for supervised fine-tuning, and for reinforcement learning when a project calls for it."
-          ],
-          [
-            "We use ",
+        steps: [
+          step(
+            "Intake",
+            nil,
+            [
+              "You bring the work you repeat, with real examples: one task, such as “classify a failed integration and pick the supported recovery step”, not a whole field."
+            ]
+          ),
+          step("Qualify", :tested, [
+            "We check whether a smaller model is right for this, and try a cheaper existing model first."
+          ]),
+          step(
+            "Success",
+            nil,
+            [
+              "We agree the target, and split your examples once: some for training, and a set the model never sees."
+            ]
+          ),
+          step("Baseline", :tested, [
+            "We measure the small model and your current model with ",
             named(@verifiers),
-            " so that training and the final test share the same task definitions."
-          ],
-          [
-            "When a project needs it, we use ",
+            " before any training."
+          ]),
+          step("Plan", :tested, [
+            "We write a training plan in prime-rl’s format, with its cost, for your approval. Nothing trains without it."
+          ]),
+          step("Training", :planned, [
+            named(@prime_rl),
+            " trains the model on your accepted examples, then on scored practice when the project calls for it."
+          ]),
+          step("Final test", :planned, [
+            "We test the trained model against the original on the unseen set, including the cost per successful task."
+          ]),
+          step("Handover", :planned, [
+            "You receive everything below, with help putting the model into service. When agents need to run under rules you set, we run them inside OpenShell with ",
             named(@nemoclaw),
-            " to run supported agents inside OpenShell, under the rules you set."
-          ]
+            "."
+          ])
         ],
         receive: [
-          "A checkpoint or adapter.",
+          "The trained model files.",
           "The training recipe.",
-          "An evaluation package you can rerun.",
-          "A deployment handover.",
+          "A test package you can rerun.",
+          "Help putting the model into service.",
           "A comparison with the original model, including the cost per successful task."
-        ],
-        stages: [
-          %{
-            name: "Qualify",
-            work:
-              "We define the task, the data permissions, the quality bar, the current cost and the limits on where the model can run.",
-            result:
-              "You get a scoped experiment and an approved budget, or a clear reason not to train."
-          },
-          %{
-            name: "Baseline",
-            work:
-              "We test what you run today and an inexpensive existing model, then freeze the test and the cases it holds back.",
-            result: "You learn whether training looks necessary at all."
-          },
-          %{
-            name: "Candidate",
-            work: "We curate examples and run one bounded training recipe.",
-            result: "You get a versioned adapter or checkpoint, with its training record."
-          },
-          %{
-            name: "Handover",
-            work:
-              "We test on unseen cases, measure the model as it would be served, and run it beside your current service in a trial you approve.",
-            result:
-              "You get the model files, the evaluation package, a cost report, its known limits, and how to switch to it or back."
-          }
         ],
         comparisons: %{
           line: "Two questions, and we report them separately.",
@@ -318,7 +379,7 @@ defmodule TechtreeWeb.Services do
               name: "Training",
               question: "Did training improve the model?",
               answer:
-                "The small base model against its trained version, on the same task and the same test."
+                "The small model before and after training, on the same task and the same test."
             },
             %{
               name: "Replacement",
@@ -329,8 +390,8 @@ defmodule TechtreeWeb.Services do
           ]
         },
         tools: [
-          tool(@prime_rl, "Runs supervised fine-tuning and reinforcement learning."),
-          tool(@verifiers, "Holds the same task definitions for training and for the test."),
+          tool(@verifiers, "Holds the tasks that training and the final test share."),
+          tool(@prime_rl, "Trains the model on your accepted examples, then on scored practice."),
           tool(
             @nemoclaw,
             "Optional, when a project needs it: runs supported agents inside OpenShell, under the rules you set."
@@ -341,13 +402,13 @@ defmodule TechtreeWeb.Services do
             "Before training, we try a cheaper existing model and a better prompt or Skill. If that gets the saving, we say so."
           ],
           [
-            "A candidate that falls short still gives you a paid, useful answer: whether the blocker is the data, an unclear task, model size, running cost or regressions."
+            "A candidate that falls short still gives you a paid, useful answer: whether the blocker is the data, an unclear task, model size, running cost or new mistakes."
           ],
           [
             "The figure we report is the total running cost per accepted outcome, at a quality level we agree. The one-time training cost is shown separately."
           ],
           [
-            "We start with supervised fine-tuning on accepted examples, and add reinforcement learning when there is a reward we have validated."
+            "Training starts on your accepted examples. Scored practice comes next, once we have checked the scoring."
           ],
           [
             "Results from our own runs are labelled a Techtree-run evaluation, not an independent audit."
@@ -378,6 +439,27 @@ defmodule TechtreeWeb.Services do
   @doc "A project's name with its maker's: \"NVIDIA’s SkillEvaluator\"."
   @spec label(%{maker: String.t(), name: String.t()}) :: String.t()
   def label(%{maker: maker, name: name}), do: "#{maker}’s #{name}"
+
+  @doc "A status as the one word a page shows."
+  @spec status_name(status()) :: String.t()
+  def status_name(:delivered), do: "Delivered"
+  def status_name(:tested), do: "Tested"
+  def status_name(:planned), do: "Planned"
+
+  @doc "The line under a service's steps that says what its status words mean."
+  @spec status_line() :: String.t()
+  def status_line,
+    do: "Tested: we have run it ourselves. Planned: part of the design, not yet run."
+
+  @doc """
+  Tools grouped by status, Delivered first, then Tested, then Planned, each
+  group in the order given. A status none of them has is left out.
+  """
+  @spec by_status([tool()]) :: [{status(), [tool()]}]
+  def by_status(tools) do
+    groups = Enum.group_by(tools, & &1.status)
+    for status <- @statuses, groups[status], do: {status, groups[status]}
+  end
 
   @doc "Security, offered beside the four: a one-off review or a monthly watch."
   @spec security() :: security()
@@ -440,6 +522,8 @@ defmodule TechtreeWeb.Services do
   def path(:environments), do: ~p"/services/environments"
   def path(:models), do: ~p"/services/models"
   def path(:security), do: ~p"/services/security"
+
+  defp step(name, status, words), do: %{name: name, status: status, words: words}
 
   defp tool(library, job), do: Map.put(library, :job, job)
 

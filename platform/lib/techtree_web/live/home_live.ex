@@ -1,10 +1,10 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
   The home page, in six parts: the promise with Book Call; the four services
-  as cards with their price levels and the tools each uses
-  (`TechtreeWeb.Services`); one case study, the newest Skill comparison
-  (`Techtree.Train.Comparisons`), with exactly what its evidence shows, its
-  page and how to check it; how a project runs, in three steps; the
+  as cards with their price levels and the tools each uses under their status
+  (`TechtreeWeb.Services`); one demonstration, the newest Skill comparison
+  (`Techtree.Train.Comparisons`), labelled for what it is, with its figures,
+  its page and how to check it; how a project runs, in six steps; the
   open-source projects we build on, under each maker's logo or name, drawn
   from the services' tools so the two never differ; and a last Book Call.
 
@@ -27,13 +27,19 @@ defmodule TechtreeWeb.HomeLive do
   @promise "Custom Skills, evaluations, training environments, and open-weight models, " <>
              "built around your workflows, with results you can measure."
   @services_line "Paid custom projects, delivered by people, around the workflows you rely on."
+  @process_line "Every project runs in the same six steps."
   @process [
-    {"Agree",
-     "You share examples of the work. Together we agree what success means and how it is scored."},
+    {"Intake", "You bring real examples of the work, and the failures you already know about."},
+    {"Success",
+     "We agree what better means, how it is scored and the budget cap, before anything runs."},
+    {"Baseline",
+     "We measure what you run today, several times over, and set the cases for the final test aside."},
     {"Improve",
-     "We measure a baseline on what you run today, then make one bounded improvement within the budget and limits agreed up front."},
-    {"Prove",
-     "The final test runs on cases the work never saw. You receive the Skill, eval, environment or model, with a report of what changed and what it costs to run."}
+     "We make one change, to a Skill, an eval, an environment or a model, within the limits agreed up front."},
+    {"Final test",
+     "One run on cases the work never saw, with everything else held fixed, so the difference is the change."},
+    {"Handover",
+     "You keep the result, a report of what changed and what it costs to run, and one command that reruns the test."}
   ]
   @closing "Tell us about the workflow you want to improve."
   @mailto "mailto:build@regents.sh"
@@ -47,7 +53,8 @@ defmodule TechtreeWeb.HomeLive do
        promise: @promise,
        services_line: @services_line,
        services: Services.all(),
-       case_study: newest_skill_comparison(),
+       demonstration: newest_skill_comparison(),
+       process_line: @process_line,
        process: @process,
        makers: makers(),
        closing: @closing,
@@ -61,7 +68,7 @@ defmodule TechtreeWeb.HomeLive do
     services =
       Enum.map_join(Services.all(), "\n", fn service ->
         "- [#{service.name}](#{Services.path(service.id)}): #{service.promise} " <>
-          "Price level: #{service.price} of 4. Tools: #{tool_names(service)}."
+          "Price level: #{service.price} of 4. Tools: #{tool_names(service)}"
       end)
 
     security = Services.security()
@@ -90,8 +97,10 @@ defmodule TechtreeWeb.HomeLive do
 
     #{services}
     - [#{security.name}](#{Services.path(:security)}): #{security.promise}
-    #{case_study_markdown(newest_skill_comparison())}
+    #{demonstration_markdown(newest_skill_comparison())}
     ## Process
+
+    #{@process_line}
 
     #{process}
 
@@ -121,15 +130,15 @@ defmodule TechtreeWeb.HomeLive do
 
   defp newest_skill_comparison, do: Enum.find(Comparisons.list(), &(&1.change == :skill))
 
-  defp case_study_markdown(nil), do: ""
+  defp demonstration_markdown(nil), do: ""
 
-  defp case_study_markdown(comparison) do
+  defp demonstration_markdown(comparison) do
     [without, with] = comparison.arms
     tasks = comparison.environment.task_count
 
     """
 
-    ## Case study
+    ## Demonstration
 
     #{about(comparison)}
 
@@ -138,17 +147,19 @@ defmodule TechtreeWeb.HomeLive do
     - Higher-scoring tasks with the Skill: #{comparison.paired.wins} of #{tasks}
     - Tasks fully solved with the Skill: #{with.solved} of #{tasks} (#{without.solved} without it)
 
-    #{Copy.reading(comparison)}
-
     [Result](/train/#{comparison.slug}) and [how to check it](#{check()}).
     """
   end
 
+  # The demonstration's label: a practice task Techtree wrote, a small model,
+  # and a Skill that mainly teaches the answer format. The newest Skill
+  # comparison is the payment-terms one, Techtree's own task set.
   defp about(comparison),
     do:
-      "#{comparison.title}: NVIDIA #{comparison.model.family} on #{comparison.environment.task_count} " <>
-        "held-out tasks, once without the Skill and once with it, with the same settings on both sides. " <>
-        "Finished #{Copy.date(comparison.operational.finished_at)}."
+      "A demonstration on a practice task Techtree wrote, with a small model: " <>
+        "NVIDIA’s #{comparison.model.family} on #{comparison.environment.task_count} tasks, " <>
+        "once without the Skill and once with it. " <>
+        "The Skill mainly teaches the answer format the tasks are scored on."
 
   @impl true
   def render(assigns) do
@@ -188,11 +199,16 @@ defmodule TechtreeWeb.HomeLive do
                 </.link>
               </h3>
               <p>{service.promise}</p>
-              <p class="mk-service__tools">
-                <span :for={tool <- service.tools} class="mk-service__tool">
-                  {Services.label(tool)}
-                </span>
-              </p>
+              <dl class="mk-service__tools">
+                <div :for={{status, tools} <- Services.by_status(service.tools)}>
+                  <dt>{Services.status_name(status)}</dt>
+                  <dd>
+                    <span :for={tool <- tools} class="mk-service__tool">
+                      {Services.label(tool)}
+                    </span>
+                  </dd>
+                </div>
+              </dl>
               <div class="mk-service__foot">
                 <.price level={service.price} />
                 <Regent.Icons.icon name="arrow-right" class="mk-service__arrow" />
@@ -202,12 +218,12 @@ defmodule TechtreeWeb.HomeLive do
         </ul>
       </section>
 
-      <.case_study :if={@case_study} comparison={@case_study} />
+      <.demonstration :if={@demonstration} comparison={@demonstration} />
 
       <section id="process" class="mk-section" aria-labelledby="process-title">
         <header class="mk-section__head">
           <h2 id="process-title">Process</h2>
-          <p>Each project runs in three steps.</p>
+          <p>{@process_line}</p>
         </header>
         <ol class="mk-sequence" phx-hook="MarketingStagger" phx-update="ignore" id="process-steps">
           <li :for={{{name, line}, index} <- Enum.with_index(@process, 1)} data-stagger>
@@ -264,21 +280,22 @@ defmodule TechtreeWeb.HomeLive do
 
   attr :comparison, :map, required: true
 
-  # The newest Skill comparison, in its own figures and words: the average
-  # score on each side, the tasks it did better on and the tasks it solved.
-  defp case_study(assigns) do
+  # The newest Skill comparison, labelled a demonstration, in its own figures:
+  # the average score on each side, the tasks it did better on and the tasks
+  # it solved.
+  defp demonstration(assigns) do
     [without, with] = assigns.comparison.arms
     assigns = assign(assigns, without: without, with: with, about: about(assigns.comparison))
 
     ~H"""
-    <section id="case-study" class="mk-section" aria-labelledby="case-study-title">
+    <section id="demonstration" class="mk-section" aria-labelledby="demonstration-title">
       <header class="mk-section__head">
         <p class="mk-eyebrow">Skills</p>
-        <h2 id="case-study-title">Case study</h2>
+        <h2 id="demonstration-title">Demonstration</h2>
         <p>{@about}</p>
       </header>
       <dl
-        id="case-study-figures"
+        id="demonstration-figures"
         class="mk-tallies"
         phx-hook="MarketingTally"
         phx-update="ignore"
@@ -300,7 +317,6 @@ defmodule TechtreeWeb.HomeLive do
           <dd data-tally>{@with.solved} of {@comparison.environment.task_count}</dd>
         </div>
       </dl>
-      <p class="mk-section__note">{Copy.reading(@comparison)}</p>
       <p class="mk-links">
         <.link navigate={~p"/train/#{@comparison.slug}"} class="text-link">
           Result <span aria-hidden="true">→</span>
@@ -313,11 +329,18 @@ defmodule TechtreeWeb.HomeLive do
     """
   end
 
-  # Where the case study's evidence is explained.
+  # Where the demonstration's evidence is explained.
   defp check, do: ~p"/docs/verify" <> "#blog-section-skill-comparisons"
 
-  # A service's tools, by name, for its line in the Markdown.
-  defp tool_names(service), do: Enum.map_join(service.tools, " · ", &Services.label/1)
+  # A service's tools by status, for its line in the Markdown:
+  # "Tested: NVIDIA’s SkillEvaluator · Microsoft’s SkillOpt."
+  defp tool_names(service) do
+    service.tools
+    |> Services.by_status()
+    |> Enum.map_join(" ", fn {status, tools} ->
+      "#{Services.status_name(status)}: #{Enum.map_join(tools, " · ", &Services.label/1)}."
+    end)
+  end
 
   # Whose open-source projects we build on: each maker's own logo, unchanged
   # (`priv/static/images/built-on/`), or its name where we have no logo file,

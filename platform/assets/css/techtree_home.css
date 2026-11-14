@@ -145,11 +145,14 @@
 }
 .mk-service .mk-service__words h3 { font-size: clamp(1.625rem, 2.2vw, 2.25rem); line-height: 1.05; letter-spacing: -.035em; overflow-wrap: break-word; align-self: end; }
 .mk-service__words p { max-width: 20rem; margin-top: 0; }
-/* The tools a service uses, one quiet line under its promise. */
-.mk-service__words .mk-service__tools {
-  display: flex; flex-wrap: wrap; column-gap: .5em;
+/* The tools a service uses, quiet under its promise: each status it has, in
+   its one word on a line of its own, then the tools under it. */
+.mk-service__tools {
+  display: grid; align-content: start; gap: .25rem;
   font-family: var(--font-family-mono); font-size: .75rem; line-height: 1.5; letter-spacing: .01em;
 }
+.mk-service__tools dd { display: flex; flex-wrap: wrap; column-gap: .5em; }
+.mk-service__tools dt { text-transform: uppercase; letter-spacing: .08em; }
 /* Each tool's name stays whole; the dot between two goes with the first. */
 .mk-service__tool { white-space: nowrap; }
 .mk-service__tool:not(:last-child)::after { content: "·"; margin-left: .5em; }

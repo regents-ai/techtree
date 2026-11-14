@@ -1,11 +1,12 @@
 defmodule TechtreeWeb.ServiceLiveTest do
   @moduledoc """
   The service pages, each built from its entry in `TechtreeWeb.Services`:
-  Skills, Evals, Environments and Models with what the customer brings, what
-  we do, what they receive, the open-source tools we use (by their own
-  links), the shared terms, the price level and booking, and Models with its
-  stages and comparisons; Security with its two options, its rules and the
-  Agent Message button. Each page's Markdown says the same.
+  Skills, Evals, Environments and Models with their numbered steps (each step
+  that runs something marked with its status), what the customer receives,
+  the open-source tools grouped by status (by their own links), the shared
+  terms, the price level and booking, and Models with its comparisons;
+  Security with its two options, its rules and the Agent Message button. Each
+  page's Markdown says the same.
 
   The pages are read as they render: they read the sign-in from the socket's
   connect info, which the LiveView test harness does not carry. The connected
@@ -20,6 +21,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
 
   @booking "https://calendar.example/techtree"
 
+  # Each page's tools by their own links, Tested before Planned.
   @projects %{
     skills: [
       "https://github.com/NVIDIA/SkillEvaluator",
@@ -28,55 +30,109 @@ defmodule TechtreeWeb.ServiceLiveTest do
     ],
     evals: [
       "https://github.com/PrimeIntellect-ai/verifiers",
-      "https://github.com/PrimeIntellect-ai/prime-rl",
-      "https://github.com/harbor-framework/harbor"
+      "https://github.com/harbor-framework/harbor",
+      "https://github.com/PrimeIntellect-ai/prime-rl"
     ],
     environments: [
+      "https://github.com/harbor-framework/harbor",
+      "https://github.com/PrimeIntellect-ai/verifiers",
       "https://github.com/NVlabs/Skill2Env",
-      "https://github.com/huggingface/Repo2RLEnv",
-      "https://github.com/PrimeIntellect-ai/verifiers"
+      "https://github.com/huggingface/Repo2RLEnv"
     ],
     models: [
-      "https://github.com/PrimeIntellect-ai/prime-rl",
       "https://github.com/PrimeIntellect-ai/verifiers",
+      "https://github.com/PrimeIntellect-ai/prime-rl",
       "https://github.com/NVIDIA/NemoClaw"
     ]
   }
 
-  # The parts each page has between the work and the contact band.
+  # The parts each page has between what you receive and the contact band.
   @parts %{
     skills: ~w(tools terms notes),
     evals: ~w(tools terms notes),
     environments: ~w(tools terms notes),
-    models: ~w(stages comparisons tools terms notes)
+    models: ~w(comparisons tools terms notes)
   }
 
-  test "each service page has what you bring, what we do, what you receive, its parts and booking",
+  @statuses ~w(delivered tested planned)
+
+  test "each service page has its steps in order, what you receive, its parts and booking",
        %{conn: conn} do
     for service <- Services.all() do
       page = page(conn, Services.path(service.id))
 
       assert ids(page, "main > section") ==
-               ["opening", "work"] ++ @parts[service.id] ++ ["contact"]
+               ["opening", "process", "receive"] ++ @parts[service.id] ++ ["contact"]
 
-      assert ids(page, "#work-list > section") == ["bring", "do", "receive"]
-      assert texts(page, "#bring li") == service.bring
+      assert ids(page, "#steps > li") ==
+               for(index <- 1..length(service.steps), do: "step-#{index}")
+
+      assert texts(page, "#steps h3") == Enum.map(service.steps, & &1.name)
+
+      # Each step's words read as written, a link run against what follows it.
+      assert texts(page, "#steps .mk-steps__words") ==
+               for(step <- service.steps, do: Enum.map_join(step.words, &plain/1))
+
       assert texts(page, "#receive li") == service.receive
-      assert length(texts(page, "#do li")) == length(service.work)
       assert text(page, "h1") == service.name
       assert texts(page, "#terms li") == Services.terms()
     end
   end
 
-  test "each service page names the tools it uses by their own links, and its work agrees",
+  test "each service page names the tools it uses by their own links, and its steps agree",
        %{conn: conn} do
     for service <- Services.all() do
       page = page(conn, Services.path(service.id))
       tools = @projects[service.id]
 
       assert hrefs(page, "#tools dt a") == tools, "#{service.name}'s tools"
-      assert Enum.all?(hrefs(page, "#do a"), &(&1 in tools)), "#{service.name}'s work"
+      assert Enum.all?(hrefs(page, "#steps a"), &(&1 in tools)), "#{service.name}'s steps"
       assert markdown(conn, Services.path(service.id)) =~ "## Tools"
+    end
+  end
+
+  test "each step that runs something shows its status, and the tools sit under theirs",
+       %{conn: conn} do
+    for service <- Services.all() do
+      path = Services.path(service.id)
+      page = page(conn, path)
+      markdown = markdown(conn, path)
+
+      markers =
+        for step <- LazyHTML.query(page, "#steps > li") do
+          for marker <- LazyHTML.query(step, ".mk-steps__head [data-status]"),
+              do: attribute(marker, "data-status")
+        end
+
+      assert markers ==
+               for(step <- service.steps, do: if(step.status, do: ["#{step.status}"], else: []))
+
+      for {step, index} <- Enum.with_index(service.steps, 1), step.status do
+        assert markdown =~
+                 "#{index}. **#{step.name}** (#{Services.status_name(step.status)}):"
+      end
+
+      status_of = Map.new(service.tools, &{&1.href, "#{&1.status}"})
+
+      groups =
+        for group <- LazyHTML.query(page, "#tools .mk-tools__groups > section") do
+          status = String.replace_prefix(attribute(group, "id"), "tools-", "")
+          links = hrefs(group, "dt a")
+
+          assert links != [], "#{service.name} shows an empty #{status} group"
+          assert Enum.all?(links, &(status_of[&1] == status))
+
+          assert [^status] =
+                   for(
+                     marker <- LazyHTML.query(group, "h3 [data-status]"),
+                     do: attribute(marker, "data-status")
+                   )
+
+          assert markdown =~ "### #{Services.status_name(String.to_existing_atom(status))}"
+          status
+        end
+
+      assert groups == Enum.filter(@statuses, &(&1 in groups))
     end
   end
 
@@ -164,6 +220,9 @@ defmodule TechtreeWeb.ServiceLiveTest do
   end
 
   defp paths, do: Enum.map(Services.all() ++ [Services.security()], &Services.path(&1.id))
+
+  defp plain({text, _href}), do: text
+  defp plain(text), do: text
 
   defp page(conn, path), do: conn |> get(path) |> html_response(200) |> LazyHTML.from_document()
 

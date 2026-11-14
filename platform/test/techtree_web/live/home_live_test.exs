@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.HomeLiveTest do
   @moduledoc """
   The home page: the promise with Book Call, the four services with their
-  price levels, the case study from the published Skill comparison, the
+  price levels, the demonstration from the published Skill comparison, the
   process, the makers whose projects we build on, a last Book Call, and every
   moving picture over a still. Its header, sheet and footer are every page's.
   """
@@ -64,13 +64,26 @@ defmodule TechtreeWeb.HomeLiveTest do
       marks = Enum.to_list(LazyHTML.query(document, "#{card} .mk-price__mark"))
       filled = Enum.to_list(LazyHTML.query(document, "#{card} .mk-price__mark--on"))
       assert {length(marks), length(filled)} == {4, service.price}
+
+      # Its tools sit under their status, and no status shows without a tool.
+      groups =
+        for group <- LazyHTML.query(document, "#{card} .mk-service__tools > div") do
+          {trim(LazyHTML.query(group, "dt")),
+           Enum.count(LazyHTML.query(group, "dd .mk-service__tool"))}
+        end
+
+      assert groups ==
+               for(
+                 {status, tools} <- Services.by_status(service.tools),
+                 do: {Services.status_name(status), length(tools)}
+               )
     end
 
     assert Enum.map(Services.all(), & &1.price) == [1, 2, 3, 4]
     refute has_element?(live, "#service-security")
   end
 
-  test "the case study shows the published Skill comparison's own figures, its page and how to check it",
+  test "the demonstration shows the published Skill comparison's own figures, its page and how to check it",
        %{conn: conn} do
     comparison = Enum.find(Comparisons.list(), &(&1.change == :skill))
     [without, with] = comparison.arms
@@ -79,7 +92,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     {:ok, _live, html} = live(conn, ~p"/")
     document = LazyHTML.from_document(html)
 
-    figures = for dd <- LazyHTML.query(document, "#case-study-figures dd"), do: trim(dd)
+    figures = for dd <- LazyHTML.query(document, "#demonstration-figures dd"), do: trim(dd)
 
     assert figures == [
              TrainCopy.percent(without.mean_reward),
@@ -88,7 +101,7 @@ defmodule TechtreeWeb.HomeLiveTest do
              "#{with.solved} of #{tasks}"
            ]
 
-    assert hrefs(document, "#case-study a") == [
+    assert hrefs(document, "#demonstration a") == [
              "/train/#{comparison.slug}",
              "/docs/verify#blog-section-skill-comparisons"
            ]
@@ -225,7 +238,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     {:ok, live, _html} = live(conn, ~p"/")
 
     assert has_element?(live, "#services-list")
-    assert has_element?(live, "#case-study")
+    assert has_element?(live, "#demonstration")
   end
 
   test "the project source link does not depend on a published release", %{conn: conn} do

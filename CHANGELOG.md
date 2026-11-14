@@ -21,6 +21,39 @@
 - **Agents.** The days an agent works on Chainagent now show in its activity on
   the Agents page, and count when the account menu picks your three most
   recently active agents.
+- **Services.** Each service page lays out the whole plan as numbered steps, from
+  what you bring to the handover, then everything you receive. Each step that runs
+  something, and each open-source tool, is marked Tested (we have run it
+  ourselves) or Planned (part of the design, not yet run), and one line says what
+  the two words mean. The tools are grouped under those two words. Models' four
+  stages are now its eight steps.
+- **Plain words.** The service pages now say scoring, sample data, worked
+  solution, trained model files, help putting the model into service and new
+  mistakes where they used specialist terms.
+- **Home.** The service cards list their tools under Tested and Planned. The
+  example is now a demonstration, labelled for what it is: a practice task
+  Techtree wrote, a small model, and a Skill that mainly teaches the answer
+  format. Its figures are the same. A project now runs in six steps: Intake,
+  Success, Baseline, Improve, Final test and Handover.
+- **Sharing.** A link to any page other than a Result now shows a new picture:
+  "Better agents for your business.", the four services and techtree.sh. Search
+  engines read Techtree as a services business within Regents Labs, with one
+  entry for each of the four services and no price.
+- The Roadmap guide's summary now reads "What comes after Skills, and the network
+  around Techtree."
+
+## Repository (2026-11-14)
+
+### Changed
+
+- **Factory.** Each service page in `factory/` lays out the same numbered steps as
+  the site, each step that runs something marked Tested or Planned, and the same
+  list of what you receive. Its library table uses the same two words, and the
+  pages no longer describe where project work runs.
+- **Front page.** The README's libraries are marked Tested or Planned in place of
+  the earlier two labels, and the facts about what runs from this repository
+  today stay below the table. The method is the site's six steps, and the
+  services and what to expect use the same plain words as the site.
 
 ## Repository (2026-11-13)
 

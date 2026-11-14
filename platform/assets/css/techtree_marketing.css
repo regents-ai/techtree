@@ -62,8 +62,10 @@
 .mk-paths .mk-tile { min-height: 11rem; }
 .mk-paths .badge { justify-self: start; }
 
-/* Steps in order, each under a rule that fills in the accent. */
+/* The home page's six steps in order, each under an accent rule: three to a
+   row on a wide screen, so the two rows are even; two or one on a phone. */
 .mk-sequence { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr)); gap: var(--space-3); margin-top: var(--space-4); }
+@media (min-width: 48rem) { .mk-sequence { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: var(--space-4); } }
 .mk-sequence > li { display: grid; align-content: start; gap: var(--space-1); padding-top: var(--space-2); border-top: 2px solid var(--color-accent); }
 .mk-sequence__index { color: var(--color-fg-muted); font-family: var(--font-family-mono); font-size: .75rem; letter-spacing: .12em; }
 .mk-sequence h3 { font-size: 1.25rem; line-height: 1.25; }
@@ -74,13 +76,10 @@
 .mk-section > .command { margin-top: var(--space-4); }
 .mk-section > .mk-links { margin-top: var(--space-3); }
 .mk-split > .command, .mk-split > .facts { margin: 0; }
-.mk-section__note { max-width: var(--measure); margin-top: var(--space-4); color: var(--color-fg-muted); font-size: .875rem; }
 
-/* A service's work in order (what the customer brings, what we do, what they
-   receive), or Security's two options side by side: each a ruled list under
-   an accent rule. */
-.mk-offer { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5) var(--rg-track-gap); }
-.mk-offer--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* Two things side by side, Security's options or Models' comparisons: each
+   under an accent rule, a ruled list where it has one. */
+.mk-offer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5) var(--rg-track-gap); }
 .mk-section__head + .mk-offer { margin-top: var(--space-4); }
 .mk-offer > section { display: grid; align-content: start; gap: var(--space-1); min-width: 0; padding-top: var(--space-2); border-top: 2px solid var(--color-accent); }
 .mk-offer > section > :is(h2, h3) { font-size: 1.5rem; line-height: 1.2; }
@@ -94,14 +93,31 @@
   line-height: 1.35; letter-spacing: -.01em;
 }
 
-/* A stage's result, under what we do in it. */
-.mk-sequence > li > .mk-sequence__result {
-  margin-top: var(--space-1); padding-top: var(--space-1); border-top: 1px solid var(--hairline);
-  color: var(--color-fg);
+/* A service's process: one ruled row a step, its number, its name with its
+   status, and what happens in it. On a phone the words go under the name. */
+.mk-steps { margin-top: var(--space-4); border-top: 1px solid var(--hairline); }
+.mk-steps > li {
+  display: grid; grid-template-columns: 3rem minmax(0, 15rem) minmax(0, 1fr); gap: var(--space-1) var(--space-3);
+  align-items: baseline; padding: var(--space-3) 0; border-bottom: 1px solid var(--hairline);
 }
+.mk-steps__index { color: var(--color-fg-muted); font-family: var(--font-family-mono); font-size: .75rem; letter-spacing: .12em; }
+.mk-steps__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-2); min-width: 0; }
+.mk-steps h3 { font-size: 1.25rem; line-height: 1.25; }
+.mk-steps__words { max-width: 44rem; margin: 0; color: var(--color-fg-muted); font-size: .9375rem; line-height: 1.55; text-wrap: pretty; }
 
-/* The open-source tools a service uses: each project named with its maker,
-   linked, beside its job on the project, one ruled row each. */
+/* A status in its one word (Tested, Planned), quiet beside what it marks.
+   Delivered keeps its tone's colour. */
+.mk-status-word {
+  flex: none; font-family: var(--font-family-mono); font-size: .6875rem; line-height: 1.4;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.mk-status-word.rg-tone--neutral { border-color: var(--hairline-strong); color: var(--color-fg-muted); }
+
+/* The open-source tools a service uses, grouped under their status: each
+   project named with its maker, linked, beside its job on the project, one
+   ruled row each. */
+.mk-tools__groups { display: grid; gap: var(--space-4); min-width: 0; }
+.mk-tools__status { margin-bottom: var(--space-2); font-size: 1rem; line-height: 1; }
 .mk-tools { border-top: 1px solid var(--hairline); }
 .mk-tools > div {
   display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-1) var(--space-3);
@@ -168,7 +184,9 @@
   .mk-opening__picture { display: none; }
 }
 @media (max-width: 47.99rem) {
-  .mk-paths, .mk-offer, .mk-offer--two { grid-template-columns: minmax(0, 1fr); }
+  .mk-paths, .mk-offer { grid-template-columns: minmax(0, 1fr); }
+  .mk-steps > li { grid-template-columns: 2.5rem minmax(0, 1fr); }
+  .mk-steps__words { grid-column: 2; }
 }
 @media (max-width: 36rem) {
   .mk-tools > div { grid-template-columns: minmax(0, 1fr); }

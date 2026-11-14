@@ -1,13 +1,15 @@
 defmodule TechtreeWeb.ServiceLive do
   @moduledoc """
   One service's page, from its entry in `TechtreeWeb.Services`: Skills, Evals,
-  Environments and Models under `/services/<service>`, each with what the
-  customer brings, what we do and what they receive, the open-source tools
-  used on the project, the shared terms and the service's notes, and its
-  price level beside the booking action (Models adds its stages and its two
-  comparisons, the parts only its entry carries); and Security at
-  `/services/security`, with its two options (a one-off review and monthly
-  monitoring of sites a team proves it owns) and the rules monitoring keeps.
+  Environments and Models under `/services/<service>`, each with its process
+  as numbered steps (a step that runs something carries its status, Tested or
+  Planned, beside its name, and one line says what the two words mean), what
+  the customer receives, the open-source tools for the project grouped by
+  status, the shared terms and the service's notes, and its price level
+  beside the booking action (Models adds its two comparisons, the part only
+  its entry carries); and Security at `/services/security`, with its two
+  options (a one-off review and monthly monitoring of sites a team proves it
+  owns) and the rules monitoring keeps.
 
   Every page ends on booking a call (`TechtreeWeb.Components.BookCall`) or
   writing to us. Security also has the Agent Message button
@@ -33,7 +35,7 @@ defmodule TechtreeWeb.ServiceLive do
   # What the page says about money beyond the price level and the terms:
   # nothing more.
   @quoted "Quoted on a call."
-  @tools_line "Open-source libraries we use on your project, each named with its maker."
+  @tools_line "Open-source libraries for your project, each named with its maker."
 
   @impl true
   def mount(_params, _session, socket) do
@@ -46,6 +48,7 @@ defmodule TechtreeWeb.ServiceLive do
        mailto: mailto(service),
        quoted: @quoted,
        tools_line: @tools_line,
+       status_line: Services.status_line(),
        terms: Services.terms()
      )}
   end
@@ -88,10 +91,8 @@ defmodule TechtreeWeb.ServiceLive do
       "# #{service.name}\n\n#{service.promise}",
       service[:more],
       "Price level: #{service.price} of 4. #{@quoted}",
-      "## You bring\n\n#{list(service.bring)}",
-      "## We do\n\n#{service.work |> Enum.map(&words_markdown/1) |> list()}",
+      "## Process\n\n#{Services.status_line()}\n\n#{steps_markdown(service.steps)}",
       "## You receive\n\n#{list(service.receive)}",
-      stages_markdown(service[:stages]),
       comparisons_markdown(service[:comparisons]),
       "## Tools\n\n#{@tools_line}\n\n#{tools_markdown(service.tools)}",
       "## Terms\n\n#{list(Services.terms())}",
@@ -103,18 +104,16 @@ defmodule TechtreeWeb.ServiceLive do
     |> Kernel.<>("\n")
   end
 
-  defp stages_markdown(nil), do: nil
-
-  defp stages_markdown(stages) do
-    steps =
-      stages
-      |> Enum.with_index(1)
-      |> Enum.map_join("\n", fn {stage, index} ->
-        "#{index}. **#{stage.name}**: #{stage.work} #{stage.result}"
-      end)
-
-    "## Stages\n\n#{steps}"
+  defp steps_markdown(steps) do
+    steps
+    |> Enum.with_index(1)
+    |> Enum.map_join("\n", fn {step, index} ->
+      "#{index}. **#{step.name}**#{status_markdown(step.status)}: #{words_markdown(step.words)}"
+    end)
   end
+
+  defp status_markdown(nil), do: ""
+  defp status_markdown(status), do: " (#{Services.status_name(status)})"
 
   defp comparisons_markdown(nil), do: nil
 
@@ -127,8 +126,14 @@ defmodule TechtreeWeb.ServiceLive do
     "## Comparisons\n\n#{comparisons.line}\n\n#{items}"
   end
 
-  defp tools_markdown(tools),
-    do: Enum.map_join(tools, "\n", &"- [#{Services.label(&1)}](#{&1.href}): #{&1.job}")
+  defp tools_markdown(tools) do
+    tools
+    |> Services.by_status()
+    |> Enum.map_join("\n\n", fn {status, group} ->
+      "### #{Services.status_name(status)}\n\n" <>
+        Enum.map_join(group, "\n", &"- [#{Services.label(&1)}](#{&1.href}): #{&1.job}")
+    end)
+  end
 
   defp notes_markdown([]), do: nil
 
@@ -174,7 +179,7 @@ defmodule TechtreeWeb.ServiceLive do
         </header>
         <div
           id="options-list"
-          class="mk-offer mk-offer--two"
+          class="mk-offer"
           phx-hook="MarketingStagger"
           phx-update="ignore"
         >
@@ -242,49 +247,36 @@ defmodule TechtreeWeb.ServiceLive do
         </div>
       </.opening>
 
-      <section id="work" class="mk-section" aria-label="The work">
-        <div id="work-list" class="mk-offer" phx-hook="MarketingStagger" phx-update="ignore">
-          <section id="bring" aria-labelledby="bring-title" data-stagger>
-            <span class="mk-sequence__index">01</span>
-            <h2 id="bring-title">You bring</h2>
-            <ul>
-              <li :for={item <- @service.bring}>{item}</li>
-            </ul>
-          </section>
-          <section id="do" aria-labelledby="do-title" data-stagger>
-            <span class="mk-sequence__index">02</span>
-            <h2 id="do-title">We do</h2>
-            <ul>
-              <li :for={words <- @service.work}><.words words={words} /></li>
-            </ul>
-          </section>
-          <section id="receive" aria-labelledby="receive-title" data-stagger>
-            <span class="mk-sequence__index">03</span>
-            <h2 id="receive-title">You receive</h2>
-            <ul>
-              <li :for={item <- @service.receive}>{item}</li>
-            </ul>
-          </section>
-        </div>
-      </section>
-
-      <section
-        :if={@service[:stages]}
-        id="stages"
-        class="mk-section"
-        aria-labelledby="stages-title"
-      >
+      <section id="process" class="mk-section" aria-labelledby="process-title">
         <header class="mk-section__head">
-          <h2 id="stages-title">Stages</h2>
+          <h2 id="process-title">Process</h2>
+          <p>{@status_line}</p>
         </header>
-        <ol id="stages-list" class="mk-sequence" phx-hook="MarketingStagger" phx-update="ignore">
-          <li :for={{stage, index} <- Enum.with_index(@service.stages, 1)} data-stagger>
-            <span class="mk-sequence__index">0{index}</span>
-            <h3>{stage.name}</h3>
-            <p>{stage.work}</p>
-            <p class="mk-sequence__result">{stage.result}</p>
+        <ol id="steps" class="mk-steps" phx-hook="MarketingStagger" phx-update="ignore">
+          <li
+            :for={{step, index} <- Enum.with_index(@service.steps, 1)}
+            id={"step-#{index}"}
+            data-stagger
+          >
+            <span class="mk-steps__index" aria-hidden="true">
+              {String.pad_leading(Integer.to_string(index), 2, "0")}
+            </span>
+            <div class="mk-steps__head">
+              <h3>{step.name}</h3>
+              <.status_word :if={step.status} status={step.status} />
+            </div>
+            <p class="mk-steps__words"><.words words={step.words} /></p>
           </li>
         </ol>
+      </section>
+
+      <section id="receive" class="mk-section mk-split" aria-labelledby="receive-title">
+        <header class="mk-section__head">
+          <h2 id="receive-title">You receive</h2>
+        </header>
+        <ul class="mk-status mk-status--prose">
+          <li :for={item <- @service.receive}>{item}</li>
+        </ul>
       </section>
 
       <section
@@ -297,7 +289,7 @@ defmodule TechtreeWeb.ServiceLive do
           <h2 id="comparisons-title">Comparisons</h2>
           <p>{@service.comparisons.line}</p>
         </header>
-        <div class="mk-offer mk-offer--two">
+        <div class="mk-offer">
           <section
             :for={item <- @service.comparisons.items}
             id={"comparison-#{String.downcase(item.name)}"}
@@ -315,16 +307,27 @@ defmodule TechtreeWeb.ServiceLive do
           <h2 id="tools-title">Tools</h2>
           <p>{@tools_line}</p>
         </header>
-        <dl class="mk-tools">
-          <div :for={tool <- @service.tools}>
-            <dt>
-              <a href={tool.href} class="mk-tools__name">
-                <span class="mk-tools__maker">{tool.maker}’s</span> {tool.name}
-              </a>
-            </dt>
-            <dd>{tool.job}</dd>
-          </div>
-        </dl>
+        <div class="mk-tools__groups">
+          <section
+            :for={{status, tools} <- Services.by_status(@service.tools)}
+            id={"tools-#{status}"}
+            aria-labelledby={"tools-#{status}-title"}
+          >
+            <h3 id={"tools-#{status}-title"} class="mk-tools__status">
+              <.status_word status={status} />
+            </h3>
+            <dl class="mk-tools">
+              <div :for={tool <- tools}>
+                <dt>
+                  <a href={tool.href} class="mk-tools__name">
+                    <span class="mk-tools__maker">{tool.maker}’s</span> {tool.name}
+                  </a>
+                </dt>
+                <dd>{tool.job}</dd>
+              </div>
+            </dl>
+          </section>
+        </div>
       </section>
 
       <section id="terms" class="mk-section mk-split" aria-labelledby="terms-title">
@@ -357,16 +360,36 @@ defmodule TechtreeWeb.ServiceLive do
 
   attr :words, :list, required: true
 
+  # A sentence's words and links, run together with no space of their own, so
+  # a link sits right against the comma or full stop after it.
   defp words(assigns) do
     ~H"""
-    <%= for part <- @words do %>
-      <%= case part do %>
-        <% {text, href} -> %>
-          <a href={href}>{text}</a>
-        <% text -> %>
-          {text}
-      <% end %>
-    <% end %>
+    <.word :for={part <- @words} part={part} />
+    """
+  end
+
+  attr :part, :any, required: true
+
+  defp word(%{part: {text, href}} = assigns) do
+    assigns = assign(assigns, text: text, href: href)
+    ~H|<a href={@href}>{@text}</a>|
+  end
+
+  defp word(assigns), do: ~H|{@part}|
+
+  attr :status, :atom, required: true
+
+  # A status in its one word, quiet beside what it marks: only Delivered takes
+  # a colour.
+  defp status_word(assigns) do
+    ~H"""
+    <Regent.Primitives.status
+      tone={if(@status == :delivered, do: "success", else: "neutral")}
+      class="mk-status-word"
+      data-status={@status}
+    >
+      {Services.status_name(@status)}
+    </Regent.Primitives.status>
     """
   end
 

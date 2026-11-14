@@ -21,7 +21,7 @@ Techtree runs on the person's own computer, through regents-cli. Nothing you rea
 - [OpenAPI description](https://techtree.sh/openapi.json), [tool manifest](https://techtree.sh/capabilities.json) and [sitemap](https://techtree.sh/sitemap.xml).
 - [Results](https://techtree.sh/results), [Wallet Bench](https://techtree.sh/wallet-bench) and [About](https://techtree.sh/about).
 - Skill comparisons, listed on [Results](https://techtree.sh/results): an NVIDIA Nemotron model scored without and with a Skill on the same held-out tasks. Each comparison has its report and traces; as JSON, [/train.json](https://techtree.sh/train.json). [How to check them](https://techtree.sh/docs/verify).
-- Paid custom projects, delivered by people: [Skills](https://techtree.sh/services/skills), [Evals](https://techtree.sh/services/evals), [Environments](https://techtree.sh/services/environments), [Models](https://techtree.sh/services/models) and [Security](https://techtree.sh/services/security). Each page says what to bring and what you receive; write to build@regents.sh.
+- Paid custom projects, delivered by people: [Skills](https://techtree.sh/services/skills), [Evals](https://techtree.sh/services/evals), [Environments](https://techtree.sh/services/environments), [Models](https://techtree.sh/services/models) and [Security](https://techtree.sh/services/security). Each page lays out the steps of the work, what you receive and which tools are tested or planned; write to build@regents.sh.
 - [Techtree Formal](https://techtree.sh/formal): what formal verification proves, recent advances with their sources, and how to send code to be proved, by email to build@regents.sh.
 
 Every page answers `Accept: text/markdown` with Markdown.

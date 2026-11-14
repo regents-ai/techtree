@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.TrainLive.Show do
   @moduledoc """
-  One comparison, reached from Results and the home page's case study: the two
+  One comparison, reached from Results and the home page's demonstration: the two
   arms' mean rewards and their difference with what that difference shows, the
   outcome with the paired wins, ties and losses and the 95% interval, each arm
   side by side, every task's result, the exact settings, environment and model,

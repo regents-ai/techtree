@@ -1,6 +1,6 @@
 /**
  * Figures that count up to the number the server wrote, the first time they
- * scroll into view (`MarketingTally`): the home page's case study. The figure
+ * scroll into view (`MarketingTally`): the home page's demonstration. The figure
  * keeps its width while it counts, so nothing beside it moves, and ends on
  * exactly the text it started with.
  */

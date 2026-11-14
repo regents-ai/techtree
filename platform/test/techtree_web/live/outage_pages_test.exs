@@ -80,11 +80,11 @@ defmodule TechtreeWeb.OutagePagesTest do
     result
   end
 
-  test "Home shows its services and case study, which need no database", %{conn: conn} do
+  test "Home shows its services and demonstration, which need no database", %{conn: conn} do
     {:ok, live, _html} = quietly(fn -> live(conn, ~p"/") end)
 
     assert has_element?(live, "#services-list")
-    assert has_element?(live, "#case-study")
+    assert has_element?(live, "#demonstration")
   end
 
   test "Run locally and Docs say the install steps can't be shown, not that there's nothing to install",

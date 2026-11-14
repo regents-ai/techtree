@@ -4,7 +4,7 @@ import {layoutProblems, layoutShift, lowContrast, watchErrors, watchShifts} from
 
 // The home page (TechtreeWeb.HomeLive) at a desktop width and two phone widths,
 // with the GPU on: the promise, the four services with their price levels, the
-// case study whose figures count up, the process, the credits and the closing.
+// demonstration whose figures count up, the process, the credits and the closing.
 // Nothing moves the layout as it arrives. A visitor who asked for less motion,
 // or whose browser has no WebGPU, keeps every still picture and every figure as
 // the server wrote it.
@@ -18,13 +18,13 @@ async function open(page: Page) {
   await expect(page.locator("[data-phx-main].phx-connected")).toBeAttached()
 }
 
-// The case study's figures as the page shows them now.
-const figures = (page: Page) => page.locator("#case-study-figures dd").allTextContents()
+// The demonstration's figures as the page shows them now.
+const figures = (page: Page) => page.locator("#demonstration-figures dd").allTextContents()
 
 // Every block of words on the page, and every button in them.
 const wordBlocks = (page: Page) =>
   page.locator(["#hero :is(h1, .mk-hero__lede, .rg-button)", "#services :is(.mk-section__head, .mk-service__words)",
-    "#case-study :is(.mk-section__head, .mk-tallies > div, .mk-section__note, .mk-links)", "#process :is(.mk-section__head, li)",
+    "#demonstration :is(.mk-section__head, .mk-tallies > div, .mk-links)", "#process :is(.mk-section__head, li)",
     "#stack :is(.mk-section__head, .mk-maker__projects)", "#begin :is(h2, .mk-closing__line, .rg-button)"].join(", "))
 
 for (const width of [1280, 390, 320]) {
@@ -62,10 +62,10 @@ for (const width of [1280, 390, 320]) {
       expect(errors).toEqual([])
     })
 
-    test("the case study's figures count up to what the server wrote, and keep their place", async ({page}) => {
+    test("the demonstration's figures count up to what the server wrote, and keep their place", async ({page}) => {
       const errors = watchErrors(page)
       await open(page)
-      const tallies = page.locator("#case-study-figures")
+      const tallies = page.locator("#demonstration-figures")
       const written = await figures(page)
       expect(written.every(figure => /\d/.test(figure))).toBe(true)
       const before = (await tallies.boundingBox())!.height
@@ -107,7 +107,7 @@ for (const width of [1280, 390, 320]) {
         await open(page)
         const written = await figures(page)
         await expect(page.locator("#hero-field .mk-field__still")).toBeVisible()
-        await page.locator("#case-study-figures").scrollIntoViewIfNeeded()
+        await page.locator("#demonstration-figures").scrollIntoViewIfNeeded()
         await page.waitForTimeout(500)
         expect(await figures(page)).toEqual(written)
         for (const field of await page.locator("[data-field]").all())

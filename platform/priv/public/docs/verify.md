@@ -37,7 +37,7 @@ Repeating a Result needs another participant to run the same Climb and publish t
 
 ## Skill comparisons
 
-A Skill comparison, like the case study on the [home page](/), is a report Techtree ran itself: one model on the same held-out tasks, once without the Skill and once with it, with the same settings. It is not signed. Its page offers the report and the traces, every task's exchange with the model, to download, and names each by its SHA-256 digest.
+A Skill comparison, like the demonstration on the [home page](/), is a report Techtree ran itself: one model on the same held-out tasks, once without the Skill and once with it, with the same settings. It is not signed. Its page offers the report and the traces, every task's exchange with the model, to download, and names each by its SHA-256 digest.
 
 - The traces' digest is the SHA-256 of the file's exact bytes: `shasum -a 256 <name>.traces.jsonl` prints the hex after `sha256:`.
 - The report's digest is the SHA-256 of the RFC 8785 canonical JSON of its `schema_version`, `kind` and `spec`.
