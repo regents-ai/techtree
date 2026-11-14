@@ -162,10 +162,10 @@ defmodule TechtreeWeb.Services do
           ]),
           step("Improvement", :tested, [
             named(@skill_opt),
-            " proposes revisions from scored attempts on the working cases. We measure a plain rewrite beside it, so you see what the automatic revisions add."
+            " proposes revisions from scored attempts on the working cases."
           ]),
-          step("Selection", :tested, [
-            "The best revision is chosen on a separate set of cases."
+          step("Selection", :planned, [
+            "The best revision is chosen on a separate set of cases. We measure a plain rewrite beside it, so you see what the automatic revisions add."
           ]),
           step("Final test", :tested, [
             "A single run on the untouched cases, scored by ",
@@ -223,7 +223,7 @@ defmodule TechtreeWeb.Services do
             named(@harbor),
             " when a case needs working software around it."
           ]),
-          step("Scoring check", :tested, [
+          step("Scoring check", :planned, [
             "We show that the scoring accepts known-good work and rejects plausible mistakes."
           ]),
           step("Baseline", :tested, [

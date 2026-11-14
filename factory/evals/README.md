@@ -18,7 +18,7 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
    [Verifiers](https://github.com/PrimeIntellect-ai/verifiers), and with
    Terminal-Bench's [Harbor](https://github.com/harbor-framework/harbor) when a case
    needs working software around it.
-5. **Scoring check** (Tested): We show that the scoring accepts known-good work and
+5. **Scoring check** (Planned): We show that the scoring accepts known-good work and
    rejects plausible mistakes.
 6. **Baseline** (Tested): We measure your current agent or model, several times
    over, and explain where it fails.

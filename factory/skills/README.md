@@ -21,9 +21,9 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
    times over so chance is accounted for. The cases for the final test are set
    aside, and the improvement never sees them.
 5. **Improvement** (Tested): Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt)
-   proposes revisions from scored attempts on the working cases. We measure a plain
-   rewrite beside it, so you see what the automatic revisions add.
-6. **Selection** (Tested): The best revision is chosen on a separate set of cases.
+   proposes revisions from scored attempts on the working cases.
+6. **Selection** (Planned): The best revision is chosen on a separate set of cases.
+   We measure a plain rewrite beside it, so you see what the automatic revisions add.
 7. **Final test** (Tested): A single run on the untouched cases, scored by Prime
    Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers), with the
    model, tools and limits held fixed.
