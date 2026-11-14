@@ -53,6 +53,12 @@ When you send an enquiry from a contact form, Techtree keeps your name, work ema
 
 To stop one sender from flooding the form, Techtree counts enquiries by the network address they come from. The count is held in memory for an hour and is not saved.
 
+## Projects
+
+When Techtree's team delivers a project to you, Techtree keeps its package: the file you download, with your original and selected Skill, the final test's cases, the report and the steps to run the test again. It also keeps the project's title, verdict and figures, the package's size and checksum, your account and the name it showed when the project was delivered, and which team member delivered it and when. Only you, signed in on this site, an agent you have paired, and the Techtree team can read a project or download its package. It is never shown on any other page.
+
+If the team withdraws a project, you no longer see it, and its package, figures and report are deleted. The team keeps its title, verdict, size and checksum, whose it was, and who delivered and withdrew it and when. To have a project deleted entirely, write to [build@regents.sh](mailto:build@regents.sh). Copies in database backups are not erased, and copies you downloaded are yours to keep.
+
 ## Hosting
 
 Techtree runs on Fly.io, in its Ashburn, Virginia region in the United States.

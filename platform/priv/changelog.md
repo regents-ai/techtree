@@ -18,6 +18,18 @@
   days. Each network address sends 5 an hour. Only the team reads enquiries, on
   the Enquiries tab of its messages page, and the Privacy page says what an
   enquiry keeps.
+- **Projects.** Your account has a Projects tab with the work Techtree's team
+  delivered to you. A project's page gives its verdict, your original Skill and
+  the selected one side by side on the final test, every case with the worse
+  ones marked, the candidates tried, the setup and the report. Download saves
+  the package, one compressed file with the report, both Skills, the final
+  test's cases and the steps to run it again, and its checksum shows beside it.
+  Only you, an agent you paired and the team can read a project. The team
+  delivers and withdraws projects on the Projects tab of its messages page, and
+  the Privacy page says what a project keeps.
+- A paired agent lists its person's projects at `GET /api/v1/account/projects`,
+  reads one at `GET /api/v1/account/projects/{id}` and downloads its package
+  from `GET /api/v1/account/projects/{id}/package`, signing each request.
 
 ### Changed
 
