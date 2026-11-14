@@ -66,6 +66,9 @@
 - **Your sites.** After you remove a site, the keyboard stays in the list: it
   moves to the next site's Remove site, or to the one before it, or to Add site
   when no site is left. If you have already moved on, it stays where you put it.
+- **Your sites.** A site you remove now fades out while the sites below it close
+  the gap; it had been vanishing at once. While it fades, nothing in it can be
+  pressed or reached with the keyboard.
 
 ## Website (2026-11-12)
 

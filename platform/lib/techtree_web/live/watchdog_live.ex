@@ -65,8 +65,8 @@ defmodule TechtreeWeb.WatchdogLive do
   end
 
   # The removed site stays on the page, hidden, so the list's motion (MotionList)
-  # can take it out while the sites under it close the gap; then the list is read
-  # again.
+  # can fade it out while the sites under it close the gap; then the list is read
+  # again. It is inert meanwhile, so nothing in it takes a press or the keyboard.
   def handle_event("remove_site", %{"id" => id}, socket) do
     with %Human{} = actor <- actor(socket),
          {:ok, host} <- Ash.get(Host, id, actor: actor),
@@ -307,6 +307,7 @@ defmodule TechtreeWeb.WatchdogLive do
               data-site
               data-layout-id={"watchdog-site-#{host.id}"}
               hidden={host.id in @leaving}
+              inert={host.id in @leaving}
             >
               <%!-- Its own id, so reading the list again never swaps one site's
                    sheet into another's place, which would take the keyboard off it. --%>

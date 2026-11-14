@@ -56,7 +56,8 @@ body, h1, h2, h3, h4, h5, h6, p, dl, dd, ul, ol, figure, blockquote { margin: 0;
 ul, ol { padding: 0; list-style: none; }
 button, input, textarea, select { font: inherit; font-family: var(--font-family-ui); }
 img, svg { display: block; max-width: 100%; }
-[hidden] { display: none !important; }
+/* Not important, so an item the page hides can still fade out while it leaves. */
+[hidden] { display: none; }
 
 :root {
   --measure: 64ch;

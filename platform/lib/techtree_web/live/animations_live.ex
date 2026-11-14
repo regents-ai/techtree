@@ -173,7 +173,8 @@ defmodule TechtreeWeb.AnimationsLive do
     do: {:noreply, update(socket, key, &Enum.reject(&1, fn item -> item.id == id end))}
 
   # An item is hidden first, so it can fade out while its neighbours close
-  # the gap, and dropped once that is over.
+  # the gap, and dropped once that is over. It is inert meanwhile, so nothing in
+  # it takes a press or the keyboard.
   defp leave(socket, key, id) do
     Process.send_after(self(), {:drop, key, id}, @leave_ms)
     update(socket, key, &for(item <- &1, do: %{item | leaving?: item.leaving? or item.id == id}))
@@ -256,6 +257,7 @@ defmodule TechtreeWeb.AnimationsLive do
                     data-toast
                     data-layout-id={"lab-toast-#{toast.id}"}
                     hidden={toast.leaving?}
+                    inert={toast.leaving?}
                   >
                     <span>{toast.name}</span>
                     <button
@@ -296,6 +298,7 @@ defmodule TechtreeWeb.AnimationsLive do
                 data-item-chip
                 data-layout-id={"lab-item-#{item.id}"}
                 hidden={item.leaving?}
+                inert={item.leaving?}
               >
                 {item.name}
               </li>
