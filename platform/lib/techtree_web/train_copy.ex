@@ -27,7 +27,7 @@ defmodule TechtreeWeb.TrainCopy do
   @spec solved(non_neg_integer(), pos_integer()) :: String.t()
   def solved(solved, repeats), do: "#{solved} of #{repeats}"
 
-  @doc "One case's change in attempts solved, signed: \"+2\", \"0\" or \"−1\"."
+  @doc ~s(One case's change in attempts solved, signed: "+2", "0" or "−1".)
   @spec change(Comparisons.final_case()) :: String.t()
   def change(%{original: original, improved: improved}), do: signed(improved - original)
 
