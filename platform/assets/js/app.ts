@@ -6,6 +6,7 @@ import {AccountMenu} from "./hooks/account_menu"
 import {AccountShell} from "./hooks/account_shell"
 import {MenuAgents} from "./hooks/menu_agents"
 import {VerifiedConnections} from "./hooks/verified_connections"
+import {SiteFocus} from "./hooks/site_focus"
 import "../vendor/regent_ui/blog.mjs"
 import "../vendor/regent_ui/confirm.mjs"
 import "../vendor/regent_ui/pill_select.mjs"
@@ -194,7 +195,8 @@ Hooks.CopyCommandPageView = {
 
 // The account tabs: focus moves to the new tab's heading, and a tab picked with a
 // mouse or finger glides in (ShellViews); one picked from the keyboard is there at once.
-Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell: composeHooks(AccountShell, ShellViews), MenuAgents, VerifiedConnections, MotionRefusal, MotionCascade})
+// Your sites moves as a list (MotionList) and keeps the keyboard when a site goes.
+Object.assign(Hooks, {InfoDialog, AccountPicture, AccountMenu, AccountShell: composeHooks(AccountShell, ShellViews), MenuAgents, VerifiedConnections, MotionRefusal, MotionCascade, WatchdogSites: composeHooks(MotionList, SiteFocus)})
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

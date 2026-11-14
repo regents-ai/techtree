@@ -7,7 +7,8 @@ import {layoutProblems, signIn, watchErrors} from "./support/visitor"
 // form, which refuses an address on another site under its own field. The last
 // action's notice floats on New site's edge: it shows when a site is added,
 // moving nothing, and goes when a typed site is refused. Remove site asks first
-// in the site's own window, never the browser's box.
+// in the site's own window, never the browser's box, and removing a site keeps
+// the page and the keyboard in the list.
 for (const width of [1280, 390]) {
   test(`signed in at ${width} wide, Watchdog refuses a bad site or address under its own field and asks before removing a site`, async ({browser}) => {
     const hasTouch = width < 768
@@ -92,11 +93,37 @@ for (const width of [1280, 390]) {
     await expect(remove).toBeFocused()
     await expect(sites).toHaveCount(before + 1)
 
+    // A second site below it. Removing a site keeps the page alive (it never
+    // fails and starts over) and the site leaves the list once the list is read
+    // again; the keyboard goes to the next site's Remove site, and from the last
+    // site to the one before it, or to Add site when none is left.
+    const other = `walk-${width}-next.example`
+    const theirs = sites.filter({hasText: other})
+    await origin.fill(other)
+    await add.click()
+    await expect(sites).toHaveCount(before + 2)
+    await page.evaluate(() => {
+      const crashes = window as Window & {crashes?: number}
+      crashes.crashes = 0
+      window.addEventListener("phx:page-loading-start", event => {
+        if ((event as CustomEvent<{kind: string}>).detail.kind === "error") crashes.crashes = (crashes.crashes ?? 0) + 1
+      })
+    })
+    const crashes = () => page.evaluate(() => (window as Window & {crashes?: number}).crashes)
+
     await remove.click()
     await ask.getByRole("button", {name: "Remove", exact: true}).click()
     await expect(ask).toBeHidden()
-    await expect(sites).toHaveCount(before)
+    await expect(theirs.getByRole("button", {name: "Remove site"})).toBeFocused()
     await expect(mine).toHaveCount(0)
+    await expect(sites).toHaveCount(before + 1)
+    expect(await crashes()).toBe(0)
+
+    await theirs.getByRole("button", {name: "Remove site"}).click()
+    await ask.getByRole("button", {name: "Remove", exact: true}).click()
+    await expect(before ? sites.nth(before - 1).getByRole("button", {name: "Remove site"}) : add).toBeFocused()
+    await expect(sites).toHaveCount(before)
+    expect(await crashes()).toBe(0)
     expect(browserBoxes).toEqual([])
 
     expect(errors).toEqual([])

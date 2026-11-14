@@ -274,7 +274,9 @@ defmodule TechtreeWeb.WatchdogLive do
                 </label>
               </fieldset>
 
-              <Regent.Primitives.button type="submit">Add site</Regent.Primitives.button>
+              <Regent.Primitives.button id="watchdog-add-site" type="submit">
+                Add site
+              </Regent.Primitives.button>
             </form>
             <p class="rg-muted">You can keep up to {Limits.max_hosts()} sites.</p>
             <%!-- Last, so it comes and goes without the page rebuilding the form. --%>
@@ -294,7 +296,7 @@ defmodule TechtreeWeb.WatchdogLive do
           <ol
             id="watchdog-sites"
             class="watchdog-sites"
-            phx-hook="MotionList"
+            phx-hook="WatchdogSites"
             data-layout-id="watchdog-sites"
             data-children="[data-site]"
             data-variant={TechtreeWeb.Motion.standard("list")}
@@ -306,7 +308,12 @@ defmodule TechtreeWeb.WatchdogLive do
               data-layout-id={"watchdog-site-#{host.id}"}
               hidden={host.id in @leaving}
             >
-              <Regent.Structure.panel class="watchdog-site rg-panel__body">
+              <%!-- Its own id, so reading the list again never swaps one site's
+                   sheet into another's place, which would take the keyboard off it. --%>
+              <Regent.Structure.panel
+                id={"watchdog-site-panel-#{host.id}"}
+                class="watchdog-site rg-panel__body"
+              >
                 <div class="watchdog-site__head">
                   <h2>{host.origin}</h2>
                   <Regent.Primitives.status tone={status_tone(host.ownership_state)}>
@@ -358,6 +365,7 @@ defmodule TechtreeWeb.WatchdogLive do
                     variant="quiet"
                     phx-click="remove_site"
                     phx-value-id={host.id}
+                    data-remove-site
                     data-confirm="Remove this site and its addresses?"
                     data-confirm-action="Remove"
                   >

@@ -63,6 +63,9 @@
   still shows it, and keyboard focus still marks a tile.
 - **Your sites.** Removing a site no longer makes the page start over; it now
   says Site removed.
+- **Your sites.** After you remove a site, the keyboard stays in the list: it
+  moves to the next site's Remove site, or to the one before it, or to Add site
+  when no site is left. If you have already moved on, it stays where you put it.
 
 ## Website (2026-11-12)
 
