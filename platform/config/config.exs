@@ -117,7 +117,8 @@ config :techtree,
     Techtree.WalletBench,
     Techtree.ModelClimb,
     Techtree.Watchdog,
-    Techtree.Messages
+    Techtree.Messages,
+    Techtree.Projects
   ],
   generators: [timestamp_type: :utc_datetime]
 

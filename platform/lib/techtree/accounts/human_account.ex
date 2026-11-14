@@ -45,6 +45,25 @@ defmodule Techtree.Accounts.HumanAccount do
       filter expr(privy_user_id in ^arg(:privy_dids))
     end
 
+    # The account that signed in with a wallet, given in lowercase; the account
+    # keeps each wallet as Privy wrote it.
+    read :by_wallet do
+      get? true
+      argument :wallet, :string, allow_nil?: false
+
+      filter expr(
+               fragment(
+                 "(lower(?) = ? OR EXISTS (SELECT 1 FROM unnest(?) AS wallet WHERE lower(wallet) = ?))",
+                 wallet_address,
+                 ^arg(:wallet),
+                 wallet_addresses,
+                 ^arg(:wallet)
+               )
+             )
+
+      prepare build(load: [:display_name])
+    end
+
     read :read_self do
       get? true
       argument :id, :integer, allow_nil?: false
@@ -85,7 +104,8 @@ defmodule Techtree.Accounts.HumanAccount do
              :refresh_verified,
              :points_account,
              :created_before,
-             :by_privy_dids
+             :by_privy_dids,
+             :by_wallet
            ]) do
       authorize_if actor_attribute_equals(:role, :system)
     end
