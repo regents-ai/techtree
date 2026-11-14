@@ -164,7 +164,7 @@ defmodule TechtreeWeb.Services do
             named(@skill_opt),
             " proposes revisions from scored attempts on the working cases."
           ]),
-          step("Selection", :planned, [
+          step("Selection", :tested, [
             "The best revision is chosen on a separate set of cases. We measure a plain rewrite beside it, so you see what the automatic revisions add."
           ]),
           step("Final test", :tested, [
