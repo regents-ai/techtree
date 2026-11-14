@@ -1,17 +1,26 @@
 defmodule TechtreeWeb.AccountShellLive do
-  @moduledoc "One template account frame for profile, agents, Points, wallets and connections."
+  @moduledoc """
+  One template account frame for profile, projects, agents, Points, wallets and
+  connections. A project's own page sits under the Projects tab.
+  """
   use TechtreeWeb, :live_view
 
-  alias Techtree.{Accounts, SharedReading}
+  alias Techtree.{Accounts, Projects, SharedReading}
   alias Techtree.Accounts.LinkedIdentity.Providers
   alias Techtree.Actors.Human
   alias Techtree.Points.Board
-  alias TechtreeWeb.{AccountLive, Read}
+  alias TechtreeWeb.{AccountLive, ProjectsLive, Read}
 
   import TechtreeWeb.Components.Marketing, only: [opening: 1]
 
   @tabs [
     %{route_id: :account, label: "Account", path: "/account", line: "Your profile."},
+    %{
+      route_id: :projects,
+      label: "Projects",
+      path: "/account/projects",
+      line: "The work our team delivered to you."
+    },
     %{
       route_id: :account_agents,
       label: "Agents",
@@ -64,20 +73,29 @@ defmodule TechtreeWeb.AccountShellLive do
        points_board: %Read{},
        points_earning: [],
        points_rolls?: false,
+       projects: %Read{},
+       project: %Read{},
        verified_connections_notice: nil,
        connection_outcome: nil
      )}
   end
 
   @impl true
-  def handle_params(_params, _uri, socket) do
-    route_spec = Enum.find(@tabs, &(&1.route_id == socket.assigns.live_action))
+  def handle_params(params, uri, socket) do
+    action = socket.assigns.live_action
+    tab = if action == :project, do: :projects, else: action
+    route_spec = Enum.find(@tabs, &(&1.route_id == tab))
 
     {:noreply,
      socket
-     |> assign(page_title: route_spec.label, route_spec: route_spec)
+     |> assign(
+       page_title: route_spec.label,
+       route_spec: route_spec,
+       destination: URI.parse(uri).path
+     )
      |> hear_board(route_spec)
      |> load_points(route_spec)
+     |> load_projects(action, params)
      |> load_verified_connections(route_spec)}
   end
 
@@ -167,7 +185,7 @@ defmodule TechtreeWeb.AccountShellLive do
         id="account-shell"
         class="account-shell"
         phx-hook="AccountShell"
-        data-destination={@route_spec.path}
+        data-destination={@destination}
         data-variant={TechtreeWeb.Motion.standard("tabs")}
       >
         <.opening
@@ -193,6 +211,18 @@ defmodule TechtreeWeb.AccountShellLive do
             signed_out_reason={@signed_out_reason}
             account={current_account(@access_context)}
             account_control={@account_control}
+          />
+          <ProjectsLive.list
+            :if={@live_action == :projects}
+            signed_out_reason={@signed_out_reason}
+            account={current_account(@access_context)}
+            projects={@projects}
+          />
+          <ProjectsLive.show
+            :if={@live_action == :project}
+            signed_out_reason={@signed_out_reason}
+            account={current_account(@access_context)}
+            project={@project}
           />
           <AccountLive.agents
             :if={@route_spec.route_id == :account_agents}
@@ -327,6 +357,54 @@ defmodule TechtreeWeb.AccountShellLive do
       :limited -> {:error, :limited}
     end
   end
+
+  defp load_projects(socket, :projects, _params) do
+    socket = Read.clear(socket, :project)
+
+    case human_actor(socket) do
+      %Human{} = actor ->
+        Read.now(socket, :projects, actor.human_account_id, fn ->
+          Projects.list_my_projects(actor: actor)
+        end)
+
+      nil ->
+        Read.clear(socket, :projects)
+    end
+  end
+
+  # A project is read for its owner only, so one that is someone else's, or
+  # was withdrawn, is the not-found page, as a project that never was.
+  defp load_projects(socket, :project, %{"id" => id}) do
+    socket = Read.clear(socket, :projects)
+
+    case human_actor(socket) do
+      %Human{} = actor ->
+        socket
+        |> Read.now(:project, {actor.human_account_id, id}, fn -> own_project(id, actor) end)
+        |> found_project()
+
+      nil ->
+        Read.clear(socket, :project)
+    end
+  end
+
+  defp load_projects(socket, _action, _params),
+    do: socket |> Read.clear(:projects) |> Read.clear(:project)
+
+  defp own_project(id, actor) do
+    case Ecto.UUID.cast(id) do
+      {:ok, id} -> Projects.get_my_project(id, actor: actor)
+      :error -> {:ok, nil}
+    end
+  end
+
+  defp found_project(%{assigns: %{project: %Read{state: :empty}}}),
+    do: raise(TechtreeWeb.NotFoundError, "no project of yours has that id")
+
+  defp found_project(%{assigns: %{project: %Read{state: :ready, value: project}}} = socket),
+    do: assign(socket, :page_title, project.title)
+
+  defp found_project(socket), do: socket
 
   defp load_verified_connections(socket, %{route_id: :connections}),
     do: read_verified_connections(socket)

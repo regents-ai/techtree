@@ -35,6 +35,20 @@ export function pairAgent(): string {
   return JSON.parse(inBrowserDatabase("pair_agent.exs")).name
 }
 
+// Three projects the team delivered to the signed-in visitor, by verdict, and a
+// package file under tmp/ for the team to upload, with its title.
+export type DeliveredProjects = {
+  improved: string
+  inconclusive: string
+  not_improved: string
+  upload: string
+  upload_title: string
+}
+
+export function deliverProjects(): DeliveredProjects {
+  return JSON.parse(inBrowserDatabase("deliver_projects.exs"))
+}
+
 // A fresh signed-in session for one browser context. Each context gets its own:
 // the site ends a session another browser presents after it has moved on.
 export async function signIn(context: BrowserContext): Promise<void> {

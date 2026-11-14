@@ -1,0 +1,126 @@
+@layer regents-product {
+/* The account's Projects (`TechtreeWeb.ProjectsLive`) and the team's delivery
+   (`TechtreeWeb.TeamMessagesLive`, `?show=projects`). Figures are equal-width
+   digits in the body ink; only the bars carry colour: the selected Skill in the
+   chart colour, the original in grey, both square like every shape here, with
+   the pass bar a line across both. */
+
+.project-note { color: var(--color-fg-muted); font-size: .875rem; }
+
+/* The list: each project a row, its title and line on the left and its verdict
+   on the right; on a phone the verdict drops under the title. */
+.project-list { display: grid; margin: 0; padding: 0; list-style: none; border-block-start: 1px solid var(--color-border); }
+.project-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-2);
+  padding-block: var(--space-2);
+  border-block-end: 1px solid var(--hairline);
+}
+.project-list__link { display: grid; gap: .25rem; flex: 1 1 16rem; min-width: 0; min-height: 2.75rem; color: inherit; text-decoration: none; }
+.project-list__title { font-size: 1.125rem; overflow-wrap: anywhere; }
+.project-list__link:hover .project-list__title,
+.project-list__link:focus-visible .project-list__title { text-decoration: underline; text-underline-offset: .25em; }
+.project-list__meta { color: var(--color-fg-muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
+.project-verdict__status { white-space: nowrap; }
+
+.project-services { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin: 0; padding: 0; list-style: none; }
+.project-services a { display: inline-flex; align-items: center; min-height: 2.75rem; }
+
+/* A project's page. */
+.project-head { display: grid; gap: var(--space-1); min-width: 0; }
+.project-head__back { justify-self: start; display: inline-flex; align-items: center; gap: .375rem; min-height: 2.75rem; color: var(--color-fg-muted); font-size: .875rem; }
+.project-head__back::before { content: "←"; }
+.project-head h2 { font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.2; overflow-wrap: anywhere; }
+.project-head__meta { color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+
+.project-verdict__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.project-goal { white-space: pre-line; }
+
+.project-facts { display: grid; gap: var(--space-2); margin: 0; }
+.project-facts > div { display: grid; gap: .25rem; min-width: 0; }
+.project-facts dt { color: var(--color-fg-muted); font-size: .875rem; }
+.project-facts dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.project-facts--row { grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); padding-block-start: var(--space-2); border-block-start: 1px solid var(--hairline); }
+
+/* Two bars, one row each: the name, the bar, then the figures as text. The
+   track is the attempts; the fill is the share solved. */
+.project-meters { --project-bar: var(--color-chart-line); --project-bar-before: color-mix(in oklch, var(--color-fg) 42%, transparent); display: grid; gap: var(--space-2); }
+.project-meter {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr) 7.5rem;
+  align-items: center;
+  gap: var(--space-2);
+}
+.project-meter__label { font-size: .875rem; }
+.project-meter__track { position: relative; display: block; block-size: 1.5rem; background: var(--hairline); forced-color-adjust: none; }
+.project-meter__fill { display: block; block-size: 100%; background: var(--project-bar); }
+.project-meter--before .project-meter__fill { background: var(--project-bar-before); }
+/* The pass bar: a line across the track at its share. */
+.project-meter__track::after,
+.project-meters__tick {
+  content: "";
+  inline-size: 2px;
+  background: var(--color-fg);
+}
+.project-meter__track::after { position: absolute; inset-block: -.25rem; inset-inline-start: calc(var(--pass-bar) - 1px); }
+.project-meter__figure { font-variant-numeric: tabular-nums; text-align: end; white-space: nowrap; }
+.project-meters__legend { display: flex; align-items: center; gap: var(--space-1); margin: 0; }
+.project-meters__tick { display: inline-block; block-size: 1rem; }
+
+/* Tables keep their figures in columns and scroll on their own when long. */
+.project-table { max-block-size: 30rem; overflow: auto; border: 1px solid var(--hairline); }
+.project-table:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.project-table table { inline-size: 100%; border-collapse: collapse; font-size: .9375rem; font-variant-numeric: tabular-nums; }
+.project-table :where(th, td) { padding: var(--space-1) var(--space-2); border-block-end: 1px solid var(--hairline); text-align: start; vertical-align: middle; }
+.project-table thead th { position: sticky; inset-block-start: 0; background: var(--color-surface); color: var(--color-fg-muted); font-size: .8125rem; font-weight: 400; }
+/* Figures keep to one line; a case's name breaks only where it cannot fit, and a
+   table wider than the screen scrolls on its own. */
+.project-table td { white-space: nowrap; }
+.project-table tbody th { font-weight: 400; overflow-wrap: break-word; }
+.project-table tbody tr:last-child > * { border-block-end: 0; }
+
+.project-plain-list { display: grid; gap: .25rem; margin: 0; padding: 0; list-style: none; }
+
+.project-download__action { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); }
+.project-checksum { display: flex; align-items: center; gap: var(--space-1); min-width: 0; }
+.project-checksum code { min-width: 0; overflow-wrap: anywhere; font-size: .8125rem; }
+
+.project-report { max-width: var(--measure); }
+
+/* The team's delivery. */
+.team-deliver { display: grid; gap: var(--space-2); padding-block: var(--space-3); border-block: 1px solid var(--hairline); }
+.team-deliver h2,
+.team-projects h2 { font-size: 1.35rem; font-weight: 400; }
+.team-deliver input[type="file"] { max-inline-size: 100%; min-block-size: 2.75rem; }
+.team-deliver__customer { display: grid; justify-items: start; gap: var(--space-1); }
+.team-deliver__customer .rg-field { justify-self: stretch; min-width: 0; }
+.team-deliver__customer input { inline-size: 100%; max-inline-size: 36rem; }
+.team-deliver > .rg-button { justify-self: start; }
+.team-projects { display: grid; gap: var(--space-2); }
+.team-projects__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-1) var(--space-2); }
+.team-projects__title { margin: 0; font-size: 1.0625rem; overflow-wrap: anywhere; }
+.team-projects__actions { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+@media (max-width: 30rem) {
+  .project-meter { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--space-1); }
+  .project-meter__track { grid-column: 1 / -1; grid-row: 2; }
+  .project-table :where(th, td) { padding-inline: var(--space-1); }
+}
+
+@media (forced-colors: active) {
+  .project-meter__fill { background: CanvasText; }
+  .project-meter--before .project-meter__fill { background: GrayText; }
+  .project-meter__track { background: Canvas; outline: 1px solid CanvasText; }
+  .project-meter__track::after,
+  .project-meters__tick { background: Highlight; }
+}
+}
+
+/* On a touch screen the checksum's copy icon gets a finger's 44 pixels. Outside
+   the layer, as the copy icon's own size is. */
+@media (pointer: coarse) {
+  .project-checksum .rg-copy--icon { flex: none; inline-size: 2.75rem; block-size: 2.75rem; min-block-size: 2.75rem; }
+}

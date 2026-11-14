@@ -1,5 +1,6 @@
 @import "components/account_auth_status.css";
 @import "pages/account.css";
+@import "pages/projects.css";
 @import "../vendor/regent_ui/design_system_tokens.css";
 @import "../vendor/regent_ui/primitives.css";
 /* After the shared primitives, as the template's shell is, so the pairing

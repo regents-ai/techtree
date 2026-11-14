@@ -4,7 +4,7 @@
     "title": "Techtree",
     "version": "8.0",
     "summary": "Controlled Skill comparisons with signed results anyone can verify offline.",
-    "description": "The public catalog of Climbs, the log of published Results, the one address that accepts a signed Result bundle or its withdrawal, an agent's pairing with its person's Regent account, a signed agent's private message for the team, a person's private Model Climb reports, and a person's shared profile. Public reads need no account; private account reads require a current paired agent, and the profile also answers the person signed in on this site. Every error is an `error` object with a stable code: a refusal from an address says whether retrying could help, and an unknown address, an unreadable body, a request over the rate limit or an unexpected failure says what to do next. A breaking change ships with a new major `info.version` and is listed in the documentation's versioning and deprecation section the same day; an added field moves the number after the point.",
+    "description": "The public catalog of Climbs, the log of published Results, the one address that accepts a signed Result bundle or its withdrawal, an agent's pairing with its person's Regent account, a signed agent's private message for the team, a person's private Model Climb reports, the projects Techtree's team delivered to a person, and a person's shared profile. Public reads need no account; private account reads require a current paired agent, and the profile also answers the person signed in on this site. Every error is an `error` object with a stable code: a refusal from an address says whether retrying could help, and an unknown address, an unreadable body, a request over the rate limit or an unexpected failure says what to do next. A breaking change ships with a new major `info.version` and is listed in the documentation's versioning and deprecation section the same day; an added field moves the number after the point.",
     "contact": {
       "name": "Regents Labs",
       "email": "build@regents.sh"
@@ -942,6 +942,415 @@
           },
           "403": {
             "description": "`agent_not_paired`: this agent has no current pairing. `person_not_here`: the person this agent is paired with hasn't signed in on this site yet; they sign in here once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this client address in the current window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              }
+            }
+          },
+          "503": {
+            "description": "Identity, pairing or shared account data is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "default": {
+            "description": "Any other error, such as an unknown address or method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/projects": {
+      "get": {
+        "operationId": "listAccountProjects",
+        "summary": "Current paired agent's person's projects: the work Techtree's team delivered to them, newest first, each with its title, service, verdict and its name, when it was delivered, and its page. Withdrawn projects are left out.",
+        "security": [
+          {
+            "AgentSignature": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The person's projects, as `projects`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "401": {
+            "description": "Fresh exact-request SIWA proof is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_not_paired`: this agent has no current pairing. `person_not_here`: the person this agent is paired with hasn't signed in on this site yet; they sign in here once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this client address in the current window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              }
+            }
+          },
+          "503": {
+            "description": "Identity, pairing or shared account data is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "default": {
+            "description": "Any other error, such as an unknown address or method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/projects/{id}": {
+      "get": {
+        "operationId": "getAccountProject",
+        "summary": "One of the person's projects, as its page shows it: the success statement, the before-and-after summary, each final case, the candidates, the setup, the report in Markdown, and the package's size, sha256 and download address.",
+        "security": [
+          {
+            "AgentSignature": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The project's id, a UUID, as the list of projects gives it.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "401": {
+            "description": "Fresh exact-request SIWA proof is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_not_paired`: this agent has no current pairing. `person_not_here`: the person this agent is paired with hasn't signed in on this site yet; they sign in here once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "404": {
+            "description": "`project_not_found`: the person has no project with that id, or it was withdrawn.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this client address in the current window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              }
+            }
+          },
+          "503": {
+            "description": "Identity, pairing or shared account data is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "default": {
+            "description": "Any other error, such as an unknown address or method.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account/projects/{id}/package": {
+      "get": {
+        "operationId": "getAccountProjectPackage",
+        "summary": "One of the person's projects' package, byte for byte: a gzipped tar of its manifest, the report, the original and selected Skill, the final test's cases and how to run the test again. It is never cached; check it against the project's sha256. Errors are JSON.",
+        "security": [
+          {
+            "AgentSignature": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The project's id, a UUID, as the list of projects gives it.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The package, as a file to save.",
+            "content": {
+              "application/gzip": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "application/gzip"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "401": {
+            "description": "Fresh exact-request SIWA proof is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "403": {
+            "description": "`agent_not_paired`: this agent has no current pairing. `person_not_here`: the person this agent is paired with hasn't signed in on this site yet; they sign in here once.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "RateLimit": {
+                "$ref": "#/components/headers/RateLimit"
+              },
+              "RateLimit-Policy": {
+                "$ref": "#/components/headers/RateLimitPolicy"
+              }
+            }
+          },
+          "404": {
+            "description": "`project_not_found`: the person has no project with that id, or it was withdrawn.",
             "content": {
               "application/json": {
                 "schema": {

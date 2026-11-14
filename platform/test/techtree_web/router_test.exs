@@ -57,6 +57,9 @@ defmodule TechtreeWeb.RouterTest do
              "get /account/agents",
              "get /account/connections",
              "get /account/points",
+             "get /account/projects",
+             "get /account/projects/:id",
+             "get /account/projects/:id/package",
              "get /account/wallets",
              "get /admin/messages",
              "get /agents",
@@ -67,6 +70,9 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/model-climb/v1/reports",
              "get /api/model-climb/v1/reports/:digest",
              "get /api/v1/account/points",
+             "get /api/v1/account/projects",
+             "get /api/v1/account/projects/:id",
+             "get /api/v1/account/projects/:id/package",
              "get /api/v1/bootstrap",
              "get /api/v1/catalog",
              "get /api/v1/climbs/:slug",
@@ -144,7 +150,7 @@ defmodule TechtreeWeb.RouterTest do
            ]
   end
 
-  test "no route takes a path parameter other than a digest, a fingerprint, a slug, an agent's name, a message's topic or a wallet bench attempt's id, turn and file" do
+  test "no route takes a path parameter other than a digest, a fingerprint, a slug, an agent's name, a message's topic, a wallet bench attempt's id, turn and file, or a project's id" do
     parameters =
       @routes
       |> Enum.flat_map(&Regex.scan(~r/:([a-z_]+)/, &1.path, capture: :all_but_first))

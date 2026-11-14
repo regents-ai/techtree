@@ -81,12 +81,21 @@ defmodule TechtreeWeb.Router do
       session: {TechtreeWeb.Live.Session, :render_context, []},
       on_mount: [{TechtreeWeb.Live.Session, :load_human}] do
       live "/account", AccountShellLive, :account
+      live "/account/projects", AccountShellLive, :projects
+      live "/account/projects/:id", AccountShellLive, :project
       live "/account/agents", AccountShellLive, :account_agents
       live "/account/points", AccountShellLive, :points
       live "/account/wallets", AccountShellLive, :wallets
       live "/account/connections", AccountShellLive, :connections
       live "/watchdog", WatchdogLive, :index
     end
+  end
+
+  # A delivered project's package, for its owner signed in here or for the
+  # site's admins (`TechtreeWeb.ProjectPackageController`).
+  scope "/", TechtreeWeb do
+    pipe_through [:browser, :account_browser, :account_only]
+    get "/account/projects/:id/package", ProjectPackageController, :show
   end
 
   # The team's own pages: the site's admins only. Anyone else gets the
@@ -349,10 +358,15 @@ defmodule TechtreeWeb.Router do
     get "/reports/:digest", ModelClimbReportController, :show
   end
 
-  # A paired agent's read of its person's Points, at the same path on every site.
+  # A paired agent's read of its person's Points, at the same path on every site,
+  # and of the projects Techtree's team delivered to its person, with each
+  # project's package.
   scope "/api/v1/account", TechtreeWeb do
     pipe_through [:api, :paired_agent]
     get "/points", AgentAccountController, :points
+    get "/projects", AgentAccountController, :projects
+    get "/projects/:id", AgentAccountController, :project
+    get "/projects/:id/package", AgentAccountController, :package
   end
 
   # A signed agent leaves Techtree's team a private message under a topic the
