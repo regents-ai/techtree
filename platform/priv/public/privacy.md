@@ -47,6 +47,12 @@ When you sign in, Techtree keeps a profile made from that sign-in: your Privy us
 
 You can delete your Privy account yourself, through Privy. That does not remove the profile Techtree keeps: to have it deleted, write to [build@regents.sh](mailto:build@regents.sh).
 
+## Enquiries
+
+When you send an enquiry from a contact form, Techtree keeps your name, work email and company, the service you chose, what you wrote about the work you want to improve, and when you sent it. We use it only to reply to you. Only the Techtree team can read it, and it is never shown on any page.
+
+To stop one sender from flooding the form, Techtree counts enquiries by the network address they come from. The count is held in memory for an hour and is not saved.
+
 ## Hosting
 
 Techtree runs on Fly.io, in its Ashburn, Virginia region in the United States.
