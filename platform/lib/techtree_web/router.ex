@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.Router do
   @moduledoc """
-  Public catalog and signed publication routes, plus the shared account and
-  owner-only profile. Privy account authority never grants publication-key authority.
+  Public catalog and signed publication routes, plus the shared account and the
+  person's own profile. Privy account authority never grants publication-key authority.
   """
 
   use TechtreeWeb, :router
@@ -195,13 +195,17 @@ defmodule TechtreeWeb.Router do
     plug TechtreeWeb.Showcase, :motion_lab
   end
 
-  # The public profile page is temporarily withdrawn. Keep the owner-only
-  # API and implementation intact for its later return.
-  scope "/api/v1", TechtreeWeb do
-    pipe_through :api
-    get "/profile", SharedProfileController, :read
-    patch "/profile", SharedProfileController, :update
-    post "/profile/sync", SharedProfileController, :sync
+  # The person's shared profile, for the person signed in on this site or the
+  # person a paired agent acts for (`TechtreeWeb.Plugs.ProfileOwner`). The
+  # profile API answers its own methods and refusals (`RegentIdentity.HTTP`).
+  pipeline :profile_owner do
+    plug TechtreeWeb.Plugs.ProfileOwner
+  end
+
+  scope "/api/v1" do
+    pipe_through [:api, :profile_owner]
+
+    forward "/profile", RegentIdentity.HTTP
   end
 
   scope "/", TechtreeWeb do
@@ -326,8 +330,8 @@ defmodule TechtreeWeb.Router do
 
   # The one paired-agent write address. Its rate limit and exact-byte reader stand
   # in the endpoint, in front of the parser (`TechtreeWeb.PublicationRate`,
-  # `TechtreeWeb.PublicationBody`). The profile routes above accept bodies only
-  # from the signed-in owner.
+  # `TechtreeWeb.PublicationBody`). The profile above takes a change only for its
+  # owner, from their session here or an agent they paired.
   scope "/api/v1", TechtreeWeb do
     pipe_through [:api, :paired_agent]
 

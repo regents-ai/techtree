@@ -50,6 +50,10 @@ npm-debug.log
 # Generated exact-request transport from the resolved shared package.
 /assets/vendor/regent_agent_access/
 
+# The shared profile client, copied by mix regent_identity.assets from the
+# resolved package.
+/assets/vendor/regent_identity/
+
 # Generated from the pinned Regent UI package.
 /priv/static/fonts/regent-ui/
 /priv/static/images/regent-ui/

@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.Plugs.AgentWalletTest do
   @moduledoc """
-  The three addresses a signed agent uses (publications, Model Climb reports and
-  `/api/v1/account`), requested the way an agent sends them. Only the sign-in
+  The four addresses a signed agent uses (publications, Model Climb reports,
+  `/api/v1/account` and `/api/v1/profile`), requested the way an agent sends them. Only the sign-in
   service's verdict is a stand-in (`NetworkFixture.sign_as/1`); the agent record,
   the pairing and the person's account are the site's own.
   """
@@ -21,7 +21,8 @@ defmodule TechtreeWeb.Plugs.AgentWalletTest do
   @doors [
     {:post, "/api/v1/publications", "{}"},
     {:get, "/api/model-climb/v1/reports", nil},
-    {:get, "/api/v1/account/points", nil}
+    {:get, "/api/v1/account/points", nil},
+    {:get, "/api/v1/profile", nil}
   ]
 
   setup %{conn: conn} do

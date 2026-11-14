@@ -9,7 +9,7 @@ defmodule Techtree.SharedReadingTest do
   alias Techtree.Points.Board
   alias Techtree.SharedReading
 
-  @limit 131_072
+  @limit 65_536
 
   setup do
     SharedReading.delete(Board.key())

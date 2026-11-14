@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.MethodSurface do
   @moduledoc """
   Return accurate method refusals for public catalog and publication routes.
-  The shared private profile adapter owns its authenticated method responses.
+  The shared profile API answers its own methods.
   """
 
   @behaviour Plug
@@ -28,6 +28,9 @@ defmodule TechtreeWeb.MethodSurface do
 
   # So does the hosted MCP server (`TechtreeWeb.Plugs.McpAgent`).
   def call(%Plug.Conn{path_info: ["mcp" | _]} = conn, _opts), do: conn
+
+  # And the person's profile (`RegentIdentity.HTTP`).
+  def call(%Plug.Conn{path_info: ["api", "v1", "profile" | _]} = conn, _opts), do: conn
 
   def call(%Plug.Conn{method: method} = conn, _opts) when method in @mutations do
     case answered(conn) do
@@ -66,9 +69,6 @@ defmodule TechtreeWeb.MethodSurface do
 
   defp refusal("/api/v1/publications", _methods),
     do: "this address accepts one kind of signed document, and nothing else"
-
-  defp refusal("/api/v1/profile" <> _rest, _methods),
-    do: "use the documented method for this private profile action"
 
   defp refusal(_path, _methods), do: "this address publishes and does not accept anything"
 end

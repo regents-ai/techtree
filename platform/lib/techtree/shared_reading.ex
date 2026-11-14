@@ -71,16 +71,16 @@ defmodule Techtree.SharedReading do
   # bytes: the largest reading, measured as `:erlang.external_size/1`.
   # within: the seconds inside which a working producer reads every key again.
   @kinds %{
-    # Ten rows of about 3.6 KB at most (a name, a 2.3 KB square pattern and a
-    # picture address) and 8 bytes for each account with points: 10,000 such
-    # accounts take about 116 KB (ash-template's docs/points-foundation.md).
+    # Ten rows, however many accounts have points: with a 1 KB name, a 2.3 KB
+    # square pattern, a 1 KB picture address and an ENS name each, ten rows
+    # measure about 48 KB (ash-template's docs/points-foundation.md).
     points_board: %{
       audience:
         "signed-in people and paired agents, the readers the Points page and the agent's " <>
-          "Points answer admit; each gets the rows without account ids and their own place, " <>
-          "never the list of totals (Techtree.Points.Board)",
+          "Points answer admit; each gets the rows without account ids " <>
+          "(Techtree.Points.Board)",
       keys: 1,
-      bytes: 131_072,
+      bytes: 65_536,
       within: 150
     }
   }

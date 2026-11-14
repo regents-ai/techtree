@@ -1,6 +1,6 @@
 defmodule TechtreeWeb.RouterTest do
   @moduledoc """
-  Pins the published route surface and method refusals. Private profile writes
+  Pins the published route surface and method refusals. The person's profile
   and agent pairing are distinct from publication documents and retain
   independent authorization.
   """
@@ -9,7 +9,7 @@ defmodule TechtreeWeb.RouterTest do
 
   @routes TechtreeWeb.Router.__routes__()
 
-  test "writes are limited to publication, agent pairing, an agent's message for the team, sign-in, private profile actions, private Model Climb reports, the browser's visit reports, the Claude connector's sign-in and the hosted MCP server" do
+  test "writes are limited to publication, agent pairing, an agent's message for the team, sign-in, the person's profile, private Model Climb reports, the browser's visit reports, the Claude connector's sign-in and the hosted MCP server" do
     writes =
       @routes
       |> Enum.reject(&(&1.verb == :get))
@@ -17,12 +17,11 @@ defmodule TechtreeWeb.RouterTest do
 
     assert Enum.sort(writes) == [
              "* /api/agents/v1",
+             "* /api/v1/profile",
              "* /mcp",
              "delete /auth/privy/session",
-             "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
              "post /api/v1/messages/:topic",
-             "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",
              "post /auth/privy/session",
@@ -43,6 +42,7 @@ defmodule TechtreeWeb.RouterTest do
 
     assert paths == [
              "* /api/agents/v1",
+             "* /api/v1/profile",
              "* /mcp",
              "delete /auth/privy/session",
              "get /",
@@ -73,7 +73,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /api/v1/docs",
              "get /api/v1/health",
              "get /api/v1/objects/:digest",
-             "get /api/v1/profile",
              "get /api/v1/publication-keys/:key_id",
              "get /api/v1/publications",
              "get /api/v1/publications/:bundle_digest",
@@ -131,10 +130,8 @@ defmodule TechtreeWeb.RouterTest do
              "get /wallet-bench/:id/results.json",
              "get /wallet-bench/:id/results.zip",
              "get /watchdog",
-             "patch /api/v1/profile",
              "post /api/model-climb/v1/reports",
              "post /api/v1/messages/:topic",
-             "post /api/v1/profile/sync",
              "post /api/v1/publications",
              "post /auth/privy/failure",
              "post /auth/privy/session",

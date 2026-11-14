@@ -15,12 +15,14 @@ defmodule TechtreeWeb.OpenAPITest do
     paths = PublicDocuments.openapi()["paths"]
 
     routes =
-      for %{verb: verb, path: path} <- TechtreeWeb.Router.__routes__(),
+      for %{verb: verb, path: path, plug: plug} <- TechtreeWeb.Router.__routes__(),
+          plug != RegentIdentity.HTTP,
           path == "/healthz" or
             String.starts_with?(path, ["/api/v1/", "/api/model-climb/v1/"]),
           do: {Regex.replace(~r/:(\w+)/, path, "{\\1}"), Atom.to_string(verb)}
 
-    # The agent requests are one mount, answering three requests.
+    # The agent requests are one mount, answering three requests, and the
+    # person's profile is another, answering two.
     routes =
       routes ++
         for %{plug: RegentAgents.HTTP} <- TechtreeWeb.Router.__routes__(),
@@ -29,6 +31,12 @@ defmodule TechtreeWeb.OpenAPITest do
               {"/api/agents/v1/me", "get"},
               {"/api/agents/v1/whoami", "get"}
             ],
+            do: request
+
+    routes =
+      routes ++
+        for %{plug: RegentIdentity.HTTP} <- TechtreeWeb.Router.__routes__(),
+            request <- [{"/api/v1/profile", "get"}, {"/api/v1/profile", "patch"}],
             do: request
 
     for {path, verb} <- routes do

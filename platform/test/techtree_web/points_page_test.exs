@@ -24,7 +24,7 @@ defmodule TechtreeWeb.PointsPageTest do
     previous =
       Map.new([:starts_at, :approved_rules], &{&1, Application.get_env(:regent_points, &1)})
 
-    Application.put_env(:regent_points, :starts_at, ~U[2020-01-01 00:00:00Z])
+    Application.put_env(:regent_points, :starts_at, DateTime.add(DateTime.utc_now(), -1, :day))
     Application.put_env(:regent_points, :approved_rules, ~w(account.activated social.x))
 
     on_exit(fn ->

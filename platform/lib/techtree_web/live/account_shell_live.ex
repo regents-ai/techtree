@@ -112,6 +112,18 @@ defmodule TechtreeWeb.AccountShellLive do
      |> read_verified_connections()}
   end
 
+  # The Account page saved the person's Public Display Name in their shared
+  # profile. Every event reads the account again first (`TechtreeWeb.Live.Session`),
+  # so this page already shows the new name; the account's topic tells its other
+  # live pages, the account menu beside this one among them, to read it again too.
+  def handle_event("public_name_saved", _params, socket) do
+    with %{id: id} <- current_account(socket.assigns.access_context) do
+      TechtreeWeb.Endpoint.broadcast(Accounts.HumanAccount.topic(id), "public_name_saved", %{})
+    end
+
+    {:noreply, socket}
+  end
+
   @impl true
   def handle_async({Read, _name, _generation} = name, result, socket) do
     {:noreply, socket |> Read.settle(name, result) |> report_connection_outcome()}

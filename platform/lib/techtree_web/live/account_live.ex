@@ -1,7 +1,8 @@
 defmodule TechtreeWeb.AccountLive do
   @moduledoc """
   The signed-in person's Account, one tab each: Account (their profile, in the
-  layout every Regent site shares, `Regent.Account.layout`),
+  layout every Regent site shares, `Regent.Account.layout`, whose Public Display
+  Name the page saves to their shared profile with its own sign-in),
   Agents (the agents they paired, whose Pair New Agent opens the pairing window),
   Wallets (the wallets their sign-in verified) and Connections (the accounts they
   have connected). Points has its own tab (`TechtreeWeb.PointsLive`).
@@ -44,15 +45,14 @@ defmodule TechtreeWeb.AccountLive do
           </Regent.Account.identity>
         </:identity>
         <:profile>
-          <section class="account-panel account-details" aria-labelledby="account-details-title">
-            <h2 id="account-details-title">Profile</h2>
-            <dl>
-              <div>
-                <dt>Display name</dt>
-                <dd>{@account.display_name || "Not set"}</dd>
-              </div>
-            </dl>
-          </section>
+          <%!-- The name is saved from the browser with the page's session and forms token. --%>
+          <div id="account-profile" phx-hook="PublicName" phx-update="ignore">
+            <Regent.Profile.panel
+              id="account-public-name"
+              class="account-panel"
+              display_name={@account.display_name}
+            />
+          </div>
         </:profile>
       </Regent.Account.layout>
     </.settings_page>

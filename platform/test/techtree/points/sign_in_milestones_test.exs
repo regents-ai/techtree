@@ -18,7 +18,7 @@ defmodule Techtree.Points.SignInMilestonesTest do
     owner = Ecto.Adapters.SQL.Sandbox.start_owner!(Repo, shared: true)
     starts_at = Application.get_env(:regent_points, :starts_at)
     rules = Application.get_env(:regent_points, :approved_rules)
-    Application.put_env(:regent_points, :starts_at, ~U[2020-01-01 00:00:00Z])
+    Application.put_env(:regent_points, :starts_at, DateTime.add(DateTime.utc_now(), -1, :day))
     Application.put_env(:regent_points, :approved_rules, @rules)
 
     on_exit(fn ->

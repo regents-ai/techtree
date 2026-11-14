@@ -1,5 +1,27 @@
 # Changelog
 
+## Website (2026-11-14)
+
+### Added
+
+- **Account.** The Account tab has your Public Display Name. Type a name and
+  press Save: it is kept, and your name in the header changes at once. A name
+  that can't be used is refused beside Save. It is the one name people see for
+  you on every Regent site.
+- A paired agent reads its person's profile at `GET /api/v1/profile` and, when
+  the person asks, changes their public name with `PATCH /api/v1/profile`,
+  signing each request with its own key.
+
+### Changed
+
+- **Profile.** Your profile is set up when you sign in. `GET` and
+  `PATCH /api/v1/profile` answer the person signed in on this site, or an agent
+  they paired; they no longer take Privy tokens, and `POST /api/v1/profile/sync`
+  is gone. The API description is version 8.0.
+- **Agents.** The days an agent works on Chainagent now show in its activity on
+  the Agents page, and count when the account menu picks your three most
+  recently active agents.
+
 ## Repository (2026-11-13)
 
 ### Changed

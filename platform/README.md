@@ -137,9 +137,8 @@ GET /api/v1/publications        the run log, newest first
 GET /api/v1/publications/:digest  one published run
 GET /api/v1/publications/:digest/bundle  what was submitted, exact bytes
 GET /api/v1/publication-keys/:key_id  the public half of this site's own key
-GET /api/v1/profile             the owner's shared profile
-PATCH /api/v1/profile           the owner updates the shared profile
-POST /api/v1/profile/sync       the owner re-reads their shared profile
+GET /api/v1/profile             the person's shared profile
+PATCH /api/v1/profile           the person changes their public name or selected wallet
 
 POST /api/v1/publications       a signed publication, or a signed withdrawal
 POST /api/v1/messages/:topic    a signed agent leaves the team a private message
@@ -153,8 +152,9 @@ two are told apart by a member each document's own signature covers.
 a message about one offer (`watchdog` today), kept private and read only by the
 team at `/admin/messages`; a signed-in person leaves the same message from the
 offer's page. The profile
-routes are owner-only writes on the shared profile, authenticated by the
-Regents identity session; they grant no publication-key authority. There is no
+answers only its owner: the person signed in on this site, with the session's
+forms token for a change, or an agent the person paired. A person's profile is
+made when they sign in. It grants no publication-key authority. There is no
 route that uploads a file or ranks anything.
 
 Caching follows how immutable each address is. A content-addressed object may be

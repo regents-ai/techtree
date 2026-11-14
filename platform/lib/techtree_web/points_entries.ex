@@ -6,7 +6,7 @@ defmodule TechtreeWeb.PointsEntries do
   entry and place.
   """
 
-  alias RegentPoints.{Amount, Leaderboard, Rules}
+  alias RegentPoints.{Amount, Rules}
 
   @doc "What became of an entry: counted, cut to nothing by a daily limit, or a correction."
   def status(%{reversal_of_entry_id: id}) when not is_nil(id), do: :correction
@@ -52,15 +52,16 @@ defmodule TechtreeWeb.PointsEntries do
 
   @doc """
   The shared board for one reader: `%{rows, you, rank}`. `reader` is the reader's
-  account id and `total` their own total from their summary, or `nil` while it is
-  not read. `you` is the reader's row when they sit below the listed rows; `rank`
-  is their place wherever they sit. The rows' account ids and the list of every
-  total stay here: neither reaches a page or an agent. A row's `name` is `nil` when
-  the person shows by their `wallet`, under its `ens_name` when it has one. A row's
-  `line` is its position in the list: names and places repeat, lines do not.
+  account id and `summary` their own summary (`RegentPoints.summary/1`), or `nil`
+  while it is not read. `you` is the reader's row when they sit below the listed
+  rows; `rank` is their place wherever they sit, the summary's `place`. The rows'
+  account ids stay here: they never reach a page or an agent. A row's `name` is
+  `nil` when the person shows by their `wallet`, under its `ens_name` when it has
+  one. A row's `line` is its position in the list: names and places repeat, lines
+  do not.
   """
-  def board(%{top: top, totals: totals}, reader, total) do
-    rank = Leaderboard.place(totals, total)
+  def board(%{top: top}, reader, summary) do
+    rank = summary && summary.place
     listed? = Enum.any?(top, &(&1.account_id == reader))
 
     %{
@@ -80,14 +81,14 @@ defmodule TechtreeWeb.PointsEntries do
             you: row.account_id == reader
           }
         end),
-      you: if(rank && !listed?, do: %{rank: rank, points: Amount.format(total)}),
+      you: if(rank && !listed?, do: %{rank: rank, points: Amount.format(summary.balance_micro)}),
       rank: rank
     }
   end
 
   @doc "The agent's Points answer: the same figures the Points page shows."
   def answer(summary, board, reader, open?) do
-    board = board(board, reader, summary.balance_micro)
+    board = board(board, reader, summary)
 
     %{
       points: Amount.format(summary.balance_micro),
