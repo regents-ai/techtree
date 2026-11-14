@@ -11,8 +11,9 @@ defmodule TechtreeWeb.ServiceLive do
   options (a one-off review and monthly monitoring of sites a team proves it
   owns) and the rules monitoring keeps.
 
-  Every page ends on booking a call (`TechtreeWeb.Components.BookCall`) or
-  writing to us. Security also has the Agent Message button
+  Every page ends on Contact: booking a call (`TechtreeWeb.Components.BookCall`),
+  an email, and the enquiry form with the page's service already chosen
+  (`TechtreeWeb.Components.Enquiry`). Security also has the Agent Message button
   (`TechtreeWeb.Components.AgentMessage`, topic `watchdog`): its window gives
   an agent three ways to leave the team a private message, and a signed-in
   person a form for one. The window's form acts for the signed-in person, so
@@ -27,7 +28,7 @@ defmodule TechtreeWeb.ServiceLive do
 
   import TechtreeWeb.Components.Marketing, only: [field: 1, opening: 1, price: 1]
 
-  alias TechtreeWeb.Components.{AgentMessage, BookCall}
+  alias TechtreeWeb.Components.{AgentMessage, BookCall, Enquiry}
   alias TechtreeWeb.Services
 
   on_mount {TechtreeWeb.Live.Session, :load_visitor}
@@ -211,7 +212,7 @@ defmodule TechtreeWeb.ServiceLive do
         </ul>
       </section>
 
-      <.contact service={@service} mailto={@mailto}>
+      <.contact service={@service} mailto={@mailto} client_key={@client_key}>
         <AgentMessage.button id="security-message-button" dialog="security-message" />
       </.contact>
       <AgentMessage.dialog
@@ -353,7 +354,7 @@ defmodule TechtreeWeb.ServiceLive do
         </ul>
       </section>
 
-      <.contact service={@service} mailto={@mailto} />
+      <.contact service={@service} mailto={@mailto} client_key={@client_key} />
     </Layouts.page>
     """
   end
@@ -395,11 +396,14 @@ defmodule TechtreeWeb.ServiceLive do
 
   attr :service, :map, required: true
   attr :mailto, :string, required: true
+  attr :client_key, :string, required: true
   slot :inner_block
 
+  # The call, the email and the enquiry form side by side, the form under them
+  # on a narrow screen.
   defp contact(assigns) do
     ~H"""
-    <section id="contact" class="mk-band mk-dark" aria-labelledby="contact-title">
+    <section id="contact" class="mk-band mk-dark mk-contact" aria-labelledby="contact-title">
       <.field id="contact-field" scene="glow" class="mk-band__field" />
       <div class="mk-band__copy">
         <p class="mk-eyebrow">Start</p>
@@ -411,6 +415,7 @@ defmodule TechtreeWeb.ServiceLive do
           {render_slot(@inner_block)}
         </div>
       </div>
+      <.live_component module={Enquiry} id="enquiry" service={@service.id} client_key={@client_key} />
     </section>
     """
   end

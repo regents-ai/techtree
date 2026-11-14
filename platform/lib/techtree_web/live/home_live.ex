@@ -6,12 +6,14 @@ defmodule TechtreeWeb.HomeLive do
   (`Techtree.Train.Comparisons`), labelled for what it is, with its figures,
   its page and how to check it; how a project runs, in six steps; the
   open-source projects we build on, under each maker's logo or name, drawn
-  from the services' tools so the two never differ; and a last Book Call.
+  from the services' tools so the two never differ; and Contact: a last Book
+  Call, an email and the enquiry form (`TechtreeWeb.Components.Enquiry`), whose
+  allowance counts the page's `client_key`.
 
-  The page reads no database. The moving parts are the hooks in
-  `assets/js/marketing`; every one of them starts from the page as the server
-  drew it, which is whole and still. Its Markdown (`markdown/0`) is built from
-  the same words and data, so the two never say different things.
+  The page reads no database; only a sent enquiry writes. The moving parts are
+  the hooks in `assets/js/marketing`; every one of them starts from the page as
+  the server drew it, which is whole and still. Its Markdown (`markdown/0`) is
+  built from the same words and data, so the two never say different things.
   """
 
   use TechtreeWeb, :live_view
@@ -19,7 +21,7 @@ defmodule TechtreeWeb.HomeLive do
   import TechtreeWeb.Components.Marketing, only: [field: 1, price: 1]
 
   alias Techtree.Train.Comparisons
-  alias TechtreeWeb.Components.BookCall
+  alias TechtreeWeb.Components.{BookCall, Enquiry}
   alias TechtreeWeb.Services
   alias TechtreeWeb.TrainCopy, as: Copy
 
@@ -45,10 +47,11 @@ defmodule TechtreeWeb.HomeLive do
   @mailto "mailto:build@regents.sh"
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(_params, %{"client_key" => client_key}, socket) do
     {:ok,
      assign(socket,
        page_title: "Better agents for your business",
+       client_key: client_key,
        title: @title,
        promise: @promise,
        services_line: @services_line,
@@ -273,6 +276,7 @@ defmodule TechtreeWeb.HomeLive do
             <a class="rg-button rg-button--secondary" href={@mailto}>Email us</a>
           </div>
         </div>
+        <.live_component module={Enquiry} id="enquiry" service={nil} client_key={@client_key} />
       </section>
     </Layouts.page>
     """

@@ -133,11 +133,11 @@ defmodule TechtreeWeb.PagesTest do
       end
     end
 
-    test "no page offers a form or an upload, and the header's Sign in is its one account control",
+    test "no page offers a form or an upload but the home page's enquiry form, and the header's Sign in is its one account control",
          %{conn: conn} do
       for page <- @pages do
         {:ok, _live, html} = live(conn, page)
-        markup = html |> without_confirm_window() |> String.downcase()
+        markup = html |> without_confirm_window() |> without_enquiry(page) |> String.downcase()
 
         refute markup =~ "<form"
         refute markup =~ "<input"
@@ -284,6 +284,15 @@ defmodule TechtreeWeb.PagesTest do
     {:ok, _live, html} = live(conn, path)
     html
   end
+
+  # The home page without its one form, the enquiry in its Contact section
+  # (`TechtreeWeb.Components.Enquiry`); every other page has none to take away.
+  defp without_enquiry(html, "/") do
+    [enquiry] = Regex.run(~r/<section [^>]*id="enquiry".*?<\/section>/s, html)
+    String.replace(html, enquiry, "")
+  end
+
+  defp without_enquiry(html, _page), do: html
 
   # The names of protocol documents and of the machinery that produces them.
   # Each is the right word in a specification and the wrong word on a page

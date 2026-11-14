@@ -33,7 +33,7 @@ defmodule TechtreeWeb.HomeLiveTest do
 
     assert hrefs(document, "#hero .rg-button") == [@booking, "#services"]
     assert hrefs(document, "#hero .rg-button--primary[target=_blank]") == [@booking]
-    assert hrefs(document, "#begin .rg-button") == [@booking, "mailto:build@regents.sh"]
+    assert hrefs(document, "#begin a.rg-button") == [@booking, "mailto:build@regents.sh"]
   end
 
   test "each service card leads to its page and carries its price level", %{conn: conn} do

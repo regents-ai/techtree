@@ -276,6 +276,34 @@
 .mk-closing__copy { display: grid; justify-items: center; }
 .mk-closing .mk-closing__copy h2 { color: var(--color-accent); font-family: var(--font-family-mono); font-size: .8125rem; line-height: 1.4; letter-spacing: .22em; text-transform: uppercase; }
 .mk-closing__line { margin-top: var(--space-2); font-family: var(--font-family-title); font-size: clamp(2.25rem, 6vw, 5rem); line-height: 1; letter-spacing: -.045em; text-wrap: balance; }
+.mk-closing > .mk-enquiry { max-width: 40rem; margin: var(--space-6) auto 0; text-align: start; }
+
+/* A service's Contact band: the call and the email beside the enquiry form, the
+   form under them on a narrower screen. */
+.mk-contact { display: grid; gap: var(--space-5); align-items: start; }
+@media (min-width: 64rem) {
+  .mk-contact { grid-template-columns: minmax(0, 1fr) minmax(0, 30rem); gap: var(--space-6); }
+}
+
+/* The enquiry form (`TechtreeWeb.Components.Enquiry`): a card on the dark band,
+   one edge firmer and one fill lighter than the band, its fields sunk back to the
+   band's own ground. Two fields to a row where there is room. */
+.mk-enquiry {
+  --rg-local-fill: var(--color-bg);
+  display: grid; gap: var(--space-3); padding: var(--space-4);
+  border: 1px solid var(--hairline-strong); background: var(--color-surface);
+}
+.mk-enquiry .mk-enquiry__title { font-family: var(--font-family-ui); font-size: 1.0625rem; line-height: 1.3; }
+.mk-enquiry__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1) var(--space-3); align-items: start; }
+.mk-enquiry__wide { grid-column: 1 / -1; }
+.mk-enquiry__fields > .rg-notice { margin-bottom: var(--space-2); }
+.mk-enquiry__fields textarea { resize: vertical; }
+.mk-enquiry__send { grid-column: 1 / -1; justify-self: start; }
+.mk-enquiry__sent { display: grid; gap: var(--space-1); animation: mk-enquiry-arrive var(--duration-slow) var(--ease-out); }
+.mk-enquiry__sent:focus { outline: none; }
+.mk-enquiry__done { display: flex; align-items: center; gap: var(--space-1); color: var(--color-success); font-family: var(--font-family-title); font-size: 1.5rem; line-height: 1.2; letter-spacing: -.02em; }
+.mk-enquiry__more { color: var(--color-fg-muted); font-size: .9375rem; }
+@keyframes mk-enquiry-arrive { from { opacity: 0; transform: translateY(4px); } }
 
 @media (max-width: 71.99rem) {
   .mk-services { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(9rem, auto) auto auto auto); }
@@ -291,6 +319,8 @@
 @media (max-width: 36rem) {
   .mk-tile { min-height: 0; }
   .mk-facts > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .mk-enquiry { padding: var(--space-3) var(--space-2); }
+  .mk-enquiry__fields { grid-template-columns: minmax(0, 1fr); }
 }
 /* The hover looks come only with a mouse: a finger's tap would leave them on.
    The hover rules above only keep the page's link underline off the cards. */
@@ -311,11 +341,11 @@
 }
 @media (forced-colors: active) {
   .mk-field { display: none; }
-  .mk-service, .mk-news__card { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .mk-service, .mk-news__card, .mk-enquiry { border-color: CanvasText; background: Canvas; color: CanvasText; }
   .mk-price__mark { forced-color-adjust: none; border-color: CanvasText; }
   .mk-price__mark--on { background: CanvasText; }
 }
 @media print {
-  .mk-field { display: none; }
+  .mk-field, .mk-enquiry { display: none; }
   .mk-hero, .mk-band, .mk-closing { background: none; color: inherit; }
 }
