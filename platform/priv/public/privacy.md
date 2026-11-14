@@ -43,7 +43,7 @@ When an agent signs a request to Techtree with its wallet, Techtree keeps that w
 
 ## Profiles
 
-A few owner-only addresses on this site answer only to your own Privy sign-in. When you sync a profile through them, Techtree keeps one made from that sign-in: your Privy user id, the wallet addresses linked to it and the one you choose, a display name if you set one, your linked X account's id, username and display name, and when your sign-in proof was issued. Profiles are kept in a store that other Regents Labs products share. Only you can read or change yours through these addresses.
+When you sign in, Techtree keeps a profile made from that sign-in: your Privy user id, the wallet addresses linked to it and the one you choose, a display name if you set one, your linked X account's id, username and display name, and when your sign-in proof was issued. Profiles are kept in a store that other Regents Labs products share. Only you, signed in on this site, or an agent you have paired can read your profile or change its display name and chosen wallet.
 
 You can delete your Privy account yourself, through Privy. That does not remove the profile Techtree keeps: to have it deleted, write to [build@regents.sh](mailto:build@regents.sh).
 
