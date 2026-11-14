@@ -313,7 +313,6 @@ defmodule TechtreeWeb.Router do
     get "/agents/:agent/skill.md", PublicPagesController, :agent_skill_guide
     get "/wallet-bench.md", WalletBenchController, :markdown
     get "/train/:slug/report.json", TrainController, :report
-    get "/train/:slug/traces.jsonl", TrainController, :traces
     get "/llms.txt", PublicPagesController, :llms
     get "/capabilities.json", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security

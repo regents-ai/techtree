@@ -33,7 +33,7 @@ defmodule TechtreeWeb.PublicMarkdownTest do
            "/climbs/hello-world-climb",
            "/examples/tdd",
            "/wallet-bench",
-           "/train/nemotron-nano-skill"
+           "/train/dependabot-nemotron-3-nano-4b"
          ] ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1)) ++
            TechtreeWeb.AgentGuides.paths()

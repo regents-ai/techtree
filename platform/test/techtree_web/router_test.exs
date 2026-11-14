@@ -126,7 +126,6 @@ defmodule TechtreeWeb.RouterTest do
              "get /train.json",
              "get /train/:slug",
              "get /train/:slug/report.json",
-             "get /train/:slug/traces.jsonl",
              "get /verify",
              "get /wallet-bench",
              "get /wallet-bench.json",

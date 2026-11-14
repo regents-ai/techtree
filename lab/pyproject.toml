@@ -1,13 +1,12 @@
 [project]
 name = "techtree-lab"
 version = "0.1.0"
-description = "Techtree's lab: the payment-terms environment, its runner, and the Train comparison reports"
+description = "Techtree's lab: the payment-terms environment, its runner, and the hosted training config"
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
 authors = [{ name = "Techtree" }]
 dependencies = [
   "payment-terms",
-  "rfc8785==0.1.4",
   "rich>=15.0.0,<16",
   "tomli-w>=1.2.0,<2",
   "verifiers==0.4.1",

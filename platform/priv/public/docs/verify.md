@@ -37,13 +37,13 @@ Repeating a Result needs another participant to run the same Climb and publish t
 
 ## Skill comparisons
 
-A Skill comparison, like the demonstration on the [home page](/), is a report Techtree ran itself: one model on the same held-out tasks, once without the Skill and once with it, with the same settings. It is not signed. Its page offers the report and the traces, every task's exchange with the model, to download, and names each by its SHA-256 digest.
+A Skill comparison, like the demonstration on the [home page](/), is a report Techtree ran itself: a public Skill as published (the original) against an improved version of it, on final-test cases kept apart before anything ran, each case asked the same number of times of each version by the same agent with the same settings. It is not signed. Its page offers the report to download.
 
-- The traces' digest is the SHA-256 of the file's exact bytes: `shasum -a 256 <name>.traces.jsonl` prints the hex after `sha256:`.
-- The report's digest is the SHA-256 of the RFC 8785 canonical JSON of its `schema_version`, `kind` and `spec`.
-- Every task's two scores are in the report, so the wins, ties, losses and solved counts on the page can be counted again from it.
+- The report lists every final-test case with how many of its attempts each version solved, so the totals, the difference and the cases that did better, the same and worse on the page can be counted again from it.
+- `shasum -a 256 <name>.json` prints the digest the download sends as its entity tag.
+- The original Skill is public, at the addresses the page links. The cases and the improved Skill are not published.
 
-Matching digests show that the files are the ones the page describes. They don't show that anyone else repeated the run.
+A matching count shows that the page draws what the report says. It doesn't show that anyone else repeated the run.
 
 ## Revision
 

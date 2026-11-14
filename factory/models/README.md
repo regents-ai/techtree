@@ -63,21 +63,8 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 
 ## Run it
 
-[`lab/`](../../lab/README.md) runs both halves of a small example from the repository
-root, with [uv](https://docs.astral.sh/uv/).
-
-```sh
-uv run --project lab techtree-lab compare
-```
-
-It runs NVIDIA Nemotron 3 Nano 4B in Ollama (pull `nemotron-3-nano:4b` into Ollama
-first) on the 64 held-out payment-terms tasks twice, without and then with the Skill,
-with the same settings: temperature 0, at most 512 tokens, no thinking. It prints
-each side's mean score and solved count, the wins, ties and losses, and the 95%
-interval of the difference. It writes the report and its traces to
-`platform/priv/train/`, replacing the published pair; pass `--out FOLDER` to write
-them somewhere else. This is the run behind the
-[published example](../../README.md#results): a Skill comparison, not a training run.
+[`lab/`](../../lab/README.md) writes the settings file for a small training run from
+the repository root, with [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv run --project lab techtree-lab train-config

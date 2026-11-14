@@ -1,0 +1,241 @@
+{
+  "schema_version": "techtree.train.v1alpha2",
+  "kind": "Comparison",
+  "date": "2026-11-14",
+  "skill": {
+    "name": "Dependabot",
+    "maker": "GitHub",
+    "collection": "awesome-copilot",
+    "license": "MIT",
+    "summary": "A guide for setting up and managing Dependabot, GitHub’s tool that keeps a repository’s dependencies up to date.",
+    "github_url": "https://github.com/github/awesome-copilot/tree/9fd4597c60d7ca3c290fe8d142797e96f1d306f8/skills/dependabot",
+    "skills_sh_url": "https://skills.sh/github/awesome-copilot/dependabot"
+  },
+  "task": "Given a repository’s file list, reply with the Dependabot package ecosystems it needs, as an alphabetical, comma-separated list and nothing else; an answer counts only when it matches exactly.",
+  "agent": {
+    "maker": "NVIDIA",
+    "name": "Nemotron 3 Nano 4B",
+    "model": "nemotron-3-nano:4b"
+  },
+  "scorer": {
+    "maker": "Prime Intellect",
+    "name": "Verifiers",
+    "version": "0.4.1"
+  },
+  "improver": {
+    "maker": "Microsoft",
+    "name": "SkillOpt"
+  },
+  "proposer": {
+    "maker": "Anthropic",
+    "name": "Claude Opus 5.5"
+  },
+  "repeats": 3,
+  "cases": {
+    "working": 25,
+    "choosing": 21,
+    "final": 38
+  },
+  "start": {
+    "no_skill": 7,
+    "original": 21
+  },
+  "choosing": {
+    "original": 22,
+    "rewrite": 36,
+    "improved": 46
+  },
+  "final": [
+    {
+      "case": "android-app-gradle",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "blog-theme-submodule",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "dart-package-ci",
+      "original": 0,
+      "improved": 1
+    },
+    {
+      "case": "django-compose",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "django-pipenv-tests",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "dotfiles-submodules",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "elixir-library",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "fastapi-uv-container",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "flask-api-container",
+      "original": 2,
+      "improved": 2
+    },
+    {
+      "case": "flutter-app",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "go-library-hooks",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "go-vendored-submodule",
+      "original": 0,
+      "improved": 1
+    },
+    {
+      "case": "ios-app-fastlane",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "java-library-maven",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "java-react",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "jekyll-site",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "laravel-app",
+      "original": 1,
+      "improved": 2
+    },
+    {
+      "case": "local-services-compose",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "maven-service-build",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "node-devcontainer",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "poetry-service-ci",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "rails-monolith",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "rails-react-ci",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "react-spa-container",
+      "original": 2,
+      "improved": 2
+    },
+    {
+      "case": "ruby-gem-hooks",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "rust-cli-release",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "rust-devcontainer",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "rust-service-container",
+      "original": 3,
+      "improved": 2
+    },
+    {
+      "case": "rust-wasm-site",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "scraper-pipenv",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "spring-maven-container",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "static-site-image",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "svelte-pnpm-app",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "swift-server-container",
+      "original": 1,
+      "improved": 2
+    },
+    {
+      "case": "uv-web-app",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "uv-worker-container",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "vue-yarn-workspace",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "wordpress-plugin",
+      "original": 3,
+      "improved": 3
+    }
+  ],
+  "p_below": 0.001
+}

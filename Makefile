@@ -66,7 +66,7 @@ formal-proof:
 check-contracts:
 	cd contracts && forge fmt --check && forge build --offline && forge test --offline
 
-# The lab: the payment-terms environment, its runner and the Train report checks.
+# The lab: the payment-terms environment, its runner and the training settings file.
 .PHONY: check-lab
 check-lab:
 	$(MAKE) -C lab check

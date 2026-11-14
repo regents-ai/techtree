@@ -1,14 +1,12 @@
 defmodule TechtreeWeb.TrainLive.Show do
   @moduledoc """
-  One comparison, reached from Results and the home page's demonstration: the two
-  arms' mean rewards and their difference with what that difference shows, the
-  outcome with the paired wins, ties and losses and the 95% interval, each arm
-  side by side, every task's result, the exact settings, environment and model,
-  and the digests with the report and its traces to download, and how to check
-  them.
+  One comparison, reached from Results and the home page's demonstration: the
+  Skill with its links, the task, the original and improved Skill's attempts
+  solved on the final test as two bars, the method with the choosing step's
+  figures, every final-test case, the tools, and the report to download.
 
-  The comparison is one committed report (`Techtree.Train.Comparisons`); a
-  slug the folder has no report for, or one that was refused, is a 404.
+  The comparison is one committed file (`Techtree.Train.Comparisons`); a slug
+  the folder has no file for is a 404.
   """
 
   use TechtreeWeb, :live_view
@@ -16,13 +14,11 @@ defmodule TechtreeWeb.TrainLive.Show do
   alias Techtree.Train.Comparisons
   alias TechtreeWeb.TrainCopy, as: Copy
 
-  import TechtreeWeb.TrainLive.Parts
-
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
     case Comparisons.fetch(slug) do
       {:ok, comparison} ->
-        {:ok, assign(socket, page_title: comparison.title, comparison: comparison)}
+        {:ok, assign(socket, page_title: comparison.skill.name, comparison: comparison)}
 
       :error ->
         raise TechtreeWeb.NotFoundError, "no comparison has that name"
@@ -37,194 +33,124 @@ defmodule TechtreeWeb.TrainLive.Show do
         <p class="back-link"><.link navigate={~p"/results"}>← Results</.link></p>
 
         <header class="page-heading">
-          <p class="eyebrow">
-            {Copy.change(@comparison.change)} · {Copy.date(@comparison.operational.finished_at)}
-          </p>
-          <h1>{@comparison.title}</h1>
-          <p class="lede">
-            {@comparison.model.family} on {@comparison.environment.task_count} held-out tasks of {@comparison.environment.id}, with the same settings on both sides.
+          <p class="eyebrow">Demonstration · {Copy.date(@comparison.date)}</p>
+          <h1>{@comparison.skill.name}</h1>
+          <p class="lede">{@comparison.skill.summary}</p>
+          <p class="train-provenance">{Copy.provenance(@comparison)}</p>
+          <p class="mk-links">
+            <a href={@comparison.skill.github_url} class="text-link" rel="noopener">
+              GitHub <span aria-hidden="true">↗</span>
+            </a>
+            <a href={@comparison.skill.skills_sh_url} class="text-link" rel="noopener">
+              skills.sh <span aria-hidden="true">↗</span>
+            </a>
           </p>
         </header>
 
+        <section id="task" class="section" aria-labelledby="task-title">
+          <h2 id="task-title">Task</h2>
+          <p class="train-reading">{@comparison.task}</p>
+        </section>
+
         <section id="result" class="train-lead" aria-labelledby="result-title">
-          <div class="train-lead__head">
-            <h2 id="result-title">Result</h2>
-            <.outcome outcome={@comparison.outcome} />
+          <h2 id="result-title">Result</h2>
+          <p class="train-note">{Copy.final_test(@comparison)}</p>
+          <div class="train-bars">
+            <.bar id="result-original" label="Original" side={@comparison.final.original} />
+            <.bar
+              id="result-improved"
+              label="Improved"
+              side={@comparison.final.improved}
+              improved
+            />
           </div>
-          <.figures comparison={@comparison} />
-          <p class="train-reading">{Copy.reading(@comparison)}</p>
-          <dl class="train-paired">
+          <dl class="train-facts">
             <div>
-              <dt>Wins</dt>
-              <dd>{@comparison.paired.wins}</dd>
+              <dt>Difference</dt>
+              <dd>{Copy.difference(@comparison)}</dd>
             </div>
             <div>
-              <dt>Ties</dt>
-              <dd>{@comparison.paired.ties}</dd>
+              <dt>Cases</dt>
+              <dd>{Copy.changes(@comparison)}</dd>
             </div>
             <div>
-              <dt>Losses</dt>
-              <dd>{@comparison.paired.losses}</dd>
-            </div>
-            <div>
-              <dt>Interval</dt>
-              <dd>{Copy.interval(@comparison.paired.ci95)}</dd>
+              <dt>Chance</dt>
+              <dd>{Copy.odds(@comparison)}</dd>
             </div>
           </dl>
-          <p class="small quiet">
-            Mean reward per arm. The interval is the 95% range of the difference in points, by {@comparison.paired.method}.
-          </p>
+          <p class="train-note">{Copy.chance(@comparison)}</p>
         </section>
 
-        <section id="arms" class="section" aria-labelledby="arms-title">
-          <h2 id="arms-title">Arms</h2>
-          <div class="train-arms">
-            <Regent.Structure.panel
-              :for={arm <- @comparison.arms}
-              id={"arm-#{arm.name}"}
-              class="train-arm rg-panel__body"
-            >
-              <h3>{Copy.arm_label(@comparison, arm)}</h3>
-              <.definition_list>
-                <:fact term="Arm"><code>{arm.name}</code></:fact>
-                <:fact term="Mean reward">{Copy.percent(arm.mean_reward)}</:fact>
-                <:fact term="Solved">{Copy.solved(arm, @comparison.environment.task_count)}</:fact>
-                <:fact term="Completion tokens">{Copy.number(arm.completion_tokens)}</:fact>
-                <:fact :if={arm.skill_digest} term="Skill">
-                  <.copyable
-                    id={"arm-#{arm.name}-skill"}
-                    value={arm.skill_digest}
-                    label="Copy Skill digest"
-                  />
-                </:fact>
-                <:fact :if={arm.adapter} term="Adapter">
-                  <.copyable
-                    id={"arm-#{arm.name}-adapter"}
-                    value={arm.adapter}
-                    label="Copy adapter name"
-                  />
-                </:fact>
-              </.definition_list>
-            </Regent.Structure.panel>
+        <section id="method" class="section" aria-labelledby="method-title">
+          <h2 id="method-title">Method</h2>
+          <ol class="train-steps">
+            <li :for={{title, words, choices} <- Copy.method(@comparison)}>
+              <h3>{title}</h3>
+              <p>{words}</p>
+              <div
+                :if={choices != []}
+                id="choosing"
+                class="train-bars train-bars--small"
+                role="group"
+                aria-label={title}
+              >
+                <.bar
+                  :for={{name, side} <- choices}
+                  id={"choosing-#{String.downcase(name)}"}
+                  label={name}
+                  side={side}
+                  improved={name == "Improved"}
+                />
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section id="cases" class="section" aria-labelledby="cases-title">
+          <h2 id="cases-title">Cases</h2>
+          <p class="train-reading">{Copy.worse(@comparison)}</p>
+          <div class="train-table" role="region" aria-labelledby="cases-title" tabindex="0">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Case</th>
+                  <th scope="col">Original</th>
+                  <th scope="col">Improved</th>
+                  <th scope="col">Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={item <- @comparison.cases} id={"case-#{item.id}"} data-change={item.change}>
+                  <th scope="row"><bdi>{item.id}</bdi></th>
+                  <td>{Copy.solved(item.original, @comparison.repeats)}</td>
+                  <td>{Copy.solved(item.improved, @comparison.repeats)}</td>
+                  <td>
+                    <span class={"train-change train-change--#{item.change}"}>
+                      {Copy.change(item)}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
-        <section id="tasks" class="section" aria-labelledby="tasks-title">
-          <h2 id="tasks-title">Tasks</h2>
-          <.strip comparison={@comparison} />
-          <p class="train-legend small">
-            <span class="train-legend__item train-legend__item--win">
-              {@comparison.paired.wins} {plural(@comparison.paired.wins, "win", "wins")}
-            </span>
-            <span class="train-legend__item train-legend__item--tie">
-              {@comparison.paired.ties} {plural(@comparison.paired.ties, "tie", "ties")}
-            </span>
-            <span class="train-legend__item train-legend__item--loss">
-              {@comparison.paired.losses} {plural(@comparison.paired.losses, "loss", "losses")}
-            </span>
+        <section id="tools" class="section" aria-labelledby="tools-title">
+          <h2 id="tools-title">Tools</h2>
+          <dl class="train-tools">
+            <div :for={{term, words} <- Copy.tools(@comparison)}>
+              <dt>{term}</dt>
+              <dd>{words}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section id="report" class="section" aria-labelledby="report-title">
+          <h2 id="report-title">Report</h2>
+          <p class="train-reading">
+            The report lists every final-test case with the attempts each version solved, so the
+            figures above can be counted again from it.
           </p>
-          <details id="every-task" class="train-tasks">
-            <summary>Every task</summary>
-            <div class="train-tasks__frame" role="region" aria-label="Every task" tabindex="0">
-              <table class="train-tasks__table">
-                <thead>
-                  <tr>
-                    <th scope="col">Task</th>
-                    <th :for={arm <- @comparison.arms} scope="col">
-                      {Copy.arm_label(@comparison, arm)}
-                    </th>
-                    <th scope="col">Result</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr :for={task <- @comparison.tasks} id={"task-#{task.id}"}>
-                    <th scope="row"><code>{task.id}</code></th>
-                    <td :for={{reward, solved} <- arm_scores(task)}>
-                      {Copy.reward(reward)}<span :if={solved} class="quiet"> · solved</span>
-                    </td>
-                    <td class={"train-tasks__result train-tasks__result--#{task.result}"}>
-                      {Copy.result(task.result)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </details>
-        </section>
-
-        <section id="settings" class="section" aria-labelledby="settings-title">
-          <h2 id="settings-title">Settings</h2>
-          <div class="train-settings">
-            <div>
-              <h3>Sampling</h3>
-              <.definition_list>
-                <:fact term="Temperature">{@comparison.sampling.temperature}</:fact>
-                <:fact term="Max tokens">{Copy.number(@comparison.sampling.max_tokens)}</:fact>
-                <:fact term="Thinking">
-                  {if @comparison.sampling.thinking, do: "On", else: "Off"}
-                </:fact>
-              </.definition_list>
-            </div>
-            <div>
-              <h3>Environment</h3>
-              <.definition_list>
-                <:fact term="Name"><code>{@comparison.environment.id}</code></:fact>
-                <:fact term="Version">{@comparison.environment.version}</:fact>
-                <:fact term="Split">{Copy.split(@comparison.environment.split)}</:fact>
-                <:fact term="Seed">{@comparison.environment.seed}</:fact>
-                <:fact term="Tasks">{@comparison.environment.task_count}</:fact>
-              </.definition_list>
-            </div>
-            <div>
-              <h3>Model</h3>
-              <.definition_list>
-                <:fact term="Family">NVIDIA {@comparison.model.family}</:fact>
-                <:fact term="Name"><code>{@comparison.model.name}</code></:fact>
-                <:fact term="Provider">{@comparison.model.provider}</:fact>
-              </.definition_list>
-            </div>
-            <div>
-              <h3>Run</h3>
-              <.definition_list>
-                <:fact term="Host">{@comparison.operational.host}</:fact>
-                <:fact term="Started">{Copy.time(@comparison.operational.started_at)}</:fact>
-                <:fact term="Length">{Copy.duration(@comparison.operational.duration_seconds)}</:fact>
-                <:fact term="Run cost">${@comparison.operational.cost_usd}</:fact>
-                <:fact term="Verifiers">{@comparison.software.verifiers}</:fact>
-                <:fact term="techtree-lab">{@comparison.software.techtree_lab}</:fact>
-              </.definition_list>
-            </div>
-          </div>
-        </section>
-
-        <section id="evidence" class="section" aria-labelledby="evidence-title">
-          <h2 id="evidence-title">Evidence</h2>
-          <.definition_list>
-            <:fact term="Report">
-              <.copyable id="digest-report" value={@comparison.digest} label="Copy report digest" />
-            </:fact>
-            <:fact term="Traces">
-              <.copyable
-                id="digest-traces"
-                value={@comparison.traces_digest}
-                label="Copy traces digest"
-              />
-            </:fact>
-            <:fact term="Tasks">
-              <.copyable
-                id="digest-tasks"
-                value={@comparison.environment.taskset_digest}
-                label="Copy tasks digest"
-              />
-            </:fact>
-            <:fact term="Weights">
-              <.copyable
-                id="digest-weights"
-                value={@comparison.model.weights_digest}
-                label="Copy weights digest"
-              />
-            </:fact>
-          </.definition_list>
           <div class="train-downloads">
             <a
               class="rg-button rg-button--primary rg-button--no-arrow"
@@ -232,13 +158,6 @@ defmodule TechtreeWeb.TrainLive.Show do
               download={"#{@comparison.slug}.json"}
             >
               <Regent.Icons.icon name="download" /> Report
-            </a>
-            <a
-              class="rg-button rg-button--no-arrow"
-              href={~p"/train/#{@comparison.slug}/traces.jsonl"}
-              download={"#{@comparison.slug}.traces.jsonl"}
-            >
-              <Regent.Icons.icon name="download" /> Traces
             </a>
           </div>
           <p class="mk-links">
@@ -256,21 +175,27 @@ defmodule TechtreeWeb.TrainLive.Show do
   end
 
   attr :id, :string, required: true
-  attr :value, :string, required: true
   attr :label, :string, required: true
+  attr :side, :map, required: true
+  attr :improved, :boolean, default: false
 
-  defp copyable(assigns) do
+  # One version's row: its name, a bar whose fill is the share of attempts
+  # solved, and the figure as text.
+  defp bar(assigns) do
     ~H"""
-    <span class="train-copyable">
-      <.digest value={@value} />
-      <Regent.Primitives.copy_icon id={@id} text={@value} label={@label} />
-    </span>
+    <div id={@id} class={["train-bar", @improved && "train-bar--improved"]}>
+      <span class="train-bar__label">{@label}</span>
+      <span class="train-bar__track" aria-hidden="true">
+        <span
+          class="train-bar__fill"
+          style={"inline-size: #{@side.solved * 100 / @side.attempts}%"}
+        ></span>
+      </span>
+      <span class="train-bar__figure">
+        <span class="train-bar__percent">{Copy.percent(@side)}</span>
+        <span class="train-bar__count">{Copy.count(@side)}</span>
+      </span>
+    </div>
     """
   end
-
-  defp arm_scores(%{rewards: {before, changed}, solved: {before_solved, changed_solved}}),
-    do: [{before, before_solved}, {changed, changed_solved}]
-
-  defp plural(1, one, _many), do: one
-  defp plural(_count, _one, many), do: many
 end

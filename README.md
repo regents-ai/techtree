@@ -106,13 +106,13 @@ This repository, with the public
 [regents-cli](https://github.com/regents-ai/regents-cli) command line it installs,
 runs some of them today:
 
-- Prime Intellect's Verifiers runs every Climb and the [`lab/`](lab/) comparison.
+- Prime Intellect's Verifiers runs every Climb and the [`lab/`](lab/) payment-terms tasks.
 - The Environments Hub supplies the HF Tasksmith Climb's environment, pinned by
   digest.
 - The experimental `regents techtree forge` builder follows Skill2Env's task layout
   and adapts its planning and building steps, pinned to one revision. Using
   Skill2Env's own generator on a project is planned.
-- [`lab/`](lab/) compares NVIDIA Nemotron 3 Nano 4B without and with a Skill, and
+- [`lab/`](lab/) runs NVIDIA Nemotron 3 Nano 4B on the payment-terms tasks, and
   writes a training settings file for Nemotron 3 Nano 30B-A3B in prime-rl's shape.
   No training run starts from this repository.
 - The tasks `forge` builds follow Harbor's task format.
@@ -161,31 +161,44 @@ not a promise of the same gain on your work.
 
 ## Results
 
-On 12 Nov 2026 Techtree ran NVIDIA Nemotron 3 Nano 4B on 64 held-out payment-terms
-tasks, once without a Skill and once with one, with the same settings: temperature 0,
-at most 512 tokens, no thinking. Each task asks for one JSON object, and every field
-is scored exactly. The run used Prime Intellect's Verifiers 0.4.1.
+On 14 Nov 2026 Techtree improved GitHub's public
+[Dependabot Skill](https://github.com/github/awesome-copilot/tree/9fd4597c60d7ca3c290fe8d142797e96f1d306f8/skills/dependabot)
+([skills.sh](https://skills.sh/github/awesome-copilot/dependabot)), from its
+awesome-copilot collection (MIT license), used unchanged as the starting point. It
+is a guide for setting up and managing Dependabot, GitHub's tool that keeps a
+repository's dependencies up to date. This is a demonstration on a public Skill, not
+customer work.
 
-| | Without the Skill | With the Skill |
+The task: given a repository's file list, reply with the Dependabot package
+ecosystems it needs, as an alphabetical, comma-separated list and nothing else; an
+answer counts only when it matches exactly. The agent was NVIDIA's Nemotron 3 Nano 4B
+(`nemotron-3-nano:4b`), run on our own machine and scored through Prime Intellect's
+Verifiers 0.4.1, with the same settings on both sides.
+
+We wrote 84 cases and split them once, before anything ran: 25 to work on the Skill,
+21 to choose between versions and 38 kept apart for one final test. Every version was
+asked each case 3 times. Microsoft's SkillOpt, with Anthropic's Claude Opus 5.5
+proposing the changes, improved the Skill using only the working cases. On the
+choosing cases its revision solved 73% of the attempts (46 of 63), against 57% for a
+single plain rewrite (36 of 63) and 35% for the original (22 of 63), so it was chosen.
+
+| Final test, attempts solved | Original | Improved |
 | --- | --- | --- |
-| Average score (fields right) | 0% | 96% |
-| Tasks fully right | 0 of 64 | 34 of 64 |
+| 38 cases, 3 times each | 35%, 40 of 114 | 81%, 92 of 114 |
 
-The Skill scored higher on all 64 tasks, with a 95% interval of +95 to +97 points.
+The improved Skill solved 52 more attempts: 25 cases did better, 12 the same and 1
+worse (`rust-service-container`, from 3 of 3 to 2 of 3). If the two versions were
+equally good, a difference this large would turn up by chance fewer than 1 time in
+1,000. It does not show a gain on other tasks or other models, or that anyone else
+has repeated the run.
 
-The Skill teaches the answer format these tasks are scored on, and it is the only
-thing that differs between the two sides. The result shows how well a small model
-follows a written Skill. It does not show a smarter model, a gain on other tasks or
-other models, or that anyone else has repeated the run.
-
-- [The comparison's page](https://techtree.sh/train/payment-terms-nemotron-3-nano-4b-skill),
-  with every task, the settings, and the report and traces to download. All
-  published Results are at [techtree.sh/results](https://techtree.sh/results).
-- Check it offline: `shasum -a 256 payment-terms-nemotron-3-nano-4b-skill.traces.jsonl`
-  prints the traces digest the page shows. The report and traces are also in this
-  repository under [`platform/priv/train/`](platform/priv/train/), and
-  [Proof](https://techtree.sh/docs/verify) explains every digest.
-- Run it again on your own computer with [`lab/`](lab/README.md).
+- [The comparison's page](https://techtree.sh/train/dependabot-nemotron-3-nano-4b),
+  with every case, the method, the tools and the report to download. All published
+  Results are at [techtree.sh/results](https://techtree.sh/results).
+- The report is also in this repository under
+  [`platform/priv/train/`](platform/priv/train/), and
+  [Proof](https://techtree.sh/docs/verify) explains how to check it. The cases and
+  the improved Skill are not published.
 
 ## Try it
 
@@ -245,7 +258,7 @@ does not prove.
 | [`factory/`](factory/README.md) | One page per service: its steps, what you receive, the libraries with their status, what runs here, and the limits. |
 | [`plugin/`](plugin/README.md) | The Hermes plugin that runs Techtree from a conversation. |
 | [`cli/`](cli/COMMANDS.md) | The descriptions of every `regents techtree` command. The command line itself is [regents-cli](https://github.com/regents-ai/regents-cli). |
-| [`lab/`](lab/README.md) | The Nemotron comparison and the training settings file. |
+| [`lab/`](lab/README.md) | The payment-terms tasks, their runner and the training settings file. |
 | [`platform/`](platform/README.md) | The site at techtree.sh: install guide, Results, service pages and the changelog. |
 
 More: [`contracts/`](contracts/README.md) (the registry contract),

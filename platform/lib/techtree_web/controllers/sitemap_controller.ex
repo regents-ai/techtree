@@ -50,7 +50,7 @@ defmodule TechtreeWeb.SitemapController do
       Enum.map(standing_results(nil), &{Projection.entry_url(&1, origin), &1.accepted_at}) ++
       Enum.map(
         Comparisons.list(),
-        &{origin <> "/train/" <> &1.slug, &1.operational.finished_at}
+        &{origin <> "/train/" <> &1.slug, DateTime.new!(&1.date, ~T[00:00:00])}
       )
   end
 

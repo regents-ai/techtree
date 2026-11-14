@@ -8,8 +8,6 @@ message, through the taskset's own `system_prompt` setting.
 from __future__ import annotations
 
 import asyncio
-import json
-import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -31,10 +29,6 @@ NO_THINKING: dict[str, Any] = {"reasoning_effort": "none"}
 @dataclass(frozen=True)
 class TaskResult:
     task_id: str
-    messages: list[dict[str, Any]]
-    """The messages sent to the model."""
-    reply: str
-    """The model's reply, as scored."""
     reward: float
     solved: bool
     completion_tokens: int
@@ -136,26 +130,13 @@ async def _run_arm(
 
 
 def _result(trace: vf.Trace) -> TaskResult:
-    *sent, _reply = trace.messages
     fields = trace.rewards["fields"]
     usage = trace.usage
     if fields is None or usage is None:
         raise RunFailed(f"{trace.task.key}: no reward or no token usage was recorded")
     return TaskResult(
         task_id=trace.task.key,
-        messages=[{"role": m.role, "content": m.content} for m in sent],
-        reply=trace.last_reply,
         reward=fields.score,
         solved=trace.metrics["solved"] == 1.0,
         completion_tokens=usage.completion_tokens,
     )
-
-
-def weights_digest(ollama: str, model: str) -> str:
-    """The `sha256:` digest Ollama reports for `model`'s weights."""
-    with urllib.request.urlopen(f"{ollama}/api/tags", timeout=10) as response:
-        models = json.load(response)["models"]
-    digests: list[str] = [entry["digest"] for entry in models if entry["name"] == model]
-    if len(digests) != 1:
-        raise LabError(f"Ollama at {ollama} has no model {model}")
-    return "sha256:" + digests[0]

@@ -18,7 +18,7 @@ never saw. The tools in this repository are open; projects are quoted on a call.
   job, reason and status.
 - Runs here today: the Hello World Climb and the experimental Evaluate & Climb
   (`regents techtree forge`), both through regents-cli with `plugin/` and
-  `platform/`, and the `lab/` comparison on NVIDIA Nemotron.
+  `platform/`, and the `lab/` payment-terms tasks on NVIDIA Nemotron.
 - Status: each library and each service step that runs one is marked Tested (we
   have run it ourselves) or Planned (part of the design, not yet run). Describe them
   that way, and never as delivered to a customer.
@@ -33,7 +33,7 @@ to the component that owns the behavior:
 - `contracts/` owns registry Solidity, scripts and tests; run Foundry checks there.
 - `plugin/` owns the Hermes integration and Skills.
 - `platform/` owns techtree.sh, publication ingestion, and public result views.
-- `lab/` owns the payment-terms environment and the comparison runner; run
+- `lab/` owns the payment-terms environment and its runner; run
   `make -C lab check` there.
 - `factory/` holds one page per service. Its numbered steps, "You receive", library
   jobs and statuses follow `platform/lib/techtree_web/services.ex`; change both

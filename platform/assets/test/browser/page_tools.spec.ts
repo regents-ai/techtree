@@ -143,12 +143,12 @@ test("messages_leave sends the message to its topic's address, signed, with the 
 
 test("the Train tools read every comparison the Train page shows, newest first, and one report in full", async ({page}) => {
   await open(page, "none")
-  const answer = await call(page, "train_comparisons", {}) as {ok: boolean; data: {comparisons: Array<{slug: string; digest: string}>}}
+  const answer = await call(page, "train_comparisons", {}) as {ok: boolean; data: {comparisons: Array<{slug: string; final: {improved: {solved: number}}}>}}
   expect(answer.ok).toBe(true)
-  expect(answer.data.comparisons.map(comparison => comparison.slug)).toEqual(["nemotron-lightning-rl", "nemotron-nano-skill"])
+  expect(answer.data.comparisons.map(comparison => comparison.slug)).toEqual(["dependabot-nemotron-3-nano-4b"])
 
-  const report = await call(page, "train_report", {slug: "nemotron-nano-skill"}) as {ok: boolean; data: {digest: string}}
+  const report = await call(page, "train_report", {slug: "dependabot-nemotron-3-nano-4b"}) as {ok: boolean; data: {final: Array<{improved: number}>}}
   expect(report.ok).toBe(true)
-  expect(report.data.digest).toBe(answer.data.comparisons[1].digest)
+  expect(report.data.final.reduce((sum, item) => sum + item.improved, 0)).toBe(answer.data.comparisons[0].final.improved.solved)
   expect(await call(page, "train_report", {slug: "missing"})).toMatchObject({ok: false, status: 404, error: {code: "comparison_not_found"}})
 })

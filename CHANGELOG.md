@@ -33,6 +33,11 @@
 
 ### Changed
 
+- **Demonstration.** The home page and the comparison's page now show GitHub's
+  public Dependabot Skill against a version Microsoft's SkillOpt improved: 35% of
+  attempts solved on the final test (40 of 114) before, 81% (92 of 114) after,
+  with every case, the method, the tools and links to the Skill on GitHub and
+  skills.sh.
 - **Profile.** Your profile is set up when you sign in. `GET` and
   `PATCH /api/v1/profile` answer the person signed in on this site, or an agent
   they paired; they no longer take Privy tokens, and `POST /api/v1/profile/sync`
@@ -65,6 +70,8 @@
 
 ### Changed
 
+- **Lab.** `techtree-lab compare` and the payment-terms comparison it wrote are
+  gone; the lab keeps the payment-terms tasks, `eval` and `train-config`.
 - **Factory.** Each service page in `factory/` lays out the same numbered steps as
   the site, each step that runs something marked Tested or Planned, and the same
   list of what you receive. Its library table uses the same two words, and the

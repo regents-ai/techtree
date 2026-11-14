@@ -228,8 +228,8 @@ config :techtree, TechtreeWeb.TddShowcase,
 config :techtree, TechtreeWeb.Telemetry,
   unconfirmed_sends: {Techtree.WalletBench.Funding, :unconfirmed_sends, []}
 
-# The Train comparisons at /train: each a report and its traces, committed as
-# the runner wrote them. See `Techtree.Train.Comparisons`.
+# The Train comparisons at /train/:slug: each one committed report. See
+# `Techtree.Train.Comparisons`.
 config :techtree, Techtree.Train.Comparisons, folder: {:priv, "train"}
 
 # Configure the endpoint

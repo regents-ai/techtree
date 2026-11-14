@@ -154,9 +154,7 @@ defmodule TechtreeWeb.Endpoint do
   defp counted?(["results", _digest, "share.png"], _conn), do: true
   defp counted?(["train.json"], _conn), do: true
 
-  defp counted?(["train", _slug, download], _conn)
-       when download in ["report.json", "traces.jsonl"],
-       do: true
+  defp counted?(["train", _slug, "report.json"], _conn), do: true
 
   defp counted?(["api" | _], conn), do: not TechtreeWeb.PublicationAddress.post?(conn)
   defp counted?(_path, _conn), do: false

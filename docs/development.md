@@ -9,7 +9,7 @@ own the registry.
 | [`plugin/`](../plugin/) | **Adapts** | A thin Hermes adapter over regents-cli: it runs `regents techtree` with fixed arguments, reads one JSON answer back, and asks the person before anything that spends or publishes. No evaluation logic, and no network of its own. | [Plugin](../plugin/README.md) |
 | [`platform/`](../platform/) | **Publishes** | techtree.sh: the install guide and bootstrap, the catalog, publication intake, Results and verification pages, the service pages and the changelog. | [Platform](../platform/README.md) |
 | [`contracts/`](../contracts/) | **Registry** | The `TechtreeGraphRegistryV1` Solidity contract, its deployment scripts and Foundry tests. | [Contracts](../contracts/README.md) |
-| [`lab/`](../lab/) | **Measures** | The payment-terms environment, the Nemotron comparison and the training settings file. | [Lab](../lab/README.md) |
+| [`lab/`](../lab/) | **Measures** | The payment-terms environment, its runner and the training settings file. | [Lab](../lab/README.md) |
 
 ## Setup
 

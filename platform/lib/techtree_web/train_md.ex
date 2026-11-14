@@ -12,74 +12,69 @@ defmodule TechtreeWeb.TrainMD do
   @doc "`/train/:slug`: one comparison in full."
   @spec show(Techtree.Train.Comparisons.t()) :: String.t()
   def show(comparison) do
-    %{environment: environment, model: model, sampling: sampling, paired: paired} = comparison
-    operational = comparison.operational
+    %{skill: skill, final: final, repeats: repeats} = comparison
 
-    arms =
-      Enum.map_join(comparison.arms, "\n", fn arm ->
-        "- #{Copy.arm_label(comparison, arm)} (`#{arm.name}`): mean reward #{Copy.percent(arm.mean_reward)}, " <>
-          "#{Copy.solved(arm, environment.task_count)}, " <>
-          "#{Copy.number(arm.completion_tokens)} completion tokens#{change(arm)}"
+    method =
+      comparison
+      |> Copy.method()
+      |> Enum.with_index(1)
+      |> Enum.map_join("\n", fn {{title, words, choices}, index} ->
+        figures =
+          Enum.map_join(choices, fn {name, side} -> "\n   - #{name}: #{Copy.figure(side)}" end)
+
+        "#{index}. #{title}: #{words}#{figures}"
       end)
 
-    [before, changed] = Enum.map(comparison.arms, &Copy.arm_label(comparison, &1))
-
-    tasks =
-      Enum.map_join(comparison.tasks, "\n", fn %{rewards: {before, changed}} = task ->
-        "| `#{task.id}` | #{Copy.reward(before)} | #{Copy.reward(changed)} | #{Copy.result(task.result)} |"
+    cases =
+      Enum.map_join(comparison.cases, "\n", fn item ->
+        "| `#{item.id}` | #{Copy.solved(item.original, repeats)} | " <>
+          "#{Copy.solved(item.improved, repeats)} | #{Copy.change(item)} |"
       end)
+
+    tools =
+      Enum.map_join(Copy.tools(comparison), "\n", fn {term, words} -> "- #{term}: #{words}" end)
 
     """
-    # #{comparison.title}
+    # #{skill.name}
 
-    #{model.family} on #{environment.task_count} held-out tasks of #{environment.id}, with the same settings on both sides. Finished #{Copy.date(operational.finished_at)}.
+    #{skill.summary} [GitHub](#{skill.github_url}) · [skills.sh](#{skill.skills_sh_url})
+
+    #{Copy.provenance(comparison)} #{Copy.date(comparison.date)}.
+
+    ## Task
+
+    #{comparison.task}
 
     ## Result
 
-    - #{figures(comparison)}
-    - Outcome: #{Copy.outcome(comparison.outcome)}
-    - Tasks: #{Copy.paired(paired)}
-    - Interval: #{Copy.interval(paired.ci95)} points, the 95% range of the difference, by #{paired.method}
+    #{Copy.final_test(comparison)}
 
-    #{Copy.reading(comparison)}
+    - Original: #{Copy.figure(final.original)}
+    - Improved: #{Copy.figure(final.improved)}
+    - Difference: #{Copy.difference(comparison)}
+    - Cases: #{Copy.changes(comparison)}
 
-    ## Arms
+    #{Copy.chance(comparison)}
 
-    #{arms}
+    ## Method
 
-    ## Tasks
+    #{method}
 
-    | Task | #{before} | #{changed} | Result |
+    ## Cases
+
+    #{Copy.worse(comparison)}
+
+    | Case | Original | Improved | Change |
     | --- | --- | --- | --- |
-    #{tasks}
+    #{cases}
 
-    ## Settings
+    ## Tools
 
-    - Sampling: temperature #{sampling.temperature}, at most #{sampling.max_tokens} tokens, thinking #{if sampling.thinking, do: "on", else: "off"}
-    - Environment: `#{environment.id}` #{environment.version}, #{String.downcase(Copy.split(environment.split))} split, seed #{environment.seed}, #{environment.task_count} tasks
-    - Model: NVIDIA #{model.family}, `#{model.name}` on #{model.provider}
-    - Run: #{operational.host}, started #{Copy.time(operational.started_at)}, #{Copy.duration(operational.duration_seconds)}, run cost $#{operational.cost_usd}
-    - Software: verifiers #{comparison.software.verifiers}, techtree-lab #{comparison.software.techtree_lab}
+    #{tools}
 
-    ## Evidence
+    ## Report
 
-    - Report: `#{comparison.digest}`, [download](#{url(~p"/train/#{comparison.slug}/report.json")})
-    - Traces: `#{comparison.traces_digest}`, [download](#{url(~p"/train/#{comparison.slug}/traces.jsonl")})
-    - Tasks: `#{environment.taskset_digest}`
-    - Weights: `#{model.weights_digest}`
+    The report lists every final-test case with the attempts each version solved: [download](#{url(~p"/train/#{comparison.slug}/report.json")}). [How to check it](#{url(~p"/docs/verify")}#blog-section-skill-comparisons).
     """
-  end
-
-  defp change(%{change: :none}), do: ""
-  defp change(%{change: :skill, skill_digest: digest}), do: ", Skill `#{digest}`"
-  defp change(%{change: :rl, adapter: adapter}), do: ", adapter `#{adapter}`"
-
-  defp figures(comparison) do
-    arms =
-      Enum.map_join(comparison.arms, " · ", fn arm ->
-        "#{Copy.arm_label(comparison, arm)} #{Copy.percent(arm.mean_reward)}"
-      end)
-
-    "#{arms} · Difference #{Copy.points(comparison.paired.mean_difference)} points"
   end
 end

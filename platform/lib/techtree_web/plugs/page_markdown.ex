@@ -3,8 +3,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   The Markdown answer of the public pages built from the database, from
   release files or from their LiveView's own data: the home page, Results,
   each Result, each Climb, the Wallet Bench, the service pages under
-  `/services`, Techtree Formal, the tdd example, and each Skill or training
-  comparison. The
+  `/services`, Techtree Formal, the tdd example, and each Skill comparison. The
   database-free pages are answered before the router
   (`TechtreeWeb.PublicDocuments`); these wait for the router, so an HTML
   request reads nothing here and a Markdown one reads only what its page reads,
@@ -149,7 +148,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
     ## Comparisons
 
-    Comparisons Techtree ran itself: one model on the same held-out tasks before and after one change, a Skill or training, with the same settings. They are not signed; each page names its report and traces by digest: [how to check them](/docs/verify#blog-section-skill-comparisons).
+    Demonstrations Techtree ran itself on public Skills: the Skill as published against an improved version, on final-test cases kept apart from the improvement, with the same agent and settings. They are not signed; each page offers its report to download: [how to check them](/docs/verify#blog-section-skill-comparisons).
 
     #{comparisons}
 
@@ -161,8 +160,9 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   end
 
   defp comparison_row(comparison) do
-    figures = Enum.map_join(comparison.arms, " → ", &TrainCopy.percent(&1.mean_reward))
-    "- [#{comparison.title}](/train/#{comparison.slug}): #{figures}"
+    "- [#{comparison.skill.name}](/train/#{comparison.slug}): " <>
+      "Original #{TrainCopy.figure(comparison.final.original)} → " <>
+      "Improved #{TrainCopy.figure(comparison.final.improved)}"
   end
 
   defp result_row(entry) do

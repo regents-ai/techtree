@@ -2,9 +2,9 @@ defmodule TechtreeWeb.HomeLive do
   @moduledoc """
   The home page, in six parts: the promise with Book Call; the four services
   as cards with their price levels and the tools each uses under their status
-  (`TechtreeWeb.Services`); one demonstration, the newest Skill comparison
+  (`TechtreeWeb.Services`); one demonstration, the newest comparison
   (`Techtree.Train.Comparisons`), labelled for what it is, with its figures,
-  its page and how to check it; how a project runs, in six steps; the
+  its page and the Skill's own links; how a project runs, in six steps; the
   open-source projects we build on, under each maker's logo or name, drawn
   from the services' tools so the two never differ; and Contact: a last Book
   Call, an email and the enquiry form (`TechtreeWeb.Components.Enquiry`), whose
@@ -56,7 +56,7 @@ defmodule TechtreeWeb.HomeLive do
        promise: @promise,
        services_line: @services_line,
        services: Services.all(),
-       demonstration: newest_skill_comparison(),
+       demonstration: newest_comparison(),
        process_line: @process_line,
        process: @process,
        makers: makers(),
@@ -100,7 +100,7 @@ defmodule TechtreeWeb.HomeLive do
 
     #{services}
     - [#{security.name}](#{Services.path(:security)}): #{security.promise}
-    #{demonstration_markdown(newest_skill_comparison())}
+    #{demonstration_markdown(newest_comparison())}
     ## Process
 
     #{@process_line}
@@ -131,13 +131,12 @@ defmodule TechtreeWeb.HomeLive do
     """
   end
 
-  defp newest_skill_comparison, do: Enum.find(Comparisons.list(), &(&1.change == :skill))
+  defp newest_comparison, do: List.first(Comparisons.list())
 
   defp demonstration_markdown(nil), do: ""
 
   defp demonstration_markdown(comparison) do
-    [without, with] = comparison.arms
-    tasks = comparison.environment.task_count
+    %{final: final, skill: skill} = comparison
 
     """
 
@@ -145,24 +144,22 @@ defmodule TechtreeWeb.HomeLive do
 
     #{about(comparison)}
 
-    - Average score without the Skill: #{Copy.percent(without.mean_reward)}
-    - Average score with the Skill: #{Copy.percent(with.mean_reward)}
-    - Higher-scoring tasks with the Skill: #{comparison.paired.wins} of #{tasks}
-    - Tasks fully solved with the Skill: #{with.solved} of #{tasks} (#{without.solved} without it)
+    - Original: #{Copy.percent(final.original)}
+    - Improved: #{Copy.percent(final.improved)}
+    - Cases better: #{comparison.changes.better} of #{comparison.split.final}
 
-    [Result](/train/#{comparison.slug}) and [how to check it](#{check()}).
+    [Result](/train/#{comparison.slug}) · [GitHub](#{skill.github_url}) · [skills.sh](#{skill.skills_sh_url})
     """
   end
 
-  # The demonstration's label: a practice task Techtree wrote, a small model,
-  # and a Skill that mainly teaches the answer format. The newest Skill
-  # comparison is the payment-terms one, Techtree's own task set.
-  defp about(comparison),
+  # The demonstration's label: a public Skill, a small model, and the final
+  # test's attempts solved by each version.
+  defp about(%{skill: skill, agent: agent, final: final} = comparison),
     do:
-      "A demonstration on a practice task Techtree wrote, with a small model: " <>
-        "NVIDIA’s #{comparison.model.family} on #{comparison.environment.task_count} tasks, " <>
-        "once without the Skill and once with it. " <>
-        "The Skill mainly teaches the answer format the tasks are scored on."
+      "A demonstration on #{skill.maker}’s public #{skill.name} Skill, not customer work: " <>
+        "#{Copy.possessive(agent)} on #{comparison.split.final} final-test cases, each asked " <>
+        "#{comparison.repeats} times. The original Skill solved #{Copy.count(final.original)} attempts; " <>
+        "the version #{Copy.possessive(comparison.improver)} improved solved #{Copy.count(final.improved)}."
 
   @impl true
   def render(assigns) do
@@ -284,12 +281,10 @@ defmodule TechtreeWeb.HomeLive do
 
   attr :comparison, :map, required: true
 
-  # The newest Skill comparison, labelled a demonstration, in its own figures:
-  # the average score on each side, the tasks it did better on and the tasks
-  # it solved.
+  # The newest comparison, labelled a demonstration, in its one measure: each
+  # version's share of attempts solved, and the cases it did better on.
   defp demonstration(assigns) do
-    [without, with] = assigns.comparison.arms
-    assigns = assign(assigns, without: without, with: with, about: about(assigns.comparison))
+    assigns = assign(assigns, about: about(assigns.comparison))
 
     ~H"""
     <section id="demonstration" class="mk-section" aria-labelledby="demonstration-title">
@@ -305,36 +300,32 @@ defmodule TechtreeWeb.HomeLive do
         phx-update="ignore"
       >
         <div>
-          <dt>Average score without the Skill</dt>
-          <dd data-tally>{Copy.percent(@without.mean_reward)}</dd>
+          <dt>Original</dt>
+          <dd data-tally>{Copy.percent(@comparison.final.original)}</dd>
         </div>
         <div>
-          <dt>Average score with the Skill</dt>
-          <dd data-tally>{Copy.percent(@with.mean_reward)}</dd>
+          <dt>Improved</dt>
+          <dd data-tally>{Copy.percent(@comparison.final.improved)}</dd>
         </div>
         <div>
-          <dt>Higher-scoring tasks with the Skill</dt>
-          <dd data-tally>{@comparison.paired.wins} of {@comparison.environment.task_count}</dd>
-        </div>
-        <div>
-          <dt>Tasks fully solved with the Skill ({@without.solved} without it)</dt>
-          <dd data-tally>{@with.solved} of {@comparison.environment.task_count}</dd>
+          <dt>Cases better</dt>
+          <dd data-tally>{@comparison.changes.better} of {@comparison.split.final}</dd>
         </div>
       </dl>
       <p class="mk-links">
         <.link navigate={~p"/train/#{@comparison.slug}"} class="text-link">
           Result <span aria-hidden="true">→</span>
         </.link>
-        <.link navigate={check()} class="text-link">
-          How to check it <span aria-hidden="true">→</span>
-        </.link>
+        <a href={@comparison.skill.github_url} class="text-link" rel="noopener">
+          GitHub <span aria-hidden="true">↗</span>
+        </a>
+        <a href={@comparison.skill.skills_sh_url} class="text-link" rel="noopener">
+          skills.sh <span aria-hidden="true">↗</span>
+        </a>
       </p>
     </section>
     """
   end
-
-  # Where the demonstration's evidence is explained.
-  defp check, do: ~p"/docs/verify" <> "#blog-section-skill-comparisons"
 
   # A service's tools by status, for its line in the Markdown:
   # "Tested: NVIDIA’s SkillEvaluator · Microsoft’s SkillOpt."

@@ -253,15 +253,16 @@ defmodule TechtreeWeb.AgentsController do
 
     ## Comparisons
 
-    To see an NVIDIA Nemotron model scored without and with one change on the
-    same held-out tasks with the same settings, read
+    To see a public Skill as published against an improved version of it,
+    each asked the same final-test cases by the same agent, read
     https://techtree.sh/train.json or call `train_comparisons`: each
-    comparison's mean rewards, paired wins, ties and losses, the 95% interval
-    and the outcome, with its report and traces to download. `train_report`
-    reads one comparison's report with every task's result. Each comparison's
+    comparison's attempts solved by the original and the improved Skill, the
+    cases that did better, the same and worse, and the Skill's GitHub and
+    skills.sh addresses, with its report to download. `train_report` reads one
+    comparison's report with every case's attempts solved. Each comparison's
     page answers Markdown too, and https://techtree.sh/results lists them. The
-    first comparison is a Skill, which teaches the answer format the tasks are
-    scored on; no training run is published yet.
+    first is GitHub's Dependabot Skill on NVIDIA's Nemotron 3 Nano 4B, a
+    demonstration Techtree ran itself, not customer work.
 
     ## Services
 

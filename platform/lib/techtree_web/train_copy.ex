@@ -1,132 +1,165 @@
 defmodule TechtreeWeb.TrainCopy do
   @moduledoc """
-  The words and figures of a comparison's page, shared by its HTML and its
-  Markdown (`TechtreeWeb.Plugs.PageMarkdown`), so both say the same thing.
+  The words and figures of a comparison, shared by its page, its Markdown
+  (`TechtreeWeb.TrainMD`), Results and the home page, so all of them say the
+  same thing.
 
-  An arm is named by the change it carries: without and with the Skill, or
-  before and after RL. Mean rewards are shown as percentages and their
-  difference in points, rounded to whole numbers.
+  There is one measure: attempts solved, as a whole percentage with the count
+  beside it ("35%, 40 of 114"). The two versions are named Original and
+  Improved.
   """
 
   alias Techtree.Train.Comparisons
 
-  @doc "One arm's name on the page."
-  @spec arm_label(Comparisons.t(), Comparisons.arm()) :: String.t()
-  def arm_label(%{change: :skill}, %{change: :none}), do: "Without Skill"
-  def arm_label(%{change: :skill}, %{change: :skill}), do: "With Skill"
-  def arm_label(%{change: :rl}, %{change: :none}), do: "Before RL"
-  def arm_label(%{change: :rl}, %{change: :rl}), do: "After RL"
+  @doc "A share of attempts solved as a whole percentage: 40 of 114 is \"35%\"."
+  @spec percent(Comparisons.side()) :: String.t()
+  def percent(%{solved: solved, attempts: attempts}), do: "#{round(solved * 100 / attempts)}%"
 
-  @doc "The change a comparison measures, as a word."
-  @spec change(Comparisons.change()) :: String.t()
-  def change(:skill), do: "Skill"
-  def change(:rl), do: "RL"
+  @doc "Attempts solved as a count: \"40 of 114\"."
+  @spec count(Comparisons.side()) :: String.t()
+  def count(%{solved: solved, attempts: attempts}), do: "#{solved} of #{attempts}"
 
-  @doc """
-  What a comparison's difference shows, in a sentence or two, so a large
-  difference is not read as a smarter model. A Skill comparison whose side
-  without the Skill scored nothing says so.
-  """
-  @spec reading(Comparisons.t()) :: String.t()
-  def reading(%{change: :skill, arms: [%{mean_reward: without} | _with]}) do
-    "The Skill teaches the answer format these tasks are scored on, and it is the only thing " <>
-      "that differs between the two sides. The difference shows how well the model follows " <>
-      "the Skill, not a smarter model." <>
-      if(without == 0, do: " Without the Skill, no answer here got any field right.", else: "")
-  end
+  @doc "Attempts solved in full: \"35%, 40 of 114\"."
+  @spec figure(Comparisons.side()) :: String.t()
+  def figure(side), do: "#{percent(side)}, #{count(side)}"
 
-  def reading(%{change: :rl}) do
-    "RL training changes the model's weights, using other tasks from the same environment. " <>
-      "These held-out tasks were never trained on."
-  end
+  @doc "One case's attempts solved: \"2 of 3\"."
+  @spec solved(non_neg_integer(), pos_integer()) :: String.t()
+  def solved(solved, repeats), do: "#{solved} of #{repeats}"
 
-  @doc "A comparison's outcome, as a word."
-  @spec outcome(Comparisons.outcome()) :: String.t()
-  def outcome(:uplift), do: "Uplift"
-  def outcome(:tie), do: "Tie"
-  def outcome(:regression), do: "Regression"
-  def outcome(:inconclusive), do: "Inconclusive"
+  @doc "One case's change in attempts solved, signed: \"+2\", \"0\" or \"−1\"."
+  @spec change(Comparisons.final_case()) :: String.t()
+  def change(%{original: original, improved: improved}), do: signed(improved - original)
 
-  @doc "The status tone of an outcome."
-  @spec tone(Comparisons.outcome()) :: String.t()
-  def tone(:uplift), do: "success"
-  def tone(:tie), do: "neutral"
-  def tone(:regression), do: "error"
-  def tone(:inconclusive), do: "warning"
+  @doc "How many more attempts the improved version solved: \"+52 attempts\"."
+  @spec difference(Comparisons.t()) :: String.t()
+  def difference(%{final: %{original: original, improved: improved}}),
+    do: "#{signed(improved.solved - original.solved)} attempts"
 
-  @doc "A task's result for the changed arm, as a word."
-  @spec result(Comparisons.result()) :: String.t()
-  def result(:win), do: "Win"
-  def result(:tie), do: "Tie"
-  def result(:loss), do: "Loss"
+  @doc "The cases by change: \"25 better, 12 the same, 1 worse\"."
+  @spec changes(Comparisons.t()) :: String.t()
+  def changes(%{changes: %{better: better, same: same, worse: worse}}),
+    do: "#{better} better, #{same} the same, #{worse} worse"
 
-  @doc "A mean reward as a whole percentage: 0.40625 is \"41%\"."
-  @spec percent(number()) :: String.t()
-  def percent(reward), do: "#{round(reward * 100)}%"
+  @doc "The cases that did worse, named with their figures, or that none did."
+  @spec worse(Comparisons.t()) :: String.t()
+  def worse(%{cases: cases, repeats: repeats}) do
+    case Enum.filter(cases, &(&1.change == :worse)) do
+      [] ->
+        "No case did worse with the improved Skill."
 
-  @doc "A difference of rewards in whole points, signed: 0.37 is \"+37\"."
-  @spec points(number()) :: String.t()
-  def points(difference) do
-    case round(difference * 100) do
-      0 -> "0"
-      points when points > 0 -> "+#{points}"
-      points -> "−#{-points}"
+      [one] ->
+        "One case did worse with the improved Skill: #{went(one, repeats)}."
+
+      worse ->
+        "#{length(worse)} cases did worse with the improved Skill: " <>
+          Enum.map_join(worse, "; ", &went(&1, repeats)) <> "."
     end
   end
 
-  @doc "The 95% interval of the difference, in points: \"+28 to +46\"."
-  @spec interval({number(), number()}) :: String.t()
-  def interval({low, high}), do: "#{points(low)} to #{points(high)}"
+  @doc """
+  The chance reading in a sentence: how rarely a difference this large would
+  turn up if the two versions were equally good.
+  """
+  @spec chance(Comparisons.t()) :: String.t()
+  def chance(%{p_below: p_below}) do
+    "If the two versions were equally good, a difference this large would turn up by chance " <>
+      "fewer than 1 time in #{number(round(1 / p_below))}."
+  end
 
-  @doc "A reward on one task, to two places."
-  @spec reward(number()) :: String.t()
-  def reward(value), do: :erlang.float_to_binary(value / 1, decimals: 2)
+  @doc "The chance reading as a short figure: \"Under 1 in 1,000\"."
+  @spec odds(Comparisons.t()) :: String.t()
+  def odds(%{p_below: p_below}), do: "Under 1 in #{number(round(1 / p_below))}"
 
-  @doc "The paired results in one line: \"30 wins · 28 ties · 6 losses\"."
-  @spec paired(%{wins: integer(), ties: integer(), losses: integer()}) :: String.t()
-  def paired(%{wins: wins, ties: ties, losses: losses}),
-    do:
-      "#{count(wins, "win", "wins")} · #{count(ties, "tie", "ties")} · #{count(losses, "loss", "losses")}"
+  @doc "Where the Skill comes from and what this is, in two sentences."
+  @spec provenance(Comparisons.t()) :: String.t()
+  def provenance(%{skill: skill}) do
+    "A demonstration Techtree ran itself on #{skill.maker}’s public #{skill.name} Skill, from its " <>
+      "#{skill.collection} collection (#{skill.license} license), used unchanged as the starting point. " <>
+      "It is not customer work."
+  end
 
-  @doc "How many tasks an arm solved: \"26 of 64 solved\"."
-  @spec solved(Comparisons.arm(), pos_integer()) :: String.t()
-  def solved(%{solved: solved}, task_count), do: "#{solved} of #{task_count} solved"
+  @doc "The final test in a sentence."
+  @spec final_test(Comparisons.t()) :: String.t()
+  def final_test(%{split: split, repeats: repeats, final: %{original: side}}) do
+    "The final test: #{split.final} cases nothing had seen, each asked #{repeats} times of each version, " <>
+      "#{side.attempts} attempts per side."
+  end
 
-  @doc "The task split, as a word."
-  @spec split(String.t()) :: String.t()
-  def split("held_out"), do: "Held out"
+  @doc """
+  The method, step by step: `{title, words, choices}`, where `choices` is the
+  versions tried at that step, in order, as `{name, side}`; only the choosing
+  step has any.
+  """
+  @spec method(Comparisons.t()) :: [
+          {String.t(), String.t(), [{String.t(), Comparisons.side()}]}
+        ]
+  def method(comparison) do
+    %{split: split, repeats: repeats, start: start, choosing: choosing, final: final} = comparison
+    total = split.working + split.choosing + split.final
 
-  @doc "A whole number with thousands separated: 41216 is \"41,216\"."
-  @spec number(integer()) :: String.t()
-  def number(value) when is_integer(value) do
+    [
+      {"Split",
+       "We wrote #{total} cases for this test and split them once, before anything ran: " <>
+         "#{split.working} to work on the Skill, #{split.choosing} to choose between versions and " <>
+         "#{split.final} kept apart for the final test. Every version was asked each case #{repeats} times.",
+       []},
+      {"Improve",
+       "#{possessive(comparison.improver)}, with #{possessive(comparison.proposer)} proposing the changes, " <>
+         "improved the Skill using only the #{split.working} working cases. On those cases the agent " <>
+         "solved #{percent(start.no_skill)} of its attempts with no Skill (#{count(start.no_skill)}) and " <>
+         "#{percent(start.original)} with the original (#{count(start.original)}).", []},
+      {"Choose",
+       "Three versions were tried on the #{split.choosing} choosing cases: the original, a single plain " <>
+         "rewrite and #{comparison.improver.name}’s revision. The revision solved the most and became the improved Skill.",
+       [
+         {"Original", choosing.original},
+         {"Rewrite", choosing.rewrite},
+         {"Improved", choosing.improved}
+       ]},
+      {"Final test",
+       "One run on the #{split.final} cases nothing had seen, #{final.original.attempts} attempts per version, " <>
+         "with the same agent and settings on both sides.", []}
+    ]
+  end
+
+  @doc "The tools and what each did: `{term, words}`."
+  @spec tools(Comparisons.t()) :: [{String.t(), String.t()}]
+  def tools(comparison) do
+    %{agent: agent, scorer: scorer, skill: skill} = comparison
+
+    [
+      {"Agent", "#{possessive(agent)} (#{agent.model}), run on our own machine."},
+      {"Scoring",
+       "#{possessive(scorer)} #{scorer.version}, with the same settings on both sides."},
+      {"Improver", "#{possessive(comparison.improver)}, on the working cases only."},
+      {"Changes",
+       "#{possessive(comparison.proposer)}, proposing #{comparison.improver.name}’s changes."},
+      {"Skill",
+       "#{skill.maker}’s #{skill.name} Skill, the starting point, #{skill.license} license."}
+    ]
+  end
+
+  @doc "A tool named with its maker: \"NVIDIA’s Nemotron 3 Nano 4B\"."
+  @spec possessive(%{maker: String.t(), name: String.t()}) :: String.t()
+  def possessive(%{maker: maker, name: name}), do: "#{maker}’s #{name}"
+
+  @doc "A day, as the site writes one: \"14 Nov 2026\"."
+  @spec date(Date.t()) :: String.t()
+  def date(date), do: Calendar.strftime(date, "%-d %b %Y")
+
+  defp went(%{id: id, original: original, improved: improved}, repeats),
+    do: "#{id} went from #{solved(original, repeats)} to #{solved(improved, repeats)}"
+
+  defp signed(0), do: "0"
+  defp signed(value) when value > 0, do: "+#{value}"
+  defp signed(value), do: "−#{-value}"
+
+  defp number(value) do
     value
     |> Integer.to_string()
     |> String.reverse()
     |> String.replace(~r/(\d{3})(?=\d)/, "\\1,")
     |> String.reverse()
   end
-
-  @doc ~s(A run's length: "42 min" or "2 h 5 min".)
-  @spec duration(number()) :: String.t()
-  def duration(seconds) do
-    minutes = round(seconds / 60)
-
-    case {div(minutes, 60), rem(minutes, 60)} do
-      {0, 0} -> "#{round(seconds)} s"
-      {0, minutes} -> "#{minutes} min"
-      {hours, 0} -> "#{hours} h"
-      {hours, minutes} -> "#{hours} h #{minutes} min"
-    end
-  end
-
-  @doc "A day, as the site writes one: \"10 Nov 2026\"."
-  @spec date(DateTime.t()) :: String.t()
-  def date(datetime), do: Calendar.strftime(datetime, "%-d %b %Y")
-
-  @doc "A time to the minute, in UTC: \"10 Nov 2026, 09:42 UTC\"."
-  @spec time(DateTime.t()) :: String.t()
-  def time(datetime), do: Calendar.strftime(datetime, "%-d %b %Y, %H:%M UTC")
-
-  defp count(1, one, _many), do: "1 #{one}"
-  defp count(count, _one, many), do: "#{count} #{many}"
 end

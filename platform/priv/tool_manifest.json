@@ -348,7 +348,7 @@
     {
       "name": "train_comparisons",
       "title": "List Train comparisons",
-      "description": "List the Train comparisons, newest first: an NVIDIA Nemotron model scored without and with one change on the same held-out tasks with the same settings. The first comparison is a Skill, which teaches the answer format the tasks are scored on; no training run is published yet. Each has its title, both arms with their mean reward, solved count and completion tokens, the paired wins, ties and losses, the mean difference with its 95% interval and the method, the outcome (uplift, tie, regression or inconclusive), the environment, model and sampling settings, the report and traces digests, and the addresses of its page, its report and its traces. Reads only; needs no sign-in.",
+      "description": "List the Train comparisons, newest first: a public Skill as published (the original) against an improved version, each asked the same final-test cases the same number of times by the same agent, counted in attempts solved. Each has its date; the Skill's name, maker, license, summary and its GitHub and skills.sh addresses; the task; the agent, scoring, improver and proposer; the cases split into working, choosing and final; attempts solved at the start, at the choosing step and on the final test for each version; the cases that did better, the same and worse; the chance reading (p below); and the addresses of its page and its report. Reads only; needs no sign-in.",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -376,14 +376,14 @@
     {
       "name": "train_report",
       "title": "Read one Train report",
-      "description": "Read one Train comparison's report exactly as committed, techtree.train.v1alpha1: the environment, model, sampling and software, both arms, each task's reward and solved mark for each arm, the paired wins, ties and losses with the mean difference, its 95% interval and the method, the outcome, the run's host, times and cost, the traces digest, and the report's own digest. A report whose digest or traces do not check out is not served. Reads only; needs no sign-in.",
+      "description": "Read one Train comparison's report exactly as committed, techtree.train.v1alpha2: the Skill and its addresses, the task, the tools, the split of cases, attempts solved at the start and at the choosing step, and every final-test case with the attempts the original and the improved Skill solved. Reads only; needs no sign-in.",
       "input_schema": {
         "type": "object",
         "properties": {
           "slug": {
             "type": "string",
             "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            "description": "The comparison's slug from train_comparisons, such as payment-terms-nemotron-3-nano-4b-skill."
+            "description": "The comparison's slug from train_comparisons, such as dependabot-nemotron-3-nano-4b."
           }
         },
         "required": [

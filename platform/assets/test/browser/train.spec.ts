@@ -2,9 +2,8 @@ import {expect, keepOffline, test} from "./support/test"
 import {layoutProblems, signIn, watchErrors} from "./support/visitor"
 
 // The comparisons signed in, at a desktop and a phone width (pages.spec.ts walks
-// them signed out): Results lists them newest first, a comparison opens from
-// there, nothing errors and nothing scrolls sideways, and its every-task table
-// opens.
+// them signed out): Results lists the newest first, it opens from there with
+// every case in its table, and nothing errors or scrolls sideways.
 for (const width of [1280, 390]) {
   test(`signed in at ${width} wide, Results lists the newest comparison first and it opens`, async ({browser}) => {
     const hasTouch = width < 768
@@ -18,18 +17,14 @@ for (const width of [1280, 390]) {
     await expect(page.locator(".phx-connected").first()).toBeAttached()
     await expect(page.locator("#account-chip")).toBeVisible()
     const first = page.locator("#comparisons li a").first()
-    await expect(first).toHaveAttribute("href", "/train/nemotron-lightning-rl")
+    await expect(first).toHaveAttribute("href", "/train/dependabot-nemotron-3-nano-4b")
     expect(await layoutProblems(page)).toEqual([])
 
     await first.scrollIntoViewIfNeeded()
     await (hasTouch ? first.tap() : first.click())
-    await expect(page).toHaveURL("/train/nemotron-lightning-rl")
+    await expect(page).toHaveURL("/train/dependabot-nemotron-3-nano-4b")
     await expect(page.locator("main h1")).toBeVisible()
-    expect(await layoutProblems(page)).toEqual([])
-
-    await page.goto("/train/nemotron-nano-skill", {waitUntil: "networkidle"})
-    await page.locator("#every-task summary").click()
-    await expect(page.locator("#every-task tbody tr")).toHaveCount(64)
+    await expect(page.locator("#cases tbody tr")).toHaveCount(38)
     expect(await layoutProblems(page)).toEqual([])
 
     expect(errors).toEqual([])

@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.HomeLiveTest do
   @moduledoc """
   The home page: the promise with Book Call, the four services with their
-  price levels, the demonstration from the published Skill comparison, the
+  price levels, the demonstration from the newest Skill comparison, the
   process, the makers whose projects we build on, a last Book Call, and every
   moving picture over a still. Its header, sheet and footer are every page's.
   """
@@ -83,11 +83,9 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute has_element?(live, "#service-security")
   end
 
-  test "the demonstration shows the published Skill comparison's own figures, its page and how to check it",
+  test "the demonstration shows the newest comparison's own figures, its page and the Skill's links",
        %{conn: conn} do
-    comparison = Enum.find(Comparisons.list(), &(&1.change == :skill))
-    [without, with] = comparison.arms
-    tasks = comparison.environment.task_count
+    [comparison | _] = Comparisons.list()
 
     {:ok, _live, html} = live(conn, ~p"/")
     document = LazyHTML.from_document(html)
@@ -95,15 +93,15 @@ defmodule TechtreeWeb.HomeLiveTest do
     figures = for dd <- LazyHTML.query(document, "#demonstration-figures dd"), do: trim(dd)
 
     assert figures == [
-             TrainCopy.percent(without.mean_reward),
-             TrainCopy.percent(with.mean_reward),
-             "#{comparison.paired.wins} of #{tasks}",
-             "#{with.solved} of #{tasks}"
+             TrainCopy.percent(comparison.final.original),
+             TrainCopy.percent(comparison.final.improved),
+             "#{comparison.changes.better} of #{comparison.split.final}"
            ]
 
     assert hrefs(document, "#demonstration a") == [
              "/train/#{comparison.slug}",
-             "/docs/verify#blog-section-skill-comparisons"
+             comparison.skill.github_url,
+             comparison.skill.skills_sh_url
            ]
   end
 

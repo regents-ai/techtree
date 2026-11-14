@@ -59,7 +59,6 @@ defmodule TechtreeWeb.RunsLive.Index do
   use TechtreeWeb, :live_view
 
   import TechtreeWeb.Components.Marketing, only: [opening: 1]
-  import TechtreeWeb.TrainLive.Parts, only: [outcome: 1]
 
   alias Techtree.Catalog.Query, as: Catalog
   alias Techtree.Catalog.Route
@@ -502,19 +501,16 @@ defmodule TechtreeWeb.RunsLive.Index do
         <header class="mk-section__head">
           <h2 id="comparisons-title">Comparisons</h2>
           <p>
-            Comparisons Techtree ran itself: one model on the same held-out tasks before and after one change, a Skill or training, with the same settings. They are not signed; each page names its report and traces by digest.
+            Demonstrations Techtree ran itself on public Skills: the Skill as published against an improved version, on final-test cases kept apart from the improvement, with the same agent and settings. They are not signed; each page offers its report to download.
           </p>
         </header>
         <ul class="mk-status">
           <li :for={comparison <- @comparisons} id={"comparison-#{comparison.slug}"}>
             <.link navigate={~p"/train/#{comparison.slug}"}>
-              {comparison.title} · {Enum.map_join(
-                comparison.arms,
-                " → ",
-                &TrainCopy.percent(&1.mean_reward)
+              {comparison.skill.name} · Original {TrainCopy.percent(comparison.final.original)} → Improved {TrainCopy.percent(
+                comparison.final.improved
               )}
             </.link>
-            <.outcome outcome={comparison.outcome} />
           </li>
         </ul>
         <p class="mk-links">
