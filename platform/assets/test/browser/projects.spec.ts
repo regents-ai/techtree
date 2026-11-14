@@ -37,9 +37,12 @@ for (const width of [1280, 390]) {
     await expect(page.locator("#project-before .project-meter__figure")).toContainText("10 of 18")
     await expect(page.locator("#project-after .project-meter__figure")).toContainText("12 of 18")
     await expect(page.locator("#project-cases tbody tr")).toHaveCount(6)
-    await expect(page.locator('#project-cases tbody tr[data-change="worse"] th')).toHaveText("invoice-3")
-    // The report's headings sit under the page's own, one level down.
+    await expect(page.locator('#project-cases tbody tr[data-change="worse"] th')).toHaveText("invoice-in-two-currencies")
+    // The report's headings sit under the page's own, one level down, and its
+    // table and quote are drawn as a table and a quote.
     await expect(page.locator("#project-report h2")).toHaveText("Invoice triage")
+    await expect(page.locator("#project-report table tbody tr")).toHaveCount(2)
+    await expect(page.locator("#project-report blockquote")).toHaveCount(1)
     await expect(page.locator("#project-report script")).toHaveCount(0)
     expect(await layoutProblems(page)).toEqual([])
     expect(await lowContrast(page.locator("#project-page"))).toEqual([])

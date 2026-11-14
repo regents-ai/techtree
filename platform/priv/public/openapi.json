@@ -1275,7 +1275,7 @@
     "/api/v1/account/projects/{id}/package": {
       "get": {
         "operationId": "getAccountProjectPackage",
-        "summary": "One of the person's projects' package, byte for byte: a gzipped tar of its manifest, the report, the original and selected Skill, the final test's cases and how to run the test again. It is never cached; check it against the project's sha256. Errors are JSON.",
+        "summary": "One of the person's projects' package, byte for byte: a gzipped tar of one folder holding its manifest, the report, the original and selected Skill, the final test's cases and how to run the test again. It is never cached; check it against the project's sha256. Errors are JSON.",
         "security": [
           {
             "AgentSignature": []

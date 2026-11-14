@@ -1,16 +1,20 @@
 defmodule Techtree.Projects.Package do
   @moduledoc """
   A project's package as the team uploads it: one gzipped tar the factory made,
-  holding `manifest.json` (`Techtree.Projects.Manifest`), `report.md`, the
-  original and selected Skill, the final test's cases and how to run it again.
+  which unpacks into one folder (such as `release-slugs-851620ff/`) holding
+  `manifest.json` (`Techtree.Projects.Manifest`), `report.md`, the original
+  and selected Skill, the final test's cases and how to run it again. The
+  manifest names each file by its path inside that folder.
 
   It is opened in memory and refused, with nothing kept, unless all of this
   holds: at most 5 MB as uploaded and 25 MB unpacked; one gzip stream with
   nothing after it; at most 2,000 entries, each a plain file or a folder on a
   path inside the package (never from the root of a disk, never through
-  `..`), so no links or devices; no file twice; a manifest that passes its
-  checks; exactly the files the manifest lists, each with its size and
-  sha256; and a `report.md` of UTF-8 text, at most 1 MB.
+  `..`), so no links or devices; every entry inside one folder named in
+  lower-case letters, digits and hyphens, with nothing beside it; no file
+  twice; a manifest that passes its checks; exactly the files the manifest
+  lists, each with its size and sha256; and a `report.md` of UTF-8 text, at
+  most 1 MB.
   """
 
   alias Techtree.Projects.Manifest
@@ -19,6 +23,7 @@ defmodule Techtree.Projects.Package do
   @max_unpacked 26_214_400
   @max_entries 2_000
   @max_report 1_048_576
+  @folder ~r/\A[a-z0-9-]+\z/
 
   @type t :: %{manifest: map(), report: String.t(), sha256: String.t(), size: pos_integer()}
 
@@ -32,8 +37,9 @@ defmodule Techtree.Projects.Package do
 
   def read(bytes) do
     with {:ok, tar} <- gunzip(bytes),
-         {:ok, paths} <- paths(tar),
-         {:ok, files} <- files(tar, paths),
+         {:ok, entries} <- entries(tar),
+         {:ok, folder} <- folder(entries),
+         {:ok, files} <- files(tar, entries, folder),
          {:ok, json} <- fetch(files, "manifest.json"),
          {:ok, manifest} <- Manifest.parse(json),
          :ok <- listed(manifest["files"], Map.delete(files, "manifest.json")),
@@ -96,21 +102,21 @@ defmodule Techtree.Projects.Package do
     end
   end
 
-  # The paths of the tar's files, once each, after checking every entry.
-  defp paths(tar) do
+  # Each entry's path, as a file or a folder, after checking every entry.
+  defp entries(tar) do
     case :erl_tar.table({:binary, tar}, [:verbose]) do
       {:ok, entries} when length(entries) > @max_entries ->
         {:error, "The package holds more than 2,000 entries."}
 
       {:ok, entries} ->
-        Enum.reduce_while(entries, {:ok, MapSet.new()}, &entry/2)
+        Enum.reduce_while(entries, {:ok, %{}}, &entry/2)
 
       {:error, _reason} ->
         {:error, "The package isn't a tar file."}
     end
   end
 
-  defp entry({name, type, _size, _mtime, _mode, _uid, _gid}, {:ok, paths}) do
+  defp entry({name, type, _size, _mtime, _mode, _uid, _gid}, {:ok, entries}) do
     path = path(name)
 
     cond do
@@ -124,7 +130,7 @@ defmodule Techtree.Projects.Package do
         {:halt, {:error, "The package holds #{path}, a path that leaves the package."}}
 
       type == :directory ->
-        {:cont, {:ok, paths}}
+        {:cont, {:ok, Map.put(entries, path, :folder)}}
 
       type in [:symlink, :hard_link] ->
         {:halt, {:error, "The package holds a link, #{path}. Only files are allowed."}}
@@ -132,36 +138,71 @@ defmodule Techtree.Projects.Package do
       type != :regular ->
         {:halt, {:error, "The package holds #{path}, which isn't a file."}}
 
-      MapSet.member?(paths, path) ->
+      Map.has_key?(entries, path) ->
         {:halt, {:error, "The package holds #{path} twice."}}
 
       true ->
-        {:cont, {:ok, MapSet.put(paths, path)}}
+        {:cont, {:ok, Map.put(entries, path, :file)}}
     end
   end
 
-  # A tar made from inside a folder (`tar -C folder .`) names each file from
-  # `./`, and a folder entry may end in `/`.
+  # A folder entry's name ends in `/`.
   defp path(name) do
     case :unicode.characters_to_binary(name) do
-      path when is_binary(path) ->
-        path |> String.replace_prefix("./", "") |> String.trim_trailing("/")
-
-      _not_utf8 ->
-        nil
+      path when is_binary(path) -> String.trim_trailing(path, "/")
+      _not_utf8 -> nil
     end
   end
 
-  defp files(tar, paths) do
+  # The one folder everything sits in, with nothing beside it.
+  defp folder(entries) do
+    paths = entries |> Map.keys() |> Enum.sort()
+
+    case Enum.find(paths, &(entries[&1] == :file and top(&1) == &1)) do
+      nil ->
+        paths |> Enum.map(&top/1) |> Enum.uniq() |> one_folder()
+
+      loose ->
+        {:error,
+         "The package holds #{loose} outside a folder. Everything in it sits in one folder."}
+    end
+  end
+
+  defp one_folder([]), do: {:error, "The package is empty."}
+
+  defp one_folder([first, second | _more]) do
+    {:error,
+     "The package holds #{first} and #{second} at its top level. Everything in it sits in one folder."}
+  end
+
+  defp one_folder([folder]) do
+    if folder =~ @folder,
+      do: {:ok, folder},
+      else:
+        {:error,
+         "The package's folder is #{folder}. Its name may use only lower-case letters, digits and hyphens."}
+  end
+
+  defp top(path), do: path |> String.split("/", parts: 2) |> hd()
+
+  # Each file's bytes, by its path inside the folder.
+  defp files(tar, entries, folder) do
+    paths = for {path, :file} <- entries, into: MapSet.new(), do: path
+
     case :erl_tar.extract({:binary, tar}, [:memory]) do
       {:ok, files} ->
         files = Map.new(files, fn {name, bytes} -> {path(name), bytes} end)
-        if MapSet.equal?(MapSet.new(Map.keys(files)), paths), do: {:ok, files}, else: unreadable()
+
+        if MapSet.equal?(MapSet.new(Map.keys(files)), paths),
+          do: {:ok, Map.new(files, fn {path, bytes} -> {inside(path, folder), bytes} end)},
+          else: unreadable()
 
       {:error, _reason} ->
         unreadable()
     end
   end
+
+  defp inside(path, folder), do: String.replace_prefix(path, folder <> "/", "")
 
   defp unreadable, do: {:error, "The package's files couldn't be read."}
 

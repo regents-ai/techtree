@@ -1,16 +1,20 @@
 defmodule Techtree.Projects.PackageTest do
   # Reading a package the team uploads (`Techtree.Projects.Package`):
-  # - a package made the way the factory makes it reads, with its manifest,
-  #   report, checksum and size, for each verdict, and from a tar made inside a
-  #   folder;
+  # - a package made the way the factory makes it, one folder holding it all,
+  #   reads, with its manifest, report, checksum and size, for each verdict,
+  #   and with or without the tar's folder entries;
   # - each kind of bad package is refused, for its own reason: the archive
   #   itself (not gzip, cut short, more after it, over 5 MB, over 25 MB
-  #   unpacked, over 2,000 entries, a link, a path from the root or through
-  #   `..`, a file twice), the files against the manifest (unlisted, missing,
-  #   the wrong size or sha256), the manifest (another format or line, a key
-  #   twice, a key too many or missing, hidden characters, solved more than
-  #   attempted, files out of order) and the report (not UTF-8).
+  #   unpacked, over 2,000 entries, empty, a link, a path from the root or
+  #   through `..`, a file twice), its folder (a file or a second folder beside
+  #   it, no folder at all, a name with other than lower-case letters, digits
+  #   and hyphens), the files against the manifest (unlisted, missing, the
+  #   wrong size or sha256), the manifest (another format or line, a key twice,
+  #   a key too many or missing, hidden characters, solved more than attempted,
+  #   files out of order) and the report (not UTF-8).
   use ExUnit.Case, async: true
+
+  import Techtree.ProjectPackage, only: [at: 1]
 
   alias Techtree.ProjectPackage
   alias Techtree.Projects.Package
@@ -41,16 +45,34 @@ defmodule Techtree.Projects.PackageTest do
     end
   end
 
-  test "a tar made inside a folder, with its folders, reads" do
-    bytes =
-      ProjectPackage.build(
-        entries: fn entries ->
-          [{"./", :directory}, {"./original/", :directory}] ++
-            Enum.map(entries, fn {path, contents} -> {"./" <> path, contents} end)
-        end
-      )
+  test "a tar without its folder entries reads" do
+    bytes = ProjectPackage.build(entries: &Enum.reject(&1, fn {_path, c} -> c == :directory end))
 
     assert {:ok, %{manifest: %{"title" => "Refund routing"}}} = Package.read(bytes)
+  end
+
+  test "everything must sit in one folder, named in lower-case letters, digits and hyphens" do
+    flat = fn entries ->
+      for {path, contents} <- entries,
+          path != ProjectPackage.folder() <> "/",
+          do: {String.replace_prefix(path, ProjectPackage.folder() <> "/", ""), contents}
+    end
+
+    for {opts, reason} <- [
+          {[entries: &(&1 ++ [{"notes.md", "x"}])], "notes.md outside a folder"},
+          {[entries: &(&1 ++ [{"other/", :directory}])], "other"},
+          {[entries: &(&1 ++ [{"other/notes.md", "x"}])], "other"},
+          {[entries: flat], "manifest.json outside a folder"},
+          {[entries: &Enum.map(&1, fn {path, c} -> {"./" <> path, c} end)], "folder is ."},
+          {[folder: "Refund-routing"], "Refund-routing"},
+          {[folder: "refund_routing"], "refund_routing"},
+          {[folder: "refund routing"], "refund routing"}
+        ] do
+      assert {:error, message} = Package.read(ProjectPackage.build(opts))
+      assert message =~ reason
+    end
+
+    assert {:error, "The package is empty."} = Package.read(ProjectPackage.tar_gz([]))
   end
 
   test "an archive that isn't a whole gzipped tar is refused" do
@@ -80,24 +102,25 @@ defmodule Techtree.Projects.PackageTest do
 
   test "a package of more than 2,000 entries is refused" do
     files =
-      Map.new(1..1_993, &{"cases/final/case-#{&1}.json", "{}"})
+      Map.new(1..1_987, &{"cases/final/case-#{&1}.json", "{}"})
       |> Map.merge(ProjectPackage.files())
 
-    # Manifest, seven files and 1,993 cases: 2,001 entries.
+    # The folder and the five inside it, the manifest, seven files and 1,987
+    # cases: 2,001 entries.
     assert {:error, message} = Package.read(ProjectPackage.build(files: files))
     assert message =~ "2,000"
 
     # One fewer reads.
-    files = Map.delete(files, "cases/final/case-1993.json")
+    files = Map.delete(files, "cases/final/case-1987.json")
     assert {:ok, _package} = Package.read(ProjectPackage.build(files: files))
   end
 
   test "a link, a path from the root or through .., and a file twice are refused" do
     for {entry, reason} <- [
-          {{"original/link.md", {:symlink, "SKILL.md"}}, "a link"},
-          {{"/original/escape.md", "x"}, "/original/escape.md"},
-          {{"original/../../escape.md", "x"}, "original/../../escape.md"},
-          {{"rerun/run.sh", "again"}, "twice"}
+          {{at("original/link.md"), {:symlink, "SKILL.md"}}, "a link"},
+          {{"/" <> at("original/escape.md"), "x"}, "/" <> at("original/escape.md")},
+          {{at("original/../../escape.md"), "x"}, at("original/../../escape.md")},
+          {{at("rerun/run.sh"), "again"}, "twice"}
         ] do
       bytes = ProjectPackage.build(entries: &(&1 ++ [entry]))
 
@@ -108,8 +131,8 @@ defmodule Techtree.Projects.PackageTest do
 
   test "the files must be exactly those listed, each its size and sha256" do
     cases = [
-      {[entries: &(&1 ++ [{"original/extra.md", "x"}])], "original/extra.md"},
-      {[entries: &List.keydelete(&1, "rerun/run.sh", 0)], "rerun/run.sh"},
+      {[entries: &(&1 ++ [{at("original/extra.md"), "x"}])], "original/extra.md"},
+      {[entries: &List.keydelete(&1, at("rerun/run.sh"), 0)], "rerun/run.sh"},
       {[manifest: &listed(&1, "selected/SKILL.md", "size_bytes", 1)], "selected/SKILL.md"},
       {[manifest: &listed(&1, "selected/SKILL.md", "sha256", String.duplicate("0", 64))],
        "selected/SKILL.md"}
@@ -150,8 +173,9 @@ defmodule Techtree.Projects.PackageTest do
   test "a manifest naming a key twice is refused" do
     bytes =
       ProjectPackage.build(
-        entries: fn [{"manifest.json", "{" <> rest} | files] ->
-          [{"manifest.json", ~s({"title":"Another title",) <> rest} | files]
+        entries: fn entries ->
+          {path, "{" <> rest} = List.keyfind(entries, at("manifest.json"), 0)
+          List.keyreplace(entries, path, 0, {path, ~s({"title":"Another title",) <> rest})
         end
       )
 

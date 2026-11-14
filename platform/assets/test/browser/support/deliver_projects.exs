@@ -43,12 +43,12 @@ verdicts = %{
       "verdict" => "inconclusive",
       "cases" =>
         cases.([
-          {"invoice-1", 1, 3},
-          {"invoice-2", 2, 3},
-          {"invoice-3", 3, 2},
-          {"invoice-4", 1, 1},
-          {"invoice-5", 2, 2},
-          {"invoice-6", 1, 1}
+          {"invoice-from-a-new-supplier", 1, 3},
+          {"credit-note-against-an-invoice-paid-last-year", 2, 3},
+          {"invoice-in-two-currencies", 3, 2},
+          {"duplicate-invoice", 1, 1},
+          {"invoice-without-a-purchase-order", 2, 2},
+          {"scanned-invoice", 1, 1}
         ]),
       "selection" => [
         candidate.("original", 10, 18, false, false),
@@ -107,6 +107,13 @@ reports = %{
 
   The selected Skill solved **12 of 18** final attempts, against 10 of 18 before.
   A difference this size can come from chance, and one case got worse.
+
+  | Case | Original | Selected | What changed |
+  | --- | --- | --- | --- |
+  | credit-note-against-an-invoice-paid-last-year | 2 of 3 | 3 of 3 | It now finds the paid invoice before routing the credit note. |
+  | invoice-in-two-currencies | 3 of 3 | 2 of 3 | It sometimes sends the invoice to the queue of its second currency. |
+
+  > Chance level 0.05; the final test's p-value was 0.31, so the difference is within chance.
   """,
   "not_improved" => """
   # Contract clause review

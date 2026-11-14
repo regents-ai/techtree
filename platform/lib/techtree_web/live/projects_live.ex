@@ -263,11 +263,11 @@ defmodule TechtreeWeb.ProjectsLive do
           </dd>
         </div>
         <div :if={@manifest["setup"]["limits"] != %{}}>
-          <dt>Limits</dt>
+          <dt>Settings</dt>
           <dd>
             <ul class="project-plain-list">
               <li :for={{name, value} <- Enum.sort(@manifest["setup"]["limits"])}>
-                {limit_name(name)}: {value}
+                {setting(name, value)}
               </li>
             </ul>
           </dd>
@@ -422,7 +422,16 @@ defmodule TechtreeWeb.ProjectsLive do
   defp candidate_name("rewrite"), do: "Rewrite"
   defp candidate_name("skillopt"), do: "SkillOpt"
 
-  defp limit_name(name), do: name |> String.replace("_", " ") |> String.capitalize()
+  # A setting as a person reads it: `max_turns` 1 is "Max turns: 1", and a
+  # count of seconds says so, `time_limit_seconds` 480 being "Time limit: 480 seconds".
+  defp setting(name, value) do
+    case String.replace_suffix(name, "_seconds", "") do
+      ^name -> "#{words(name)}: #{value}"
+      base -> "#{words(base)}: #{value} seconds"
+    end
+  end
+
+  defp words(name), do: name |> String.replace("_", " ") |> String.capitalize()
 
   defp split(split),
     do:
