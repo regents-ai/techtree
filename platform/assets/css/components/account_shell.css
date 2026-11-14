@@ -163,7 +163,7 @@
      scrolls sideways, and its right edge fades while there is more to see. */
   .account-shell__tabs {
     flex-wrap: nowrap; gap: 0; max-width: 100%; overflow-x: auto;
-    mask-image: linear-gradient(to right, #000 calc(100% - var(--account-tabs-fade)), transparent);
+    mask-image: linear-gradient(to right in oklch, #000 calc(100% - var(--account-tabs-fade)), rgb(0 0 0 / 0));
     animation: account-tabs-fade linear both;
     animation-timeline: scroll(self inline);
   }

@@ -52,6 +52,12 @@
   sits as a small tag on the edge of New site, so nothing on the page moves when
   it comes or goes. It rises in, and fades out when a site you typed is refused;
   with less motion it is simply there.
+- **Points.** When points land while your Points page is open, the digits of
+  your total that changed roll into place, last digit first, and nothing around
+  the total moves. The total never rolls as the page opens or when it comes back
+  after losing its connection; with less motion the new total is simply there.
+- **Buttons.** In light, the main buttons, such as Sign in and Copy page, are now
+  dark with lime words.
 
 ### Fixed
 
@@ -69,6 +75,8 @@
 - **Your sites.** A site you remove now fades out while the sites below it close
   the gap; it had been vanishing at once. While it fades, nothing in it can be
   pressed or reached with the keyboard.
+- **Points.** On a phone, the You tag on your own row of the leaderboard no
+  longer runs into your points.
 
 ## Website (2026-11-12)
 

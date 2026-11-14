@@ -15,8 +15,8 @@
   margin-inline: calc(-1 * var(--rg-panel-padding));
   padding: clamp(3rem, 8vh, 5.5rem) var(--rg-panel-padding);
   background:
-    radial-gradient(60% 90% at 100% 0%, rgb(47 168 102 / .18), transparent 70%),
-    radial-gradient(circle, rgb(200 242 92 / .09) 0 1px, transparent 1.5px) 0 0 / 9px 9px,
+    radial-gradient(60% 90% at 100% 0% in oklch, rgb(47 168 102 / .18), rgb(47 168 102 / 0) 70%),
+    radial-gradient(circle in oklch, rgb(200 242 92 / .09) 0 1px, rgb(200 242 92 / 0) 1.5px) 0 0 / 9px 9px,
     var(--color-bg);
 }
 .mk-opening--picture { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }

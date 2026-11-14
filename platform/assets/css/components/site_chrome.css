@@ -102,8 +102,8 @@ html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
 .menu-columns__title::before, .regent-footer__title::before {
   content: ""; width: 9px; height: 9px; flex: 0 0 auto;
   background:
-    linear-gradient(currentColor 0 0) center / 100% 1px no-repeat,
-    linear-gradient(currentColor 0 0) center / 1px 100% no-repeat;
+    linear-gradient(in oklch, currentColor 0 0) center / 100% 1px no-repeat,
+    linear-gradient(in oklch, currentColor 0 0) center / 1px 100% no-repeat;
 }
 .menu-page {
   display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); column-gap: var(--space-2); align-items: center;

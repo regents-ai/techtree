@@ -43,9 +43,15 @@ defmodule TechtreeWeb.AccountShellLive do
     message: "That connection couldn’t be updated. Refresh the page and try again."
   }
 
+  # The Points total rolls only for a change made after this connection's first
+  # render (`:points_rolls`), so a total that changed while the page was away,
+  # before a reconnect, is simply there.
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket), do: subscribe_to_own_topics(socket.assigns.access_context)
+    if connected?(socket) do
+      subscribe_to_own_topics(socket.assigns.access_context)
+      send(self(), :points_rolls)
+    end
 
     {:ok,
      socket
@@ -57,6 +63,7 @@ defmodule TechtreeWeb.AccountShellLive do
        points_bonus: %Read{},
        points_board: %Read{},
        points_earning: [],
+       points_rolls?: false,
        verified_connections_notice: nil,
        connection_outcome: nil
      )}
@@ -128,6 +135,8 @@ defmodule TechtreeWeb.AccountShellLive do
 
   def handle_info({:shared_reading, {:points_board, _program}}, socket), do: {:noreply, socket}
 
+  def handle_info(:points_rolls, socket), do: {:noreply, assign(socket, points_rolls?: true)}
+
   # An agent paired, checked in or was unpaired, here or on another Regent site.
   # The Agents tab lists the agents; the account menu and the pairing window
   # follow on their own.
@@ -187,6 +196,7 @@ defmodule TechtreeWeb.AccountShellLive do
             board={@points_board}
             bonus={@points_bonus}
             earning={@points_earning}
+            rolls?={@points_rolls?}
           />
           <AccountLive.wallets
             :if={@route_spec.route_id == :wallets}

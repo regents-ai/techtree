@@ -89,8 +89,10 @@ const worth = (text: string) => Number(text.replace(/[^\d.]/g, ""))
 // a figure with a unit such as "12.5 USDC" lines up digit for digit.
 const glyphs = (figure: HTMLElement) => (figure.textContent ?? "").replace(/\s/g, "")
 
-// The figures inside a part of the page, each marked `data-count`.
-const figures = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>("[data-count]")]
+// The figures a hook moves, each marked `data-count`: the hook's own element when
+// it is the figure, such as the Points total's, or else the figures inside it.
+const figures = (root: HTMLElement) =>
+  root.matches("[data-count]") ? [root] : [...root.querySelectorAll<HTMLElement>("[data-count]")]
 
 type CountHook = {el: HTMLElement; scope?: Scope; before?: string[]; splits: Set<TextSplitter>}
 
@@ -152,6 +154,8 @@ export const countHook = (rolls: Record<string, Roll>): Hook => ({
     this.scope?.revert()
   },
 })
+
+export const MotionCount = countHook(ROLLS)
 
 type RefusalHook = {el: HTMLElement; scope?: Scope; said?: string}
 

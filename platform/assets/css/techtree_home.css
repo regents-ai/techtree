@@ -40,8 +40,8 @@
   .mk-section::before, .mk-section::after {
     content: ""; position: absolute; top: -5px; width: 9px; height: 9px;
     background:
-      linear-gradient(var(--color-fg-muted) 0 0) center / 100% 1px no-repeat,
-      linear-gradient(var(--color-fg-muted) 0 0) center / 1px 100% no-repeat;
+      linear-gradient(in oklch, var(--color-fg-muted) 0 0) center / 100% 1px no-repeat,
+      linear-gradient(in oklch, var(--color-fg-muted) 0 0) center / 1px 100% no-repeat;
   }
   .mk-section::before { left: -5px; }
   .mk-section::after { right: -5px; }
@@ -56,8 +56,8 @@
 .mk-eyebrow::before {
   content: ""; width: 9px; height: 9px; flex: 0 0 auto;
   background:
-    linear-gradient(currentColor 0 0) center / 100% 1px no-repeat,
-    linear-gradient(currentColor 0 0) center / 1px 100% no-repeat;
+    linear-gradient(in oklch, currentColor 0 0) center / 100% 1px no-repeat,
+    linear-gradient(in oklch, currentColor 0 0) center / 1px 100% no-repeat;
 }
 .mk-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); }
 
@@ -72,33 +72,33 @@
 .mk-field--screen { --field-ground: #0F1A14; --field-ink: #C8F25C; --field-glow: #2FA866; }
 .mk-field--glow .mk-field__still {
   background:
-    radial-gradient(40% 60% at 80% 14%, color-mix(in srgb, var(--field-glow) 42%, transparent), transparent 70%),
-    radial-gradient(36% 50% at 10% 78%, color-mix(in srgb, var(--field-ink) 16%, transparent), transparent 70%),
-    radial-gradient(circle, color-mix(in srgb, var(--field-ink) 20%, transparent) 0 1px, transparent 1.5px) 0 0 / 7px 7px,
+    radial-gradient(40% 60% at 80% 14% in oklch, color-mix(in srgb, var(--field-glow) 42%, transparent), oklch(from var(--field-glow) l c h / 0) 70%),
+    radial-gradient(36% 50% at 10% 78% in oklch, color-mix(in srgb, var(--field-ink) 16%, transparent), oklch(from var(--field-ink) l c h / 0) 70%),
+    radial-gradient(circle in oklch, color-mix(in srgb, var(--field-ink) 20%, transparent) 0 1px, oklch(from var(--field-ink) l c h / 0) 1.5px) 0 0 / 7px 7px,
     var(--field-ground);
 }
 .mk-field--mark .mk-field__still {
   background:
-    radial-gradient(50% 70% at 76% 50%, color-mix(in srgb, var(--field-glow) 22%, transparent), transparent 72%),
-    radial-gradient(circle, color-mix(in srgb, var(--field-ink) 30%, transparent) 0 1.2px, transparent 1.7px) 0 0 / 10px 10px,
+    radial-gradient(50% 70% at 76% 50% in oklch, color-mix(in srgb, var(--field-glow) 22%, transparent), oklch(from var(--field-glow) l c h / 0) 72%),
+    radial-gradient(circle in oklch, color-mix(in srgb, var(--field-ink) 30%, transparent) 0 1.2px, oklch(from var(--field-ink) l c h / 0) 1.7px) 0 0 / 10px 10px,
     var(--field-ground);
 }
 .mk-field--screen .mk-field__still {
   display: grid; place-items: center;
   background:
-    radial-gradient(circle, color-mix(in srgb, var(--field-ink) 30%, transparent) 0 1.3px, transparent 1.8px) 0 0 / 9px 9px,
+    radial-gradient(circle in oklch, color-mix(in srgb, var(--field-ink) 30%, transparent) 0 1.3px, oklch(from var(--field-ink) l c h / 0) 1.8px) 0 0 / 9px 9px,
     var(--field-ground);
 }
 .mk-field--backdrop .mk-field__still {
   background:
-    repeating-radial-gradient(circle at 72% 24%, transparent 0 22px, color-mix(in srgb, var(--field-ink) 26%, transparent) 22px 23px),
+    repeating-radial-gradient(circle at 72% 24% in oklch, oklch(from var(--field-ink) l c h / 0) 0 22px, color-mix(in srgb, var(--field-ink) 26%, transparent) 22px 23px),
     var(--field-ground);
 }
 /* Behind words, a darker middle keeps them easy to read over the picture. */
 .mk-hero__field::after, .mk-band__field::after, .mk-closing__field::after { content: ""; position: absolute; inset: 0; }
-.mk-hero__field::after { background: radial-gradient(72% 64% at 50% 42%, rgb(13 22 17 / .92), rgb(13 22 17 / .62) 72%, transparent); }
-.mk-band__field::after { background: linear-gradient(90deg, rgb(13 22 17 / .9) 30%, rgb(13 22 17 / .2)); }
-.mk-closing__field::after { background: radial-gradient(60% 70% at 50% 50%, rgb(13 22 17 / .82), rgb(13 22 17 / .3)); }
+.mk-hero__field::after { background: radial-gradient(72% 64% at 50% 42% in oklch, rgb(13 22 17 / .92), rgb(13 22 17 / .62) 72%, rgb(13 22 17 / 0)); }
+.mk-band__field::after { background: linear-gradient(90deg in oklch, rgb(13 22 17 / .9) 30%, rgb(13 22 17 / .2)); }
+.mk-closing__field::after { background: radial-gradient(60% 70% at 50% 50% in oklch, rgb(13 22 17 / .82), rgb(13 22 17 / .3)); }
 .mk-hero__field, .mk-band__field, .mk-closing__field, .mk-service__field { position: absolute; inset: 0; }
 
 /* The opening. */
@@ -141,7 +141,7 @@
 .mk-service__words {
   position: relative; display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; gap: var(--space-2); width: 100%;
   padding: var(--space-6) var(--space-3) var(--space-3);
-  background: linear-gradient(to top, var(--mk-service-ground) 55%, transparent);
+  background: linear-gradient(to top in oklch, var(--mk-service-ground) 55%, oklch(from var(--mk-service-ground) l c h / 0));
 }
 .mk-service .mk-service__words h3 { font-size: clamp(1.625rem, 2.2vw, 2.25rem); line-height: 1.05; letter-spacing: -.035em; overflow-wrap: break-word; align-self: end; }
 .mk-service__words p { max-width: 20rem; margin-top: 0; }

@@ -3,6 +3,8 @@ defmodule TechtreeWeb.PointsLive do
   Private Account Points presentation: the total, the actions left, the
   leaderboard, the NFT bonus added at the end of each 30-day period, and the
   activity. The pieces are `Regent.Points`; this page supplies their words.
+  The total's figure rolls (`MotionCount`) when it changes while the page is
+  open; it never rolls as the page opens or out of "…" or "–".
   """
   use TechtreeWeb, :html
   import TechtreeWeb.Components.AccountControls, only: [account_picture: 1]
@@ -22,6 +24,10 @@ defmodule TechtreeWeb.PointsLive do
     doc: "the NFT tier the account's wallets hold now"
 
   attr :earning, :list, required: true, doc: "the catalog rules earning now"
+
+  attr :rolls?, :boolean,
+    required: true,
+    doc: "true once this connection's first render is on the page; from then on the total rolls"
 
   def page(assigns) do
     open? = assigns.earning != []
@@ -69,6 +75,8 @@ defmodule TechtreeWeb.PointsLive do
             rank={@places && @places.rank && to_string(@places.rank)}
             pending={if @summary, do: @summary.pending, else: 0}
             state={state(@points)}
+            phx-hook={@rolls? && "MotionCount"}
+            data-variant={TechtreeWeb.Motion.standard("count")}
           >
             A record of everything you and your agents do across Regents. One total, on every site.
           </Regent.Points.total>
