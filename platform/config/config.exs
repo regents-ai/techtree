@@ -248,11 +248,13 @@ config :techtree, :behind_fly_proxy, false
 config :techtree, :name_first, :chosen
 
 # A message for the team (`Techtree.Messages`): 10 an hour from each sender and
-# 30 an hour from each client address.
+# 30 an hour from each client address. An enquiry from the contact form: 5 an
+# hour from each client address.
 config :techtree, :limits,
   wallet_read: [limit: 30, window_seconds: 60],
   message: [limit: 10, window_seconds: 3600],
-  message_address: [limit: 30, window_seconds: 3600]
+  message_address: [limit: 30, window_seconds: 3600],
+  enquiry_address: [limit: 5, window_seconds: 3600]
 
 config :techtree, :chain_nodes, %{8453 => "https://mainnet.base.org"}
 

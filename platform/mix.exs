@@ -238,8 +238,9 @@ defmodule Techtree.MixProject do
       # tool-argument check, and the MCP plug keys its rate limits by client
       # address. Messages for the team take it to 34: the messages domain reads
       # its Message resource, and that resource the module that runs its
-      # agent_leave action. Keep this floor bounded.
-      "xref graph --label compile-connected --fail-above 34",
+      # agent_leave action. The contact form's enquiries take it to 35: the
+      # messages domain reads its Enquiry resource. Keep this floor bounded.
+      "xref graph --label compile-connected --fail-above 35",
       "ash.codegen --check",
       "usage_rules.sync --check",
       "cmd --cd assets npm run typecheck",
