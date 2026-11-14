@@ -28,34 +28,38 @@ Each service is a paid project around one of your workflows, quoted on a call.
 
 ### Skills
 
-Bring an existing Skill, the agent and model that use it, and examples of work it got
-right and wrong. You receive the revised Skill, instructions to install it, and a
-report on success, cost and regressions.
+Bring your Skill, the agent and model that use it, real examples of the work, and the
+failures you already know about. You receive the original Skill and the revised one,
+a before-and-after report on cost, new mistakes and how sure the result is, the exact
+setup it ran on, and one command that reruns it.
 [How it works](factory/skills/README.md) · [techtree.sh](https://techtree.sh/services/skills)
 
 ### Evals
 
-Bring a workflow, representative examples, the failures you already know about and
-your definition of success, or an eval you already have. You receive reviewed test
-cases, graders, baseline results, an analysis of the failures, and one command that
-reruns the suite.
+Bring the job, with examples of good work and bad, or an eval you already have. You
+receive reviewed test cases, scoring for every case, scores for what you run today,
+an analysis of the failures, and one command that reruns the whole test.
 [How it works](factory/evals/README.md) · [techtree.sh](https://techtree.sh/services/evals)
 
 ### Environments
 
-Bring a Skill, a repository or a description of your workflow and its tools, or an
-environment you already have. You receive a resettable environment with realistic
-tasks, their tools and fixtures, reference solutions, scoring, and entry points for
-evaluation and training.
+Bring the workflow, a Skill or a repository, or an environment you already have. You
+receive an environment that resets between runs, realistic tasks with their tools and
+sample data, a worked solution for each task, scoring, and ready-made commands to
+test agents on it and to train them.
 [How it works](factory/environments/README.md) · [techtree.sh](https://techtree.sh/services/environments)
 
 ### Models
 
-Bring the one task you repeat, real inputs with the outputs you accepted, and what
-you run today with its cost. You receive a smaller model as a checkpoint or adapter,
-its training recipe, an evaluation package you can rerun, a deployment handover, and
-a comparison with your current model that includes the cost per successful task.
+Bring the work you repeat, with real examples, and what you run today with its cost.
+You receive the trained model files, the training recipe, a test package you can
+rerun, help putting the model into service, and a comparison with the original model
+that includes the cost per successful task.
 [How it works](factory/models/README.md) · [techtree.sh](https://techtree.sh/services/models)
+
+Each page lays out the service's steps in full. A step that runs a library, and the
+library itself, is marked **Tested** (we have run it ourselves) or **Planned** (part
+of the design, not yet run).
 
 ### Security
 
@@ -80,32 +84,34 @@ documentation), and what it gives you.
 
 | Library | Service | What it does | Why we chose it | What you get | Status |
 | --- | --- | --- | --- | --- | --- |
-| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | All four | Defines tasks, runs them and scores them. | One environment serves both evaluation and training, and it works with prime-rl and the Environments Hub. | The final test and any training share one task definition. | Runs here today |
-| Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Evals, Models | Runs supervised fine-tuning, reinforcement learning and evaluation. | It covers post-training end to end, reads Verifiers environments natively, and scales to 1000+ GPUs. | A training recipe you can run again at a larger scale. | Used in delivery |
-| Prime Intellect's [Environments Hub](https://app.primeintellect.ai/dashboard/environments) | Environments | Hosts Verifiers environments for others to install. | Verifiers and prime-rl both load environments from it. | Your environment, ready to publish at a pinned version if you choose to. | Runs here today |
-| NVIDIA's [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Skills | Checks a Skill and measures its effect on task results. | Its static check needs no API key, GPU or Docker, so problems show up before any paid run. | A Skill checked for safety and form, then measured with the agent. | Used in delivery |
-| NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env) | Environments | Turns an Agent Skill into terminal tasks. | Its tasks come out ready for reinforcement learning, in Harbor's task format. | Practice tasks drawn from your own Skill. | Runs here today |
-| NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw) | Models (optional) | Runs supported agents, Hermes among them, inside NVIDIA OpenShell sandboxes. | It adds network policy and egress control around the agent. | An agent that runs only under the rules you set. | Used in delivery |
-| NVIDIA's [NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Any (optional) | Records an agent's model calls, tool calls and turns during a run. | It wraps the calls without rewriting the agent, and exports trajectories or OpenTelemetry traces. | A record of what the agent did, kept as supporting evidence beside the score. | Used in delivery |
-| NVIDIA's [NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Any (optional) | Runs many agent harnesses through one interface. | It has adapters for 17 harnesses, Claude Code, Codex and Hermes Agent among them, with models, tools and Skills configured the same way. | Your own agent, tested under the same settings as the others. | Used in delivery |
-| NVIDIA's [Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/) | Models | A family of open models built for agents. | NVIDIA publishes the weights and the training data on Hugging Face. | A small open model you can host yourself. | Runs here today |
-| Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt) | Skills | Rewrites a Skill's instructions from scored attempts while the model stays fixed. | It keeps an edit only when the edit raises a held-out validation score. | A compact revised Skill document. | Used in delivery |
-| Hugging Face's [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Environments | Turns a repository into verifiable environments for coding agents. | It builds tasks from material that already exists: merged pull requests, commit history, security advisories and recorded agent sessions. | Practice tasks from your own code history. | Used in delivery |
-| Nous Research's [Hermes](https://github.com/NousResearch/hermes-agent) | Skills | An open agent that creates and improves Skills as it works. | Its Skills follow the agentskills.io open standard. | The agent every Climb evaluates, and the host the [plugin](plugin/) adds Techtree to. | Runs here today |
-| [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Evals, Environments | Evaluates agents in containers and generates rollouts for reinforcement learning. | One task format serves evaluation and training, for agents such as Claude Code, OpenHands and Codex CLI. | Tasks that need a working software environment, packaged so other tools can run them. | Used in delivery |
-| [OpenEnv](https://github.com/openenv/OpenEnv), from its technical committee | Environments | Builds isolated environments for agent reinforcement learning, with a Gymnasium-style interface. | Twelve organizations steer its interface together, NVIDIA, Prime Intellect and Hugging Face among them. | An OpenEnv environment you already have, reviewed for reuse instead of rebuilt. | Used in delivery |
+| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | All four | Defines tasks, runs them and scores them. | One environment serves both evaluation and training, and it works with prime-rl and the Environments Hub. | The final test and any training share one task definition. | Tested |
+| Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Evals, Models | Runs supervised fine-tuning, reinforcement learning and evaluation. | It covers post-training end to end, reads Verifiers environments natively, and scales to 1000+ GPUs. | A training recipe you can run again at a larger scale. | Planned |
+| Prime Intellect's [Environments Hub](https://app.primeintellect.ai/dashboard/environments) | Environments | Hosts Verifiers environments for others to install. | Verifiers and prime-rl both load environments from it. | Your environment, ready to publish at a pinned version if you choose to. Publishing yours there is planned. | Tested |
+| NVIDIA's [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Skills | Checks a Skill and measures its effect on task results. | Its static check needs no API key, GPU or Docker, so problems show up before any paid run. | A Skill checked for safety and form, then measured with the agent. | Tested |
+| NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env) | Environments | Turns an Agent Skill into terminal tasks. | Its tasks come out ready for reinforcement learning, in Harbor's task format. | Practice tasks drawn from your own Skill. | Planned |
+| NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw) | Models (optional) | Runs supported agents, Hermes among them, inside NVIDIA OpenShell sandboxes. | It adds network policy and egress control around the agent. | An agent that runs only under the rules you set. | Planned |
+| NVIDIA's [NeMo Relay](https://github.com/NVIDIA/NeMo-Relay) | Any (optional) | Records an agent's model calls, tool calls and turns during a run. | It wraps the calls without rewriting the agent, and exports trajectories or OpenTelemetry traces. | A record of what the agent did, kept as supporting evidence beside the score. | Planned |
+| NVIDIA's [NeMo Fabric](https://github.com/NVIDIA/NeMo-Fabric) | Any (optional) | Runs many agent harnesses through one interface. | It has adapters for 17 harnesses, Claude Code, Codex and Hermes Agent among them, with models, tools and Skills configured the same way. | Your own agent, tested under the same settings as the others. | Planned |
+| NVIDIA's [Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/) | Models | A family of open models built for agents. | NVIDIA publishes the weights and the training data on Hugging Face. | A small open model you can host yourself. | Tested |
+| Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt) | Skills | Rewrites a Skill's instructions from scored attempts while the model stays fixed. | It keeps an edit only when the edit raises the score on cases set aside for checking. | A compact revised Skill document. | Tested |
+| Hugging Face's [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Environments | Turns a repository into verifiable environments for coding agents. | It builds tasks from material that already exists: merged pull requests, commit history, security advisories and recorded agent sessions. | Practice tasks from your own code history. | Planned |
+| Nous Research's [Hermes](https://github.com/NousResearch/hermes-agent) | Skills | An open agent that creates and improves Skills as it works. | Its Skills follow the agentskills.io open standard. | The agent every Climb evaluates, and the host the [plugin](plugin/) adds Techtree to. | Tested |
+| [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Evals, Environments | Evaluates agents in containers and generates rollouts for reinforcement learning. | One task format serves evaluation and training, for agents such as Claude Code, OpenHands and Codex CLI. | Tasks that need a working software environment, packaged so other tools can run them. | Tested |
+| [OpenEnv](https://github.com/openenv/OpenEnv), from its technical committee | Environments | Builds isolated environments for agent reinforcement learning, with a Gymnasium-style interface. | Twelve organizations steer its interface together, NVIDIA, Prime Intellect and Hugging Face among them. | An OpenEnv environment you already have, reviewed for reuse instead of rebuilt. | Planned |
 
-**Runs here today** means this repository, with the public
+**Tested** means we have run it ourselves. **Planned** means it is part of the
+design, not yet run.
+
+This repository, with the public
 [regents-cli](https://github.com/regents-ai/regents-cli) command line it installs,
-uses it now. **Used in delivery** means it is part of how a paid project is done and
-does not run from this repository.
+runs some of them today:
 
 - Prime Intellect's Verifiers runs every Climb and the [`lab/`](lab/) comparison.
 - The Environments Hub supplies the HF Tasksmith Climb's environment, pinned by
   digest.
 - The experimental `regents techtree forge` builder follows Skill2Env's task layout
-  and adapts its planning and building steps, pinned to one revision. Skill2Env's own
-  generator is used in delivery.
+  and adapts its planning and building steps, pinned to one revision. Using
+  Skill2Env's own generator on a project is planned.
 - [`lab/`](lab/) compares NVIDIA Nemotron 3 Nano 4B without and with a Skill, and
   writes a training settings file for Nemotron 3 Nano 30B-A3B in prime-rl's shape.
   No training run starts from this repository.
@@ -113,26 +119,31 @@ does not run from this repository.
 
 ## Method
 
-Every project follows one chain:
+Every project runs in the same six steps:
 
-1. You show us examples of the work: real inputs, accepted outputs and the failures
-   you know about.
-2. We agree in writing what success means before anything changes.
-3. We measure a baseline: what you run today, and a cheaper option where one exists.
-4. We make one bounded improvement: a Skill, an eval, an environment or a model.
-5. We run a final test on cases the work never saw, with everything else held fixed.
-6. You receive the deliverable, a report, and the command that reruns the test.
+1. **Intake**: You bring real examples of the work, and the failures you already know
+   about.
+2. **Success**: We agree what better means, how it is scored and the budget cap,
+   before anything runs.
+3. **Baseline**: We measure what you run today, several times over, and set the cases
+   for the final test aside.
+4. **Improve**: We make one change, to a Skill, an eval, an environment or a model,
+   within the limits agreed up front.
+5. **Final test**: One run on cases the work never saw, with everything else held
+   fixed, so the difference is the change.
+6. **Handover**: You keep the result, a report of what changed and what it costs to
+   run, and one command that reruns the test.
 
-Along the way we turn your workflow into tasks, environments, evals and reward
-signals, and we build each piece so your team can run, inspect and extend it. Every
-experimental choice goes in the report: the model and its settings, the cases held
-back, and every score.
+Each service's page in [`factory/`](factory/README.md) lays out its own steps in full.
+Along the way we turn your workflow into tasks, environments, evals and scoring, and
+we build each piece so your team can run, inspect and extend it. Every choice goes in
+the report: the model and its settings, the cases set aside, and every score.
 
 Three rules hold on every project:
 
 - We say whether a gain came from the change under test or from something else, such
-  as the data, the harness, inference settings or infrastructure. Everything except
-  the change is held fixed, so the comparison can tell them apart.
+  as the data, the agent around the model, its settings or the machines it ran on.
+  Everything except the change is held fixed, so the comparison can tell them apart.
 - A result with no improvement is still delivered, with the reason.
 - Results from our own runs are a Techtree-run evaluation, not an independent audit.
 
@@ -140,9 +151,9 @@ Three rules hold on every project:
 
 | Service | Outcome |
 | --- | --- |
-| Skills | A revised Skill, with a before and after on unseen cases that counts cost and regressions. Sometimes the finding is that the Skill was not the problem, and the report says what was. |
-| Evals | A suite that catches the failures you already know about and scores the same work the same way twice. A stricter suite can lower your pass rate, because it stops counting answers that only looked right. |
-| Environments | Resettable practice tasks whose tests accept good work and reject bad work, each checked against a reference solution and a deliberately wrong one. |
+| Skills | A revised Skill, with a before and after on unseen cases that counts cost and new mistakes. Sometimes the finding is that the Skill was not the problem, and the report says what was. |
+| Evals | A test that catches the failures you already know about and scores the same work the same way twice. A stricter test can lower your pass rate, because it stops counting answers that only looked right. |
+| Environments | Practice tasks that reset between runs, whose tests pass good work and fail bad work, each checked against a worked solution and a deliberately wrong one. |
 | Models | A smaller specialist measured against what you run today, counting hosting, retries, response time and running cost, or a clear reason not to train. |
 
 The [published example](#results) below shows the shape of a result. One example is
@@ -231,7 +242,7 @@ does not prove.
 
 | Folder | Holds |
 | --- | --- |
-| [`factory/`](factory/README.md) | One page per service: what you bring and receive, the libraries, what runs here, and the limits. |
+| [`factory/`](factory/README.md) | One page per service: its steps, what you receive, the libraries with their status, what runs here, and the limits. |
 | [`plugin/`](plugin/README.md) | The Hermes plugin that runs Techtree from a conversation. |
 | [`cli/`](cli/COMMANDS.md) | The descriptions of every `regents techtree` command. The command line itself is [regents-cli](https://github.com/regents-ai/regents-cli). |
 | [`lab/`](lab/README.md) | The Nemotron comparison and the training settings file. |

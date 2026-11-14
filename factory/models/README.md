@@ -6,38 +6,40 @@ model, the evaluation and the evidence behind the decision.
 
 [techtree.sh/services/models](https://techtree.sh/services/models)
 
-## You bring
+## Process
 
-- One repeated task, not a whole field: "classify a failed integration and pick the
-  supported recovery step", not "technical support".
-- Real inputs, and the outputs you accepted.
-- What you run today, and what it costs.
+Tested: we have run it ourselves. Planned: part of the design, not yet run.
 
-## We do
-
-- We use Prime Intellect's prime-rl for supervised fine-tuning, and for reinforcement
-  learning when a project calls for it.
-- We use Prime Intellect's Verifiers so that training and the final test share the
-  same task definitions.
-- When a project needs it, we use NVIDIA's NemoClaw to run supported agents inside
-  OpenShell, under the rules you set.
+1. **Intake**: You bring the work you repeat, with real examples: one task, such as
+   "classify a failed integration and pick the supported recovery step", not a whole
+   field.
+2. **Qualify** (Tested): We check whether a smaller model is right for this, and try
+   a cheaper existing model first.
+3. **Success**: We agree the target, and split your examples once: some for
+   training, and a set the model never sees.
+4. **Baseline** (Tested): We measure the small model and your current model with
+   Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers)
+   before any training.
+5. **Plan** (Tested): We write a training plan in prime-rl's format, with its cost,
+   for your approval. Nothing trains without it.
+6. **Training** (Planned): Prime Intellect's
+   [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) trains the model on your
+   accepted examples, then on scored practice when the project calls for it.
+7. **Final test** (Planned): We test the trained model against the original on the
+   unseen set, including the cost per successful task.
+8. **Handover** (Planned): You receive everything below, with help putting the model
+   into service. When agents need to run under rules you set, we run them inside
+   OpenShell with NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw).
 
 ## You receive
 
-- A checkpoint or adapter.
+- The trained model files.
 - The training recipe.
-- An evaluation package you can rerun.
-- A deployment handover.
+- A test package you can rerun.
+- Help putting the model into service.
 - A comparison with the original model, including the cost per successful task.
 
-## Stages
-
-| Stage | We do | You get |
-| --- | --- | --- |
-| Qualify | We define the task, the data permissions, the quality bar, the current cost and the limits on where the model can run. | A scoped experiment and an approved budget, or a clear reason not to train. |
-| Baseline | We test what you run today and an inexpensive existing model, then freeze the test and the cases it holds back. | You learn whether training looks necessary at all. |
-| Candidate | We curate examples and run one bounded training recipe. | A versioned adapter or checkpoint, with its training record. |
-| Handover | We test on unseen cases, measure the model as it would be served, and run it beside your current service in a trial you approve. | The model files, the evaluation package, a cost report, its known limits, and how to switch to it or back. |
+All of it is yours to keep and rerun.
 
 ## Comparisons
 
@@ -45,17 +47,19 @@ Two questions, and we report them separately.
 
 | Comparison | Question | Answered by |
 | --- | --- | --- |
-| Training | Did training improve the model? | The small base model against its trained version, on the same task and the same test. |
+| Training | Did training improve the model? | The small model before and after training, on the same task and the same test. |
 | Replacement | Should you replace what you run today? | Your current service against the proposed one, counting hosting, retries, response time and running cost. |
 
 ## Libraries
 
+Tested: we have run it ourselves. Planned: part of the design, not yet run.
+
 | Library | Job here | License | Status |
 | --- | --- | --- | --- |
-| Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Runs supervised fine-tuning and reinforcement learning, on the same Verifiers environments the test uses. | Apache-2.0 | Used in delivery |
-| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Holds the same task definitions for training and for the test. | MIT | Runs here today |
-| NVIDIA's [Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/) | Open models, with weights and training data published on Hugging Face, that a small specialist can start from. | See each model's card | Runs here today |
-| NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw) | Optional, when a project needs it: runs supported agents inside OpenShell, under the network rules you set. | Apache-2.0 | Used in delivery |
+| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Holds the tasks that training and the final test share. | MIT | Tested |
+| NVIDIA's [Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/) | Open models, with weights and training data published on Hugging Face, that a small specialist can start from. | See each model's card | Tested |
+| Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Trains the model on your accepted examples, then on scored practice, on the same Verifiers environments the test uses. | Apache-2.0 | Planned |
+| NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw) | Optional, when a project needs it: runs supported agents inside OpenShell, under the network rules you set. | Apache-2.0 | Planned |
 
 ## Run it
 
@@ -84,22 +88,16 @@ learning on NVIDIA Nemotron 3 Nano 30B-A3B for 50 steps on the train split, in
 prime-rl's shape, with the 64 held-out tasks measured before the first step and after
 the last. It only writes the file. No training run starts from this repository.
 
-## Delivery
-
-Project work runs in Techtree's private delivery system. What you receive is yours to
-keep and rerun: the model files, the training recipe, the evaluation package, the
-cost report, and the command that reruns the final test.
-
 ## Limits
 
 - Before training, we try a cheaper existing model and a better prompt or Skill. If
   that gets the saving, we say so.
 - A candidate that falls short still gives you a paid, useful answer: whether the
-  blocker is the data, an unclear task, model size, running cost or regressions.
+  blocker is the data, an unclear task, model size, running cost or new mistakes.
 - The figure we report is the total running cost per accepted outcome, at a quality
   level we agree. The one-time training cost is shown separately.
-- We start with supervised fine-tuning on accepted examples, and add reinforcement
-  learning when there is a reward we have validated.
+- Training starts on your accepted examples. Scored practice comes next, once we have
+  checked the scoring.
 - Results from our own runs are labelled a Techtree-run evaluation, not an
   independent audit.
 

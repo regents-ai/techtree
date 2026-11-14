@@ -1,45 +1,52 @@
 # Environments
 
 Turn your workflow into repeatable practice for agents. We generate realistic tasks
-from your Skill, repository or workflow, and check that each task's tests accept good
-work and reject bad work.
+from your Skill, repository or workflow, and prove that each one passes good work and
+fails bad work.
 
 [techtree.sh/services/environments](https://techtree.sh/services/environments)
 
-## You bring
+## Process
 
-- A Skill, a repository, or a description of your workflow and its tools.
-- Or an existing Harbor, Prime or OpenEnv environment.
+Tested: we have run it ourselves. Planned: part of the design, not yet run.
 
-## We do
-
-- We use NVIDIA's Skill2Env to generate Harbor tasks from a Skill.
-- We use Hugging Face's Repo2RLEnv to generate them from a repository, its past fixes
-  and recorded agent sessions.
-- We use Prime Intellect's Verifiers to run the tasks and score them.
-- An environment you already have, from Harbor, Prime or OpenEnv, starts with a
-  compatibility review.
-- We make sure the environment represents your actual job, and check that its tests
-  accept good work and reject bad work.
+1. **Intake**: You bring the workflow, a Skill or a repository. An environment you
+   already have, from Harbor, Prime or OpenEnv, starts with a review of what can be
+   reused.
+2. **Success**: We agree what an agent should be able to practise.
+3. **Tasks** (Planned): Tasks come from you, or we generate them: from a Skill with
+   NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env), or from a repository,
+   its past fixes and recorded agent sessions with Hugging Face's
+   [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv).
+4. **Soundness** (Tested): Every task is proven fair with Terminal-Bench's
+   [Harbor](https://github.com/harbor-framework/harbor) in a sealed setup with no
+   network: doing nothing scores zero, the worked solution passes and bad work fails.
+5. **Baseline** (Planned): We measure an agent on the tasks with Prime Intellect's
+   [Verifiers](https://github.com/PrimeIntellect-ai/verifiers).
+6. **Handover**: You receive everything below.
 
 ## You receive
 
-- A resettable environment.
-- Realistic tasks, with their tools and fixtures.
-- Reference solutions.
+- An environment that resets between runs.
+- Realistic tasks, with their tools and sample data.
+- A worked solution for each task.
 - Scoring.
-- Entry points for evaluation and training.
+- Ready-made commands to test agents on it and to train them.
+
+All of it is yours to keep and rerun.
 
 ## Libraries
 
+Tested: we have run it ourselves. Planned: part of the design, not yet run.
+
 | Library | Job here | License | Status |
 | --- | --- | --- | --- |
-| NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env) | Generates terminal tasks in Harbor's format from a Skill. `regents techtree forge` follows its task layout and adapts its planning and building steps, pinned to one revision; its own generator is used in delivery. | Apache-2.0 (its own source; Skills bundled with it keep their own terms) | Runs here today |
-| Hugging Face's [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Generates Harbor tasks from a repository's merged pull requests, commit history, security advisories and recorded agent sessions, and checks each with controls: the reference solution scores 1, doing nothing scores 0. | Apache-2.0 (its own code; the distribution is Apache-2.0 AND MIT) | Used in delivery |
-| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Runs the tasks and scores them, the same way for evaluation and for training. | MIT | Runs here today |
-| [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | The task format: instruction, container recipe, tests and solutions in one folder. The tasks `forge` builds follow it. | Apache-2.0 | Used in delivery |
-| Prime Intellect's [Environments Hub](https://app.primeintellect.ai/dashboard/environments) | Hosts Verifiers environments at pinned versions. The HF Tasksmith Climb downloads its environment from it today. | A hosted service | Runs here today |
-| [OpenEnv](https://github.com/openenv/OpenEnv), from its technical committee | An environment you already have in OpenEnv is reviewed for reuse before anything new is built. | BSD-3-Clause | Used in delivery |
+| [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | The task format: instruction, container recipe, tests and solutions in one folder. The tasks `forge` builds follow it, and each one is proven fair in a sealed setup with no network. | Apache-2.0 | Tested |
+| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Runs the tasks and scores them, the same way for evaluation and for training. | MIT | Tested |
+| Prime Intellect's [Environments Hub](https://app.primeintellect.ai/dashboard/environments) | Hosts Verifiers environments at pinned versions. The HF Tasksmith Climb downloads its environment from it today. | A hosted service | Tested |
+| NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env) | Generates terminal tasks in Harbor's format from a Skill. `regents techtree forge` already follows its task layout and adapts its planning and building steps, pinned to one revision; using its own generator on a project is planned. | Apache-2.0 (its own source; Skills bundled with it keep their own terms) | Planned |
+| Hugging Face's [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Generates Harbor tasks from a repository's merged pull requests, commit history, security advisories and recorded agent sessions, and checks each with controls: the worked solution scores 1, doing nothing scores 0. | Apache-2.0 (its own code; the distribution is Apache-2.0 AND MIT) | Planned |
+| [OpenEnv](https://github.com/openenv/OpenEnv), from its technical committee | An environment you already have in OpenEnv is reviewed for reuse before anything new is built. | BSD-3-Clause | Planned |
 
 ## Run it
 
@@ -77,22 +84,15 @@ the same qualification. `status` shows any forge record. Records land under
 with its own sample solutions, not that they accept every correct answer, so read
 each task before you accept a collection.
 
-## Delivery
-
-Project work runs in Techtree's private delivery system. What you receive is yours to
-keep and rerun: the environment, its tasks with their tools and fixtures, the
-reference solutions, the scoring, and the commands that run it for evaluation and for
-training.
-
 ## Limits
 
 - A higher score in a new environment does not mean the environment is better. An
   environment is better when it represents your job and its tests tell good work from
   bad.
 - A generated task is a starting point, not a guarantee. Each one is checked against
-  a reference solution and a wrong one, and read by a person before it is accepted.
+  a worked solution and a wrong one, and read by a person before it is accepted.
 - For ongoing work, failed attempts can propose new practice tasks, each one checked
-  before it is admitted. The idea comes from
+  before it is added. The idea comes from
   [the AutoEnvScaling research](https://auto-env-scaling.github.io/).
 
 ## Start

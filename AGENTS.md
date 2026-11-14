@@ -18,8 +18,10 @@ never saw. The tools in this repository are open; projects are quoted on a call.
   job, reason and status.
 - Runs here today: the Hello World Climb and the experimental Evaluate & Climb
   (`regents techtree forge`), both through regents-cli with `plugin/` and
-  `platform/`, and the `lab/` comparison on NVIDIA Nemotron. Everything marked "Used
-  in delivery" runs in Techtree's private delivery system; describe it that way.
+  `platform/`, and the `lab/` comparison on NVIDIA Nemotron.
+- Status: each library and each service step that runs one is marked Tested (we
+  have run it ourselves) or Planned (part of the design, not yet run). Describe them
+  that way, and never as delivered to a customer.
 - Booking: give your person https://calendly.com/techtree/agent-env-intro or
   build@regents.sh, and let them book.
 
@@ -33,8 +35,9 @@ to the component that owns the behavior:
 - `platform/` owns techtree.sh, publication ingestion, and public result views.
 - `lab/` owns the payment-terms environment and the comparison runner; run
   `make -C lab check` there.
-- `factory/` holds one page per service. Its "You bring", "We do", "You receive" and
-  library jobs follow `platform/lib/techtree_web/services.ex`; change both together.
+- `factory/` holds one page per service. Its numbered steps, "You receive", library
+  jobs and statuses follow `platform/lib/techtree_web/services.ex`; change both
+  together.
 
 The root instructions apply everywhere. Campaign execution, local results and
 publication transport live in

@@ -9,31 +9,37 @@ and reports what happened.
 [Book a call](https://calendly.com/techtree/agent-env-intro) ·
 [build@regents.sh](mailto:build@regents.sh)
 
-## Chain
+## Process
 
-Every project runs the same six steps:
+Every project runs in the same six steps:
 
-1. You show us examples of the work: real inputs, accepted outputs and the failures
-   you know about.
-2. We agree in writing what success means before anything changes.
-3. We measure a baseline: what you run today, and a cheaper option where one exists.
-4. We make one bounded improvement.
-5. We run a final test on cases the work never saw, with everything else held fixed.
-6. You receive the deliverable, a report, and the command that reruns the test.
+1. **Intake**: You bring real examples of the work, and the failures you already know
+   about.
+2. **Success**: We agree what better means, how it is scored and the budget cap,
+   before anything runs.
+3. **Baseline**: We measure what you run today, several times over, and set the cases
+   for the final test aside.
+4. **Improve**: We make one change, to a Skill, an eval, an environment or a model,
+   within the limits agreed up front.
+5. **Final test**: One run on cases the work never saw, with everything else held
+   fixed, so the difference is the change.
+6. **Handover**: You keep the result, a report of what changed and what it costs to
+   run, and one command that reruns the test.
 
-The report says whether a gain came from the change under test or from something
-else, such as the data, the harness, inference settings or infrastructure. A result
-with no improvement is still delivered, with the reason. Results from our own runs
-are a Techtree-run evaluation, not an independent audit.
+Each service's page lays out its own steps in full. The report says whether a gain
+came from the change under test or from something else, such as the data, the agent
+around the model, its settings or the machines it ran on. A result with no
+improvement is still delivered, with the reason. Results from our own runs are a
+Techtree-run evaluation, not an independent audit.
 
 ## Services
 
-| Service | You bring | The improvement | Page |
+| Service | You bring | You receive | Page |
 | --- | --- | --- | --- |
-| Skills | A Skill, the agent and model that use it, and examples | A revised Skill | [skills/](skills/README.md) |
-| Evals | A workflow, examples, known failures and your definition of success | A test suite with graders | [evals/](evals/README.md) |
-| Environments | A Skill, a repository or a description of your workflow | A resettable practice environment | [environments/](environments/README.md) |
-| Models | One repeated task, real inputs and accepted outputs, and today's cost | A smaller specialist model | [models/](models/README.md) |
+| Skills | Your Skill, the agent and model that use it, and real examples | The revised Skill and a before-and-after report | [skills/](skills/README.md) |
+| Evals | The job, with examples of good work and bad, or an eval you already have | Reviewed test cases, with scoring for every case | [evals/](evals/README.md) |
+| Environments | The workflow, a Skill or a repository | An environment that resets between runs, with realistic tasks | [environments/](environments/README.md) |
+| Models | The work you repeat, with real examples | A smaller trained model and a comparison with the original | [models/](models/README.md) |
 
 Security sits beside the four: a one-off review or a monthly watch, described on
 [techtree.sh](https://techtree.sh/services/security).
@@ -44,17 +50,17 @@ The [library table](../README.md#libraries) on the front page lists every librar
 with its maker, what it does, why we chose it and what it gives you. Each service
 page names the ones it uses and the job each one does there.
 
-Each library has one of two statuses:
+Each library, and each step that runs one, has one of two statuses:
 
-- **Runs here today**: this repository, with the public
-  [regents-cli](https://github.com/regents-ai/regents-cli) command line it installs,
-  uses it now. The service pages show the commands.
-- **Used in delivery**: part of how a paid project is done. It does not run from this
-  repository.
+- **Tested**: we have run it ourselves.
+- **Planned**: part of the design, not yet run.
+
+What runs from this repository today, with the public
+[regents-cli](https://github.com/regents-ai/regents-cli) command line it installs, is
+under Run it on each service page, with the commands.
 
 ## Delivery
 
-Project work runs in Techtree's private delivery system. What you receive is yours to
-keep and rerun: the Skill, the eval suite, the environment or the model files, the
-report, and the command that reruns the final test. This repository explains the
-work and holds the public examples that run today.
+What you receive is yours to keep and rerun: the Skill, the eval, the environment or
+the model files, the report, and the command that reruns the final test. This
+repository explains the work and holds the public examples that run today.

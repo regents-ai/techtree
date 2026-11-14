@@ -1,40 +1,54 @@
 # Skills
 
-Improve how an existing agent handles a particular workflow. We check your Skill,
+Improve how an existing agent handles a particular workflow. We review your Skill,
 revise its written instructions from scored attempts, and test the revision on cases
 the work never saw.
 
 [techtree.sh/services/skills](https://techtree.sh/services/skills)
 
-## You bring
+## Process
 
-- An existing Skill.
-- The agent and the model that use it.
-- Examples of work it got right, and work it got wrong.
+Tested: we have run it ourselves. Planned: part of the design, not yet run.
 
-## We do
-
-- We use NVIDIA's SkillEvaluator to check the Skill's quality and measure how the
-  agent behaves with it.
-- We use Microsoft's SkillOpt to propose changes to its instructions from scored
-  attempts. The cases it learns from are kept apart from the final test.
-- We use Prime Intellect's Verifiers to run the final comparison on cases the work
-  never saw, keeping the model, tools and budgets fixed.
+1. **Intake**: You bring your Skill, the agent and model that use it, real examples
+   of the work, and the failures you already know about.
+2. **Success**: We agree what better means for you, such as more correct work, fewer
+   serious mistakes or a lower cost, and set a budget cap before anything runs.
+3. **Quality check** (Tested): NVIDIA's
+   [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) reviews the Skill as it
+   is written.
+4. **Baseline** (Tested): We measure your current Skill with your agent, several
+   times over so chance is accounted for. The cases for the final test are set
+   aside, and the improvement never sees them.
+5. **Improvement** (Tested): Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt)
+   proposes revisions from scored attempts on the working cases. We measure a plain
+   rewrite beside it, so you see what the automatic revisions add.
+6. **Selection** (Tested): The best revision is chosen on a separate set of cases.
+7. **Final test** (Tested): A single run on the untouched cases, scored by Prime
+   Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers), with the
+   model, tools and limits held fixed.
+8. **Handover**: You receive everything below. If the Skill did not improve, you
+   still receive the result and the reason.
 
 ## You receive
 
-- The revised Skill.
-- Instructions to install it.
-- A report on success, cost and regressions.
+- The original Skill and the revised one.
+- A before-and-after report: cost, new mistakes, and how sure the result is.
+- The exact setup it ran on.
+- One command that reruns it.
+
+All of it is yours to keep and rerun.
 
 ## Libraries
 
+Tested: we have run it ourselves. Planned: part of the design, not yet run.
+
 | Library | Job here | License | Status |
 | --- | --- | --- | --- |
-| NVIDIA's [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Checks the Skill is safe and well formed (its static check needs no API key, GPU or Docker), looks for repeated or overlapping guidance, then measures whether the Skill helps the agent on live tasks. | Apache-2.0 | Used in delivery |
-| Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt) | Proposes add, delete and replace edits to the Skill document from scored attempts, and keeps an edit only when it raises a held-out validation score. | MIT | Used in delivery |
-| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Runs the final comparison and scores every task by its own rules. | MIT | Runs here today |
-| Nous Research's [Hermes](https://github.com/NousResearch/hermes-agent) | The agent a Climb runs with and without the Skill. | MIT | Runs here today |
+| NVIDIA's [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Checks the Skill is safe and well formed (its static check needs no API key, GPU or Docker), looks for repeated or overlapping guidance, then measures whether the Skill helps the agent on live tasks. | Apache-2.0 | Tested |
+| Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt) | Proposes add, delete and replace edits to the Skill document from scored attempts, and keeps an edit only when it raises the score on cases set aside for checking. | MIT | Tested |
+| Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Runs the final test and scores every task by its own rules. | MIT | Tested |
+| Nous Research's [Hermes](https://github.com/NousResearch/hermes-agent) | The agent a Climb runs with and without the Skill. | MIT | Tested |
 
 ## Run it
 
@@ -88,12 +102,6 @@ mixed or made no difference, overall and on the held-out tasks alone, and writes
 `report.html` in the comparison's folder. To compare two versions of a Skill, give
 the baseline run the earlier version with `--skill path/to/earlier-skill`. The
 [Run locally guide](https://techtree.sh/docs/run-locally) has the full steps.
-
-## Delivery
-
-Project work runs in Techtree's private delivery system. What you receive is yours to
-keep and rerun: the revised Skill, its install instructions, the report, and the
-command that reruns the final comparison on the held-out cases.
 
 ## Limits
 
