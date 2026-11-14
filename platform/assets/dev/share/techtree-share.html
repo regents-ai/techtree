@@ -1,0 +1,122 @@
+<!doctype html>
+<!--
+  The site's share picture, priv/static/images/techtree-share.png, 1200 by 630.
+  Regenerate it from platform/assets: node_modules/.bin/playwright screenshot --viewport-size "1200, 630" "file://$PWD/dev/share/techtree-share.html" ../priv/static/images/techtree-share.png
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Techtree share picture</title>
+    <style>
+      @font-face {
+        font-family: "Geist Serif";
+        src: url("../../../priv/static/fonts/regent-ui/GeistSerif-Regular.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Geist Mono";
+        src: url("../../../priv/static/fonts/regent-ui/GeistMono-Regular.woff2") format("woff2");
+      }
+
+      * { box-sizing: border-box; margin: 0; }
+
+      html, body { width: 1200px; height: 630px; overflow: hidden; }
+
+      body {
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding: 56px 64px 64px;
+        background:
+          radial-gradient(90% 80% at 85% 0% in oklch, rgb(47 168 102 / .22), rgb(47 168 102 / 0) 70%),
+          #0D1611;
+        color: #E4EEE6;
+        font-family: "Geist Serif", serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand { display: flex; align-items: center; gap: 16px; font-size: 30px; letter-spacing: -.02em; }
+      .brand svg { width: 52px; height: 30px; color: #C8F25C; }
+
+      .address {
+        color: #9DB0A2;
+        font-family: "Geist Mono", monospace;
+        font-size: 22px;
+        letter-spacing: .02em;
+      }
+
+      h1 {
+        align-self: center;
+        max-width: 980px;
+        font-size: 104px;
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: -.045em;
+        text-wrap: balance;
+      }
+
+      ul {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        padding: 0;
+        list-style: none;
+      }
+
+      li {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 128px;
+        padding: 18px 22px 20px;
+        border: 1px solid rgb(228 238 230 / .14);
+        background: var(--ground);
+        color: var(--ink);
+      }
+
+      li span { font-family: "Geist Mono", monospace; font-size: 16px; letter-spacing: .08em; opacity: .72; }
+      li strong { font-size: 32px; font-weight: 400; line-height: 1; letter-spacing: -.035em; }
+
+      .skills { --ground: #C8F25C; --ink: #0F1B14; }
+      .evals { --ground: #1E6B45; --ink: #F3F5EF; }
+      .environments { --ground: #142019; --ink: #E4EEE6; }
+      .models { --ground: #E4EEE6; --ink: #0F1B14; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <p class="brand">
+        <svg viewBox="0 0 58 34" fill="currentColor" aria-hidden="true">
+          <rect x="0" y="0" width="10" height="10" />
+          <rect x="24" y="0" width="10" height="10" />
+          <rect x="48" y="0" width="10" height="10" />
+          <rect x="0" y="12" width="10" height="10" />
+          <rect x="12" y="12" width="10" height="10" />
+          <rect x="24" y="12" width="10" height="10" />
+          <rect x="36" y="12" width="10" height="10" />
+          <rect x="48" y="12" width="10" height="10" />
+          <rect x="0" y="24" width="10" height="10" />
+          <rect x="12" y="24" width="10" height="10" />
+          <rect x="24" y="24" width="10" height="10" />
+          <rect x="36" y="24" width="10" height="10" />
+          <rect x="48" y="24" width="10" height="10" />
+        </svg>
+        Techtree
+      </p>
+      <p class="address">techtree.sh</p>
+    </header>
+
+    <h1>Better agents for your business.</h1>
+
+    <ul>
+      <li class="skills"><span>01</span><strong>Skills</strong></li>
+      <li class="evals"><span>02</span><strong>Evals</strong></li>
+      <li class="environments"><span>03</span><strong>Environments</strong></li>
+      <li class="models"><span>04</span><strong>Models</strong></li>
+    </ul>
+  </body>
+</html>

@@ -76,7 +76,7 @@ defmodule TechtreeWeb.DocsGuides do
       slug: "where-this-goes",
       group: "Background",
       title: "Roadmap",
-      summary: "Harnesses, environments and the network around Techtree."
+      summary: "What comes after Skills, and the network around Techtree."
     },
     %{
       slug: "data",

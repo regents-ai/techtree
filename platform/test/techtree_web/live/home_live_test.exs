@@ -196,6 +196,31 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute markdown =~ ~r/\$\s*\d/
   end
 
+  test "its search-engine data is a business within Regents Labs, with one service per service page",
+       %{conn: conn} do
+    graph =
+      conn
+      |> get(~p"/")
+      |> html_response(200)
+      |> LazyHTML.from_document()
+      |> LazyHTML.query(~s|script[type="application/ld+json"]|)
+      |> LazyHTML.text()
+      |> Jason.decode!()
+      |> Map.fetch!("@graph")
+
+    by_id = Map.new(graph, &{&1["@id"], &1})
+    services = Enum.filter(graph, &(&1["@type"] == "Service"))
+
+    assert Enum.map(services, & &1["url"]) ==
+             Enum.map(Services.all(), &(TechtreeWeb.Endpoint.url() <> Services.path(&1.id)))
+
+    for service <- services do
+      business = by_id[service["provider"]["@id"]]
+      assert business["@type"] == "Organization"
+      assert by_id[business["parentOrganization"]["@id"]]["@type"] == "Organization"
+    end
+  end
+
   test "the landing page needs no catalog to render", %{conn: conn} do
     {:ok, live, _html} = live(conn, ~p"/")
 

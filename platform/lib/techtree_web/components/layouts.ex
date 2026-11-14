@@ -236,14 +236,33 @@ defmodule TechtreeWeb.Layouts do
   defp share_image(_assigns),
     do: %{
       url: url(~p"/images/techtree-share.png"),
-      alt: "Techtree: upgrade a Skill, Harness, or Env."
+      alt:
+        "Techtree. Better agents for your business: Skills, Evals, Environments and Models. techtree.sh"
     }
 
-  # Who Techtree is, for a reader that speaks schema.org. There is no postal
-  # address: none has been published. `Regent.AgentMetadata.head` encodes it.
+  # Who Techtree is, for a reader that speaks schema.org: a services business
+  # within Regents Labs, its four services (`TechtreeWeb.Services`) and its
+  # open-source code. There is no postal address and no price: none has been
+  # published. `Regent.AgentMetadata.head` encodes it.
   defp structured_data do
     url = TechtreeWeb.Endpoint.url()
     organization = "https://regents.sh/#organization"
+    business = url <> "/#business"
+
+    services =
+      for service <- Services.all() do
+        page = url <> Services.path(service.id)
+
+        %{
+          "@type" => "Service",
+          "@id" => page <> "#service",
+          "name" => service.name,
+          "serviceType" => service.line,
+          "description" => service.promise,
+          "url" => page,
+          "provider" => %{"@id" => business}
+        }
+      end
 
     %{
       "@context" => "https://schema.org",
@@ -253,7 +272,7 @@ defmodule TechtreeWeb.Layouts do
           "@id" => url <> "/#website",
           "name" => "Techtree",
           "url" => url,
-          "publisher" => %{"@id" => organization}
+          "publisher" => %{"@id" => business}
         },
         %{
           "@type" => "Organization",
@@ -261,31 +280,29 @@ defmodule TechtreeWeb.Layouts do
           "name" => "Regents Labs",
           "url" => "https://regents.sh",
           "logo" => "https://regents.sh/mark.png",
-          "sameAs" => ["https://github.com/regents-ai"],
-          "contactPoint" => %{
-            "@type" => "ContactPoint",
-            "email" => "build@regents.sh",
-            "contactType" => "customer support"
-          }
+          "sameAs" => ["https://github.com/regents-ai"]
         },
         %{
-          "@type" => "SoftwareApplication",
-          "@id" => url <> "/#application",
+          "@type" => "Organization",
+          "@id" => business,
           "name" => "Techtree",
           "url" => url,
           "description" => description_for_path("/"),
-          "applicationCategory" => "DeveloperApplication",
-          "operatingSystem" => "macOS, Linux",
-          "license" => "https://opensource.org/licenses/MIT",
-          "publisher" => %{"@id" => organization}
+          "parentOrganization" => %{"@id" => organization},
+          "contactPoint" => %{
+            "@type" => "ContactPoint",
+            "email" => "build@regents.sh",
+            "contactType" => "sales"
+          }
         },
         %{
           "@type" => "SoftwareSourceCode",
           "name" => "Techtree",
           "codeRepository" => @repository_url,
           "license" => "https://opensource.org/licenses/MIT",
-          "targetProduct" => %{"@id" => url <> "/#application"}
+          "publisher" => %{"@id" => business}
         }
+        | services
       ]
     }
   end
