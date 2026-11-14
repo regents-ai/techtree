@@ -121,8 +121,28 @@
 }
 
 /* Watchdog's signed-in page, where a person adds sites and addresses, sees each
-   site's proof state and the exact record or file to publish. Sheets and rules
-   only; nothing floats. */
+   site's proof state and the exact record or file to publish. Sheets and rules;
+   only the last action's notice floats. */
+/* The notice is a small tag on New site's top edge, over the room above it and
+   the sheet's own padding, so it comes and goes without moving anything. It has
+   no control, so a press goes through it. */
+.watchdog-add > .rg-notice {
+  position: absolute; inset-block-end: calc(100% - var(--space-1)); inset-inline-start: var(--rg-panel-padding);
+  max-inline-size: min(calc(100% - 2 * var(--rg-panel-padding)), 34rem); margin: 0;
+  padding: calc(var(--space-1) / 2) var(--space-1);
+  border: 1px solid var(--hairline-strong); border-inline-start: 3px solid var(--rg-p-tone, currentColor);
+  border-radius: var(--radius); font-size: .75rem; line-height: 1.35; pointer-events: none;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out),
+    display var(--duration-fast) allow-discrete;
+}
+.watchdog-add > .rg-notice:not([hidden]) { transition-duration: var(--duration-base); }
+.watchdog-add > .rg-notice[hidden] { display: none; opacity: 0; transform: translateY(-4px); }
+@starting-style {
+  .watchdog-add > .rg-notice:not([hidden]) { opacity: 0; transform: translateY(5px); }
+}
+@media (prefers-reduced-motion: reduce) { .watchdog-add > .rg-notice { transition: none; } }
 .watchdog .watchdog-add { margin-block: var(--space-4); }
 .watchdog .watchdog-add h2 { margin-bottom: var(--space-3); font-size: 1.5rem; }
 .watchdog-form { display: grid; gap: var(--space-3); max-width: 34rem; }

@@ -48,6 +48,10 @@
 - **Your sites.** A site you add fades in where it lands, and when you remove one
   the sites below it spring up to close the gap while the ones above stay still.
   With less motion both happen at once.
+- **Your sites.** The note that answers each action, such as Site added, now
+  sits as a small tag on the edge of New site, so nothing on the page moves when
+  it comes or goes. It rises in, and fades out when a site you typed is refused;
+  with less motion it is simply there.
 
 ### Fixed
 

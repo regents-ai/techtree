@@ -4,8 +4,10 @@ import {layoutProblems, signIn, watchErrors} from "./support/visitor"
 // The signed-in Watchdog page at a desktop and a phone width: a site that can't
 // be read as one, and one already on the list, are refused under the Site field
 // itself and nothing is added; a real one is added and takes its own address
-// form, which refuses an address on another site under its own field. Remove
-// site asks first in the site's own window, never the browser's box.
+// form, which refuses an address on another site under its own field. The last
+// action's notice floats on New site's edge: it shows when a site is added,
+// moving nothing, and goes when a typed site is refused. Remove site asks first
+// in the site's own window, never the browser's box.
 for (const width of [1280, 390]) {
   test(`signed in at ${width} wide, Watchdog refuses a bad site or address under its own field and asks before removing a site`, async ({browser}) => {
     const hasTouch = width < 768
@@ -31,6 +33,13 @@ for (const width of [1280, 390]) {
     const sites = page.locator(".watchdog-sites > li")
     const before = await sites.count()
     const mine = sites.filter({hasText: site})
+    const notice = page.locator(".watchdog-add > [role=status]")
+    // Where New site's title sits, and the room under its last line: the notice
+    // floats, so showing it changes neither.
+    const newSite = () => page.locator(".watchdog-add").evaluate(panel => {
+      const last = panel.querySelector(":scope > p")!.getBoundingClientRect()
+      return [panel.querySelector("h2")!.getBoundingClientRect().top + scrollY, panel.getBoundingClientRect().bottom - last.bottom]
+    })
 
     await origin.fill("not a site!")
     await add.click()
@@ -38,18 +47,23 @@ for (const width of [1280, 390]) {
     await expect(origin).toHaveAttribute("aria-invalid", "true")
     await expect(origin).toHaveAttribute("aria-describedby", /watchdog-origin-errors/)
     await expect(sites).toHaveCount(before)
+    await expect(notice).toHaveCount(0)
     expect(await layoutProblems(page)).toEqual([])
 
+    const at = await newSite()
     await origin.fill(site)
     await add.click()
     await expect(sites).toHaveCount(before + 1)
     await expect(refused).toHaveCount(0)
     await expect(origin).toHaveAttribute("aria-invalid", "false")
+    await expect(notice).toBeVisible()
+    expect(await newSite()).toEqual(at)
 
     await origin.fill(site)
     await add.click()
     await expect(refused).toHaveCount(1)
     await expect(sites).toHaveCount(before + 1)
+    await expect(notice).toBeHidden()
 
     const address = mine.locator("input[name='url']")
     await address.fill("https://elsewhere.example/pay")

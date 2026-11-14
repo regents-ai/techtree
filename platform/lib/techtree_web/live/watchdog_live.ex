@@ -174,14 +174,20 @@ defmodule TechtreeWeb.WatchdogLive do
   defp parse_method(_other), do: {:error, :bad_method}
 
   defp inform(socket, tone, message),
-    do: assign(socket, notice: %{tone: tone, message: message}, field_errors: %{})
+    do: assign(socket, notice: %{tone: tone, message: message, shown?: true}, field_errors: %{})
 
   # A refused site or address: what is wrong with the typed value goes under its
-  # own field; anything else (a limit reached) goes in the page's notice.
+  # own field, and the notice fades out; anything else (a limit reached) goes in
+  # the page's notice.
   defp refuse(socket, field_id, error, fallback) do
     case typed_value_message(error) do
-      nil -> inform_error(socket, error, fallback)
-      message -> assign(socket, notice: nil, field_errors: %{field_id => message})
+      nil ->
+        inform_error(socket, error, fallback)
+
+      message ->
+        socket
+        |> update(:notice, &(&1 && %{&1 | shown?: false}))
+        |> assign(field_errors: %{field_id => message})
     end
   end
 
@@ -236,10 +242,6 @@ defmodule TechtreeWeb.WatchdogLive do
         </Regent.Account.signed_out>
 
         <div :if={@signed_in?}>
-          <Regent.Primitives.notice :if={@notice} tone={to_string(@notice.tone)}>
-            {@notice.message}
-          </Regent.Primitives.notice>
-
           <Regent.Structure.panel class="watchdog-add rg-panel__body">
             <h2>New site</h2>
             <form phx-submit="add_site" class="watchdog-form">
@@ -275,6 +277,14 @@ defmodule TechtreeWeb.WatchdogLive do
               <Regent.Primitives.button type="submit">Add site</Regent.Primitives.button>
             </form>
             <p class="rg-muted">You can keep up to {Limits.max_hosts()} sites.</p>
+            <%!-- Last, so it comes and goes without the page rebuilding the form. --%>
+            <Regent.Primitives.notice
+              :if={@notice}
+              tone={to_string(@notice.tone)}
+              hidden={!@notice.shown?}
+            >
+              {@notice.message}
+            </Regent.Primitives.notice>
           </Regent.Structure.panel>
 
           <Regent.Primitives.empty_state :if={@hosts == []} title="No sites">
