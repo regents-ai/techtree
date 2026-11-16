@@ -1,4 +1,4 @@
-# Three projects the team delivers to the signed-in visitor of sign_in.exs, one
+# Three projects the team delivers to its own person (`team` in visitor.ts), one
 # for each verdict, and one more package written to a file under tmp/ for the
 # team to upload; prints each project's id by verdict and the file's path.
 # Run from platform/ with the browser test server's environment.

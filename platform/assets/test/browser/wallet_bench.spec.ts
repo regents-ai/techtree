@@ -1,14 +1,12 @@
 import {readFileSync} from "node:fs"
+import {recordedTests} from "./support/seed"
 import {expect, test} from "./support/test"
-import {type RecordedTest, layoutProblems, layoutShift, lowContrast, seedWalletBench, watchErrors, watchShifts, zipEntries} from "./support/visitor"
+import {layoutProblems, layoutShift, lowContrast, watchErrors, watchShifts, zipEntries} from "./support/visitor"
 
 // Wallet Bench with recorded tests: the score grid and a result opened from it
 // with its full results downloaded, the list, and each test's own page, at a
-// desktop and two phone widths. Seeded once; the records are the same for every width.
-let tests: {passed: RecordedTest; failed: RecordedTest; running: RecordedTest}
-test.beforeAll(() => {
-  tests = seedWalletBench()
-})
+// desktop and two phone widths. Recorded once for the walk (support/seed.ts); the
+// records are the same for every width.
 
 // The grid draws once and stays still: nothing moves as the page connects, its
 // fonts arrive or it sits open for half a minute.
@@ -28,6 +26,7 @@ for (const width of [1280, 390, 320]) {
     test.use({viewport: {width, height: 844}, isMobile: width < 768, hasTouch: width < 768})
 
     test("a score opens its result, whose full results download, and closes back to it", async ({page}) => {
+      const tests = recordedTests()
       const errors = watchErrors(page)
       await page.goto("/wallet-bench", {waitUntil: "networkidle"})
       expect(await layoutProblems(page)).toEqual([])
@@ -72,6 +71,7 @@ for (const width of [1280, 390, 320]) {
     })
 
     test("the list shows each recorded test and links to it", async ({page}) => {
+      const tests = recordedTests()
       const errors = watchErrors(page)
       await page.goto("/wallet-bench?view=list", {waitUntil: "networkidle"})
       for (const {id, name} of Object.values(tests))
@@ -82,10 +82,11 @@ for (const width of [1280, 390, 320]) {
 
     for (const outcome of ["passed", "failed", "running"] as const) {
       test(`a ${outcome} test's own page`, async ({page}) => {
+        const recorded = recordedTests()[outcome]
         const errors = watchErrors(page)
-        const response = await page.goto(`/wallet-bench/${tests[outcome].id}`, {waitUntil: "networkidle"})
+        const response = await page.goto(`/wallet-bench/${recorded.id}`, {waitUntil: "networkidle"})
         expect(response?.status()).toBe(200)
-        await expect(page.getByRole("heading", {level: 1, name: tests[outcome].name})).toBeVisible()
+        await expect(page.getByRole("heading", {level: 1, name: recorded.name})).toBeVisible()
         await expect(page.getByRole("link", {name: "Wallet tests"})).toHaveAttribute("href", "/wallet-bench")
         expect(await layoutProblems(page)).toEqual([])
         expect(errors).toEqual([])

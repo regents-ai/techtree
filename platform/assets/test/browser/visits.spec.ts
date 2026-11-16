@@ -10,9 +10,6 @@ import {pairAgent, signIn, visitLines, watchErrors, type VisitLine} from "./supp
 // carries the same visit and the same one-way code for the person, holds only the
 // visit fields, and holds nothing the person wrote.
 
-// The signed-in visitor (support/sign_in.exs).
-const wallet = `0x${"b".repeat(40)}`
-
 const fields = ["actor", "event", "request_id", "surface", "visit"]
 
 const step = (line: VisitLine) => `${line.metadata.event!.name} ${line.metadata.event!.where}`
@@ -24,8 +21,8 @@ for (const width of ["desktop", "phone"] as const) {
       hasTouch ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch} : {},
     )
     const outside = await keepOffline(context)
-    await signIn(context)
-    const agent = pairAgent()
+    const person = await signIn(context)
+    const agent = pairAgent(person)
     const renamed = `Replay ${width} ${randomUUID().slice(0, 8)}`
     const page = await context.newPage()
     const errors = watchErrors(page)
@@ -66,7 +63,7 @@ for (const width of ["desktop", "phone"] as const) {
         Object.keys(line.metadata.event!).every(key => ["name", "where", "outcome", "ms", "client"].includes(key)),
       ).toBe(true)
       const text = JSON.stringify(line)
-      for (const written of [renamed, agent, wallet, "did:privy"]) expect(text).not.toContain(written)
+      for (const written of [renamed, agent, person.wallet, "did:privy"]) expect(text).not.toContain(written)
     }
     expect(errors).toEqual([])
     expect(outside).toEqual([])

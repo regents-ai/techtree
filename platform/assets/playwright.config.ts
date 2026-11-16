@@ -1,3 +1,4 @@
+import {availableParallelism} from "node:os"
 import {fileURLToPath} from "node:url"
 import {defineConfig, devices} from "@playwright/test"
 
@@ -22,14 +23,21 @@ process.env.TECHTREE_BROWSER_PORT = String(port)
 process.env.TECHTREE_CATALOG_ROOT = fileURLToPath(new URL(`../tmp/${partition}-catalog`, import.meta.url))
 const baseURL = `http://127.0.0.1:${port}`
 const server = `MIX_ENV=test MIX_TEST_PARTITION='${partition}' TECHTREE_BROWSER_TEST=1`
+// One browser for every two of the machine's cores, as ash-template's walk runs, so
+// the server, its database and the check's other lanes have the rest; at most
+// twelve, past which the one server is the limit. Each test signs in as a person of
+// its own (support/visitor.ts), so no test changes what another reads.
+const workers = Math.max(1, Math.min(12, Math.floor(availableParallelism() / 2)))
 
 export default defineConfig({
   testDir: "./test/browser",
-  fullyParallel: false,
-  workers: 1,
+  fullyParallel: true,
+  workers,
   forbidOnly: true,
   retries: 0,
   reporter: "line",
+  // The records two files read, written once before any browser opens.
+  globalSetup: "./test/browser/support/seed.ts",
   use: {
     baseURL,
     trace: "retain-on-failure",

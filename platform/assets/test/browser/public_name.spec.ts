@@ -3,8 +3,8 @@ import {expect, test} from "./support/test"
 import {signIn, watchErrors} from "./support/visitor"
 
 // The Public Display Name on the Account tab saves with the page's own sign-in,
-// its session cookie and forms token (hooks/public_name.ts). Each sign-in starts
-// with no name (support/sign_in.exs).
+// its session cookie and forms token (hooks/public_name.ts). Each test signs in
+// as a person of its own, who has no name yet (support/visitor.ts).
 
 const saved = (page: Page) => page.waitForResponse(response =>
   new URL(response.url()).pathname === "/api/v1/profile" && response.request().method() === "PATCH")

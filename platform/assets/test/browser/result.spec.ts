@@ -1,14 +1,12 @@
 import {type APIRequestContext, type Page} from "@playwright/test"
 import {expect, test} from "./support/test"
-import {layoutProblems, publishResult, watchErrors} from "./support/visitor"
+import {publishedResult} from "./support/seed"
+import {layoutProblems, watchErrors} from "./support/visitor"
 
 // A published Result's page at a desktop and a phone width: it works, and the
 // picture a shared link to it shows is the Result's own, a 1200 by 630 PNG
-// drawn for it, while every other page keeps the site's picture.
-let digest: string
-test.beforeAll(() => {
-  digest = publishResult()
-})
+// drawn for it, while every other page keeps the site's picture. The walk
+// publishes the Result once (support/seed.ts).
 
 async function sharedPicture(page: Page) {
   const meta = (property: string) => page.locator(`meta[property="${property}"]`).getAttribute("content")
@@ -30,6 +28,7 @@ for (const width of [1280, 390]) {
     test.use({viewport: {width, height: 844}, isMobile: width < 768, hasTouch: width < 768})
 
     test("a Result's page works and shares its own picture", async ({page, baseURL}) => {
+      const digest = publishedResult()
       const errors = watchErrors(page)
       const response = await page.goto(`/results/${digest}`, {waitUntil: "networkidle"})
       expect(response?.status()).toBe(200)

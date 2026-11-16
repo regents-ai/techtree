@@ -1,11 +1,12 @@
 import {execFileSync} from "node:child_process"
+import {randomBytes, randomUUID} from "node:crypto"
 import {existsSync, readFileSync} from "node:fs"
 import type {BrowserContext, Locator, Page} from "@playwright/test"
 
-// Runs one of the support scripts in the browser test database and returns the
-// JSON it printed last.
-function inBrowserDatabase(script: string): string {
-  const out = execFileSync("mix", ["run", "--no-start", `assets/test/browser/support/${script}`], {
+// Runs one of the support scripts in the browser test database, with its arguments,
+// and returns the JSON it printed last.
+function inBrowserDatabase(script: string, args: string[] = []): string {
+  const out = execFileSync("mix", ["run", "--no-start", `assets/test/browser/support/${script}`, ...args], {
     cwd: "..",
     env: {
       ...process.env,
@@ -18,7 +19,8 @@ function inBrowserDatabase(script: string): string {
   return out.trim().split("\n").findLast(line => line.startsWith("{")) as string
 }
 
-// Three recorded Wallet Bench tests, by outcome: passed, failed and running.
+// Three recorded Wallet Bench tests, by outcome: passed, failed and running. The
+// walk records them once (support/seed.ts).
 export type RecordedTest = {id: string; name: string}
 
 export function seedWalletBench(): {passed: RecordedTest; failed: RecordedTest; running: RecordedTest} {
@@ -26,16 +28,27 @@ export function seedWalletBench(): {passed: RecordedTest; failed: RecordedTest; 
 }
 
 // One published Result of the fixture catalog's Campaign; returns its fingerprint.
+// The walk publishes it once (support/seed.ts).
 export function publishResult(): string {
   return JSON.parse(inBrowserDatabase("publish_result.exs")).digest
 }
 
-// An agent paired with the signed-in visitor, under a name of its own.
-export function pairAgent(): string {
-  return JSON.parse(inBrowserDatabase("pair_agent.exs")).name
+// A person a test signs in as. Each test has one of its own, so no other test
+// changes their name, agents, sites or anything else the test reads. The team's
+// one person (config/test.exs) is the exception: the tests that read the team's
+// page sign in as `team`, and each such file runs its tests one after another.
+export type Person = {id: string; wallet: string}
+
+export const team: Person = {id: "did:privy:browser-test", wallet: `0x${"b".repeat(40)}`}
+
+const newPerson = (): Person => ({id: `did:privy:browser-${randomUUID()}`, wallet: `0x${randomBytes(20).toString("hex")}`})
+
+// An agent paired with the person, under a name of its own.
+export function pairAgent(person: Person): string {
+  return JSON.parse(inBrowserDatabase("pair_agent.exs", [person.id])).name
 }
 
-// Three projects the team delivered to the signed-in visitor, by verdict, and a
+// Three projects the team delivered to its own person, by verdict, and a
 // package file under tmp/ for the team to upload, with its title.
 export type DeliveredProjects = {
   improved: string
@@ -49,13 +62,15 @@ export function deliverProjects(): DeliveredProjects {
   return JSON.parse(inBrowserDatabase("deliver_projects.exs"))
 }
 
-// A fresh signed-in session for one browser context. Each context gets its own:
-// the site ends a session another browser presents after it has moved on.
-export async function signIn(context: BrowserContext): Promise<void> {
-  const {name, value} = JSON.parse(inBrowserDatabase("sign_in.exs"))
+// A fresh signed-in session for one browser context, as a new person unless one is
+// given; returns the person. Each context gets its own session: the site ends a
+// session another browser presents after it has moved on.
+export async function signIn(context: BrowserContext, person: Person = newPerson()): Promise<Person> {
+  const {name, value} = JSON.parse(inBrowserDatabase("sign_in.exs", [person.id, person.wallet]))
   // There is no Privy sign-in behind this session; keepOffline (support/test.ts)
   // answers the sign-in bridge for every context.
   await context.addCookies([{name, value, domain: "127.0.0.1", path: "/"}])
+  return person
 }
 
 // One line the test server wrote (config/runtime.exs), in production's shape.

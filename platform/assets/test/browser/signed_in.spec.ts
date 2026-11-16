@@ -183,8 +183,7 @@ for (const width of ["desktop", "phone"] as const) {
       hasTouch ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch} : {},
     )
     const outside = await keepOffline(context)
-    await signIn(context)
-    const agent = pairAgent()
+    const agent = pairAgent(await signIn(context))
     const renamed = `Ada 👩‍💻 ${width}`
     const page = await context.newPage()
     const errors = watchErrors(page)

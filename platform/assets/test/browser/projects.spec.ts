@@ -2,7 +2,12 @@ import {createHash} from "node:crypto"
 import {readFileSync, rmSync} from "node:fs"
 import type {Locator} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
-import {deliverProjects, layoutProblems, lowContrast, signIn, watchErrors} from "./support/visitor"
+import {deliverProjects, layoutProblems, lowContrast, signIn, team, watchErrors} from "./support/visitor"
+
+// The team delivers to its own person, and both lists show the newest project
+// first, so this file's tests run one after another: one test's deliveries would
+// otherwise come first in the other's lists.
+test.describe.configure({mode: "default"})
 
 // The account's Projects and the team's Projects tab, at a desktop and a phone
 // width. The person finds the projects the team delivered; a project's page shows
@@ -18,7 +23,7 @@ for (const width of [1280, 390]) {
     const hasTouch = width < 768
     const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
     const outside = await keepOffline(context)
-    await signIn(context)
+    await signIn(context, team)
     const delivered = deliverProjects()
     const page = await context.newPage()
     const errors = watchErrors(page)

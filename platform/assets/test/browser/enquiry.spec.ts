@@ -1,6 +1,10 @@
 import type {Locator} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
-import {layoutProblems, signIn, watchErrors} from "./support/visitor"
+import {layoutProblems, signIn, team, watchErrors} from "./support/visitor"
+
+// The team's page lists the newest enquiry first, so this file's tests run one
+// after another: two at once would each find the other's enquiry first.
+test.describe.configure({mode: "default"})
 
 // The enquiry form in a service page's Contact section, signed out, at a desktop
 // and a phone width. The page's own service is chosen. Send with the rest empty
@@ -54,8 +58,7 @@ for (const [width, service, name] of [
     await expect(form).toHaveCount(0)
     expect(await layoutProblems(page)).toEqual([])
 
-    // The browser tests' person is one of the team (config/test.exs).
-    await signIn(context)
+    await signIn(context, team)
     await page.goto("/admin/messages?show=enquiries", {waitUntil: "networkidle"})
     await expect(page.locator(".phx-connected").first()).toBeAttached()
     const newest = page.locator("#team-enquiries > li").first()

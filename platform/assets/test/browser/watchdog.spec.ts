@@ -30,9 +30,8 @@ for (const width of [1280, 390]) {
     const origin = page.locator("#watchdog-origin")
     const refused = page.locator("#watchdog-origin-errors p")
     const add = page.getByRole("button", {name: "Add site"})
-    // The two widths share one signed-in person, so the list may already hold a site.
+    // The test signs in as a person of its own, so the list starts empty.
     const sites = page.locator(".watchdog-sites > li")
-    const before = await sites.count()
     const mine = sites.filter({hasText: site})
     const notice = page.locator(".watchdog-add > [role=status]")
     // Where New site's title sits, and the room under its last line: the notice
@@ -47,14 +46,14 @@ for (const width of [1280, 390]) {
     await expect(refused).toHaveCount(1)
     await expect(origin).toHaveAttribute("aria-invalid", "true")
     await expect(origin).toHaveAttribute("aria-describedby", /watchdog-origin-errors/)
-    await expect(sites).toHaveCount(before)
+    await expect(sites).toHaveCount(0)
     await expect(notice).toHaveCount(0)
     expect(await layoutProblems(page)).toEqual([])
 
     const at = await newSite()
     await origin.fill(site)
     await add.click()
-    await expect(sites).toHaveCount(before + 1)
+    await expect(sites).toHaveCount(1)
     await expect(refused).toHaveCount(0)
     await expect(origin).toHaveAttribute("aria-invalid", "false")
     await expect(notice).toBeVisible()
@@ -63,7 +62,7 @@ for (const width of [1280, 390]) {
     await origin.fill(site)
     await add.click()
     await expect(refused).toHaveCount(1)
-    await expect(sites).toHaveCount(before + 1)
+    await expect(sites).toHaveCount(1)
     await expect(notice).toBeHidden()
 
     const address = mine.locator("input[name='url']")
@@ -91,17 +90,17 @@ for (const width of [1280, 390]) {
     await ask.getByRole("button", {name: "Cancel"}).click()
     await expect(ask).toBeHidden()
     await expect(remove).toBeFocused()
-    await expect(sites).toHaveCount(before + 1)
+    await expect(sites).toHaveCount(1)
 
     // A second site below it. Removing a site keeps the page alive (it never
     // fails and starts over) and the site leaves the list once the list is read
-    // again; the keyboard goes to the next site's Remove site, and from the last
-    // site to the one before it, or to Add site when none is left.
+    // again; the keyboard goes to the next site's Remove site, and to Add site
+    // when none is left.
     const other = `walk-${width}-next.example`
     const theirs = sites.filter({hasText: other})
     await origin.fill(other)
     await add.click()
-    await expect(sites).toHaveCount(before + 2)
+    await expect(sites).toHaveCount(2)
     await page.evaluate(() => {
       const crashes = window as Window & {crashes?: number}
       crashes.crashes = 0
@@ -116,13 +115,13 @@ for (const width of [1280, 390]) {
     await expect(ask).toBeHidden()
     await expect(theirs.getByRole("button", {name: "Remove site"})).toBeFocused()
     await expect(mine).toHaveCount(0)
-    await expect(sites).toHaveCount(before + 1)
+    await expect(sites).toHaveCount(1)
     expect(await crashes()).toBe(0)
 
     await theirs.getByRole("button", {name: "Remove site"}).click()
     await ask.getByRole("button", {name: "Remove", exact: true}).click()
-    await expect(before ? sites.nth(before - 1).getByRole("button", {name: "Remove site"}) : add).toBeFocused()
-    await expect(sites).toHaveCount(before)
+    await expect(add).toBeFocused()
+    await expect(sites).toHaveCount(0)
     expect(await crashes()).toBe(0)
     expect(browserBoxes).toEqual([])
 
