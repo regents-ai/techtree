@@ -48,10 +48,12 @@ the Regent template's skills, starting with `ash-stack` (in
 `AGENTS.md` files.
 
 Use `make check` for the full model-free repository gate; its gates run side by
-side, and each one's output is in `platform/_build/check/<gate>.log`. Real-model checks,
-publication, package release, pushing, and deployment require explicit founder
-approval. Never read local secret files or commit credentials. Preserve the
-frozen release artifacts unless a release task explicitly replaces them.
+side, and each one's output is in `platform/_build/check/<gate>.log`; a gate over
+its time budget (`CHECK_BUDGETS` in the `Makefile`) gets a `SLOW` line, which never
+fails the check. Real-model checks, publication, package release, pushing, and
+deployment require explicit founder approval. Never read local secret files or
+commit credentials. Preserve the frozen release artifacts unless a release task
+explicitly replaces them.
 
 Keep the component READMEs useful from their own directories. When a
 change crosses components, update the contract producer and consumer together

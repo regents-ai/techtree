@@ -15,6 +15,13 @@ CHECK_LANES := platform-precommit platform-test check-change-runner check-plugin
   check-cli check-siwa-latest check-contracts check-formal check-lab
 CHECK_GATES := platform-setup $(CHECK_LANES)
 CHECK_LOGS := platform/_build/check
+# Each gate's budget in seconds, about 40% over its time in make check on a 16-core
+# Mac shared with other agents' checks (Nov 2026), and 5 s for a gate that takes a
+# second or three. A gate over its budget gets a SLOW line under its own at the end;
+# it never fails the check.
+CHECK_BUDGETS := platform-setup:65 platform-precommit:165 platform-test:200 check-change-runner:12 \
+  check-plugin:75 check-required-fixes:5 check-cli:5 check-siwa-latest:5 check-contracts:35 \
+  check-formal:20 check-lab:12
 # One gate, its output in its own log, then its exit code and seconds in the results.
 CHECK_GATE = start=$$(date +%s); $(MAKE) --no-print-directory $$gate > $(CHECK_LOGS)/$$gate.log 2>&1; \
   code=$$?; echo "$$gate $$code $$(( $$(date +%s) - start ))" >> $(CHECK_LOGS)/results
@@ -38,6 +45,8 @@ check:
 	for gate in $(CHECK_GATES); do \
 	  set -- $$(grep "^$$gate " $(CHECK_LOGS)/results); \
 	  if [ "$$2" = 0 ]; then echo "$$gate: ok in $$3 s"; else echo "$$gate: FAILED after $$3 s"; fi; \
+	  budget=$$(printf '%s\n' $(CHECK_BUDGETS) | sed -n "s/^$$gate://p"); \
+	  if [ "$$3" -gt "$$budget" ]; then echo "SLOW: $$gate took $$3 s (budget $$budget s)"; fi; \
 	done; \
 	test -z "$$failed"
 
