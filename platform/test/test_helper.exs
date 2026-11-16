@@ -1,4 +1,7 @@
-ExUnit.start()
+# As many tests at once as the test database has connections (config/test.exs):
+# each test holds one, and a test left waiting in line for one is dropped once the
+# pool's queue runs long, which on a busy machine fails it.
+ExUnit.start(max_cases: Application.fetch_env!(:techtree, Techtree.Repo)[:pool_size])
 
 Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, :manual)
 
