@@ -34,7 +34,10 @@ shared library setup described in the
 ## Checks
 
 `make check` runs the full model-free repository gate, including platform asset
-setup and registry checks. It requires the platform prerequisites, Foundry, pinned
+setup and registry checks. It sets the platform up, then runs every other gate side
+by side, each writing its output to `platform/_build/check/<gate>.log`; it prints
+every gate's output, the failed ones last, then one line per gate with its seconds,
+and fails when any gate failed. It requires the platform prerequisites, Foundry, pinned
 Solidity dependencies, and Node for the pinned Quint that checks the
 [Wallet Bench funding model](../formal/wallet_bench_funding/README.md). It does not
 start paid inference, publish results, release packages, deploy, or transfer money.

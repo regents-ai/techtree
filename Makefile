@@ -1,8 +1,45 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-plugin plugin-release-core check-platform check-required-fixes check-cli check-siwa-latest release readiness browser live-check
+.PHONY: check check-plugin plugin-release-core check-platform platform-setup platform-precommit platform-test check-required-fixes check-cli check-siwa-latest release readiness browser live-check
 
-check: check-change-runner check-plugin check-platform check-required-fixes check-cli check-siwa-latest check-contracts check-formal check-lab
+# make check sets the platform up first (its dependencies and built assets, which
+# both platform gates need), then runs every other gate side by side, each writing
+# its output to $(CHECK_LOGS)/<gate>.log; it prints every gate's log, the failed
+# ones last, and one line per gate, and fails when any gate failed. mix precommit
+# (the static checks, then the browser walk) and mix test both compile _build/test,
+# which Mix does for one of them at a time. The walk's own server rebuilds
+# assets/vendor and priv/static/assets, which no ExUnit test reads but one asking
+# for site.css, rewritten in place and never absent; and it drops and makes only
+# its own database. The other gates write nothing another reads.
+CHECK_LANES := platform-precommit platform-test check-change-runner check-plugin check-required-fixes \
+  check-cli check-siwa-latest check-contracts check-formal check-lab
+CHECK_GATES := platform-setup $(CHECK_LANES)
+CHECK_LOGS := platform/_build/check
+# One gate, its output in its own log, then its exit code and seconds in the results.
+CHECK_GATE = start=$$(date +%s); $(MAKE) --no-print-directory $$gate > $(CHECK_LOGS)/$$gate.log 2>&1; \
+  code=$$?; echo "$$gate $$code $$(( $$(date +%s) - start ))" >> $(CHECK_LOGS)/results
+check:
+	@mkdir -p $(CHECK_LOGS) && : > $(CHECK_LOGS)/results
+	@echo "Setting the platform up, then running $(words $(CHECK_LANES)) gates side by side; each writes $(CHECK_LOGS)/<gate>.log."
+	@gate=platform-setup; $(CHECK_GATE); \
+	grep -q "^platform-setup 0 " $(CHECK_LOGS)/results || \
+	  { echo "== platform-setup FAILED ($(CHECK_LOGS)/platform-setup.log)"; cat $(CHECK_LOGS)/platform-setup.log; exit 1; }
+	@for gate in $(CHECK_LANES); do ($(CHECK_GATE)) & done; wait
+	@failed=; \
+	for gate in $(CHECK_GATES); do \
+	  if grep -q "^$$gate 0 " $(CHECK_LOGS)/results; then \
+	    echo; echo "== $$gate ($(CHECK_LOGS)/$$gate.log)"; cat $(CHECK_LOGS)/$$gate.log; \
+	  else failed="$$failed $$gate"; fi; \
+	done; \
+	for gate in $$failed; do \
+	  echo; echo "== $$gate FAILED ($(CHECK_LOGS)/$$gate.log)"; cat $(CHECK_LOGS)/$$gate.log; \
+	done; \
+	echo; \
+	for gate in $(CHECK_GATES); do \
+	  set -- $$(grep "^$$gate " $(CHECK_LOGS)/results); \
+	  if [ "$$2" = 0 ]; then echo "$$gate: ok in $$3 s"; else echo "$$gate: FAILED after $$3 s"; fi; \
+	done; \
+	test -z "$$failed"
 
 check-plugin:
 	$(MAKE) -C plugin check
@@ -11,8 +48,16 @@ check-plugin:
 plugin-release-core:
 	$(MAKE) -C plugin release-core
 
-check-platform:
-	cd platform && mix deps.get && mix assets.setup && mix assets.build && mix precommit
+# The platform's gates, one after another: its dependencies and built assets, then
+# mix precommit (the static checks, the script tests and the browser walk), then
+# mix test.
+check-platform: platform-setup platform-precommit platform-test
+platform-setup:
+	cd platform && mix deps.get && mix assets.setup && mix assets.build
+platform-precommit:
+	cd platform && mix precommit
+platform-test:
+	cd platform && mix test
 
 # The browser tests alone: the main pages in headless Chromium at 1280, 390 and
 # 320 wide, signed out and signed in. check-platform runs them too.
@@ -62,9 +107,11 @@ check-formal:
 formal-proof:
 	formal/wallet_bench_funding/check.sh proof
 
+# Under nice: the Solidity compiler and the fuzzer take every core they can, and
+# beside the other gates in make check they give way to them.
 .PHONY: check-contracts
 check-contracts:
-	cd contracts && forge fmt --check && forge build --offline && forge test --offline
+	cd contracts && forge fmt --check && nice forge build --offline && nice forge test --offline
 
 # The lab: the payment-terms environment, its runner and the training settings file.
 .PHONY: check-lab

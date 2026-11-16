@@ -64,9 +64,10 @@ the guard.
 
 ```
 mix precommit
+mix test
 ```
 
-must be fully green before any change is proposed: formatting,
+must both be fully green before any change is proposed: formatting,
 `compile --warnings-as-errors`, and the full test suite including the copy
 guards, the 405 method surface, and the release-candidate tests. Database
 connection settings (`PGUSER`, `PGPASSWORD`, `PGHOST`) can be supplied as

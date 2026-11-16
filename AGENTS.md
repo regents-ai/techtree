@@ -47,7 +47,8 @@ the Regent template's skills, starting with `ash-stack` (in
 `plugin/` has no separate instruction file. Do not invent duplicate component
 `AGENTS.md` files.
 
-Use `make check` for the full model-free repository gate. Real-model checks,
+Use `make check` for the full model-free repository gate; its gates run side by
+side, and each one's output is in `platform/_build/check/<gate>.log`. Real-model checks,
 publication, package release, pushing, and deployment require explicit founder
 approval. Never read local secret files or commit credentials. Preserve the
 frozen release artifacts unless a release task explicitly replaces them.

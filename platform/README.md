@@ -322,7 +322,9 @@ checks separately require Foundry.
 ```bash
 mix setup       # deps, database, assets
 mix precommit   # warnings-as-errors, unused locks, Hex audit, format, Credo, Sobelow,
-                # compile-time links, Ash codegen, TypeScript typecheck, script tests, tests
+                # compile-time links, Ash codegen, TypeScript typecheck, script tests,
+                # the browser walk
+mix test        # the ExUnit tests; make check runs them beside mix precommit
 ```
 
 The API's description is one file, `priv/public/openapi.json`, written by hand:

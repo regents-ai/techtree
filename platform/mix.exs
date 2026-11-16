@@ -211,7 +211,6 @@ defmodule Techtree.MixProject do
   defp slow_check?(check) do
     check in [
       "cmd mix hex.audit",
-      "test",
       "test --warnings-as-errors",
       "cmd npm test",
       "cmd npm run test:browser",
@@ -247,7 +246,6 @@ defmodule Techtree.MixProject do
       "cmd --cd assets npm run typecheck",
       # The script tests (assets/test/*.test.ts): rules a page's scripts keep, with no browser.
       "cmd --cd assets npm test",
-      "test",
       # The main pages in headless Chromium at desktop and phone widths, against a
       # server the browser tests start on their own database (assets/test/browser).
       "cmd --cd assets npm run test:browser"
