@@ -1,12 +1,11 @@
 import {type APIRequestContext, type Page} from "@playwright/test"
 import {expect, test} from "./support/test"
-import {publishedResult} from "./support/seed"
-import {layoutProblems, watchErrors} from "./support/visitor"
+import {layoutProblems, publishedResult, watchErrors} from "./support/visitor"
 
 // A published Result's page at a desktop and a phone width: it works, and the
 // picture a shared link to it shows is the Result's own, a 1200 by 630 PNG
 // drawn for it, while every other page keeps the site's picture. The walk
-// publishes the Result once (support/seed.ts).
+// publishes the Result once (support/prepare.exs).
 
 async function sharedPicture(page: Page) {
   const meta = (property: string) => page.locator(`meta[property="${property}"]`).getAttribute("content")

@@ -1,11 +1,10 @@
 import {readFileSync} from "node:fs"
-import {recordedTests} from "./support/seed"
 import {expect, test} from "./support/test"
-import {layoutProblems, layoutShift, lowContrast, watchErrors, watchShifts, zipEntries} from "./support/visitor"
+import {layoutProblems, layoutShift, lowContrast, recordedTests, watchErrors, watchShifts, zipEntries} from "./support/visitor"
 
 // Wallet Bench with recorded tests: the score grid and a result opened from it
 // with its full results downloaded, the list, and each test's own page, at a
-// desktop and two phone widths. Recorded once for the walk (support/seed.ts); the
+// desktop and two phone widths. Recorded once for the walk (support/prepare.exs); the
 // records are the same for every width.
 
 // The grid draws once and stays still: nothing moves as the page connects, its

@@ -1,36 +1,5 @@
-import {execFileSync} from "node:child_process"
 import {existsSync, readFileSync, writeFileSync} from "node:fs"
 import type {BrowserContext, Locator, Page} from "@playwright/test"
-
-// Runs one of the support scripts in the browser test database, with its arguments,
-// and returns the JSON it printed last.
-function inBrowserDatabase(script: string, args: string[] = []): string {
-  const out = execFileSync("mix", ["run", "--no-start", `assets/test/browser/support/${script}`, ...args], {
-    cwd: "..",
-    env: {
-      ...process.env,
-      MIX_ENV: "test",
-      MIX_TEST_PARTITION: process.env.TECHTREE_BROWSER_PARTITION,
-      TECHTREE_BROWSER_TEST: "1",
-    },
-    encoding: "utf8",
-  })
-  return out.trim().split("\n").findLast(line => line.startsWith("{")) as string
-}
-
-// Three recorded Wallet Bench tests, by outcome: passed, failed and running. The
-// walk records them once (support/seed.ts).
-export type RecordedTest = {id: string; name: string}
-
-export function seedWalletBench(): {passed: RecordedTest; failed: RecordedTest; running: RecordedTest} {
-  return JSON.parse(inBrowserDatabase("seed_wallet_bench.exs"))
-}
-
-// One published Result of the fixture catalog's Campaign; returns its fingerprint.
-// The walk publishes it once (support/seed.ts).
-export function publishResult(): string {
-  return JSON.parse(inBrowserDatabase("publish_result.exs")).digest
-}
 
 // A person a test signs in as. Each test has one of its own, so no other test
 // changes their name, agents, sites or anything else the test reads. The team's
@@ -48,25 +17,42 @@ export type DeliveredProjects = {
   upload_title: string
 }
 
+// A recorded Wallet Bench test.
+export type RecordedTest = {id: string; name: string}
+
 // A person with a session of their own, as the cookie a browser would hold.
 type Session = Person & {cookie: {name: string; value: string}}
 
-// What the walk prepared before its server started (support/prepare.exs), by kind.
-type Prepared = {
+// What one test takes, by kind.
+type Takeable = {
   people: Session[]
   team: Session[]
   agents: (Session & {agent: string})[]
   projects: DeliveredProjects[]
 }
 
+// Everything the walk prepared before its server started (support/prepare.exs):
+// what a test takes, and what every test reads: the one published Result's
+// fingerprint and the three recorded Wallet Bench tests, by outcome.
+type Prepared = Takeable & {
+  result: string
+  recorded: {passed: RecordedTest; failed: RecordedTest; running: RecordedTest}
+}
+
 const walk = `../tmp/${process.env.TECHTREE_BROWSER_PARTITION}-walk`
-let prepared: Prepared | undefined
+let read: Prepared | undefined
+const prepared = (): Prepared => (read ??= JSON.parse(readFileSync(`${walk}/prepared.json`, "utf8")) as Prepared)
+
+// The published Result's fingerprint.
+export const publishedResult = (): string => prepared().result
+
+// The recorded Wallet Bench tests, by outcome.
+export const recordedTests = (): Prepared["recorded"] => prepared().recorded
 
 // The first one of a kind that no test has taken. A test takes it by making its
 // file under taken/, which only one test can make.
-function take<Kind extends keyof Prepared>(kind: Kind): Prepared[Kind][number] {
-  prepared ??= JSON.parse(readFileSync(`${walk}/prepared.json`, "utf8")) as Prepared
-  const all: Prepared[Kind] = prepared[kind]
+function take<Kind extends keyof Takeable>(kind: Kind): Takeable[Kind][number] {
+  const all: Takeable[Kind] = prepared()[kind]
   for (let i = 0; i < all.length; i++) {
     try {
       writeFileSync(`${walk}/taken/${kind}-${i}`, "", {flag: "wx"})

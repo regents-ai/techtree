@@ -1,20 +1,24 @@
-# Everyone the walk's tests sign in as, made in the browser test database before
-# the test server starts (playwright.config.ts), so no test runs a script while the
-# others run: people, each with a session of their own; sessions of the team's one
-# person; people with an agent paired; and sets of projects the team delivered. All
-# of it goes to tmp/<partition>-walk/prepared.json, and a test takes the next one
-# of a kind that no other test has taken (support/visitor.ts). There are three
-# times as many of each as one walk takes, so the walk also runs with --repeat-each 3.
+# Everything the walk's tests read and don't make themselves, made in the browser
+# test database before the test server starts (playwright.config.ts), so no test
+# runs a script while the others run: people, each with a session of their own;
+# sessions of the team's one person; people with an agent paired; sets of projects
+# the team delivered; one published Result; and three recorded Wallet Bench tests.
+# All of it goes to tmp/<partition>-walk/prepared.json. A test takes the next
+# person, session or set of projects that no other test has taken
+# (support/visitor.ts); there are three times as many of each as one walk takes, so
+# the walk also runs with --repeat-each 3. Every test reads the same Result and
+# Wallet Bench tests.
 # Run from platform/ with the browser test server's environment.
 unless Mix.env() == :test and
          String.starts_with?(System.get_env("MIX_TEST_PARTITION", ""), "browser"),
        do: raise("browser test database only")
 
 Logger.configure(level: :warning)
-{:ok, _} = Application.ensure_all_started([:postgrex, :ecto_sql, :ash, :ash_postgres])
+{:ok, _} = Application.ensure_all_started([:postgrex, :ecto_sql, :ash, :ash_postgres, :req])
 {:ok, _} = Techtree.Repo.start_link()
 
 alias Techtree.Accounts.SessionAuthority
+alias Techtree.NetworkFixture
 alias Techtree.ProjectPackage
 
 # Made fresh each run, so nothing an earlier run prepared or took is left.
@@ -235,7 +239,56 @@ projects =
     Map.merge(ids, %{"upload" => file, "upload_title" => "Ticket tagging"})
   end
 
+# One published Result of the fixture catalog's Campaign: the fixture catalog
+# (Techtree.CatalogFixture) is written into the test server's own catalog folder
+# (TECHTREE_CATALOG_ROOT, set by playwright.config.ts) and imported, and the fixture
+# proof is published through the ingest as NetworkFixture.publish/2 does, with a
+# countersigning key of this script's own (as test/test_helper.exs makes one) and
+# the test server's address.
+source = Path.expand("../../../../test/support/fixtures/catalog", __DIR__)
+
+%{"techtree_python_revision" => revision} =
+  source |> Path.join("source.json") |> File.read!() |> Jason.decode!()
+
+bundle = Path.join([System.fetch_env!("TECHTREE_CATALOG_ROOT"), "sources", revision])
+File.mkdir_p!(bundle)
+File.cp_r!(source, bundle)
+Techtree.Catalog.Importer.import!(bundle)
+
+{_public, private} = :crypto.generate_key(:eddsa, :ed25519)
+Application.put_env(:techtree, Techtree.Network.Key, private_key: Base.encode64(private))
+{:ok, signing_key} = Techtree.Network.Key.load()
+
+{:ok, result, :recorded} =
+  NetworkFixture.scored()
+  |> NetworkFixture.resign()
+  |> NetworkFixture.submission()
+  |> Techtree.Network.Ingest.accept(signing_key,
+    origin: "http://127.0.0.1:" <> System.fetch_env!("TECHTREE_BROWSER_PORT"),
+    actor: NetworkFixture.paired_agent()
+  )
+
+# Three recorded Wallet Bench tests (Techtree.WalletBenchFixture), by outcome:
+# passed, failed and running. Each recorded file goes where the test server reads
+# it (Techtree.EvidenceShelf).
+seeded = Techtree.WalletBenchFixture.seed!()
+
+for {key, body} <- Techtree.WalletBenchFixture.files(seeded),
+    do: :ok = Techtree.WalletBench.Evidence.put(key, body, "text/plain")
+
+recorded =
+  Map.new(seeded, fn {outcome, attempt} ->
+    {outcome, %{id: attempt.id, name: TechtreeWeb.WalletBenchCopy.pair(attempt)}}
+  end)
+
 File.write!(
   Path.join(walk, "prepared.json"),
-  Jason.encode!(%{people: people, team: team, agents: agents, projects: projects})
+  Jason.encode!(%{
+    people: people,
+    team: team,
+    agents: agents,
+    projects: projects,
+    result: result.bundle_digest,
+    recorded: recorded
+  })
 )

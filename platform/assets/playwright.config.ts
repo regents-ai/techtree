@@ -18,8 +18,8 @@ const port = Number(process.env.TECHTREE_BROWSER_PORT ?? 4012)
 process.env.TECHTREE_BROWSER_PARTITION = partition
 process.env.TECHTREE_BROWSER_PORT = String(port)
 // The server reads its catalog from a folder of the browser tests' own, never
-// the one shipped in priv; a test that publishes a Result writes the catalog it
-// needs there first, and the fresh database knows no catalog until it does.
+// the one shipped in priv; the walk writes the catalog its published Result needs
+// there before the server starts (support/prepare.exs).
 process.env.TECHTREE_CATALOG_ROOT = fileURLToPath(new URL(`../tmp/${partition}-catalog`, import.meta.url))
 const baseURL = `http://127.0.0.1:${port}`
 const server = `MIX_ENV=test MIX_TEST_PARTITION='${partition}' TECHTREE_BROWSER_TEST=1`
@@ -36,8 +36,6 @@ export default defineConfig({
   forbidOnly: true,
   retries: 0,
   reporter: "line",
-  // The records two files read, written once before any browser opens.
-  globalSetup: "./test/browser/support/seed.ts",
   use: {
     baseURL,
     trace: "retain-on-failure",
@@ -52,7 +50,7 @@ export default defineConfig({
       // The lines the server writes, which the visit tests read, start empty each run.
       `mkdir -p tmp && rm -f tmp/${partition}-lines.jsonl`,
       // A fresh database each run, so no run depends on what an earlier one left,
-      // holding everyone the tests sign in as (support/prepare.exs).
+      // holding everything the tests read and don't make themselves (support/prepare.exs).
       `${server} mix do ash_postgres.drop --quiet + ash_postgres.create --quiet + techtree.setup_local_auth + run --no-start assets/test/browser/support/prepare.exs`,
       `${server} mix do phx.digest.clean --all + assets.deploy`,
       `${server} PORT=${port} mix phx.server`,
