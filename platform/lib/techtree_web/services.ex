@@ -219,9 +219,7 @@ defmodule TechtreeWeb.Services do
           step("Build", :tested, [
             "We package the cases and their scoring with ",
             named(@verifiers),
-            ", and with ",
-            named(@harbor),
-            " when a case needs working software around it."
+            "."
           ]),
           step("Scoring check", :planned, [
             "We show that the scoring accepts known-good work and rejects plausible mistakes."
@@ -245,7 +243,6 @@ defmodule TechtreeWeb.Services do
         ],
         tools: [
           tool(@verifiers, "Packages the cases, runs them and scores them."),
-          tool(@harbor, "Packages the cases that need working software around them."),
           tool(@prime_rl, "Runs the whole evaluation at scale.")
         ],
         notes: [
