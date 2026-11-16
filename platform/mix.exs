@@ -209,13 +209,7 @@ defmodule Techtree.MixProject do
   # The fast loop keeps the same static gates; only suites run by the change
   # runner and the network advisory audit remain in the full loop.
   defp slow_check?(check) do
-    check in [
-      "cmd mix hex.audit",
-      "test --warnings-as-errors",
-      "cmd npm test",
-      "cmd npm run test:browser",
-      "cmd --cd assets npm run test:browser"
-    ]
+    check in ["cmd mix hex.audit", "cmd --cd assets npm run test:browser"]
   end
 
   defp precommit_checks do
