@@ -1,8 +1,8 @@
 import {createHash} from "node:crypto"
-import {readFileSync, rmSync} from "node:fs"
+import {readFileSync} from "node:fs"
 import type {Locator} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
-import {deliverProjects, layoutProblems, lowContrast, signIn, team, watchErrors} from "./support/visitor"
+import {deliveredProjects, layoutProblems, lowContrast, signInAsTeam, watchErrors} from "./support/visitor"
 
 // The team delivers to its own person, and both lists show the newest project
 // first, so this file's tests run one after another: one test's deliveries would
@@ -23,8 +23,8 @@ for (const width of [1280, 390]) {
     const hasTouch = width < 768
     const context = await browser.newContext({viewport: {width, height: 844}, isMobile: hasTouch, hasTouch})
     const outside = await keepOffline(context)
-    await signIn(context, team)
-    const delivered = deliverProjects()
+    await signInAsTeam(context)
+    const delivered = deliveredProjects()
     const page = await context.newPage()
     const errors = watchErrors(page)
     const press = (target: Locator) => (hasTouch ? target.tap() : target.click())
@@ -65,9 +65,7 @@ for (const width of [1280, 390]) {
     await expect(page.locator(".phx-connected").first()).toBeAttached()
     const deliver = page.locator("#team-deliver")
     await expect(page.locator("#team-deliver-button")).toBeDisabled()
-    // The package is read, then its file removed, so no run leaves one behind.
     const upload = readFileSync(delivered.upload)
-    rmSync(delivered.upload)
     await deliver
       .getByLabel("Package")
       .setInputFiles({name: "ticket-tagging.tar.gz", mimeType: "application/gzip", buffer: upload})

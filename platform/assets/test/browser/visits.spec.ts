@@ -1,7 +1,7 @@
 import {randomUUID} from "node:crypto"
 import type {Locator} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
-import {pairAgent, signIn, visitLines, watchErrors, type VisitLine} from "./support/visitor"
+import {signInWithAgent, visitLines, watchErrors, type VisitLine} from "./support/visitor"
 
 // A visit can be told again from its lines alone (TechtreeWeb.VisitLog). The
 // signed-in visitor opens their account and renames an agent, and the lines the
@@ -21,8 +21,7 @@ for (const width of ["desktop", "phone"] as const) {
       hasTouch ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch} : {},
     )
     const outside = await keepOffline(context)
-    const person = await signIn(context)
-    const agent = pairAgent(person)
+    const {person, agent} = await signInWithAgent(context)
     const renamed = `Replay ${width} ${randomUUID().slice(0, 8)}`
     const page = await context.newPage()
     const errors = watchErrors(page)

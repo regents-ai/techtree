@@ -1,6 +1,5 @@
 import {execFileSync} from "node:child_process"
-import {randomBytes, randomUUID} from "node:crypto"
-import {existsSync, readFileSync} from "node:fs"
+import {existsSync, readFileSync, writeFileSync} from "node:fs"
 import type {BrowserContext, Locator, Page} from "@playwright/test"
 
 // Runs one of the support scripts in the browser test database, with its arguments,
@@ -36,20 +35,11 @@ export function publishResult(): string {
 // A person a test signs in as. Each test has one of its own, so no other test
 // changes their name, agents, sites or anything else the test reads. The team's
 // one person (config/test.exs) is the exception: the tests that read the team's
-// page sign in as `team`, and each such file runs its tests one after another.
+// page sign in as the team, and each such file runs its tests one after another.
 export type Person = {id: string; wallet: string}
 
-export const team: Person = {id: "did:privy:browser-test", wallet: `0x${"b".repeat(40)}`}
-
-const newPerson = (): Person => ({id: `did:privy:browser-${randomUUID()}`, wallet: `0x${randomBytes(20).toString("hex")}`})
-
-// An agent paired with the person, under a name of its own.
-export function pairAgent(person: Person): string {
-  return JSON.parse(inBrowserDatabase("pair_agent.exs", [person.id])).name
-}
-
 // Three projects the team delivered to its own person, by verdict, and a
-// package file under tmp/ for the team to upload, with its title.
+// package file for the team to upload, with its title.
 export type DeliveredProjects = {
   improved: string
   inconclusive: string
@@ -58,19 +48,63 @@ export type DeliveredProjects = {
   upload_title: string
 }
 
-export function deliverProjects(): DeliveredProjects {
-  return JSON.parse(inBrowserDatabase("deliver_projects.exs"))
+// A person with a session of their own, as the cookie a browser would hold.
+type Session = Person & {cookie: {name: string; value: string}}
+
+// What the walk prepared before its server started (support/prepare.exs), by kind.
+type Prepared = {
+  people: Session[]
+  team: Session[]
+  agents: (Session & {agent: string})[]
+  projects: DeliveredProjects[]
 }
 
-// A fresh signed-in session for one browser context, as a new person unless one is
-// given; returns the person. Each context gets its own session: the site ends a
-// session another browser presents after it has moved on.
-export async function signIn(context: BrowserContext, person: Person = newPerson()): Promise<Person> {
-  const {name, value} = JSON.parse(inBrowserDatabase("sign_in.exs", [person.id, person.wallet]))
-  // There is no Privy sign-in behind this session; keepOffline (support/test.ts)
-  // answers the sign-in bridge for every context.
-  await context.addCookies([{name, value, domain: "127.0.0.1", path: "/"}])
-  return person
+const walk = `../tmp/${process.env.TECHTREE_BROWSER_PARTITION}-walk`
+let prepared: Prepared | undefined
+
+// The first one of a kind that no test has taken. A test takes it by making its
+// file under taken/, which only one test can make.
+function take<Kind extends keyof Prepared>(kind: Kind): Prepared[Kind][number] {
+  prepared ??= JSON.parse(readFileSync(`${walk}/prepared.json`, "utf8")) as Prepared
+  const all: Prepared[Kind] = prepared[kind]
+  for (let i = 0; i < all.length; i++) {
+    try {
+      writeFileSync(`${walk}/taken/${kind}-${i}`, "", {flag: "wx"})
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "EEXIST") continue
+      throw error
+    }
+    return all[i]
+  }
+  throw new Error(`The walk prepared ${all.length} ${kind} and every one is taken: prepare more in support/prepare.exs`)
+}
+
+// Gives the context a session's cookie. There is no Privy sign-in behind it;
+// keepOffline (support/test.ts) answers the sign-in bridge for every context.
+async function hold(context: BrowserContext, cookie: Session["cookie"]): Promise<void> {
+  await context.addCookies([{...cookie, domain: "127.0.0.1", path: "/"}])
+}
+
+// Signs the context in as a person of its own.
+export async function signIn(context: BrowserContext): Promise<void> {
+  await hold(context, take("people").cookie)
+}
+
+// Signs the context in as the team's one person, with a session of its own.
+export async function signInAsTeam(context: BrowserContext): Promise<void> {
+  await hold(context, take("team").cookie)
+}
+
+// Signs the context in as a person of its own with one agent paired, under a name
+// of its own; returns the person and the agent's name.
+export async function signInWithAgent(context: BrowserContext): Promise<{person: Person; agent: string}> {
+  const {id, wallet, cookie, agent} = take("agents")
+  await hold(context, cookie)
+  return {person: {id, wallet}, agent}
+}
+
+export function deliveredProjects(): DeliveredProjects {
+  return take("projects")
 }
 
 // One line the test server wrote (config/runtime.exs), in production's shape.

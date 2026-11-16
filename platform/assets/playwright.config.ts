@@ -51,8 +51,9 @@ export default defineConfig({
     command: [
       // The lines the server writes, which the visit tests read, start empty each run.
       `mkdir -p tmp && rm -f tmp/${partition}-lines.jsonl`,
-      // A fresh database each run, so no run depends on what an earlier one left.
-      `${server} mix do ash_postgres.drop --quiet + ash_postgres.create --quiet + techtree.setup_local_auth`,
+      // A fresh database each run, so no run depends on what an earlier one left,
+      // holding everyone the tests sign in as (support/prepare.exs).
+      `${server} mix do ash_postgres.drop --quiet + ash_postgres.create --quiet + techtree.setup_local_auth + run --no-start assets/test/browser/support/prepare.exs`,
       `${server} mix do phx.digest.clean --all + assets.deploy`,
       `${server} PORT=${port} mix phx.server`,
     ].join(" && "),

@@ -1,6 +1,6 @@
 import type {Locator} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
-import {layoutProblems, signIn, team, watchErrors} from "./support/visitor"
+import {layoutProblems, signInAsTeam, watchErrors} from "./support/visitor"
 
 // The signed-in tests sign in as the team's one person, whose page lists the newest
 // message first, so this file's tests run one after another: two at once would
@@ -23,7 +23,7 @@ for (const width of [1280, 390]) {
       permissions: ["clipboard-read", "clipboard-write"],
     })
     const outside = await keepOffline(context)
-    await signIn(context, team)
+    await signInAsTeam(context)
     const page = await context.newPage()
     const errors = watchErrors(page)
     const press = (target: Locator) => (hasTouch ? target.tap() : target.click())

@@ -1,6 +1,6 @@
 import type {Locator, Page} from "@playwright/test"
 import {expect, keepOffline, test} from "./support/test"
-import {layoutProblems, pairAgent, signIn, watchErrors} from "./support/visitor"
+import {layoutProblems, signIn, signInWithAgent, watchErrors} from "./support/visitor"
 
 const menu = (page: Page) => page.locator("#account-menu")
 
@@ -183,7 +183,7 @@ for (const width of ["desktop", "phone"] as const) {
       hasTouch ? {viewport: {width: 390, height: 844}, isMobile: true, hasTouch} : {},
     )
     const outside = await keepOffline(context)
-    const agent = pairAgent(await signIn(context))
+    const {agent} = await signInWithAgent(context)
     const renamed = `Ada 👩‍💻 ${width}`
     const page = await context.newPage()
     const errors = watchErrors(page)
