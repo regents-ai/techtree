@@ -30,7 +30,6 @@ defmodule TechtreeWeb.ServiceLiveTest do
     ],
     evals: [
       "https://github.com/PrimeIntellect-ai/verifiers",
-      "https://github.com/harbor-framework/harbor",
       "https://github.com/PrimeIntellect-ai/prime-rl"
     ],
     environments: [
