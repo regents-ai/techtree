@@ -83,7 +83,6 @@ nothing; the signed reads change only the time the site last saw the agent.
 | See the three most recently active agents in the account menu | `menu_agents_test.exs` (property) |
 | Every agent kind the library knows, Claude Duet included, draws its picture in the agents list and the account menu, so an agent paired on another site never breaks a person's list here | `agent_pictures_test.exs` |
 | Pair an agent end to end | **Gap:** the code is issued in tests; the agent's side is not driven |
-| See your Points total, today, the actions left with where to do them, and your own place on the leaderboard in the first render; a person with no name shows by their wallet, whose copy icon copies it in full; two people with one name keep a picture each; a signed-out visitor gets nothing from the shared board | `points_page_test.exs` |
 | Wallets and Connections tabs with real data | **Gap:** read from the shared account service, which tests don't reach |
 
 ## Agents and machines
@@ -96,9 +95,9 @@ nothing; the signed reads change only the time the site last saw the agent.
 | Publish a Result and report a Climb | `publication_controller_test.exs`, `test/techtree/network/` |
 | Sign in with its wallet and use the four agent addresses (publications, Model Climb reports, `/api/v1/account`, `/api/v1/profile`) only while acting as its person: unsigned 401, unpaired `agent_not_paired`, person not here `person_not_here`, and an unpairing during the request sends none of the person's data | `agent_wallet_test.exs` |
 | A new account, each linked social account and a paired agent offer their one-time Points award once, inside the save that earns it; a sign-in that changes nothing offers nothing, and an agent's award names its wallet | `sign_in_milestones_test.exs` |
-| An account, its linked social account and its paired agent from before the Points start earn their one-time Points at the start, once, through this site's own checks, and a later run offers nothing more | `start_awards_test.exs` |
+| An account, its linked social account and its paired agent from before the Points start earn their one-time Points when the start run goes, once, through this site's own checks, and a later run offers nothing more. Techtree no longer schedules that run | `start_awards_test.exs` |
 | Read the Train comparisons as data (`/train.json`, or the browser tool `train_comparisons`), each page as Markdown at its own address, and download a comparison's report with its digest as entity tag | `train_controller_test.exs`, `page_tools.spec.ts`, `agent_skills_test.exs`, `public_markdown_test.exs`, `sitemap_controller_test.exs` |
-| Read its person's Points with the same figures the page shows, and nothing at all while the shared board is not read | `points_page_test.exs`; the live check reads them as this Mac's paired agent after a release |
+| Read its person's Points: their figures, the actions still open, and the leaderboard with their own row marked and a person with no name shown by their wallet; nothing at all while the shared board is not read | `agent_points_test.exs`; the live check reads them as this Mac's paired agent after a release |
 | Read its person's shared profile and set their public name, and no one else's | `profile_test.exs` |
 | List, read and download the projects Techtree's team delivered to its person (`GET /api/v1/account/projects`, `/{id}` and `/{id}/package`, or the browser tools `account_projects` and `account_project`), and find no one else's | `projects_test.exs`, `open_api_test.exs`. **Gap:** an agent can't deliver or withdraw a project |
 | The board every signed-in reader shares: a refused reading keeps the one held, every reading offered reports its size against the limit, a failed first read is marked, an unchanged reading wakes no page, the kind holds one key, and measuring survives the table being away | `shared_reading_test.exs` |

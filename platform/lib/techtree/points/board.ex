@@ -1,7 +1,8 @@
 defmodule Techtree.Points.Board do
   @moduledoc """
-  The Points board every signed-in reader shares (`RegentPoints.leaderboard/1`),
-  read once for all of them and held in `Techtree.SharedReading` under `key/0`.
+  The Points board (`RegentPoints.leaderboard/1`) that every paired agent's
+  Points answer reads, read once for all of them and held in
+  `Techtree.SharedReading` under `key/0`.
   One runs on each machine.
 
   This is a reread on notice, the second of the two shapes the `elixir-stack`
@@ -15,11 +16,11 @@ defmodule Techtree.Points.Board do
   asks for the board to be read again; that also keeps the reading inside its
   kind's `within`.
 
-  The reading holds the ten highest rows with their account ids. Pages and the
-  agent's answer keep the ids on the server: a reader gets the rows without ids
-  and a mark on their own row, and their own place comes with their own summary
+  The reading holds the ten highest rows with their account ids. The agent's
+  answer keeps the ids on the server: it gets the rows without ids and a mark on
+  its person's own row, and the person's place comes with their own summary
   (`TechtreeWeb.PointsEntries`). A board too large for its kind is refused and
-  marked degraded, and the last one stays shown as behind.
+  marked degraded, and the last one stays in use.
 
   The first read happens as it starts, so the key holds a reading or its
   degraded mark before the site serves a page.

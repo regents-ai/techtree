@@ -84,7 +84,6 @@ defmodule TechtreeWeb.Router do
       live "/account/projects", AccountShellLive, :projects
       live "/account/projects/:id", AccountShellLive, :project
       live "/account/agents", AccountShellLive, :account_agents
-      live "/account/points", AccountShellLive, :points
       live "/account/wallets", AccountShellLive, :wallets
       live "/account/connections", AccountShellLive, :connections
       live "/watchdog", WatchdogLive, :index

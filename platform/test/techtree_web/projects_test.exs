@@ -79,7 +79,6 @@ defmodule TechtreeWeb.ProjectsTest do
              ~p"/account",
              ~p"/account/projects",
              ~p"/account/agents",
-             ~p"/account/points",
              ~p"/account/wallets",
              ~p"/account/connections"
            ]

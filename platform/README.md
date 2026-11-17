@@ -364,7 +364,7 @@ Regent site shares (`Regent.Account.pairing`). Each
 agent's reading from the sign-in service is kept five minutes on the machine, and a
 failed read one minute (`Techtree.Agents.ActivityReading`); reads that give no reading
 are counted in `health.agent_activity_unread.total` by reason. The shared account lives at `/account`, with
-Points, wallets and connections in the same frame. Sign-in uses the site's
+projects, agents, wallets and connections in the same frame. Sign-in uses the site's
 own Privy settings and a revocable server session, so every page is served under the
 sign-in content policy. Pairing uses that verified account; publication still needs
 its independent proof. Points earning and money tests remain disabled.

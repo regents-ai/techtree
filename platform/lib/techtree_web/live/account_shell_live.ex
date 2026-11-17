@@ -1,14 +1,13 @@
 defmodule TechtreeWeb.AccountShellLive do
   @moduledoc """
-  One template account frame for profile, projects, agents, Points, wallets and
+  One template account frame for profile, projects, agents, wallets and
   connections. A project's own page sits under the Projects tab.
   """
   use TechtreeWeb, :live_view
 
-  alias Techtree.{Accounts, Projects, SharedReading}
+  alias Techtree.{Accounts, Projects}
   alias Techtree.Accounts.LinkedIdentity.Providers
   alias Techtree.Actors.Human
-  alias Techtree.Points.Board
   alias TechtreeWeb.{AccountLive, ProjectsLive, Read}
 
   import TechtreeWeb.Components.Marketing, only: [opening: 1]
@@ -26,12 +25,6 @@ defmodule TechtreeWeb.AccountShellLive do
       label: "Agents",
       path: "/account/agents",
       line: "The agents you paired."
-    },
-    %{
-      route_id: :points,
-      label: "Points",
-      path: "/account/points",
-      line: "One total for you and your agents."
     },
     %{
       route_id: :wallets,
@@ -52,27 +45,15 @@ defmodule TechtreeWeb.AccountShellLive do
     message: "That connection couldn’t be updated. Refresh the page and try again."
   }
 
-  # The Points total rolls only for a change made after this connection's first
-  # render (`:points_rolls`), so a total that changed while the page was away,
-  # before a reconnect, is simply there.
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket) do
-      subscribe_to_own_topics(socket.assigns.access_context)
-      send(self(), :points_rolls)
-    end
+    if connected?(socket), do: subscribe_to_own_topics(socket.assigns.access_context)
 
     {:ok,
      socket
      |> assign(
        tabs: @tabs,
-       hearing_board?: false,
        verified_connections: %Read{},
-       points: %Read{},
-       points_bonus: %Read{},
-       points_board: %Read{},
-       points_earning: [],
-       points_rolls?: false,
        projects: %Read{},
        project: %Read{},
        verified_connections_notice: nil,
@@ -93,8 +74,6 @@ defmodule TechtreeWeb.AccountShellLive do
        route_spec: route_spec,
        destination: URI.parse(uri).path
      )
-     |> hear_board(route_spec)
-     |> load_points(route_spec)
      |> load_projects(action, params)
      |> load_verified_connections(route_spec)}
   end
@@ -147,29 +126,10 @@ defmodule TechtreeWeb.AccountShellLive do
     {:noreply, socket |> Read.settle(name, result) |> report_connection_outcome()}
   end
 
-  @impl true
-  def handle_info(
-        %{topic: "points:" <> _},
-        %{assigns: %{route_spec: %{route_id: :points}}} = socket
-      ),
-      do: {:noreply, read_points(socket)}
-
-  def handle_info(%{topic: "points:" <> _}, socket), do: {:noreply, socket}
-
-  # The board every signed-in reader shares was read again.
-  def handle_info(
-        {:shared_reading, {:points_board, _program}},
-        %{assigns: %{route_spec: %{route_id: :points}}} = socket
-      ),
-      do: {:noreply, read_points_board(socket)}
-
-  def handle_info({:shared_reading, {:points_board, _program}}, socket), do: {:noreply, socket}
-
-  def handle_info(:points_rolls, socket), do: {:noreply, assign(socket, points_rolls?: true)}
-
   # An agent paired, checked in or was unpaired, here or on another Regent site.
   # The Agents tab lists the agents; the account menu and the pairing window
   # follow on their own.
+  @impl true
   def handle_info(:agents_changed, socket) do
     if socket.assigns.route_spec.route_id == :account_agents,
       do: send_update(TechtreeWeb.AgentsPanel, id: "account-agents", agents_changed: true)
@@ -230,16 +190,6 @@ defmodule TechtreeWeb.AccountShellLive do
             lease={@session_lease}
             account={current_account(@access_context)}
           />
-          <TechtreeWeb.PointsLive.page
-            :if={@route_spec.route_id == :points}
-            signed_out_reason={@signed_out_reason}
-            account={current_account(@access_context)}
-            points={@points}
-            board={@points_board}
-            bonus={@points_bonus}
-            earning={@points_earning}
-            rolls?={@points_rolls?}
-          />
           <AccountLive.wallets
             :if={@route_spec.route_id == :wallets}
             signed_out_reason={@signed_out_reason}
@@ -258,29 +208,10 @@ defmodule TechtreeWeb.AccountShellLive do
     """
   end
 
-  defp subscribe_to_own_topics(%{principal: {:human, account}}) do
-    Phoenix.PubSub.subscribe(Techtree.PubSub, "points:#{account.id}")
-    Phoenix.PubSub.subscribe(Techtree.PubSub, RegentAgents.topic(account.privy_user_id))
-  end
+  defp subscribe_to_own_topics(%{principal: {:human, account}}),
+    do: Phoenix.PubSub.subscribe(Techtree.PubSub, RegentAgents.topic(account.privy_user_id))
 
   defp subscribe_to_own_topics(_access_context), do: :ok
-
-  # The page hears the shared Points board while the Points page is open, and
-  # not elsewhere.
-  defp hear_board(socket, %{route_id: route}) do
-    hearing? = socket.assigns.hearing_board?
-    wanted? = route == :points
-
-    if connected?(socket) and hearing? != wanted? do
-      if wanted?,
-        do: SharedReading.subscribe(Board.key()),
-        else: SharedReading.unsubscribe(Board.key())
-
-      assign(socket, :hearing_board?, wanted?)
-    else
-      socket
-    end
-  end
 
   defp current_account(%{principal: {:human, account}}), do: account
   defp current_account(_access_context), do: nil
@@ -289,74 +220,6 @@ defmodule TechtreeWeb.AccountShellLive do
     do: Human.for_account(account)
 
   defp human_actor(_socket), do: nil
-
-  # The NFT tier is read from Base once per page open, never on each award
-  # notice, and not at all while nothing earns.
-  defp load_points(socket, %{route_id: :points}) do
-    socket
-    |> assign(:points_earning, RegentPoints.Rules.active())
-    |> read_points()
-    |> read_points_board()
-    |> read_points_bonus()
-  end
-
-  defp load_points(socket, _),
-    do: socket |> Read.clear(:points) |> Read.clear(:points_board) |> Read.clear(:points_bonus)
-
-  defp read_points(socket) do
-    case human_actor(socket) do
-      %Human{} = actor ->
-        Read.now(socket, :points, actor.human_account_id, fn ->
-          RegentPoints.summary(actor: actor)
-        end)
-
-      nil ->
-        Read.clear(socket, :points)
-    end
-  end
-
-  # The board every signed-in reader shares (Techtree.Points.Board). The
-  # reader's own row and place are found from it, and their own total, as the
-  # page renders.
-  defp read_points_board(socket) do
-    case human_actor(socket) do
-      %Human{} -> assign(socket, :points_board, board_read(SharedReading.fetch(Board.key())))
-      nil -> Read.clear(socket, :points_board)
-    end
-  end
-
-  # Loading until the board is first read, an error when that first read failed,
-  # and behind while the last read failed.
-  defp board_read(:error), do: %Read{state: :loading}
-  defp board_read({:ok, %{reading: nil}}), do: %Read{state: :error, error: :not_read}
-
-  defp board_read({:ok, %{reading: board, at: at, degraded?: true}}),
-    do: %Read{state: :stale, value: board, read_at: at, error: :not_read}
-
-  defp board_read({:ok, %{reading: board, at: at}}),
-    do: %Read{state: :ready, value: board, read_at: at}
-
-  defp read_points_bonus(%{assigns: %{points_earning: []}} = socket),
-    do: Read.clear(socket, :points_bonus)
-
-  defp read_points_bonus(socket) do
-    case human_actor(socket) do
-      %Human{human_account_id: id} ->
-        Read.start(socket, :points_bonus, id, fn -> points_bonus(id) end)
-
-      nil ->
-        Read.clear(socket, :points_bonus)
-    end
-  end
-
-  # Base is read for the person's NFTs, counted against the account's own
-  # allowance for wallet reads.
-  defp points_bonus(id) do
-    case Techtree.Limits.spend(:wallet_read, {:human, id}) do
-      :ok -> RegentPoints.Bonus.current(id)
-      :limited -> {:error, :limited}
-    end
-  end
 
   defp load_projects(socket, :projects, _params) do
     socket = Read.clear(socket, :project)

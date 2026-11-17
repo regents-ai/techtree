@@ -27,7 +27,7 @@ import {installCopyButtons} from "./copy_buttons"
 import {ThemeSwitch} from "./hooks/theme_switch"
 import {mountMotion} from "./motion"
 import {deny} from "./hooks/motion/press"
-import {MotionCount, MotionList, MotionRefusal} from "./hooks/motion/moments"
+import {MotionList, MotionRefusal} from "./hooks/motion/moments"
 import {MotionCascade, ShellViews} from "./hooks/motion/reveals"
 import {composeHooks} from "./hook_composition"
 import {installPublicTools} from "./public_tools"
@@ -59,7 +59,6 @@ const labHooks = document.querySelector("main.motion-lab")
   ? (await import("./motion_lab")).hooks : {}
 
 const Hooks: Record<string, object> = {
-  MotionCount,
   MotionList,
   ThemeSwitch,
   // The marketing pages' moving pictures, rows that rise in and figures that count up.

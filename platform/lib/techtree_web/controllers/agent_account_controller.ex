@@ -13,8 +13,8 @@ defmodule TechtreeWeb.AgentAccountController do
 
   @points_off "Earning Points is off on this site."
 
-  # Points as decimal text, the same figures the Points page shows. While the
-  # page would show the board as not read, the whole answer is unavailable.
+  # Points as decimal text. While the shared board is not read, the whole answer
+  # is unavailable.
   def points(conn, _params) do
     actor = conn.assigns.actor
 

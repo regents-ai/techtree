@@ -150,8 +150,6 @@ config :techtree, Oban,
   cron: [
     crontab: [
       {"17 4 * * *", Techtree.ErrorPruner},
-      # From the Points start, the one-time points for what accounts already had.
-      {"@hourly", RegentPoints.StartAwards},
       # One line for each kind of shared reading a producer rereads on notice.
       {"* * * * *", Techtree.SharedReading.Heal, args: %{kind: "points_board"}}
     ]
@@ -252,7 +250,6 @@ config :techtree, :name_first, :chosen
 # 30 an hour from each client address. An enquiry from the contact form: 5 an
 # hour from each client address.
 config :techtree, :limits,
-  wallet_read: [limit: 30, window_seconds: 60],
   message: [limit: 10, window_seconds: 3600],
   message_address: [limit: 30, window_seconds: 3600],
   enquiry_address: [limit: 5, window_seconds: 3600]

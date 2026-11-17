@@ -88,7 +88,7 @@ defmodule TechtreeWeb.AgentsController do
   browser; `techtree_publication` passes the original JSON bytes through
   unchanged. Do not claim success from discovery, preparation or an unsigned
   refusal. The owner pairs agents with Pair New Agent on their Agents page, sees
-  and unpairs them at /account/agents, and uses /account/points for Points, /account/wallets for verified wallets,
+  and unpairs them at /account/agents, and uses /account/wallets for verified wallets
   and /account/connections for linked identities. Human-backed registry attributes are optional and do not grant
   authority.
 
