@@ -56,8 +56,9 @@ release=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["c
 if [ -z "$utils" ]; then
   fail "platform/mix.exs has no @elixir_utils_ref \"<40-character commit>\" line to check."
 else
-  [ "$(siwa_at "$utils")" = "$(siwa_at main)" ] ||
-    fail "elixir-utils main has a newer SIWA library: move @elixir_utils_ref in platform/mix.exs from $utils to a commit that holds siwa/siwa-elixir/apps/siwa as main has it."
+  newest=$(siwa_at main)
+  [ -n "$newest" ] && [ "$(siwa_at "$utils")" = "$newest" ] ||
+    fail "The SIWA library changed on elixir-utils main: move @elixir_utils_ref in platform/mix.exs from $utils to a commit whose siwa/siwa-elixir/apps/siwa is main's."
 fi
 
 exit "$failed"
