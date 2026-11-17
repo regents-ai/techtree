@@ -118,7 +118,8 @@ config :techtree,
     Techtree.ModelClimb,
     Techtree.Watchdog,
     Techtree.Messages,
-    Techtree.Projects
+    Techtree.Projects,
+    Techtree.Jobs
   ],
   generators: [timestamp_type: :utc_datetime]
 
@@ -133,7 +134,8 @@ config :techtree, Techtree.Watchdog,
 # the repo's. `sprites` holds the AgentWalletBench machine, attempt and turn
 # steps, which wait on Fly Sprites; `wallet_bench_judge` holds the judge's model
 # calls, which can take minutes; `wallet_bench_funding` signs and sends the
-# bench's funding on Base, one step at a time.
+# bench's funding on Base, one step at a time. `jobs_chain` reads job orders'
+# payments from Base.
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
@@ -145,7 +147,8 @@ config :techtree, Oban,
     sprites: 10,
     wallet_bench_judge: 3,
     wallet_bench_funding: 1,
-    watchdog: 2
+    watchdog: 2,
+    jobs_chain: 2
   ],
   cron: [
     crontab: [
@@ -255,6 +258,23 @@ config :techtree, :limits,
   enquiry_address: [limit: 5, window_seconds: 3600]
 
 config :techtree, :chain_nodes, %{8453 => "https://mainnet.base.org"}
+
+# Job orders are paid on Base into REGENT revenue staking with depositUSDC,
+# tagged `source_tag` and carrying the order's payment reference
+# (`Techtree.Jobs`). The node is `:chain_nodes`' Base one. A deposit counts once
+# it is `confirmations` blocks deep: 300 is one minute of Base blocks, so a
+# node behind a load balancer that lags a few blocks never shows a payment
+# another node has not seen yet. Logs are read `stretch_blocks` at a time.
+# `read_payments` runs the minute-by-minute read of quoted orders; it is read
+# when the site is built, and is off until a build turns it on.
+config :techtree, Techtree.Jobs,
+  chain_id: 8453,
+  staking: "0xb027dc261636e30cbc0fe25b2f8e1ed273354ab5",
+  usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  source_tag: "techtree.job",
+  confirmations: 300,
+  stretch_blocks: 10_000,
+  read_payments: false
 
 config :techtree, :session_bootstrap_rate_limit, limit: 30, window_seconds: 300
 

@@ -118,6 +118,8 @@ defmodule Techtree.MixProject do
        override: true},
       {:ash, "~> 3.37"},
       {:ash_oban, "~> 0.10.3"},
+      # A job order's states and the moves between them (Techtree.Jobs.Order).
+      {:ash_state_machine, "~> 0.3.1"},
       # The hosted MCP server at /mcp runs the Ash actions its domains hand it.
       {:ash_ai, "~> 1.5"},
       {:oban, "~> 2.24"},
@@ -233,8 +235,10 @@ defmodule Techtree.MixProject do
       # its Message resource, and that resource the module that runs its
       # agent_leave action. The contact form's enquiries take it to 35: the
       # messages domain reads its Enquiry resource. Projects take it to 36: the
-      # projects domain reads its Project resource. Keep this floor bounded.
-      "xref graph --label compile-connected --fail-above 36",
+      # projects domain reads its Project resource. Job orders take it to 38:
+      # the jobs domain reads its Order and Deposit resources. Keep this floor
+      # bounded.
+      "xref graph --label compile-connected --fail-above 38",
       "ash.codegen --check",
       "usage_rules.sync --check",
       "cmd --cd assets npm run typecheck",

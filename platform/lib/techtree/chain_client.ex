@@ -4,7 +4,8 @@ defmodule Techtree.ChainClient do
   `latest`: never count confirmations and never wait for `safe` or `finalized`. The
   node is the site's own for the chain (`:chain_nodes`), never the public address a
   wallet adds the chain with, so a private node or a lab fork reads what the
-  site asks of it.
+  site asks of it. Tests hand the requests options, such as a `Req.Test` plug,
+  under `:req_options` in this module's settings.
   """
 
   @behaviour RegentPoints.ChainClient
@@ -24,12 +25,15 @@ defmodule Techtree.ChainClient do
     url = :techtree |> Application.fetch_env!(:chain_nodes) |> Map.fetch!(chain_id)
     chain = %{chain_id: chain_id, scope: scope}
 
-    case Req.post(
-           url,
-           json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
-           retry: false,
-           receive_timeout: 5_000
-         ) do
+    request =
+      [
+        url: url,
+        json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
+        retry: false,
+        receive_timeout: 5_000
+      ] ++ Keyword.get(Application.get_env(:techtree, __MODULE__, []), :req_options, [])
+
+    case Req.post(request) do
       {:ok, %{status: 200, body: %{"result" => result}}} -> {:ok, result}
       {:ok, %{body: %{"error" => error}}} -> failed(chain, method, {:rpc, error})
       {:ok, %{status: status}} -> failed(chain, method, {:http, status})
