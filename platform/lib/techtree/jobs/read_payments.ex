@@ -3,7 +3,7 @@ defmodule Techtree.Jobs.ReadPayments do
   Keeps one staking contract's job payments current on one chain: the one
   reading job for that contract, unique while it is incomplete, on whichever
   machine took it. Each run proves the node serves the chain, makes one
-  `Techtree.Jobs.Scanner` pass, then waits five minutes and runs again.
+  `Techtree.Jobs.Reader` pass, then waits five minutes and runs again.
   `Techtree.Jobs.Watch.refresh/0` brings the next run forward to ten seconds
   away, never later, and the watch makes sure the job exists.
 
@@ -23,7 +23,7 @@ defmodule Techtree.Jobs.ReadPayments do
 
   require Logger
 
-  alias Techtree.Jobs.{Scanner, Staking}
+  alias Techtree.Jobs.{Reader, Staking}
 
   @pass_interval 300
   @retry_after 60
@@ -31,7 +31,7 @@ defmodule Techtree.Jobs.ReadPayments do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"chain_id" => chain_id, "contract" => contract}}) do
     with {:ok, ^chain_id} <- Staking.chain_id(),
-         :ok <- Scanner.pass(%{chain_id: chain_id, contract: contract}) do
+         :ok <- Reader.pass(%{chain_id: chain_id, contract: contract}) do
       {:snooze, @pass_interval}
     else
       {:ok, other_chain} ->

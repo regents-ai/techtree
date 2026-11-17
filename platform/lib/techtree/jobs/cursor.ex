@@ -1,7 +1,7 @@
 defmodule Techtree.Jobs.Cursor do
   @moduledoc """
   How far one staking contract's job payments have been read on one chain, at
-  the latest block (`Techtree.Jobs.Scanner`): the first block not read yet, and
+  the latest block (`Techtree.Jobs.Reader`): the first block not read yet, and
   the head last seen and when.
 
   The cursor opens at the head the first time the contract's reading job runs

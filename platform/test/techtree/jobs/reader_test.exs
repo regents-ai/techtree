@@ -1,4 +1,4 @@
-defmodule Techtree.Jobs.ScannerTest do
+defmodule Techtree.Jobs.ReaderTest do
   # The job payments reader against a stand-in Base node, run as its one
   # reading job (`Techtree.Jobs.ReadPayments`):
   # - the cursor opens at the head on the first run, reading back the last 300
@@ -23,7 +23,7 @@ defmodule Techtree.Jobs.ScannerTest do
   import ExUnit.CaptureLog
 
   alias Techtree.Jobs
-  alias Techtree.Jobs.{Payment, ReadPayments, Scanner, Watch}
+  alias Techtree.Jobs.{Payment, ReadPayments, Reader, Watch}
   alias Techtree.Actors.System
   alias Techtree.JobsFixture
 
@@ -386,12 +386,12 @@ defmodule Techtree.Jobs.ScannerTest do
         end
 
       JobsFixture.node(%{head: @head, logs: logs})
-      assert :ok = Scanner.pass(reader)
+      assert :ok = Reader.pass(reader)
 
       Enum.reduce(steps ++ [2_000], @head, fn step, head ->
         head = head + step
         JobsFixture.node(%{head: head, logs: logs})
-        assert :ok = Scanner.pass(reader)
+        assert :ok = Reader.pass(reader)
 
         made = for {offset, amount} <- payments, @head + offset <= head, do: amount
         saved = Jobs.list_deposits!(authorize?: false, query: [filter: [contract: contract]])

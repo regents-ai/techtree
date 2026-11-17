@@ -23,7 +23,7 @@ defmodule Techtree.Jobs.Order do
   The requesting agent, its person and the site's admins read the order and
   its quote; nobody else finds it. Only the admins check, quote and refuse.
   Whoever pays signs the calls themselves: the site never signs or sends
-  anything. The site's payment reader (`Techtree.Jobs.Scanner`) alone settles
+  anything. The site's payment reader (`Techtree.Jobs.Reader`) alone settles
   an order; the agent or the team may ask it to read Base again soon
   (`look_now`).
   """

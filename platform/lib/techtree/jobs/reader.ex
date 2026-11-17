@@ -1,4 +1,4 @@
-defmodule Techtree.Jobs.Scanner do
+defmodule Techtree.Jobs.Reader do
   @moduledoc """
   One pass over the job payments one staking contract received on one chain,
   read at the latest block (`Techtree.Jobs.Staking`), from where the contract's

@@ -18,7 +18,7 @@ defmodule TechtreeWeb.Telemetry do
   available, running or retrying job in each running `queue`, 0 when there is
   none, every ten seconds. A paused queue keeps its jobs waiting on purpose, so it
   is not measured.
-  The site's chain event reader, job payments (`Techtree.Jobs.Scanner`), reports
+  The site's chain event reader, job payments (`Techtree.Jobs.Reader`), reports
   each pass with `[:techtree, :indexer, :lag]`: `blocks` between the head it
   follows and the last block it has read, for its fixed `indexer` name and
   `chain_id`.

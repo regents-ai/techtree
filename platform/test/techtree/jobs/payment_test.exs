@@ -4,7 +4,7 @@ defmodule Techtree.Jobs.PaymentTest do
   # - the tag and a fresh reference;
   # - over random amounts: an order is paid exactly when what was received
   #   reaches the quote, and expiry never beats a payment. The reader's own
-  #   property, over random deposits and heads, is in `scanner_test.exs`.
+  #   property, over random deposits and heads, is in `reader_test.exs`.
   use ExUnit.Case, async: true
   use ExUnitProperties
 

@@ -1,6 +1,6 @@
 defmodule Techtree.Jobs.Deposit do
   @moduledoc """
-  One job payment exactly as Base first gave it (`Techtree.Jobs.Scanner`): a
+  One job payment exactly as Base first gave it (`Techtree.Jobs.Reader`): a
   `USDCRevenueDeposited` log from REGENT revenue staking, a direct deposit
   tagged `techtree.job`. It keeps the chain, the contract, the transaction and
   the log within it, the block and its hash, the wallet that sent it, the

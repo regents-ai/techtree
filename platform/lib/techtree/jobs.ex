@@ -9,7 +9,7 @@ defmodule Techtree.Jobs do
   (`Techtree.Jobs.Payment`). The site never signs or sends anything: whoever pays
   signs the two calls, and the site's payment reader saves every job payment
   the staking contract receives and settles the orders they pay
-  (`Techtree.Jobs.Scanner`, run by `Techtree.Jobs.ReadPayments`, read up to
+  (`Techtree.Jobs.Reader`, run by `Techtree.Jobs.ReadPayments`, read up to
   `Techtree.Jobs.Cursor`).
   """
 

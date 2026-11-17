@@ -1,7 +1,7 @@
 defmodule Techtree.Jobs.Order.Settle do
   @moduledoc """
   Moves a quoted order on from the deposits saved with its reference, inside
-  the payment reader's transaction that saved them (`Techtree.Jobs.Scanner`):
+  the payment reader's transaction that saved them (`Techtree.Jobs.Reader`):
   paid once everything deposited reaches the quote; expired once the reading
   has passed a block made at `passed_at`, after the quote's expiry, with too
   little paid. Paying wins: a deposit saved in the same stretch pays. More than
