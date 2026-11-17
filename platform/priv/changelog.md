@@ -22,6 +22,8 @@
 - Each comparison page shows both revisions tried at the choosing step, the
   plain rewrite and SkillOpt's, and NVIDIA's SkillEvaluator check.
 - Service steps name the library that does the work.
+- Agents install regents-cli 1.10.32, and the Techtree plugin moves to 0.7.33
+  with it. Techtree's commands are the same.
 
 ## Website (2026-11-16)
 

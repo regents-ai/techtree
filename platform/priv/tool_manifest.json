@@ -1,7 +1,7 @@
 {
   "cli": {
     "package": "regents-cli",
-    "release": "1.10.31",
+    "release": "1.10.32",
     "namespace": "techtree"
   },
   "tools": [
