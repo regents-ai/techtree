@@ -235,10 +235,10 @@ defmodule Techtree.MixProject do
       # its Message resource, and that resource the module that runs its
       # agent_leave action. The contact form's enquiries take it to 35: the
       # messages domain reads its Enquiry resource. Projects take it to 36: the
-      # projects domain reads its Project resource. Job orders take it to 38:
-      # the jobs domain reads its Order and Deposit resources. Keep this floor
-      # bounded.
-      "xref graph --label compile-connected --fail-above 38",
+      # projects domain reads its Project resource. Job orders take it to 39:
+      # the jobs domain reads its Order, Deposit and Cursor resources. Keep this
+      # floor bounded.
+      "xref graph --label compile-connected --fail-above 39",
       "ash.codegen --check",
       "usage_rules.sync --check",
       "cmd --cd assets npm run typecheck",

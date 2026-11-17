@@ -1,7 +1,7 @@
 defmodule Techtree.Jobs.Payment do
   @moduledoc """
   How a job order is paid, with no chain read: the order's payment reference,
-  the two calls whoever pays signs, and the rules that turn what was read from
+  the two calls whoever pays signs, and the rule that turns what was read from
   the chain into the order's next state.
 
   An order is paid by `depositUSDC(amount, tag, reference)` on REGENT revenue
@@ -9,10 +9,6 @@ defmodule Techtree.Jobs.Payment do
   (`config :techtree, Techtree.Jobs`) in ASCII, right-padded with zero bytes to
   32, the way `RegentCredits` pads its own. Anyone may send the deposit: the
   wallet that sends it is recorded and never checked.
-
-  A deposit counts once its block is `confirmations` deep. Logs are read in
-  stretches, from the first block not read yet up to the newest block that is
-  deep enough (`stretch/4`), so every deposit read already counts.
   """
 
   alias RegentChain.{Call, Review}
@@ -57,26 +53,9 @@ defmodule Techtree.Jobs.Payment do
   def calls(_order), do: {:error, :not_quoted}
 
   @doc """
-  The blocks one read covers, starting at `next_block`, the first block not
-  read yet. `frontier` is the newest block `confirmations` deep at `head`, and
-  `to` stops at it, or after `blocks` blocks. The read reaches the frontier, so
-  every block up to it is read, when `to == frontier`; `to < next_block` means
-  there is nothing new deep enough to read.
-  """
-  @spec stretch(non_neg_integer(), non_neg_integer(), pos_integer(), pos_integer()) :: %{
-          from: non_neg_integer(),
-          to: integer(),
-          frontier: integer()
-        }
-  def stretch(next_block, head, confirmations, blocks) do
-    frontier = head - confirmations + 1
-    %{from: next_block, to: min(frontier, next_block + blocks - 1), frontier: frontier}
-  end
-
-  @doc """
-  What a quoted order becomes once `received` has been read: paid when it is at
-  least the quote, otherwise expired once its quote has run out, otherwise still
-  quoted. Paying wins: a deposit read in the same read as the expiry pays.
+  What a quoted order becomes once `received` has been saved: paid when it is
+  at least the quote, otherwise expired once its quote has run out, otherwise
+  still quoted. Paying wins: a deposit saved as the expiry is reached pays.
   """
   @spec outcome(pos_integer(), Decimal.t() | non_neg_integer(), boolean()) ::
           :paid | :expired | :quoted

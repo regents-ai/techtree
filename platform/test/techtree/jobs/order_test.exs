@@ -1,26 +1,23 @@
 defmodule Techtree.Jobs.OrderTest do
-  # Job orders through the domain's actions, against a stand-in Base node:
+  # Job orders through the domain's actions:
   # - an agent asks, the team checks and quotes, and the quote gives the order
-  #   its payment reference and the block its payments are read from;
+  #   its payment reference;
   # - each move is allowed only from the states it starts from;
-  # - who may ask, read, quote, refuse, cancel and look now;
-  # - the payment read: what counts, when, from whom, and what an order becomes.
+  # - who may ask, read, quote, refuse, cancel, look now, and settle;
+  # - looking now asks the one reading job to run soon, and only once the
+  #   reader is on;
+  # - the calls that pay, and whether staking takes deposits.
   use Techtree.DataCase, async: false
   use Oban.Testing, repo: Techtree.Repo
 
   alias Techtree.Jobs
-  alias Techtree.Jobs.{Deposit, Order, Payment}
+  alias Techtree.Jobs.{Deposit, Order, Payment, ReadPayments}
   alias Techtree.Actors.{Human, System}
   alias Techtree.{JobsFixture, NetworkFixture}
-  alias Techtree.Jobs.Order.Workers.{LookNow, ReadPayment}
-
-  @head 40_000_000
-  @confirmations 300
 
   setup do
     admin_id = "did:privy:jobs-admin-" <> Ecto.UUID.generate()
     JobsFixture.put_admins([admin_id])
-    JobsFixture.node(%{head: @head})
 
     %{
       admin: %RegentAgents.Person{privy_user_id: admin_id, role: :admin},
@@ -53,7 +50,6 @@ defmodule Techtree.Jobs.OrderTest do
       assert {quoted.quote_amount, quoted.quote_scope} == {2_500_000, "The refund Skill."}
       assert quoted.quote_expires_at == expires_at
       assert quoted.payment_reference =~ ~r/\A0x[0-9a-f]{64}\z/
-      assert quoted.next_block == @head
 
       other = JobsFixture.quoted(agent, admin, 2_500_000)
       refute other.payment_reference == quoted.payment_reference
@@ -87,18 +83,6 @@ defmodule Techtree.Jobs.OrderTest do
       assert Ash.reload!(checking, authorize?: false).state == :checking
     end
 
-    test "a quote set while Base cannot be read is refused, and the order stays checking",
-         %{agent: agent, admin: admin} do
-      checking = agent |> JobsFixture.order() |> Jobs.check_order!(actor: admin)
-      JobsFixture.node(%{down: true})
-
-      assert {:error, %Ash.Error.Invalid{} = error} =
-               Jobs.quote_order(checking, 1_000, "Scope", DateTime.utc_now(), actor: admin)
-
-      assert Exception.message(error) =~ "Base could not be read"
-      assert Ash.reload!(checking, authorize?: false).state == :checking
-    end
-
     test "each move starts only from its own states", %{agent: agent, admin: admin} do
       order = JobsFixture.order(agent)
       expires_at = DateTime.add(DateTime.utc_now(), 1, :day)
@@ -122,6 +106,17 @@ defmodule Techtree.Jobs.OrderTest do
 
       requested = JobsFixture.order(agent)
       assert Jobs.cancel_order!(requested, actor: agent).state == :cancelled
+    end
+
+    test "an order cancelled since the reader found it is not settled",
+         %{agent: agent, admin: admin} do
+      quoted = JobsFixture.quoted(agent, admin, 1_000)
+      Jobs.record_deposit!(deposit_input(quoted.payment_reference), actor: %System{})
+      Jobs.cancel_order!(quoted, actor: agent)
+
+      assert {:error, error} = Jobs.settle_order(quoted, nil, actor: %System{})
+      assert [%Ash.Error.Changes.StaleRecord{}] = Ash.Error.to_error_class(error).errors
+      assert Ash.reload!(quoted, authorize?: false).state == :cancelled
     end
   end
 
@@ -197,7 +192,7 @@ defmodule Techtree.Jobs.OrderTest do
       assert Jobs.cancel_order!(order, actor: person).state == :cancelled
     end
 
-    test "its agent and the team look now; nobody reads payments directly",
+    test "its agent and the team look now; only the payment reader finds and settles orders",
          %{agent: agent, admin: admin} do
       quoted = JobsFixture.quoted(agent, admin, 1_000)
 
@@ -205,280 +200,103 @@ defmodule Techtree.Jobs.OrderTest do
         assert {:error, %Ash.Error.Forbidden{}} = Jobs.look_now(quoted, actor: actor)
       end
 
-      for actor <- [agent, admin, %System{}] do
-        assert {:error, %Ash.Error.Forbidden{}} =
-                 quoted
-                 |> Ash.Changeset.for_update(:read_payment, %{}, actor: actor)
-                 |> Ash.update()
+      for actor <- [agent, admin, nil] do
+        assert {:ok, []} = Jobs.due_orders([quoted.payment_reference], nil, actor: actor)
+        assert {:error, %Ash.Error.Forbidden{}} = Jobs.settle_order(quoted, nil, actor: actor)
       end
+
+      assert {:ok, [%Order{id: id}]} =
+               Jobs.due_orders([quoted.payment_reference], nil, actor: %System{})
+
+      assert id == quoted.id
     end
 
-    test "deposits are recorded only by the payment read, and read by the order's readers",
+    test "deposits are saved only by the payment reader, and read by the order's readers",
          %{agent: agent, admin: admin} do
       quoted = JobsFixture.quoted(agent, admin, 1_000)
-      deposit = deposit_input(quoted)
+      deposit = deposit_input(quoted.payment_reference)
+      unmatched = deposit_input(JobsFixture.word())
 
       for actor <- [agent, admin, nil] do
-        assert {:error, %Ash.Error.Forbidden{}} =
-                 Deposit
-                 |> Ash.Changeset.for_create(:record, deposit, actor: actor)
-                 |> Ash.create()
+        assert {:error, %Ash.Error.Forbidden{}} = Jobs.record_deposit(deposit, actor: actor)
       end
 
-      Deposit |> Ash.Changeset.for_create(:record, deposit, actor: %System{}) |> Ash.create!()
+      Jobs.record_deposit!(deposit, actor: %System{})
+      Jobs.record_deposit!(unmatched, actor: %System{})
 
-      assert [%Deposit{}] = Jobs.list_deposits!(actor: agent)
-      assert [%Deposit{}] = Jobs.list_deposits!(actor: admin)
+      for actor <- [agent, admin, nil] do
+        assert {:ok, []} = Jobs.seen_deposits(8453, deposit.contract, 0, 2_000, [], actor: actor)
+      end
+
+      assert {:ok, [_, _]} =
+               Jobs.seen_deposits(8453, deposit.contract, 0, 2_000, [], actor: %System{})
+
+      assert [%Deposit{reference: reference}] = Jobs.list_deposits!(actor: agent)
+      assert reference == quoted.payment_reference
+      assert [_, _] = Jobs.list_deposits!(actor: admin)
       assert [] = Jobs.list_deposits!(actor: JobsFixture.agent())
       assert [] = Jobs.list_deposits!(actor: %Human{human_account_id: 1})
     end
+
+    test "a saved deposit is kept as first saved, and nothing changes or removes it",
+         %{agent: agent, admin: admin} do
+      quoted = JobsFixture.quoted(agent, admin, 1_000)
+      deposit = deposit_input(quoted.payment_reference)
+      first = Jobs.record_deposit!(deposit, actor: %System{})
+
+      again =
+        Jobs.record_deposit!(%{deposit | amount: 5_000, depositor: JobsFixture.wallet()},
+          actor: %System{}
+        )
+
+      assert again.id == first.id
+      assert [%{amount: amount, depositor: depositor}] = Jobs.list_deposits!(actor: admin)
+      assert {Decimal.to_integer(amount), depositor} == {1_000, deposit.depositor}
+
+      refute Enum.any?(Ash.Resource.Info.actions(Deposit), &(&1.type in [:update, :destroy]))
+    end
   end
 
-  describe "reading payments" do
-    setup %{agent: agent, admin: admin} do
-      %{quoted: JobsFixture.quoted(agent, admin, 2_500_000)}
-    end
-
-    test "a deposit counts once it is deep enough, and then pays the order", %{quoted: quoted} do
-      block = @head + 10
-      depositor = wallet()
-
-      log =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 2_500_000,
-          depositor: depositor,
-          block: block
-        )
-
-      JobsFixture.node(%{head: block + @confirmations - 2, logs: [log]})
-      read!(quoted)
-      assert %{state: :quoted, received: received} = reload(quoted)
-      assert Decimal.eq?(received, 0)
-
-      JobsFixture.node(%{head: block + @confirmations - 1, logs: [log]})
-      read!(quoted)
-      order = reload(quoted)
-      assert {order.state, is_struct(order.paid_at, DateTime)} == {:paid, true}
-      assert Decimal.eq?(order.received, 2_500_000)
-      assert order.next_block == block + 1
-
-      assert [deposit] = Jobs.list_deposits!(authorize?: false)
-      assert {deposit.order_id, deposit.depositor} == {quoted.id, depositor}
-      assert deposit.transaction_hash == log["transactionHash"]
-      assert {deposit.log_index, deposit.block_number} == {0, block}
-    end
-
-    test "any wallet's deposit with the reference pays, and parts add up", %{quoted: quoted} do
-      logs = [
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 1_000_000,
-          depositor: wallet(),
-          block: @head + 1
-        ),
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 1_000_000,
-          depositor: wallet(),
-          block: @head + 2
-        )
-      ]
-
-      # Read up to the second deposit's block exactly; the third comes after.
-      JobsFixture.node(%{head: @head + 2 + @confirmations - 1, logs: logs})
-      read!(quoted)
-      assert %{state: :quoted} = order = reload(quoted)
-      assert Decimal.eq?(order.received, 2_000_000)
-
-      third =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 900_000,
-          depositor: wallet(),
-          block: @head + 3
-        )
-
-      JobsFixture.node(%{head: @head + 3 + @confirmations - 1, logs: [third | logs]})
-      read!(quoted)
-
-      assert %{state: :paid} = order = reload(quoted)
-      assert Decimal.eq?(order.received, 2_900_000)
-      assert length(Jobs.list_deposits!(authorize?: false)) == 3
-    end
-
-    test "a log read twice is kept once", %{quoted: quoted} do
-      log =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 1_000,
-          depositor: wallet(),
-          block: @head + 1
-        )
-
-      JobsFixture.node(%{head: @head + 1 + @confirmations, logs: [log]})
-      read!(quoted)
-
-      # Back to the block the quote started at, as a second read of the same
-      # blocks would find.
-      Repo.query!("UPDATE job_orders SET next_block = $1 WHERE id = $2", [
-        @head,
-        Ecto.UUID.dump!(quoted.id)
-      ])
-
-      read!(quoted)
-
-      assert [_one] = Jobs.list_deposits!(authorize?: false)
-    end
-
-    test "a deposit with another tag is not a job payment", %{quoted: quoted} do
-      tag = "0x" <> Base.encode16(String.pad_trailing("regent.credits", 32, <<0>>), case: :lower)
-
-      log =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 2_500_000,
-          depositor: wallet(),
-          block: @head + 1,
-          tag: tag
-        )
-
-      JobsFixture.node(%{head: @head + 1 + @confirmations, logs: [log]})
-      read!(quoted)
-
-      assert %{state: :quoted} = reload(quoted)
-      assert [] = Jobs.list_deposits!(authorize?: false)
-    end
-
-    test "a quote runs out only once a block made after its expiry is read",
-         %{agent: agent, admin: admin} do
-      expires_at = DateTime.add(DateTime.utc_now(), -60, :second)
-      quoted = JobsFixture.quoted(agent, admin, 2_500_000, expires_at)
-      expiry = DateTime.to_unix(expires_at)
-
-      short =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 1_000,
-          depositor: wallet(),
-          block: @head + 1
-        )
-
-      JobsFixture.node(%{
-        head: @head + @confirmations + 5,
-        logs: [short],
-        time: fn _block -> expiry end
-      })
-
-      read!(quoted)
-      assert %{state: :quoted} = reload(quoted)
-
-      JobsFixture.node(%{
-        head: @head + @confirmations + 6,
-        logs: [short],
-        time: fn _block -> expiry + 1 end
-      })
-
-      read!(quoted)
-      expired = reload(quoted)
-      assert {expired.state, is_struct(expired.expired_at, DateTime)} == {:expired, true}
-
-      # A later deposit is recorded, asked for at once, and changes nothing.
-      late =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 2_500_000,
-          depositor: wallet(),
-          block: @head + 20
-        )
-
-      JobsFixture.node(%{head: @head + 20 + @confirmations, logs: [short, late]})
-
-      assert {:ok, _order} = Jobs.look_now(expired, actor: agent)
-      assert_enqueued(worker: LookNow, args: %{"primary_key" => %{"id" => quoted.id}})
-      assert {:ok, _order} = perform_job(LookNow, %{"primary_key" => %{"id" => quoted.id}})
-
-      assert %{state: :expired} = order = reload(quoted)
-      assert Decimal.eq?(order.received, 2_501_000)
-    end
-
-    test "a payment read in the same read as the expiry pays", %{agent: agent, admin: admin} do
-      quoted =
-        JobsFixture.quoted(agent, admin, 1_000, DateTime.add(DateTime.utc_now(), -60, :second))
-
-      log =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 1_000,
-          depositor: wallet(),
-          block: @head + 1
-        )
-
-      JobsFixture.node(%{
-        head: @head + 1 + @confirmations,
-        logs: [log],
-        time: fn _block -> 4_000_000_000 end
-      })
-
-      read!(quoted)
-
-      assert %{state: :paid} = reload(quoted)
-    end
-
-    @tag :capture_log
-    test "a node that cannot be read puts the read off a minute and changes nothing",
-         %{quoted: quoted} do
-      JobsFixture.node(%{down: true})
-
-      assert {:snooze, 60} =
-               perform_job(ReadPayment, %{"primary_key" => %{"id" => quoted.id}})
-
-      assert %{state: :quoted, next_block: @head} = reload(quoted)
-    end
-
-    @tag :capture_log
-    test "a log that is not a deposit fails the read", %{quoted: quoted} do
-      log =
-        JobsFixture.log(
-          reference: quoted.payment_reference,
-          amount: 1_000,
-          depositor: wallet(),
-          block: @head + 1
-        )
-        |> Map.put("data", "0x00")
-
-      JobsFixture.node(%{head: @head + 1 + @confirmations, logs: [log]})
-
-      assert_raise Ash.Error.Invalid, ~r/a deposit could not be read/, fn ->
-        perform_job(ReadPayment, %{"primary_key" => %{"id" => quoted.id}})
-      end
-
-      assert %{state: :quoted, next_block: @head} = reload(quoted)
-    end
-
-    test "looking now is for quoted and expired orders", %{agent: agent, admin: admin} do
+  describe "looking now" do
+    test "is for quoted and expired orders", %{agent: agent, admin: admin} do
       assert {:error, %Ash.Error.Invalid{}} =
                Jobs.look_now(JobsFixture.order(agent), actor: agent)
 
-      paid = JobsFixture.quoted(agent, admin, 1_000)
-
-      log =
-        JobsFixture.log(
-          reference: paid.payment_reference,
-          amount: 1_000,
-          depositor: wallet(),
-          block: @head + 1
-        )
-
-      JobsFixture.node(%{head: @head + 1 + @confirmations, logs: [log]})
-      read!(paid)
-
-      assert {:error, %Ash.Error.Invalid{}} = Jobs.look_now(reload(paid), actor: agent)
+      cancelled = agent |> JobsFixture.quoted(admin, 1_000) |> Jobs.cancel_order!(actor: agent)
+      assert {:error, %Ash.Error.Invalid{}} = Jobs.look_now(cancelled, actor: agent)
     end
-  end
 
-  test "the minute-by-minute read is off unless the build turns it on" do
-    refute Code.ensure_loaded?(Techtree.Jobs.Order.Schedulers.ReadPayment)
+    test "asks for nothing while the reader is off", %{agent: agent, admin: admin} do
+      quoted = JobsFixture.quoted(agent, admin, 1_000)
+
+      assert {:ok, _order} = Jobs.look_now(quoted, actor: agent)
+      refute_enqueued(worker: ReadPayments)
+    end
+
+    test "starts the one reading job, or brings it to ten seconds away and never later",
+         %{agent: agent, admin: admin} do
+      JobsFixture.read_payments()
+      quoted = JobsFixture.quoted(agent, admin, 1_000)
+
+      assert {:ok, _order} = Jobs.look_now(quoted, actor: agent)
+      assert [%{state: "available"} = job] = all_enqueued(worker: ReadPayments)
+      assert job.args == JobsFixture.reader()
+
+      # Waiting out its five minutes, the job is brought forward to ten
+      # seconds away.
+      later = DateTime.add(DateTime.utc_now(), 300)
+      park(job, later)
+      assert {:ok, _order} = Jobs.look_now(quoted, actor: admin)
+      assert [%{id: id, scheduled_at: soon}] = all_enqueued(worker: ReadPayments)
+      assert id == job.id
+      assert DateTime.diff(soon, DateTime.utc_now()) in 8..10
+
+      # Due sooner than that, it keeps its time.
+      sooner = DateTime.add(DateTime.utc_now(), 3)
+      park(job, sooner)
+      assert {:ok, _order} = Jobs.look_now(quoted, actor: agent)
+      assert [%{scheduled_at: ^sooner}] = all_enqueued(worker: ReadPayments)
+    end
   end
 
   describe "paying" do
@@ -492,31 +310,35 @@ defmodule Techtree.Jobs.OrderTest do
     end
 
     test "whether staking is paused is read at the newest block" do
-      JobsFixture.node(%{head: @head, paused: false})
+      JobsFixture.node(%{head: 1, paused: false})
       assert {:ok, false} = Techtree.Jobs.Staking.paused()
 
-      JobsFixture.node(%{head: @head, paused: true})
+      JobsFixture.node(%{head: 1, paused: true})
       assert {:ok, true} = Techtree.Jobs.Staking.paused()
     end
   end
 
-  defp read!(order) do
-    assert {:ok, _order} = perform_job(ReadPayment, %{"primary_key" => %{"id" => order.id}})
+  # The reading job as a pass leaves it: waiting until `at`. Oban's job table
+  # has no Ash resource.
+  defp park(job, at) do
+    Oban.Job
+    |> where(id: ^job.id)
+    |> Repo.update_all([set: [state: "scheduled", scheduled_at: at]],
+      prefix: Oban.config().prefix
+    )
   end
 
-  defp reload(order),
-    do: Ash.load!(Ash.reload!(order, authorize?: false), :received, authorize?: false)
-
-  defp wallet, do: "0x" <> Base.encode16(:crypto.strong_rand_bytes(20), case: :lower)
-
-  defp deposit_input(order) do
+  defp deposit_input(reference) do
     %{
-      order_id: order.id,
-      transaction_hash: "0x" <> Base.encode16(:crypto.strong_rand_bytes(32), case: :lower),
+      chain_id: 8453,
+      contract: Payment.config()[:staking],
+      transaction_hash: JobsFixture.word(),
       log_index: 0,
-      depositor: wallet(),
-      amount: 1_000,
-      block_number: @head + 1
+      block_number: 1_000,
+      block_hash: JobsFixture.block_hash(1_000),
+      depositor: JobsFixture.wallet(),
+      reference: reference,
+      amount: 1_000
     }
   end
 end

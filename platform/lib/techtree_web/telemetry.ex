@@ -18,6 +18,10 @@ defmodule TechtreeWeb.Telemetry do
   available, running or retrying job in each running `queue`, 0 when there is
   none, every ten seconds. A paused queue keeps its jobs waiting on purpose, so it
   is not measured.
+  The site's chain event reader, job payments (`Techtree.Jobs.Scanner`), reports
+  each pass with `[:techtree, :indexer, :lag]`: `blocks` between the head it
+  follows and the last block it has read, for its fixed `indexer` name and
+  `chain_id`.
   The site sends from its own wallet (the Wallet Bench's funder), so it names, as
   `unconfirmed_sends` in `config :techtree, TechtreeWeb.Telemetry`, the function
   that answers each of its fixed sending flows with when its oldest signed,
@@ -220,6 +224,18 @@ defmodule TechtreeWeb.Telemetry do
         tags: [:queue],
         description:
           "Age of the oldest unfinished background job in the queue, counted from when it was added"
+      ),
+      last_value("health.indexer.lag.blocks",
+        event_name: [:techtree, :indexer, :lag],
+        measurement: :blocks,
+        tags: [:indexer, :chain_id],
+        description:
+          "Blocks between the chain head a reader follows and the last block it has read"
+      ),
+      counter("health.indexer.passes.total",
+        event_name: [:techtree, :indexer, :lag],
+        tags: [:indexer, :chain_id],
+        description: "Passes each chain reader made"
       ),
       last_value("health.wallet_unconfirmed_oldest.seconds",
         event_name: [:techtree, :wallet, :unconfirmed_oldest],

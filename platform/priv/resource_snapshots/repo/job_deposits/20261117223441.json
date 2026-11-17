@@ -21,6 +21,30 @@
       "references": null,
       "scale": null,
       "size": null,
+      "source": "chain_id",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "contract",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
       "source": "transaction_hash",
       "type": "text"
     },
@@ -45,7 +69,43 @@
       "references": null,
       "scale": null,
       "size": null,
+      "source": "block_number",
+      "type": "bigint"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "block_hash",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
       "source": "depositor",
+      "type": "text"
+    },
+    {
+      "allow_nil?": false,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": null,
+      "scale": null,
+      "size": null,
+      "source": "reference",
       "type": "text"
     },
     {
@@ -62,18 +122,6 @@
     },
     {
       "allow_nil?": false,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "block_number",
-      "type": "bigint"
-    },
-    {
-      "allow_nil?": false,
       "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
       "generated?": false,
       "precision": null,
@@ -83,39 +131,6 @@
       "size": null,
       "source": "recorded_at",
       "type": "utc_datetime_usec"
-    },
-    {
-      "allow_nil?": false,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": {
-        "deferrable": false,
-        "destination_attribute": "id",
-        "destination_attribute_default": null,
-        "destination_attribute_generated": null,
-        "index?": false,
-        "index_where": null,
-        "match_tenant?": false,
-        "match_type": null,
-        "match_with": null,
-        "multitenancy": {
-          "attribute": null,
-          "global": null,
-          "strategy": null
-        },
-        "name": "job_deposits_order_id_fkey",
-        "on_delete": null,
-        "on_update": null,
-        "primary_key?": true,
-        "schema": "public",
-        "table": "job_orders"
-      },
-      "scale": null,
-      "size": null,
-      "source": "order_id",
-      "type": "uuid"
     }
   ],
   "base_filter": null,
@@ -126,12 +141,45 @@
       "all_tenants?": false,
       "concurrently": false,
       "error_fields": [
-        "order_id"
+        "reference"
       ],
       "fields": [
         {
           "type": "atom",
-          "value": "order_id"
+          "value": "reference"
+        }
+      ],
+      "include": null,
+      "include_base_filter?": true,
+      "message": null,
+      "name": null,
+      "nulls_distinct": true,
+      "prefix": null,
+      "table": null,
+      "unique": false,
+      "using": null,
+      "where": null
+    },
+    {
+      "all_tenants?": false,
+      "concurrently": false,
+      "error_fields": [
+        "chain_id",
+        "contract",
+        "block_number"
+      ],
+      "fields": [
+        {
+          "type": "atom",
+          "value": "chain_id"
+        },
+        {
+          "type": "atom",
+          "value": "contract"
+        },
+        {
+          "type": "atom",
+          "value": "block_number"
         }
       ],
       "include": null,
@@ -148,13 +196,17 @@
   ],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "F34716B91566031BAB764367C90C426277A2B7DA159220CFFCA31C18B2173D84",
+  "hash": "B0B49557FC5A5D7F9BDDB780C03E8ED4B5104E2CD70FF46F0A40B0552252954D",
   "identities": [
     {
       "all_tenants?": false,
       "base_filter": null,
-      "index_name": "job_deposits_unique_log_index",
+      "index_name": "job_deposits_unique_chain_event_index",
       "keys": [
+        {
+          "type": "atom",
+          "value": "chain_id"
+        },
         {
           "type": "atom",
           "value": "transaction_hash"
@@ -164,7 +216,7 @@
           "value": "log_index"
         }
       ],
-      "name": "unique_log",
+      "name": "unique_chain_event",
       "nils_distinct?": true,
       "where": null
     }

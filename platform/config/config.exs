@@ -136,6 +136,13 @@ config :techtree, Techtree.Watchdog,
 # calls, which can take minutes; `wallet_bench_funding` signs and sends the
 # bench's funding on Base, one step at a time. `jobs_chain` reads job orders'
 # payments from Base.
+#
+# Job payments are read only while `read_payments` is on, and it is read when
+# the site is built: with it off, neither the reading job
+# (`Techtree.Jobs.ReadPayments`) nor the five-minute watch that keeps it
+# (`Techtree.Jobs.Watch`) is scheduled, and looking now reads nothing.
+read_payments = false
+
 config :techtree, Oban,
   repo: Techtree.Repo,
   notifier: Oban.Notifiers.PG,
@@ -151,11 +158,12 @@ config :techtree, Oban,
     jobs_chain: 2
   ],
   cron: [
-    crontab: [
-      {"17 4 * * *", Techtree.ErrorPruner},
-      # One line for each kind of shared reading a producer rereads on notice.
-      {"* * * * *", Techtree.SharedReading.Heal, args: %{kind: "points_board"}}
-    ]
+    crontab:
+      [
+        {"17 4 * * *", Techtree.ErrorPruner},
+        # One line for each kind of shared reading a producer rereads on notice.
+        {"* * * * *", Techtree.SharedReading.Heal, args: %{kind: "points_board"}}
+      ] ++ if(read_payments, do: [{"*/5 * * * *", Techtree.Jobs.Watch}], else: [])
   ],
   pruner: [max_age: {7, :days}],
   lifeline: [rescue_after: {10, :minutes}]
@@ -261,20 +269,16 @@ config :techtree, :chain_nodes, %{8453 => "https://mainnet.base.org"}
 
 # Job orders are paid on Base into REGENT revenue staking with depositUSDC,
 # tagged `source_tag` and carrying the order's payment reference
-# (`Techtree.Jobs`). The node is `:chain_nodes`' Base one. A deposit counts once
-# it is `confirmations` blocks deep: 300 is one minute of Base blocks, so a
-# node behind a load balancer that lags a few blocks never shows a payment
-# another node has not seen yet. Logs are read `stretch_blocks` at a time.
-# `read_payments` runs the minute-by-minute read of quoted orders; it is read
-# when the site is built, and is off until a build turns it on.
+# (`Techtree.Jobs`). The node is `:chain_nodes`' Base one, read at the latest
+# block: the staking contract's job payments are read every five minutes, and
+# soon after an agent or the team asks, while `read_payments` (set beside
+# Oban's crontab above) is on.
 config :techtree, Techtree.Jobs,
   chain_id: 8453,
   staking: "0xb027dc261636e30cbc0fe25b2f8e1ed273354ab5",
   usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
   source_tag: "techtree.job",
-  confirmations: 300,
-  stretch_blocks: 10_000,
-  read_payments: false
+  read_payments: read_payments
 
 config :techtree, :session_bootstrap_rate_limit, limit: 30, window_seconds: 300
 

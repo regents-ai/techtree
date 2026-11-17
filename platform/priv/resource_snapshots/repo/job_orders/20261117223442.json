@@ -97,18 +97,6 @@
       "type": "text"
     },
     {
-      "allow_nil?": true,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "next_block",
-      "type": "bigint"
-    },
-    {
       "allow_nil?": false,
       "default": "fragment(\"(now() AT TIME ZONE 'utc')\")",
       "generated?": false,
@@ -278,15 +266,39 @@
         "quote_amount"
       ],
       "base_filter": null,
-      "check": "num_nulls(quote_amount, quote_scope, quote_expires_at, payment_reference, next_block) = 5 OR (num_nulls(quote_amount, quote_scope, quote_expires_at, payment_reference, next_block) = 0 AND quote_amount > 0)",
+      "check": "num_nulls(quote_amount, quote_scope, quote_expires_at, payment_reference) = 4 OR (num_nulls(quote_amount, quote_scope, quote_expires_at, payment_reference) = 0 AND quote_amount > 0)",
       "name": "quote_whole"
     }
   ],
   "create_table_options": null,
-  "custom_indexes": [],
+  "custom_indexes": [
+    {
+      "all_tenants?": false,
+      "concurrently": false,
+      "error_fields": [
+        "quote_expires_at"
+      ],
+      "fields": [
+        {
+          "type": "atom",
+          "value": "quote_expires_at"
+        }
+      ],
+      "include": null,
+      "include_base_filter?": true,
+      "message": null,
+      "name": null,
+      "nulls_distinct": true,
+      "prefix": null,
+      "table": null,
+      "unique": false,
+      "using": null,
+      "where": "state = 'quoted'"
+    }
+  ],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "C18BF333EC35ACB71FC86B6D6866E615EC28445F8E47091335253D21684B6C71",
+  "hash": "BF7D8EDF704638ABDED11CF2A4FA200E9FCEB7FA9EF8BC6D738321A4826AF71C",
   "identities": [
     {
       "all_tenants?": false,

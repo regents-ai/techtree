@@ -36,9 +36,6 @@ defmodule Techtree.BaseFork do
     url = "http://127.0.0.1:#{port}"
     JobsFixture.put_env(:techtree, :chain_nodes, %{8453 => url})
     await(url, 120)
-    # One block of the fork's own, so every quote reads only blocks the fork
-    # made, never the forked one from Base's node.
-    mine(url, 1)
     url
   end
 

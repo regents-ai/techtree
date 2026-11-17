@@ -1,14 +1,19 @@
 defmodule Techtree.Jobs.Staking do
   @moduledoc """
-  The reads of Base that job orders need, through the site's own Base node
-  (`Techtree.ChainClient`): the newest block, a block's time, the deposits that
-  carry one order's payment reference, and whether REGENT revenue staking is
-  paused.
+  The reads of Base that job payments need, through the site's own Base node
+  (`Techtree.ChainClient`), always at the latest block: the chain the node
+  serves, the newest block, REGENT revenue staking's direct deposits in a
+  stretch of blocks, and whether staking is paused.
 
-  A deposit is a `USDCRevenueDeposited` log from the staking contract: a direct
-  deposit (`sourceKind` 0) by `depositor` with `sourceRef` the reference, and in
-  its data the amount received and the source tag. Only deposits tagged with
-  the jobs' `source_tag` are kept; one with any other tag is not a job payment.
+  A job payment is a `USDCRevenueDeposited` log from the staking contract: a
+  direct deposit (`sourceKind` 0) by `depositor` with `sourceRef` an order's
+  payment reference, and in its data the amount received and the source tag.
+  Logs are asked for by the event and the direct-deposit kind; of those, only
+  the ones tagged with the jobs' `source_tag` are job payments.
+
+  A node that does not answer (no connection, a timeout, a 429 or a 5xx) is
+  `{:error, :unavailable}`, and a request it answers with an error is
+  `{:error, {:refused, error}}`.
   """
 
   alias RegentChain.{Abi, Event}
@@ -22,65 +27,68 @@ defmodule Techtree.Jobs.Staking do
   @data [{:uint, 256}, {:uint, 256}, {:uint, 256}, :bytes32]
   @scope "jobs"
 
+  @type head :: %{number: non_neg_integer(), hash: String.t(), timestamp: DateTime.t()}
+
   @type deposit :: %{
+          contract: String.t(),
           transaction_hash: String.t(),
           log_index: non_neg_integer(),
+          block_number: non_neg_integer(),
+          block_hash: String.t(),
           depositor: String.t(),
-          amount: non_neg_integer(),
-          block_number: non_neg_integer()
+          reference: String.t(),
+          amount: Decimal.t()
         }
 
-  @doc "The newest block's number."
-  @spec head() :: {:ok, non_neg_integer()} | {:error, term()}
-  def head do
-    with {:ok, number} <- rpc("eth_blockNumber", []), do: quantity(number)
+  @doc "The chain the node serves."
+  @spec chain_id() :: {:ok, pos_integer()} | {:error, term()}
+  def chain_id do
+    with {:ok, id} <- rpc("eth_chainId", []), do: quantity(id)
   end
 
-  @doc "The time of block `number`, in Unix seconds."
-  @spec block_time(non_neg_integer()) :: {:ok, non_neg_integer()} | {:error, term()}
-  def block_time(number) do
-    case rpc("eth_getBlockByNumber", [quantity_hex(number), false]) do
-      {:ok, %{"timestamp" => timestamp}} -> quantity(timestamp)
-      {:ok, block} -> {:error, {:malformed_block, block}}
-      error -> error
+  @doc "The newest block: its number, its hash and when it was made."
+  @spec head() :: {:ok, head()} | {:error, term()}
+  def head do
+    case rpc("eth_getBlockByNumber", ["latest", false]) do
+      {:ok, %{"number" => number, "hash" => hash, "timestamp" => timestamp} = block} ->
+        with {:ok, number} <- Abi.quantity(number),
+             {:ok, hash} <- Abi.hash(hash),
+             {:ok, timestamp} <- Abi.quantity(timestamp) do
+          {:ok, %{number: number, hash: hash, timestamp: DateTime.from_unix!(timestamp)}}
+        else
+          :error -> {:error, {:malformed_block, block}}
+        end
+
+      {:ok, block} ->
+        {:error, {:malformed_block, block}}
+
+      error ->
+        error
     end
   end
 
-  @doc """
-  The job payments carrying `reference` in blocks `from` to `to`. A log that is
-  not the deposit it was asked for is an error, never skipped.
-  """
-  @spec deposits(String.t(), non_neg_integer(), non_neg_integer()) ::
-          {:ok, [deposit()]} | {:error, term()}
-  def deposits(reference, from, to) do
+  @doc "Every direct deposit `contract` logged in blocks `from` to `to`, as the node gave them."
+  @spec logs(String.t(), non_neg_integer(), non_neg_integer()) ::
+          {:ok, [map()]} | {:error, term()}
+  def logs(contract, from, to) do
     filter = %{
-      address: Payment.config()[:staking],
+      address: contract,
       fromBlock: quantity_hex(from),
       toBlock: quantity_hex(to),
-      topics: [@topic0, @direct_deposit, nil, reference]
+      topics: [@topic0, @direct_deposit]
     }
 
     case rpc("eth_getLogs", [filter]) do
-      {:ok, logs} when is_list(logs) -> decode_all(logs, reference, [])
+      {:ok, logs} when is_list(logs) -> {:ok, logs}
       {:ok, other} -> {:error, {:malformed_logs, other}}
       error -> error
     end
   end
 
-  defp decode_all([], _reference, deposits), do: {:ok, Enum.reverse(deposits)}
-
-  defp decode_all([log | logs], reference, deposits) do
-    case decode(log, reference) do
-      {:ok, nil} -> decode_all(logs, reference, deposits)
-      {:ok, deposit} -> decode_all(logs, reference, [deposit | deposits])
-      :error -> {:error, {:malformed_log, log}}
-    end
-  end
-
   @doc """
-  One log as a job payment carrying `reference`: `{:ok, deposit}`, `{:ok, nil}`
-  for a deposit with another tag, and `:error` for anything that is not a direct
-  deposit by the staking contract with that reference.
+  One log as a job payment to `contract`: `{:ok, deposit}`, `{:ok, nil}` for a
+  deposit with another tag, which is not a job payment, and `:error` for
+  anything that is not a direct deposit logged by `contract`.
   """
   @spec decode(map(), String.t()) :: {:ok, deposit() | nil} | :error
   def decode(
@@ -89,38 +97,41 @@ defmodule Techtree.Jobs.Staking do
           "topics" => [@topic0, @direct_deposit, depositor_topic, reference_topic],
           "data" => data,
           "blockNumber" => block_number,
+          "blockHash" => block_hash,
           "transactionHash" => transaction_hash,
           "logIndex" => log_index
         },
-        reference
+        contract
       ) do
-    with true <- String.downcase(address) == Payment.config()[:staking],
-         true <- String.downcase(reference_topic) == reference,
+    with true <- String.downcase(address) == contract,
          {:ok, depositor_word} <- Abi.bytes(depositor_topic),
          {:ok, depositor} <- Abi.word(depositor_word, :address),
+         {:ok, reference} <- Abi.hash(reference_topic),
          {:ok, data} <- Abi.bytes(data),
          {:ok, [amount, _credited, _residual, tag]} <- Abi.decode(data, @data),
          {:ok, block_number} <- Abi.quantity(block_number),
+         {:ok, block_hash} <- Abi.hash(block_hash),
          {:ok, transaction_hash} <- Abi.hash(transaction_hash),
          {:ok, log_index} <- Abi.quantity(log_index) do
-      if tag == Payment.tag() do
-        {:ok,
+      {:ok,
+       if tag == Payment.tag() do
          %{
+           contract: contract,
            transaction_hash: transaction_hash,
            log_index: log_index,
+           block_number: block_number,
+           block_hash: block_hash,
            depositor: depositor,
-           amount: amount,
-           block_number: block_number
-         }}
-      else
-        {:ok, nil}
-      end
+           reference: reference,
+           amount: Decimal.new(amount)
+         }
+       end}
     else
       _other -> :error
     end
   end
 
-  def decode(_log, _reference), do: :error
+  def decode(_log, _contract), do: :error
 
   @doc "Whether REGENT revenue staking is paused at the newest block, so a deposit would fail."
   @spec paused() :: {:ok, boolean()} | {:error, term()}
@@ -136,8 +147,15 @@ defmodule Techtree.Jobs.Staking do
     end
   end
 
-  defp rpc(method, params),
-    do: ChainClient.rpc(%{chain_id: Payment.config()[:chain_id]}, method, params, @scope)
+  defp rpc(method, params) do
+    case ChainClient.rpc(%{chain_id: Payment.config()[:chain_id]}, method, params, @scope) do
+      {:ok, result} -> {:ok, result}
+      {:error, {:rpc, error}} -> {:error, {:refused, error}}
+      {:error, {:http, status}} when status == 429 or status >= 500 -> {:error, :unavailable}
+      {:error, %Req.TransportError{}} -> {:error, :unavailable}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   defp quantity(value) do
     case Abi.quantity(value) do

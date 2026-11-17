@@ -10,9 +10,9 @@ defmodule Techtree.Jobs.Order do
     * quoted, when the team sets its price (in USDC's millionths), what the
       price covers and until when it stands; the quote gives the order its
       payment reference (`Techtree.Jobs.Payment`);
-    * paid, once deposits carrying that reference add up to the quote
-      (`Techtree.Jobs.Order.ReadPayment`), or expired, when the quote runs out
-      first;
+    * paid, once the deposits saved with that reference add up to the quote,
+      or expired, when the reading of Base passes a block made after the
+      quote's expiry with too little paid (`Techtree.Jobs.Order.Settle`);
     * refused by the team before it is quoted, or cancelled by whoever asked
       before it is paid.
 
@@ -23,8 +23,8 @@ defmodule Techtree.Jobs.Order do
   The requesting agent, its person and the site's admins read the order and
   its quote; nobody else finds it. Only the admins check, quote and refuse.
   Whoever pays signs the calls themselves: the site never signs or sends
-  anything. Payments are read from Base each minute while an order is quoted,
-  once `read_payments` is on, and at once when the agent or the team asks
+  anything. The site's payment reader (`Techtree.Jobs.Scanner`) alone settles
+  an order; the agent or the team may ask it to read Base again soon
   (`look_now`).
   """
 
@@ -33,15 +33,11 @@ defmodule Techtree.Jobs.Order do
     domain: Techtree.Jobs,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer],
-    extensions: [AshStateMachine, AshOban]
+    extensions: [AshStateMachine]
 
-  alias Techtree.Jobs.Order.{ReadPayment, SetQuote, SetRequester}
+  alias Techtree.Jobs.Order.{SetQuote, SetRequester, Settle}
 
-  # The minute-by-minute read of quoted orders' payments. Off unless the
-  # build's configuration turns it on.
-  @read_payments Application.compile_env(:techtree, [Techtree.Jobs, :read_payments], false)
-
-  @quote_fields "quote_amount, quote_scope, quote_expires_at, payment_reference, next_block"
+  @quote_fields "quote_amount, quote_scope, quote_expires_at, payment_reference"
 
   postgres do
     table "job_orders"
@@ -51,8 +47,14 @@ defmodule Techtree.Jobs.Order do
       # A quote is set whole or not at all.
       check_constraint :quote_amount, "quote_whole",
         check:
-          "num_nulls(#{@quote_fields}) = 5 OR (num_nulls(#{@quote_fields}) = 0 AND quote_amount > 0)",
+          "num_nulls(#{@quote_fields}) = 4 OR (num_nulls(#{@quote_fields}) = 0 AND quote_amount > 0)",
         message: "is set whole or not at all"
+    end
+
+    custom_indexes do
+      # The quoted orders whose quote ran out, looked for on every pass that
+      # reaches the head.
+      index [:quote_expires_at], where: "state = 'quoted'"
     end
   end
 
@@ -67,41 +69,26 @@ defmodule Techtree.Jobs.Order do
       transition(:set_quote, from: :checking, to: :quoted)
       transition(:refuse, from: [:requested, :checking], to: :refused)
       transition(:cancel, from: [:requested, :checking, :quoted], to: :cancelled)
-      transition(:read_payment, from: :quoted, to: [:paid, :expired])
-    end
-  end
-
-  oban do
-    triggers do
-      # Each minute, once turned on: every quoted order's new deposits.
-      trigger :read_payment do
-        action :read_payment
-        where expr(state == :quoted)
-        queue(:jobs_chain)
-        max_attempts(3)
-        log_errors?(false)
-        lock_for_update?(false)
-        scheduler_cron(if @read_payments, do: "* * * * *", else: false)
-        worker_module_name(Techtree.Jobs.Order.Workers.ReadPayment)
-        scheduler_module_name(Techtree.Jobs.Order.Schedulers.ReadPayment)
-      end
-
-      # The same read, at once, when the agent or the team asks.
-      trigger :look_now do
-        action :read_payment
-        where expr(state in [:quoted, :expired])
-        queue(:jobs_chain)
-        max_attempts(3)
-        log_errors?(false)
-        lock_for_update?(false)
-        scheduler_cron(false)
-        worker_module_name(Techtree.Jobs.Order.Workers.LookNow)
-      end
+      transition(:settle, from: :quoted, to: [:paid, :expired])
     end
   end
 
   actions do
     defaults [:read]
+
+    # The quoted orders a stretch of the payment reader may move on: those
+    # whose reference a deposit it saved carries, and, once it has passed a
+    # block made at `passed_at`, those whose quote ran out before then.
+    read :due do
+      argument :references, {:array, :string}, allow_nil?: false
+      argument :passed_at, :utc_datetime_usec
+
+      filter expr(
+               state == :quoted and
+                 (payment_reference in ^arg(:references) or
+                    quote_expires_at < ^arg(:passed_at))
+             )
+    end
 
     create :request do
       accept [:lane, :title, :success]
@@ -117,7 +104,6 @@ defmodule Techtree.Jobs.Order do
     update :set_quote do
       accept [:quote_amount, :quote_scope, :quote_expires_at]
       require_attributes [:quote_amount, :quote_scope, :quote_expires_at]
-      require_atomic? false
       change transition_state(:quoted)
       change set_attribute(:quoted_at, &DateTime.utc_now/0)
       change SetQuote
@@ -135,32 +121,33 @@ defmodule Techtree.Jobs.Order do
       change set_attribute(:cancelled_at, &DateTime.utc_now/0)
     end
 
-    # Reads the order's payments now rather than at the next minute.
+    # Asks the payment reader to read Base again soon (`Techtree.Jobs.Watch`).
     update :look_now do
       accept []
       require_atomic? false
       validate attribute_in(:state, [:quoted, :expired])
-      change run_oban_trigger(:look_now)
+
+      change after_action(fn _changeset, order, _context ->
+               Techtree.Jobs.Watch.refresh()
+               {:ok, order}
+             end)
     end
 
-    update :read_payment do
+    update :settle do
       accept []
+      argument :passed_at, :utc_datetime_usec
       require_atomic? false
-      change ReadPayment
+      change Settle
     end
   end
 
   policies do
-    bypass AshOban.Checks.AshObanInteraction do
-      authorize_if always()
-    end
-
     policy action(:request) do
       authorize_if actor_attribute_equals(:role, :agent)
     end
 
     # The agent that asked, its person, and the team; nobody else finds it.
-    policy action_type(:read) do
+    policy action(:read) do
       authorize_if RegentAgents.Checks.Admin
       authorize_if expr(agent_id == ^actor(:agent_id))
       authorize_if expr(^actor(:role) == :human and human_account_id == ^actor(:human_account_id))
@@ -181,9 +168,9 @@ defmodule Techtree.Jobs.Order do
       authorize_if expr(agent_id == ^actor(:agent_id))
     end
 
-    # Only its triggers read payments, through the bypass above.
-    policy action(:read_payment) do
-      forbid_if always()
+    # Only the payment reader finds the orders it may move on, and moves them.
+    policy action([:due, :settle]) do
+      authorize_if actor_attribute_equals(:role, :system)
     end
   end
 
@@ -207,9 +194,6 @@ defmodule Techtree.Jobs.Order do
       public?: true,
       constraints: [match: ~r/\A0x[0-9a-f]{64}\z/]
 
-    # The first block whose deposits have not been read yet.
-    attribute :next_block, :integer
-
     create_timestamp :requested_at, public?: true
     attribute :checking_at, :utc_datetime_usec, public?: true
     attribute :quoted_at, :utc_datetime_usec, public?: true
@@ -231,7 +215,12 @@ defmodule Techtree.Jobs.Order do
       public? true
     end
 
-    has_many :deposits, Techtree.Jobs.Deposit
+    # Every deposit saved with the order's payment reference.
+    has_many :deposits, Techtree.Jobs.Deposit do
+      source_attribute :payment_reference
+      destination_attribute :reference
+      public? true
+    end
   end
 
   aggregates do

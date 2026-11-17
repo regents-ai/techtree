@@ -22,6 +22,22 @@ defmodule TechtreeWeb.TelemetryTest do
     assert scrape =~ ~r/^techtree_repo_query_microseconds_count [1-9]/m
   end
 
+  # Sentinel's chain reader tile reads how far each reader trails the head it
+  # follows, and how many passes it made, by these names.
+  test "a chain reader's pass lands as its lag and its count of passes" do
+    metadata = %{indexer: "probe_reader", chain_id: 8453}
+    :telemetry.execute([:techtree, :indexer, :lag], %{blocks: 12}, metadata)
+    :telemetry.execute([:techtree, :indexer, :lag], %{blocks: 0}, metadata)
+
+    scrape = TechtreeWeb.Telemetry.scrape()
+
+    assert scrape =~
+             ~r/^health_indexer_lag_blocks\{chain_id="8453",indexer="probe_reader"\} 0$/m
+
+    assert scrape =~
+             ~r/^health_indexer_passes_total\{chain_id="8453",indexer="probe_reader"\} 2$/m
+  end
+
   # Sentinel's job tile reads the oldest unfinished job's age in each running
   # queue. The test configuration runs no queue, so the site's job runner is
   # swapped for one that runs `probe` and `idle` and holds `held` paused, on the
