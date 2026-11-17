@@ -9,6 +9,12 @@
   with it. Techtree's commands are the same.
 - The Evals page names only the tools an Evals job uses.
 
+### Fixed
+
+- The site runs on the latest security releases of its web server and of the
+  library that reads requests, which close ways to make it use too much memory
+  or processing time.
+
 ## Website (2026-11-14)
 
 ### Added
