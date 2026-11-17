@@ -11,9 +11,9 @@
 # regents-cli: the pin is the newest release's tag commit; the agent guide names
 # the release, that commit and the wheel's SHA256; every install line and
 # capabilities.json's cli.release name the release. The SIWA library: the
-# elixir-utils commit platform/mix.exs pins contains the newest commit that
-# changed siwa/siwa-elixir/apps/siwa on elixir-utils main. Needs `gh auth login`
-# and curl.
+# elixir-utils commit platform/mix.exs pins holds siwa/siwa-elixir/apps/siwa
+# exactly as elixir-utils main has it, whichever line the pin is on. Needs
+# `gh auth login` and curl.
 set -euo pipefail
 
 # Where this site keeps them. A site copying this script sets these three and keeps
@@ -29,7 +29,10 @@ d = json.load(sys.stdin)
 print(d["info"]["version"], next(u["digests"]["sha256"] for u in d["urls"] if u["packagetype"] == "bdist_wheel"))')
 tag=$(gh api "repos/regents-ai/regents-cli/commits/v$latest" --jq .sha)
 utils=$(sed -nE 's/^ *@elixir_utils_ref "([0-9a-f]{40})"$/\1/p' platform/mix.exs)
-siwa=$(gh api "repos/regents-ai/elixir-utils/commits?path=siwa/siwa-elixir/apps/siwa&sha=main&per_page=1" --jq '.[0].sha')
+# The SIWA library's contents at an elixir-utils commit, as Git's name for that folder.
+siwa_at() {
+  gh api "repos/regents-ai/elixir-utils/contents/siwa/siwa-elixir/apps?ref=$1" --jq '.[] | select(.name == "siwa") | .sha'
+}
 
 failed=0
 fail() {
@@ -53,10 +56,8 @@ release=$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["c
 if [ -z "$utils" ]; then
   fail "platform/mix.exs has no @elixir_utils_ref \"<40-character commit>\" line to check."
 else
-  case $(gh api "repos/regents-ai/elixir-utils/compare/$siwa...$utils" --jq .status) in
-    identical | ahead) ;;
-    *) fail "elixir-utils $siwa is the newest SIWA library change: move @elixir_utils_ref in platform/mix.exs from $utils to a commit that contains it." ;;
-  esac
+  [ "$(siwa_at "$utils")" = "$(siwa_at main)" ] ||
+    fail "elixir-utils main has a newer SIWA library: move @elixir_utils_ref in platform/mix.exs from $utils to a commit that holds siwa/siwa-elixir/apps/siwa as main has it."
 fi
 
 exit "$failed"
