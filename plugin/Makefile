@@ -16,8 +16,8 @@ RUN := $(UV) run
 # names the command in full rather than as a bare `regents`. It runs on the
 # Python an installation plan installs it on (CLI_PYTHON_SERIES in
 # cli/constants.py), which is not the Python this gate runs on.
-REGENTS_CLI_VERSION := 1.10.30
-REGENTS_CLI_REV := 4a781568f763e2f7c1165684c4d8d8e2341ce0ee
+REGENTS_CLI_VERSION := 1.10.31
+REGENTS_CLI_REV := 2e8b98c7a4dd24a8751c4dfe9979ae7902f7bd06
 REGENTS_CLI_ARGV ?= $(UV) run --no-project --python 3.12 --with "regents-cli @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" regents
 
 .DEFAULT_GOAL := check

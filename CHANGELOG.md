@@ -5,7 +5,7 @@
 ### Changed
 
 - Account no longer has a Points tab.
-- Agents install regents-cli 1.10.30, and the Techtree plugin moves to 0.7.31
+- Agents install regents-cli 1.10.31, and the Techtree plugin moves to 0.7.32
   with it. Techtree's commands are the same.
 - The Evals page names only the tools an Evals job uses.
 
