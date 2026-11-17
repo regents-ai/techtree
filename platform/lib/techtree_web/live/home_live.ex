@@ -29,7 +29,7 @@ defmodule TechtreeWeb.HomeLive do
 
   @title "Better agents for your business."
   @promise "Skills, evaluations, training environments and open-weight models, built around your " <>
-             "workflows on open tools from Prime Intellect, NVIDIA, Hugging Face and Harbor, " <>
+             "workflows on open tools from Prime Intellect, NVIDIA Nemotron, Hugging Face and Harbor, " <>
              "with results you can measure."
   @services_line "Paid custom projects, delivered by people, around the workflows you rely on. " <>
                    "Each uses open tools such as Prime Intellect’s Verifiers and NVIDIA’s " <>
