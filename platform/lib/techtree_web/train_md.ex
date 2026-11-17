@@ -20,7 +20,9 @@ defmodule TechtreeWeb.TrainMD do
       |> Enum.with_index(1)
       |> Enum.map_join("\n", fn {{title, words, choices}, index} ->
         figures =
-          Enum.map_join(choices, fn {name, side} -> "\n   - #{name}: #{Copy.figure(side)}" end)
+          Enum.map_join(choices, fn {name, side, _chosen} ->
+            "\n   - #{name}: #{Copy.figure(side)}"
+          end)
 
         "#{index}. #{title}: #{words}#{figures}"
       end)
@@ -51,10 +53,12 @@ defmodule TechtreeWeb.TrainMD do
 
     - Original: #{Copy.figure(final.original)}
     - Improved: #{Copy.figure(final.improved)}
+    - Verdict: #{Copy.verdict_name(comparison)}
     - Difference: #{Copy.difference(comparison)}
     - Cases: #{Copy.changes(comparison)}
+    - Chance: #{Copy.odds(comparison)}
 
-    #{Copy.chance(comparison)}
+    #{Copy.verdict(comparison)} #{Copy.chance(comparison)}
 
     ## Method
 

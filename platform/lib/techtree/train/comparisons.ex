@@ -1,34 +1,42 @@
 defmodule Techtree.Train.Comparisons do
   @moduledoc """
   The comparisons the site shows: a public Skill as it was published (the
-  original) against an improved version of it, on final-test cases kept apart
-  before anything ran, each case asked the same number of times of each
-  version by the same agent with the same settings, and counted in attempts
-  solved.
+  original) against the version chosen to improve it (the improved Skill), on
+  final-test cases kept apart before anything ran, each case asked the same
+  number of times of each version by the same agent with the same settings,
+  and counted in attempts solved.
+
+  Two revisions are made from the working cases: a single plain rewrite, and
+  a revision by an automatic tool whose changes a model proposes. The three
+  versions are measured on the choosing cases, and the revision that solved
+  the most there, which must also beat the original, is the improved Skill
+  (`selected`).
 
   Each comparison is one `<slug>.json` in the configured folder
   (`config :techtree, #{inspect(__MODULE__)}, folder: ...`, as
   `{:priv, subdirectory}` for the copy shipped in the release or as a plain
-  path), `techtree.train.v1alpha2`, kind `Comparison`, named by its slug.
+  path), `techtree.train.v1alpha3`, kind `Comparison`, named by its slug.
 
   Every field the pages draw is matched exactly: a missing or different field
   raises rather than drawing something else. The final test's totals, the
   difference and the cases that did better, the same and worse are counted
-  from its cases, never taken from the file. The cases that only worked on the
-  Skill and chose between versions are given as attempts solved, and the
-  improved version must be the one that solved the most of the choosing
-  attempts, since it was chosen there.
+  from its cases, never taken from the file, and so is the verdict: Improved
+  or Worse when the difference is beyond chance (`p_value` under
+  `chance_level`), Inconclusive when it is not.
   """
 
   alias Techtree.Catalog.Digest
 
-  @schema_version "techtree.train.v1alpha2"
+  @schema_version "techtree.train.v1alpha3"
   @kind "Comparison"
+  @revisions %{"rewrite" => :rewrite, "revision" => :revision}
 
   @slug ~r/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/
 
   @type side :: %{solved: non_neg_integer(), attempts: pos_integer()}
   @type change :: :better | :same | :worse
+  @type verdict :: :improved | :inconclusive | :worse
+  @type revision :: :rewrite | :revision
   @type final_case :: %{
           id: String.t(),
           original: non_neg_integer(),
@@ -52,16 +60,21 @@ defmodule Techtree.Train.Comparisons do
           task: String.t(),
           agent: %{maker: String.t(), name: String.t(), model: String.t()},
           scorer: %{maker: String.t(), name: String.t(), version: String.t()},
-          improver: tool(),
+          checker: %{maker: String.t(), name: String.t(), version: String.t()},
+          rewriter: tool(),
+          reviser: tool(),
           proposer: tool(),
+          selected: revision(),
           repeats: pos_integer(),
           split: %{working: pos_integer(), choosing: pos_integer(), final: pos_integer()},
           start: %{no_skill: side(), original: side()},
-          choosing: %{original: side(), rewrite: side(), improved: side()},
+          choosing: %{original: side(), rewrite: side(), revision: side()},
           final: %{original: side(), improved: side()},
           cases: [final_case()],
           changes: %{better: non_neg_integer(), same: non_neg_integer(), worse: non_neg_integer()},
-          p_below: number()
+          p_value: number(),
+          chance_level: number(),
+          verdict: verdict()
         }
 
   @doc "The configured folder of comparisons."
@@ -134,20 +147,25 @@ defmodule Techtree.Train.Comparisons do
       "task" => task,
       "agent" => agent,
       "scorer" => scorer,
-      "improver" => improver,
+      "checker" => checker,
+      "rewriter" => rewriter,
+      "reviser" => reviser,
       "proposer" => proposer,
+      "selected" => selected,
       "repeats" => repeats,
       "cases" => %{"working" => working, "choosing" => choosing_count, "final" => final_count},
       "start" => %{"no_skill" => no_skill, "original" => start_original},
-      "choosing" => %{"original" => original, "rewrite" => rewrite, "improved" => improved},
+      "choosing" => %{"original" => original, "rewrite" => rewrite, "revision" => revision},
       "final" => final,
-      "p_below" => p_below
+      "p_value" => p_value,
+      "chance_level" => chance_level
     } = Jason.decode!(bytes)
 
     true =
       Enum.all?([repeats, working, choosing_count, final_count], &(is_integer(&1) and &1 > 0))
 
-    true = is_number(p_below) and p_below > 0 and p_below < 1
+    true = is_number(p_value) and p_value >= 0 and p_value <= 1
+    true = is_number(chance_level) and chance_level > 0 and chance_level < 1
     true = text?(task)
 
     cases = cases(final, final_count, repeats)
@@ -155,10 +173,16 @@ defmodule Techtree.Train.Comparisons do
     choosing = %{
       original: side(original, choosing_count, repeats),
       rewrite: side(rewrite, choosing_count, repeats),
-      improved: side(improved, choosing_count, repeats)
+      revision: side(revision, choosing_count, repeats)
     }
 
-    true = improved > original and improved > rewrite
+    selected = Map.fetch!(@revisions, selected)
+    true = chosen?(choosing, selected)
+
+    final_sides = %{
+      original: total(cases, :original, repeats),
+      improved: total(cases, :improved, repeats)
+    }
 
     %{
       slug: slug,
@@ -169,8 +193,11 @@ defmodule Techtree.Train.Comparisons do
       task: task,
       agent: texts(agent, ~w(maker name model)a),
       scorer: texts(scorer, ~w(maker name version)a),
-      improver: texts(improver, ~w(maker name)a),
+      checker: texts(checker, ~w(maker name version)a),
+      rewriter: texts(rewriter, ~w(maker name)a),
+      reviser: texts(reviser, ~w(maker name)a),
       proposer: texts(proposer, ~w(maker name)a),
+      selected: selected,
       repeats: repeats,
       split: %{working: working, choosing: choosing_count, final: final_count},
       start: %{
@@ -178,16 +205,29 @@ defmodule Techtree.Train.Comparisons do
         original: side(start_original, working, repeats)
       },
       choosing: choosing,
-      final: %{
-        original: total(cases, :original, repeats),
-        improved: total(cases, :improved, repeats)
-      },
+      final: final_sides,
       cases: cases,
       changes:
         Map.new([:better, :same, :worse], &{&1, Enum.count(cases, fn c -> c.change == &1 end)}),
-      p_below: p_below
+      p_value: p_value,
+      chance_level: chance_level,
+      verdict: verdict(final_sides, p_value, chance_level)
     }
   end
+
+  # The improved Skill is the revision that solved the most choosing attempts,
+  # more than the original and more than the other revision.
+  defp chosen?(choosing, selected) do
+    [other] = Map.values(@revisions) -- [selected]
+    best = choosing[selected].solved
+    best > choosing.original.solved and best > choosing[other].solved
+  end
+
+  # Beyond chance, the difference's direction decides; within it, nothing does.
+  defp verdict(_final, p_value, chance_level) when p_value >= chance_level, do: :inconclusive
+
+  defp verdict(%{original: %{solved: original}, improved: %{solved: improved}}, _p, _level),
+    do: if(improved > original, do: :improved, else: :worse)
 
   # One entry per final-test case, each named once, with how many of its
   # attempts each version solved.

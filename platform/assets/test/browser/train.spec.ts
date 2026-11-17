@@ -17,14 +17,14 @@ for (const width of [1280, 390]) {
     await expect(page.locator(".phx-connected").first()).toBeAttached()
     await expect(page.locator("#account-chip")).toBeVisible()
     const first = page.locator("#comparisons li a").first()
-    await expect(first).toHaveAttribute("href", "/train/dependabot-nemotron-3-nano-4b")
+    await expect(first).toHaveAttribute("href", "/train/react-best-practices-nemotron-3-nano-4b")
     expect(await layoutProblems(page)).toEqual([])
 
     await first.scrollIntoViewIfNeeded()
     await (hasTouch ? first.tap() : first.click())
-    await expect(page).toHaveURL("/train/dependabot-nemotron-3-nano-4b")
+    await expect(page).toHaveURL("/train/react-best-practices-nemotron-3-nano-4b")
     await expect(page.locator("main h1")).toBeVisible()
-    await expect(page.locator("#cases tbody tr")).toHaveCount(38)
+    await expect(page.locator("#cases tbody tr")).toHaveCount(37)
     expect(await layoutProblems(page)).toEqual([])
 
     expect(errors).toEqual([])

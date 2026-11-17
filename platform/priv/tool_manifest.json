@@ -348,7 +348,7 @@
     {
       "name": "train_comparisons",
       "title": "List Train comparisons",
-      "description": "List the Train comparisons, newest first: a public Skill as published (the original) against an improved version, each asked the same final-test cases the same number of times by the same agent, counted in attempts solved. Each has its date; the Skill's name, maker, license, summary and its GitHub and skills.sh addresses; the task; the agent, scoring, improver and proposer; the cases split into working, choosing and final; attempts solved at the start, at the choosing step and on the final test for each version; the cases that did better, the same and worse; the chance reading (p below); and the addresses of its page and its report. Reads only; needs no sign-in.",
+      "description": "List the Train comparisons, newest first: a public Skill as published (the original) against the revision chosen to improve it, each asked the same final-test cases the same number of times by the same agent, counted in attempts solved. Each has its date; the Skill's name, maker, license, summary and its GitHub and skills.sh addresses; the task; the agent, scoring, check, rewriter, reviser and proposer; which revision was selected; the cases split into working, choosing and final; attempts solved at the start, at the choosing step for the original and both revisions, and on the final test for each version; the cases that did better, the same and worse; the chance reading (p value against the agreed chance level); and the verdict (improved, inconclusive or worse), with the addresses of its page and its report. Reads only; needs no sign-in.",
       "input_schema": {
         "type": "object",
         "properties": {},
@@ -376,7 +376,7 @@
     {
       "name": "train_report",
       "title": "Read one Train report",
-      "description": "Read one Train comparison's report exactly as committed, techtree.train.v1alpha2: the Skill and its addresses, the task, the tools, the split of cases, attempts solved at the start and at the choosing step, and every final-test case with the attempts the original and the improved Skill solved. Reads only; needs no sign-in.",
+      "description": "Read one Train comparison's report exactly as committed, techtree.train.v1alpha3: the Skill and its addresses, the task, the tools, the revision selected, the split of cases, attempts solved at the start and at the choosing step, every final-test case with the attempts the original and the improved Skill solved, and the chance reading with its agreed level. Reads only; needs no sign-in.",
       "input_schema": {
         "type": "object",
         "properties": {

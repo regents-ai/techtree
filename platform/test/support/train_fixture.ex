@@ -5,6 +5,7 @@ defmodule Techtree.TrainFixture do
 
       write!(folder, "older", date: "2026-11-09")
       write!(folder, "mixed", changes: {5, 3, 2})
+      write!(folder, "unclear", selected: "rewrite", p_value: 0.4)
   """
 
   @repeats 3
@@ -12,12 +13,17 @@ defmodule Techtree.TrainFixture do
   @doc """
   The bytes of one comparison file.
 
-  Options: `:date` (ISO 8601, default `"2026-11-14"`) and `:changes`
-  (`{better, same, worse}` final-test cases, default `{25, 12, 1}`).
+  Options: `:date` (ISO 8601, default `"2026-11-14"`), `:changes`
+  (`{better, same, worse}` final-test cases, default `{25, 12, 1}`),
+  `:selected` (`"revision"` or `"rewrite"`, default `"revision"`; the one
+  selected solves the most at the choosing step) and `:p_value` (default
+  `0.01`, against a chance level of `0.05`).
   """
   @spec report(keyword()) :: binary()
   def report(opts \\ []) do
     {better, same, worse} = Keyword.get(opts, :changes, {25, 12, 1})
+    selected = Keyword.get(opts, :selected, "revision")
+    {rewrite, revision} = if selected == "revision", do: {10, 15}, else: {15, 10}
 
     final =
       (List.duplicate({0, 2}, better) ++
@@ -28,7 +34,7 @@ defmodule Techtree.TrainFixture do
       end)
 
     Jason.encode!(%{
-      "schema_version" => "techtree.train.v1alpha2",
+      "schema_version" => "techtree.train.v1alpha3",
       "kind" => "Comparison",
       "date" => Keyword.get(opts, :date, "2026-11-14"),
       "skill" => %{
@@ -47,14 +53,18 @@ defmodule Techtree.TrainFixture do
         "model" => "nemotron-3-nano:4b"
       },
       "scorer" => %{"maker" => "Prime Intellect", "name" => "Verifiers", "version" => "0.4.1"},
-      "improver" => %{"maker" => "Microsoft", "name" => "SkillOpt"},
+      "checker" => %{"maker" => "NVIDIA", "name" => "SkillEvaluator", "version" => "0.9.0"},
+      "rewriter" => %{"maker" => "Anthropic", "name" => "Claude Opus 5.5"},
+      "reviser" => %{"maker" => "Microsoft", "name" => "SkillOpt"},
       "proposer" => %{"maker" => "Anthropic", "name" => "Claude Opus 5.5"},
+      "selected" => selected,
       "repeats" => @repeats,
       "cases" => %{"working" => 10, "choosing" => 8, "final" => length(final)},
       "start" => %{"no_skill" => 3, "original" => 9},
-      "choosing" => %{"original" => 6, "rewrite" => 10, "improved" => 15},
+      "choosing" => %{"original" => 6, "rewrite" => rewrite, "revision" => revision},
       "final" => final,
-      "p_below" => 0.01
+      "p_value" => Keyword.get(opts, :p_value, 0.01),
+      "chance_level" => 0.05
     })
   end
 

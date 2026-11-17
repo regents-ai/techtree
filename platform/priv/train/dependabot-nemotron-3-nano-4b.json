@@ -1,5 +1,5 @@
 {
-  "schema_version": "techtree.train.v1alpha2",
+  "schema_version": "techtree.train.v1alpha3",
   "kind": "Comparison",
   "date": "2026-11-14",
   "skill": {
@@ -22,7 +22,16 @@
     "name": "Verifiers",
     "version": "0.4.1"
   },
-  "improver": {
+  "checker": {
+    "maker": "NVIDIA",
+    "name": "SkillEvaluator",
+    "version": "0.9.0"
+  },
+  "rewriter": {
+    "maker": "Anthropic",
+    "name": "Claude Opus 5.5"
+  },
+  "reviser": {
     "maker": "Microsoft",
     "name": "SkillOpt"
   },
@@ -30,6 +39,7 @@
     "maker": "Anthropic",
     "name": "Claude Opus 5.5"
   },
+  "selected": "revision",
   "repeats": 3,
   "cases": {
     "working": 25,
@@ -43,7 +53,7 @@
   "choosing": {
     "original": 22,
     "rewrite": 36,
-    "improved": 46
+    "revision": 46
   },
   "final": [
     {
@@ -237,5 +247,6 @@
       "improved": 3
     }
   ],
-  "p_below": 0.001
+  "p_value": 2.864260323926767e-13,
+  "chance_level": 0.05
 }

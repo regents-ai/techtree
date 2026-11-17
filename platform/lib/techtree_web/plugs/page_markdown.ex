@@ -148,7 +148,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
 
     ## Comparisons
 
-    Demonstrations Techtree ran itself on public Skills: the Skill as published against an improved version, on final-test cases kept apart from the improvement, with the same agent and settings. They are not signed; each page offers its report to download: [how to check them](/docs/verify#blog-section-skill-comparisons).
+    Demonstrations Techtree ran itself on public Skills: the Skill as published against the revision chosen to improve it, on final-test cases kept apart from the improvement, with the same agent and settings. A difference within chance is reported as inconclusive. They are not signed; each page offers its report to download: [how to check them](/docs/verify#blog-section-skill-comparisons).
 
     #{comparisons}
 
@@ -162,7 +162,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   defp comparison_row(comparison) do
     "- [#{comparison.skill.name}](/train/#{comparison.slug}): " <>
       "Original #{TrainCopy.figure(comparison.final.original)} → " <>
-      "Improved #{TrainCopy.figure(comparison.final.improved)}"
+      "Improved #{TrainCopy.figure(comparison.final.improved)} · #{TrainCopy.verdict_name(comparison)}"
   end
 
   defp result_row(entry) do

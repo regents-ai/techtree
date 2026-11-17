@@ -1,7 +1,7 @@
 defmodule TechtreeWeb.HomeLiveTest do
   @moduledoc """
   The home page: the promise with Book Call, the four services with their
-  price levels, the demonstration from the newest Skill comparison, the
+  price levels, every Skill comparison as a demonstration side by side, the
   process, the makers whose projects we build on, a last Book Call, and every
   moving picture over a still. Its header, sheet and footer are every page's.
   """
@@ -83,26 +83,35 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute has_element?(live, "#service-security")
   end
 
-  test "the demonstration shows the newest comparison's own figures, its page and the Skill's links",
+  test "the demonstrations show every comparison side by side, each with its own figures, verdict and links",
        %{conn: conn} do
-    [comparison | _] = Comparisons.list()
+    comparisons = Comparisons.list()
+    assert Enum.any?(comparisons, &(&1.verdict == :inconclusive))
 
     {:ok, _live, html} = live(conn, ~p"/")
     document = LazyHTML.from_document(html)
 
-    figures = for dd <- LazyHTML.query(document, "#demonstration-figures dd"), do: trim(dd)
+    shown =
+      for card <- LazyHTML.query(document, "#demonstration-list > section") do
+        {attribute(card, "id"), attribute(card, "data-verdict"),
+         for(dd <- LazyHTML.query(card, ".mk-tallies dd"), do: trim(dd)), hrefs(card, "a")}
+      end
 
-    assert figures == [
-             TrainCopy.percent(comparison.final.original),
-             TrainCopy.percent(comparison.final.improved),
-             "#{comparison.changes.better} of #{comparison.split.final}"
-           ]
-
-    assert hrefs(document, "#demonstration a") == [
-             "/train/#{comparison.slug}",
-             comparison.skill.github_url,
-             comparison.skill.skills_sh_url
-           ]
+    assert shown ==
+             for(
+               comparison <- comparisons,
+               do:
+                 {"demonstration-#{comparison.slug}", Atom.to_string(comparison.verdict),
+                  [
+                    TrainCopy.percent(comparison.final.original),
+                    TrainCopy.percent(comparison.final.improved)
+                  ],
+                  [
+                    "/train/#{comparison.slug}",
+                    comparison.skill.github_url,
+                    comparison.skill.skills_sh_url
+                  ]}
+             )
   end
 
   test "the credits show each maker's logo or name over its projects, every tool among them, and no logo elsewhere",
@@ -120,10 +129,25 @@ defmodule TechtreeWeb.HomeLiveTest do
       end
 
     assert Enum.map(makers, &elem(&1, 0)) ==
-             ["Prime Intellect", "NVIDIA", "Nous Research", "Microsoft", "Hugging Face"]
+             [
+               "Prime Intellect",
+               "NVIDIA",
+               "Hugging Face",
+               "Terminal-Bench",
+               "Microsoft",
+               "Nous Research"
+             ]
 
     assert Enum.map(makers, &((elem(&1, 1) || "") =~ ~r|\A/images/built-on/|)) ==
-             [true, true, true, false, false]
+             [true, true, false, false, false, true]
+
+    # The section is the library list itself, in its order, each with its status.
+    assert Enum.flat_map(makers, &elem(&1, 2)) == Enum.map(Services.libraries(), & &1.href)
+
+    assert for(
+             li <- LazyHTML.query(document, ".mk-maker__projects > li"),
+             do: attribute(li, "data-status")
+           ) == Enum.map(Services.libraries(), &Atom.to_string(&1.status))
 
     assert Enum.all?(makers, fn {_name, _src, links} ->
              links != [] and Enum.all?(links, &String.starts_with?(&1, "https://"))

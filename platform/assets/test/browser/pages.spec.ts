@@ -6,9 +6,10 @@ import {layoutProblems, lowContrast, watchErrors} from "./support/visitor"
 // Every public page, signed out, at a desktop and a phone width: it loads, its
 // live connection joins where it has one, nothing errors, nothing scrolls
 // sideways and every press target is big enough to hit.
-// The test server's own comparison and the blog's posts join the pages every
+// The test server's own comparisons and the blog's posts join the pages every
 // Techtree has.
-const pages = [...publicPages, "/train/dependabot-nemotron-3-nano-4b", "/blog"]
+const pages = [...publicPages, "/train/dependabot-nemotron-3-nano-4b", "/train/gitmoji-nemotron-3-nano-4b",
+  "/train/react-best-practices-nemotron-3-nano-4b", "/blog"]
 
 // The inner pages that open on the dark band.
 const openings = ["/results", "/wallet-bench", "/formal", "/services/skills", "/services/evals",

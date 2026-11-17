@@ -179,18 +179,15 @@
 .mk-price__mark--on { background: currentColor; }
 .mk-service .mk-price, .mk-service .mk-price__label { color: inherit; }
 
-/* What we build on, compact: each maker's logo, or its name, with its projects
-   under it as links in Techtree's own type, rising in the first time the row is
-   seen. The makers wrap as the width allows and each row's plates share it, so
-   no row ends on an empty cell. The heading's lines are balanced, so its last
-   word never stands alone, and "open-source" never breaks at its hyphen. */
-.mk-stack h2 { text-wrap: balance; }
-.mk-stack__whole { white-space: nowrap; }
+/* What we build on: each maker's logo, or its name, with its projects under it,
+   each a link with its status beside it and its job in a Techtree project under
+   it, rising in the first time the row is seen. The makers wrap as the width
+   allows and each row's plates share it, so no row ends on an empty cell. */
 .mk-stack__list {
   display: flex; flex-wrap: wrap; gap: 1px;
   margin-top: var(--space-4); border: 1px solid var(--hairline); background: var(--hairline);
 }
-.mk-stack__list > li { display: flex; flex: 1 1 14rem; flex-direction: column; min-width: 0; background: var(--color-bg); }
+.mk-stack__list > li { display: flex; flex: 1 1 18rem; flex-direction: column; min-width: 0; background: var(--color-bg); }
 /* The logos are the makers' own files, unchanged, so each sits on the same light
    plate in both themes rather than being recoloured. NVIDIA's file carries its
    own clear space around the mark, so its box is taller for the same mark. A
@@ -205,7 +202,22 @@
 .mk-maker__logo--nvidia { height: 4.25rem; }
 .mk-maker__logo--nous-research { height: 2.25rem; }
 .mk-maker__of { color: var(--color-fg-muted); }
-.mk-maker__projects { display: flex; flex-wrap: wrap; gap: 0 var(--space-3); padding: var(--space-2) var(--space-3); font-size: .9375rem; line-height: 1.75rem; }
+.mk-maker__projects { display: grid; gap: var(--space-2); padding: var(--space-3); font-size: .9375rem; line-height: 1.5; }
+.mk-maker__projects > li { display: grid; gap: .125rem; }
+.mk-maker__name { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem var(--space-1); }
+.mk-maker__job { color: var(--color-fg-muted); font-size: .875rem; text-wrap: pretty; }
+
+/* The demonstrations side by side, three across where there is room: each
+   card's two figures stay side by side, and its verdict sits under them. */
+.mk-offer.mk-offer--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mk-demos > section > p { text-wrap: pretty; }
+.mk-demos .mk-tallies { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: var(--space-2); }
+.mk-demos .mk-tallies dd { font-size: clamp(2rem, 3vw, 2.75rem); }
+.mk-demos__verdict { display: grid; justify-items: start; gap: var(--space-1); margin-top: var(--space-2); text-wrap: pretty; }
+.mk-demos > section > .mk-links { margin-top: var(--space-1); }
+@media (max-width: 63.99rem) {
+  .mk-offer.mk-offer--three { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* Two ways on, as tiles. */
 .mk-tile {

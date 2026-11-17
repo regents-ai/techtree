@@ -4,7 +4,8 @@ import {layoutProblems, layoutShift, lowContrast, watchErrors, watchShifts} from
 
 // The home page (TechtreeWeb.HomeLive) at a desktop width and two phone widths,
 // with the GPU on: the promise, the four services with their price levels, the
-// demonstration whose figures count up, the process, the credits and the closing.
+// demonstrations side by side, whose figures count up, the process, the credits
+// and the closing.
 // Nothing moves the layout as it arrives. A visitor who asked for less motion,
 // or whose browser has no WebGPU, keeps every still picture and every figure as
 // the server wrote it.
@@ -18,13 +19,14 @@ async function open(page: Page) {
   await expect(page.locator("[data-phx-main].phx-connected")).toBeAttached()
 }
 
-// The demonstration's figures as the page shows them now.
-const figures = (page: Page) => page.locator("#demonstration-figures dd").allTextContents()
+// The first demonstration's figures, and their figures as the page shows them now.
+const tallies = (page: Page) => page.locator("#demonstration-list .mk-tallies").first()
+const figures = (page: Page) => tallies(page).locator("dd").allTextContents()
 
 // Every block of words on the page, and every button in them.
 const wordBlocks = (page: Page) =>
   page.locator(["#hero :is(h1, .mk-hero__lede, .rg-button)", "#services :is(.mk-section__head, .mk-service__words)",
-    "#demonstration :is(.mk-section__head, .mk-tallies > div, .mk-links)", "#process :is(.mk-section__head, li)",
+    "#demonstration :is(.mk-section__head, h3, .mk-tallies > div, .mk-demos__verdict, .mk-links)", "#process :is(.mk-section__head, li)",
     "#stack :is(.mk-section__head, .mk-maker__projects)", "#begin :is(h2, .mk-closing__line, .rg-button)"].join(", "))
 
 for (const width of [1280, 390, 320]) {
@@ -62,18 +64,18 @@ for (const width of [1280, 390, 320]) {
       expect(errors).toEqual([])
     })
 
-    test("the demonstration's figures count up to what the server wrote, and keep their place", async ({page}) => {
+    test("the demonstrations' figures count up to what the server wrote, and keep their place", async ({page}) => {
       const errors = watchErrors(page)
       await open(page)
-      const tallies = page.locator("#demonstration-figures")
+      const first = tallies(page)
       const written = await figures(page)
       expect(written.every(figure => /\d/.test(figure))).toBe(true)
-      const before = (await tallies.boundingBox())!.height
+      const before = (await first.boundingBox())!.height
 
-      await tallies.scrollIntoViewIfNeeded()
+      await first.scrollIntoViewIfNeeded()
       await expect.poll(() => figures(page)).not.toEqual(written)
       await expect.poll(() => figures(page), {timeout: 4000}).toEqual(written)
-      expect((await tallies.boundingBox())!.height).toBe(before)
+      expect((await first.boundingBox())!.height).toBe(before)
       expect(errors).toEqual([])
     })
 
@@ -107,7 +109,7 @@ for (const width of [1280, 390, 320]) {
         await open(page)
         const written = await figures(page)
         await expect(page.locator("#hero-field .mk-field__still")).toBeVisible()
-        await page.locator("#demonstration-figures").scrollIntoViewIfNeeded()
+        await tallies(page).scrollIntoViewIfNeeded()
         await page.waitForTimeout(500)
         expect(await figures(page)).toEqual(written)
         for (const field of await page.locator("[data-field]").all())

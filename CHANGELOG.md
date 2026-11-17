@@ -1,5 +1,28 @@
 # Changelog
 
+## Website (2026-11-17)
+
+### Added
+
+- **Results.** Two more demonstrations on public Skills: GitHub's Gitmoji
+  Skill, where the plain rewrite solved 85% of the final-test attempts against
+  68% for the original, and Vercel's React Best Practices Skill, where the
+  change did not help: 51% against 54%, a difference within chance, reported
+  as inconclusive. Every comparison now shows its verdict.
+- The home page shows all three demonstrations side by side, each with its
+  two figures, its verdict and its links.
+- Each tool on the Skills page links the results it took part in.
+
+### Changed
+
+- The home page names the open tools Techtree builds on in its first lines.
+- Built on lists every library with what it does in a Techtree project and
+  whether we have run it, linked to its maker's repository: Prime Intellect,
+  NVIDIA, Hugging Face, Harbor, Microsoft and Nous Research.
+- Each comparison page shows both revisions tried at the choosing step, the
+  plain rewrite and SkillOpt's, and NVIDIA's SkillEvaluator check.
+- Service steps name the library that does the work.
+
 ## Website (2026-11-16)
 
 ### Changed

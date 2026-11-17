@@ -1,7 +1,7 @@
 defmodule Techtree.Train.ComparisonsTest do
   @moduledoc """
-  The Train comparisons as the pages read them: the final test's totals and
-  the cases' changes are counted from the cases, every comparison in the
+  The Train comparisons as the pages read them: the final test's totals, the
+  cases' changes and the verdict are worked out from the data, every comparison in the
   folder is read, newest first, a download is the file's own bytes, and a name
   the folder has no file for is not found. The comparisons are written by
   `Techtree.TrainFixture` into a folder of each test's own, except the last
@@ -50,7 +50,38 @@ defmodule Techtree.Train.ComparisonsTest do
 
       assert split == %{working: 10, choosing: 8, final: 38}
       assert start.original == %{solved: 9, attempts: 30}
-      assert choosing.improved == %{solved: 15, attempts: 24}
+      assert choosing.revision == %{solved: 15, attempts: 24}
+      assert choosing.rewrite == %{solved: 10, attempts: 24}
+    end
+
+    property "the verdict follows the chance reading, then the final test's totals",
+             %{tmp_dir: folder} do
+      check all(
+              better <- integer(0..20),
+              same <- integer(0..20),
+              worse <- integer(0..20),
+              better + same + worse > 0,
+              p_value <- float(min: 0.0, max: 1.0),
+              selected <- member_of(["rewrite", "revision"])
+            ) do
+        TrainFixture.write!(folder, "judged",
+          changes: {better, same, worse},
+          p_value: p_value,
+          selected: selected
+        )
+
+        {:ok, %{final: final} = comparison} = Comparisons.fetch("judged", folder)
+
+        expected =
+          cond do
+            p_value >= 0.05 -> :inconclusive
+            final.improved.solved > final.original.solved -> :improved
+            true -> :worse
+          end
+
+        assert comparison.verdict == expected
+        assert comparison.selected == String.to_existing_atom(selected)
+      end
     end
 
     test "every comparison is listed, newest first, then by slug", %{tmp_dir: folder} do

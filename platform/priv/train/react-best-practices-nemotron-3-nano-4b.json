@@ -1,0 +1,247 @@
+{
+  "schema_version": "techtree.train.v1alpha3",
+  "kind": "Comparison",
+  "date": "2026-11-15",
+  "skill": {
+    "name": "React Best Practices",
+    "maker": "Vercel",
+    "collection": "agent-skills",
+    "license": "MIT",
+    "summary": "React and Next.js performance guidelines from Vercel Engineering: 70 rules in 8 categories, ranked by impact.",
+    "github_url": "https://github.com/vercel-labs/agent-skills/tree/dc8367e6f91c022d83361f03c3313fa05e848ee5/skills/react-best-practices",
+    "skills_sh_url": "https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices"
+  },
+  "task": "Given a short piece of React, Next.js or TypeScript code and five of the Skill’s rule ids, reply with the id of the one rule the code breaks, and nothing else; an answer counts only when it matches exactly.",
+  "agent": {
+    "maker": "NVIDIA",
+    "name": "Nemotron 3 Nano 4B",
+    "model": "nemotron-3-nano:4b"
+  },
+  "scorer": {
+    "maker": "Prime Intellect",
+    "name": "Verifiers",
+    "version": "0.4.1"
+  },
+  "checker": {
+    "maker": "NVIDIA",
+    "name": "SkillEvaluator",
+    "version": "0.9.0"
+  },
+  "rewriter": {
+    "maker": "Anthropic",
+    "name": "Claude Opus 5.5"
+  },
+  "reviser": {
+    "maker": "Microsoft",
+    "name": "SkillOpt"
+  },
+  "proposer": {
+    "maker": "Anthropic",
+    "name": "Claude Opus 5.5"
+  },
+  "selected": "rewrite",
+  "repeats": 3,
+  "cases": {
+    "working": 25,
+    "choosing": 21,
+    "final": 37
+  },
+  "start": {
+    "no_skill": 40,
+    "original": 52
+  },
+  "choosing": {
+    "original": 45,
+    "rewrite": 46,
+    "revision": 37
+  },
+  "final": [
+    {
+      "case": "activity-feed-items",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "archive-project-action",
+      "original": 0,
+      "improved": 0
+    },
+    {
+      "case": "avatar-menu-account",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "back-to-top-scroll",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "billing-email-action",
+      "original": 2,
+      "improved": 1
+    },
+    {
+      "case": "carousel-touch-tracking",
+      "original": 0,
+      "improved": 0
+    },
+    {
+      "case": "catalog-grid-products",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "comment-emoji-data",
+      "original": 3,
+      "improved": 2
+    },
+    {
+      "case": "consent-cookie-parse",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "data-table-hidden-columns",
+      "original": 2,
+      "improved": 1
+    },
+    {
+      "case": "digest-dry-run",
+      "original": 0,
+      "improved": 2
+    },
+    {
+      "case": "discount-rate-loop",
+      "original": 2,
+      "improved": 1
+    },
+    {
+      "case": "draft-save-handler",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "drag-handle-pointer",
+      "original": 2,
+      "improved": 1
+    },
+    {
+      "case": "editor-toolbar-icons",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "inbox-empty-illustration",
+      "original": 0,
+      "improved": 0
+    },
+    {
+      "case": "inbox-messages-wait",
+      "original": 1,
+      "improved": 2
+    },
+    {
+      "case": "layout-speed-insights",
+      "original": 1,
+      "improved": 2
+    },
+    {
+      "case": "log-filter-typing",
+      "original": 0,
+      "improved": 1
+    },
+    {
+      "case": "map-wheel-hint",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "orders-page-layout",
+      "original": 1,
+      "improved": 2
+    },
+    {
+      "case": "pages-app-recorder",
+      "original": 2,
+      "improved": 0
+    },
+    {
+      "case": "photo-editor-click",
+      "original": 2,
+      "improved": 0
+    },
+    {
+      "case": "place-order-effect",
+      "original": 2,
+      "improved": 2
+    },
+    {
+      "case": "project-activity-wait",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "purge-cdn-regions",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "ranked-players-prop",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "refund-order-action",
+      "original": 0,
+      "improved": 0
+    },
+    {
+      "case": "rename-form-saving",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "submit-disabled-memo",
+      "original": 1,
+      "improved": 2
+    },
+    {
+      "case": "sync-icon-spin",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "sync-settings-controls",
+      "original": 0,
+      "improved": 0
+    },
+    {
+      "case": "tag-selection-compare",
+      "original": 1,
+      "improved": 1
+    },
+    {
+      "case": "team-lookup-object-arg",
+      "original": 2,
+      "improved": 0
+    },
+    {
+      "case": "tenant-module-variable",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "ticket-counts-filters",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "viewer-lookup-per-request",
+      "original": 3,
+      "improved": 0
+    }
+  ],
+  "p_value": 0.7449540124644449,
+  "chance_level": 0.05
+}

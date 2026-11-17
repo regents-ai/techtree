@@ -253,16 +253,17 @@ defmodule TechtreeWeb.AgentsController do
 
     ## Comparisons
 
-    To see a public Skill as published against an improved version of it,
-    each asked the same final-test cases by the same agent, read
+    To see a public Skill as published against the revision chosen to
+    improve it, each asked the same final-test cases by the same agent, read
     https://techtree.sh/train.json or call `train_comparisons`: each
     comparison's attempts solved by the original and the improved Skill, the
-    cases that did better, the same and worse, and the Skill's GitHub and
-    skills.sh addresses, with its report to download. `train_report` reads one
-    comparison's report with every case's attempts solved. Each comparison's
-    page answers Markdown too, and https://techtree.sh/results lists them. The
-    first is GitHub's Dependabot Skill on NVIDIA's Nemotron 3 Nano 4B, a
-    demonstration Techtree ran itself, not customer work.
+    cases that did better, the same and worse, the verdict (improved,
+    inconclusive or worse), and the Skill's GitHub and skills.sh addresses,
+    with its report to download. `train_report` reads one comparison's report
+    with every case's attempts solved. Each comparison's page answers Markdown
+    too, and https://techtree.sh/results lists them. Each is a demonstration
+    Techtree ran itself on a public Skill with NVIDIA's Nemotron 3 Nano 4B,
+    not customer work.
 
     ## Services
 

@@ -1,14 +1,16 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
-  The home page, in six parts: the promise with Book Call; the four services
-  as cards with their price levels and the tools each uses under their status
-  (`TechtreeWeb.Services`); one demonstration, the newest comparison
-  (`Techtree.Train.Comparisons`), labelled for what it is, with its figures,
-  its page and the Skill's own links; how a project runs, in six steps; the
-  open-source projects we build on, under each maker's logo or name, drawn
-  from the services' tools so the two never differ; and Contact: a last Book
-  Call, an email and the enquiry form (`TechtreeWeb.Components.Enquiry`), whose
-  allowance counts the page's `client_key`.
+  The home page, in six parts: the promise with Book Call, naming whose open
+  tools the work is built on; the four services as cards with their price
+  levels and the tools each uses under their status (`TechtreeWeb.Services`);
+  the demonstrations, every published comparison side by side
+  (`Techtree.Train.Comparisons`), each with its two figures, its verdict, its
+  page and the Skill's own links, whatever the verdict; how a project runs, in
+  six steps; the open-source projects we build on, under each maker's logo or
+  name, each with what it does in a Techtree job and its status, all drawn
+  from `Services.libraries/0` so the two never differ; and Contact: a last
+  Book Call, an email and the enquiry form (`TechtreeWeb.Components.Enquiry`),
+  whose allowance counts the page's `client_key`.
 
   The page reads no database; only a sent enquiry writes. The moving parts are
   the hooks in `assets/js/marketing`; every one of them starts from the page as
@@ -26,9 +28,16 @@ defmodule TechtreeWeb.HomeLive do
   alias TechtreeWeb.TrainCopy, as: Copy
 
   @title "Better agents for your business."
-  @promise "Custom Skills, evaluations, training environments, and open-weight models, " <>
-             "built around your workflows, with results you can measure."
-  @services_line "Paid custom projects, delivered by people, around the workflows you rely on."
+  @promise "Skills, evaluations, training environments and open-weight models, built around your " <>
+             "workflows on open tools from Prime Intellect, NVIDIA, Hugging Face and Harbor, " <>
+             "with results you can measure."
+  @services_line "Paid custom projects, delivered by people, around the workflows you rely on. " <>
+                   "Each uses open tools such as Prime Intellect’s Verifiers and NVIDIA’s " <>
+                   "SkillEvaluator, marked Tested once we have run them ourselves."
+  @demonstrations_line "Runs Techtree did itself on public Skills, not customer work. Each compares " <>
+                         "the Skill as published with the version chosen to improve it, on " <>
+                         "final-test cases kept apart from the improvement. A difference within " <>
+                         "chance is reported as inconclusive."
   @process_line "Every project runs in the same six steps."
   @process [
     {"Intake", "You bring real examples of the work, and the failures you already know about."},
@@ -43,6 +52,7 @@ defmodule TechtreeWeb.HomeLive do
     {"Handover",
      "You keep the result, a report of what changed and what it costs to run, and one command that reruns the test."}
   ]
+  @stack_line "Each project below is its maker’s own work, with the job it does for Techtree."
   @closing "Tell us about the workflow you want to improve."
   @mailto "mailto:build@regents.sh"
 
@@ -56,9 +66,12 @@ defmodule TechtreeWeb.HomeLive do
        promise: @promise,
        services_line: @services_line,
        services: Services.all(),
-       demonstration: newest_comparison(),
+       comparisons: Comparisons.list(),
+       demonstrations_line: @demonstrations_line,
        process_line: @process_line,
        process: @process,
+       stack_line: @stack_line,
+       status_line: Services.status_line(),
        makers: makers(),
        closing: @closing,
        mailto: @mailto
@@ -83,8 +96,11 @@ defmodule TechtreeWeb.HomeLive do
 
     makers =
       Enum.map_join(makers(), "\n", fn maker ->
-        "- #{maker.name}: " <>
-          Enum.map_join(maker.projects, ", ", &"[#{Services.label(&1)}](#{&1.href})")
+        "- #{maker.name}\n" <>
+          Enum.map_join(maker.projects, "\n", fn project ->
+            "  - [#{Services.label(project)}](#{project.href}) " <>
+              "(#{Services.status_name(project.status)}): #{project.line}"
+          end)
       end)
 
     """
@@ -100,14 +116,16 @@ defmodule TechtreeWeb.HomeLive do
 
     #{services}
     - [#{security.name}](#{Services.path(:security)}): #{security.promise}
-    #{demonstration_markdown(newest_comparison())}
+    #{demonstrations_markdown(Comparisons.list())}
     ## Process
 
     #{@process_line}
 
     #{process}
 
-    ## Built on the open-source frontier tech of
+    ## Built on
+
+    #{@stack_line} #{Services.status_line()}
 
     #{makers}
 
@@ -131,35 +149,40 @@ defmodule TechtreeWeb.HomeLive do
     """
   end
 
-  defp newest_comparison, do: List.first(Comparisons.list())
+  defp demonstrations_markdown([]), do: ""
 
-  defp demonstration_markdown(nil), do: ""
+  defp demonstrations_markdown(comparisons) do
+    items =
+      Enum.map_join(comparisons, "\n", fn comparison ->
+        %{final: final, skill: skill} = comparison
 
-  defp demonstration_markdown(comparison) do
-    %{final: final, skill: skill} = comparison
+        """
+        ### #{skill.name}
+
+        #{about(comparison)}
+
+        - Original: #{Copy.percent(final.original)}
+        - Improved: #{Copy.percent(final.improved)}
+        - Verdict: #{Copy.verdict_name(comparison)}. #{Copy.verdict(comparison)}
+
+        [Result](/train/#{comparison.slug}) · [GitHub](#{skill.github_url}) · [skills.sh](#{skill.skills_sh_url})
+        """
+      end)
 
     """
 
-    ## Demonstration
+    ## Demonstrations
 
-    #{about(comparison)}
+    #{@demonstrations_line}
 
-    - Original: #{Copy.percent(final.original)}
-    - Improved: #{Copy.percent(final.improved)}
-    - Cases better: #{comparison.changes.better} of #{comparison.split.final}
-
-    [Result](/train/#{comparison.slug}) · [GitHub](#{skill.github_url}) · [skills.sh](#{skill.skills_sh_url})
+    #{items}
     """
   end
 
-  # The demonstration's label: a public Skill, a small model, and the final
-  # test's attempts solved by each version.
-  defp about(%{skill: skill, agent: agent, final: final} = comparison),
+  # One demonstration's label: whose public Skill, and the final test's size.
+  defp about(%{skill: skill, split: split, repeats: repeats}),
     do:
-      "A demonstration on #{skill.maker}’s public #{skill.name} Skill, not customer work: " <>
-        "#{Copy.possessive(agent)} on #{comparison.split.final} final-test cases, each asked " <>
-        "#{comparison.repeats} times. The original Skill solved #{Copy.count(final.original)} attempts; " <>
-        "the version #{Copy.possessive(comparison.improver)} improved solved #{Copy.count(final.improved)}."
+      "#{skill.maker}’s public Skill, on #{split.final} final-test cases asked #{repeats} times each."
 
   @impl true
   def render(assigns) do
@@ -218,7 +241,21 @@ defmodule TechtreeWeb.HomeLive do
         </ul>
       </section>
 
-      <.demonstration :if={@demonstration} comparison={@demonstration} />
+      <section
+        :if={@comparisons != []}
+        id="demonstration"
+        class="mk-section"
+        aria-labelledby="demonstration-title"
+      >
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Skills</p>
+          <h2 id="demonstration-title">Demonstrations</h2>
+          <p>{@demonstrations_line}</p>
+        </header>
+        <div id="demonstration-list" class="mk-offer mk-offer--three mk-demos">
+          <.demonstration :for={comparison <- @comparisons} comparison={comparison} />
+        </div>
+      </section>
 
       <section id="process" class="mk-section" aria-labelledby="process-title">
         <header class="mk-section__head">
@@ -236,12 +273,11 @@ defmodule TechtreeWeb.HomeLive do
 
       <section id="stack" class="mk-section mk-stack" aria-labelledby="stack-title">
         <header class="mk-section__head">
-          <h2 id="stack-title">
-            Built on the <span class="mk-stack__whole">open-source</span> frontier tech of
-          </h2>
+          <h2 id="stack-title">Built on</h2>
+          <p>{@stack_line} {@status_line}</p>
         </header>
         <ul id="stack-list" class="mk-stack__list" phx-hook="MarketingStagger" phx-update="ignore">
-          <li :for={maker <- @makers} class="mk-maker" data-stagger>
+          <li :for={maker <- @makers} id={"maker-#{maker.id}"} class="mk-maker" data-stagger>
             <h3 :if={maker.logo} class="mk-maker__plate">
               <img
                 class={["mk-maker__logo", "mk-maker__logo--#{maker.id}"]}
@@ -253,10 +289,16 @@ defmodule TechtreeWeb.HomeLive do
             </h3>
             <h3 :if={!maker.logo} class="mk-maker__plate mk-maker__plate--name">{maker.name}</h3>
             <ul class="mk-maker__projects">
-              <li :for={project <- maker.projects}>
-                <a href={project.href} class="text-link">
-                  <span><span class="mk-maker__of">{project.maker}’s</span> {project.name}</span>
-                </a>
+              <li :for={project <- maker.projects} data-status={project.status}>
+                <span class="mk-maker__name">
+                  <a href={project.href} class="text-link">
+                    <span><span class="mk-maker__of">{project.maker}’s</span> {project.name}</span>
+                  </a>
+                  <Regent.Primitives.status tone="neutral" class="mk-status-word">
+                    {Services.status_name(project.status)}
+                  </Regent.Primitives.status>
+                </span>
+                <span class="mk-maker__job">{project.line}</span>
               </li>
             </ul>
           </li>
@@ -281,20 +323,21 @@ defmodule TechtreeWeb.HomeLive do
 
   attr :comparison, :map, required: true
 
-  # The newest comparison, labelled a demonstration, in its one measure: each
-  # version's share of attempts solved, and the cases it did better on.
+  # One demonstration in its one measure: each version's share of attempts
+  # solved on the final test, the verdict those figures earn, and its links.
   defp demonstration(assigns) do
     assigns = assign(assigns, about: about(assigns.comparison))
 
     ~H"""
-    <section id="demonstration" class="mk-section" aria-labelledby="demonstration-title">
-      <header class="mk-section__head">
-        <p class="mk-eyebrow">Skills</p>
-        <h2 id="demonstration-title">Demonstration</h2>
-        <p>{@about}</p>
-      </header>
+    <section
+      id={"demonstration-#{@comparison.slug}"}
+      aria-labelledby={"demonstration-#{@comparison.slug}-title"}
+      data-verdict={@comparison.verdict}
+    >
+      <h3 id={"demonstration-#{@comparison.slug}-title"}>{@comparison.skill.name}</h3>
+      <p>{@about}</p>
       <dl
-        id="demonstration-figures"
+        id={"demonstration-#{@comparison.slug}-figures"}
         class="mk-tallies"
         phx-hook="MarketingTally"
         phx-update="ignore"
@@ -307,11 +350,16 @@ defmodule TechtreeWeb.HomeLive do
           <dt>Improved</dt>
           <dd data-tally>{Copy.percent(@comparison.final.improved)}</dd>
         </div>
-        <div>
-          <dt>Cases better</dt>
-          <dd data-tally>{@comparison.changes.better} of {@comparison.split.final}</dd>
-        </div>
       </dl>
+      <p class="mk-demos__verdict">
+        <Regent.Primitives.status
+          tone={if(@comparison.verdict == :improved, do: "success", else: "neutral")}
+          class="mk-status-word"
+        >
+          {Copy.verdict_name(@comparison)}
+        </Regent.Primitives.status>
+        <span>{Copy.verdict(@comparison)}</span>
+      </p>
       <p class="mk-links">
         <.link navigate={~p"/train/#{@comparison.slug}"} class="text-link">
           Result <span aria-hidden="true">→</span>
@@ -337,41 +385,30 @@ defmodule TechtreeWeb.HomeLive do
     end)
   end
 
-  # Whose open-source projects we build on: each maker's own logo, unchanged
-  # (`priv/static/images/built-on/`), or its name where we have no logo file,
-  # over its projects. A maker's projects are the services' tools it made
-  # (`Services.tools/0`), then the ones we credit beside them. These are the
-  # only logos on the site.
+  # Whose open-source projects we build on, in `Services.libraries/0`'s order:
+  # each maker's own logo, unchanged (`priv/static/images/built-on/`), or its
+  # name where we have no logo file, over its projects. These are the only
+  # logos on the site.
   defp makers do
-    tools = Services.tools()
-
-    [
+    Services.libraries()
+    |> Enum.chunk_by(& &1.maker)
+    |> Enum.map(fn [%{maker: name} | _] = projects ->
       %{
-        id: "prime-intellect",
-        name: "Prime Intellect",
-        logo: %{src: ~p"/images/built-on/prime-intellect.svg", width: 899, height: 161},
-        also: [{"Environments Hub", "https://app.primeintellect.ai/dashboard/environments"}]
-      },
-      %{
-        id: "nvidia",
-        name: "NVIDIA",
-        logo: %{src: ~p"/images/built-on/nvidia.svg", width: 2560, height: 1440},
-        also: [
-          {"Nemotron", "https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/"}
-        ]
-      },
-      %{
-        id: "nous-research",
-        name: "Nous Research",
-        logo: %{src: ~p"/images/built-on/nous-research.svg", width: 200, height: 280},
-        also: [{"Hermes", "https://github.com/NousResearch/hermes-agent"}]
-      },
-      %{id: "microsoft", name: "Microsoft", logo: nil, also: []},
-      %{id: "hugging-face", name: "Hugging Face", logo: nil, also: []}
-    ]
-    |> Enum.map(fn maker ->
-      also = for {name, href} <- maker.also, do: %{maker: maker.name, name: name, href: href}
-      Map.put(maker, :projects, Enum.filter(tools, &(&1.maker == maker.name)) ++ also)
+        id: name |> String.downcase() |> String.replace(" ", "-"),
+        name: name,
+        logo: logo(name),
+        projects: projects
+      }
     end)
   end
+
+  defp logo("Prime Intellect"),
+    do: %{src: ~p"/images/built-on/prime-intellect.svg", width: 899, height: 161}
+
+  defp logo("NVIDIA"), do: %{src: ~p"/images/built-on/nvidia.svg", width: 2560, height: 1440}
+
+  defp logo("Nous Research"),
+    do: %{src: ~p"/images/built-on/nous-research.svg", width: 200, height: 280}
+
+  defp logo(_maker), do: nil
 end

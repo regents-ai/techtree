@@ -1,9 +1,10 @@
 defmodule TechtreeWeb.TrainLive.Show do
   @moduledoc """
-  One comparison, reached from Results and the home page's demonstration: the
+  One comparison, reached from Results and the home page's demonstrations: the
   Skill with its links, the task, the original and improved Skill's attempts
-  solved on the final test as two bars, the method with the choosing step's
-  figures, every final-test case, the tools, and the report to download.
+  solved on the final test as two bars with the verdict, the method with the
+  choosing step's figures, every final-test case, the tools, and the report to
+  download.
 
   The comparison is one committed file (`Techtree.Train.Comparisons`); a slug
   the folder has no file for is a 404.
@@ -65,6 +66,10 @@ defmodule TechtreeWeb.TrainLive.Show do
             />
           </div>
           <dl class="train-facts">
+            <div id="result-verdict" data-verdict={@comparison.verdict}>
+              <dt>Verdict</dt>
+              <dd>{Copy.verdict_name(@comparison)}</dd>
+            </div>
             <div>
               <dt>Difference</dt>
               <dd>{Copy.difference(@comparison)}</dd>
@@ -78,7 +83,7 @@ defmodule TechtreeWeb.TrainLive.Show do
               <dd>{Copy.odds(@comparison)}</dd>
             </div>
           </dl>
-          <p class="train-note">{Copy.chance(@comparison)}</p>
+          <p class="train-note">{Copy.verdict(@comparison)} {Copy.chance(@comparison)}</p>
         </section>
 
         <section id="method" class="section" aria-labelledby="method-title">
@@ -95,11 +100,11 @@ defmodule TechtreeWeb.TrainLive.Show do
                 aria-label={title}
               >
                 <.bar
-                  :for={{name, side} <- choices}
+                  :for={{name, side, chosen} <- choices}
                   id={"choosing-#{String.downcase(name)}"}
                   label={name}
                   side={side}
-                  improved={name == "Improved"}
+                  improved={chosen}
                 />
               </div>
             </li>

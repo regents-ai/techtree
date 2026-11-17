@@ -156,49 +156,107 @@ Three rules hold on every project:
 | Environments | Practice tasks that reset between runs, whose tests pass good work and fail bad work, each checked against a worked solution and a deliberately wrong one. |
 | Models | A smaller specialist measured against what you run today, counting hosting, retries, response time and running cost, or a clear reason not to train. |
 
-The [published example](#results) below shows the shape of a result. One example is
-not a promise of the same gain on your work.
+The [published examples](#results) below show the shape of a result, one of them a
+change that did not help. They are not a promise of the same gain on your work.
 
 ## Results
+
+Three demonstrations Techtree ran itself on public Skills, not customer work. Each
+used NVIDIA's Nemotron 3 Nano 4B (`nemotron-3-nano:4b`) on our own machine, scored
+through Prime Intellect's Verifiers 0.4.1 with the same settings on both sides, after
+NVIDIA's SkillEvaluator 0.9.0 checked the original Skill. Each made two revisions
+from the working cases alone, a single plain rewrite by Anthropic's Claude Opus 5.5
+and a revision by Microsoft's SkillOpt with Claude Opus 5.5 proposing its changes,
+and kept the one that solved the most on the choosing cases. The line for chance was
+agreed before anything ran: 5 in 100. A difference within it is reported as
+inconclusive.
+
+| Skill | Final test | Original | Improved | Verdict |
+| --- | --- | --- | --- | --- |
+| [Dependabot](https://techtree.sh/train/dependabot-nemotron-3-nano-4b) | 38 cases, 3 times each | 35%, 40 of 114 | 81%, 92 of 114 | Improved |
+| [Gitmoji](https://techtree.sh/train/gitmoji-nemotron-3-nano-4b) | 39 cases, 3 times each | 68%, 79 of 117 | 85%, 99 of 117 | Improved |
+| [React Best Practices](https://techtree.sh/train/react-best-practices-nemotron-3-nano-4b) | 37 cases, 3 times each | 54%, 60 of 111 | 51%, 57 of 111 | Inconclusive |
+
+None of them shows a gain on other tasks or other models, or that anyone else has
+repeated the run.
+
+### Dependabot
 
 On 14 Nov 2026 Techtree improved GitHub's public
 [Dependabot Skill](https://github.com/github/awesome-copilot/tree/9fd4597c60d7ca3c290fe8d142797e96f1d306f8/skills/dependabot)
 ([skills.sh](https://skills.sh/github/awesome-copilot/dependabot)), from its
 awesome-copilot collection (MIT license), used unchanged as the starting point. It
 is a guide for setting up and managing Dependabot, GitHub's tool that keeps a
-repository's dependencies up to date. This is a demonstration on a public Skill, not
-customer work.
+repository's dependencies up to date.
 
 The task: given a repository's file list, reply with the Dependabot package
 ecosystems it needs, as an alphabetical, comma-separated list and nothing else; an
-answer counts only when it matches exactly. The agent was NVIDIA's Nemotron 3 Nano 4B
-(`nemotron-3-nano:4b`), run on our own machine and scored through Prime Intellect's
-Verifiers 0.4.1, with the same settings on both sides.
+answer counts only when it matches exactly.
 
 We wrote 84 cases and split them once, before anything ran: 25 to work on the Skill,
-21 to choose between versions and 38 kept apart for one final test. Every version was
-asked each case 3 times. Microsoft's SkillOpt, with Anthropic's Claude Opus 5.5
-proposing the changes, improved the Skill using only the working cases. On the
-choosing cases its revision solved 73% of the attempts (46 of 63), against 57% for a
-single plain rewrite (36 of 63) and 35% for the original (22 of 63), so it was chosen.
+21 to choose between versions and 38 kept apart for one final test. On the choosing
+cases SkillOpt's revision solved 73% of the attempts (46 of 63), against 57% for the
+plain rewrite (36 of 63) and 35% for the original (22 of 63), so it was chosen.
 
-| Final test, attempts solved | Original | Improved |
-| --- | --- | --- |
-| 38 cases, 3 times each | 35%, 40 of 114 | 81%, 92 of 114 |
+The improved Skill solved 52 more attempts on the final test: 25 cases did better, 12
+the same and 1 worse (`rust-service-container`, from 3 of 3 to 2 of 3). If the two
+versions were equally good, a difference this large would turn up by chance fewer
+than 1 time in 1,000.
 
-The improved Skill solved 52 more attempts: 25 cases did better, 12 the same and 1
-worse (`rust-service-container`, from 3 of 3 to 2 of 3). If the two versions were
-equally good, a difference this large would turn up by chance fewer than 1 time in
-1,000. It does not show a gain on other tasks or other models, or that anyone else
-has repeated the run.
+### Gitmoji
 
-- [The comparison's page](https://techtree.sh/train/dependabot-nemotron-3-nano-4b),
-  with every case, the method, the tools and the report to download. All published
-  Results are at [techtree.sh/results](https://techtree.sh/results).
-- The report is also in this repository under
+On 14 Nov 2026 Techtree improved GitHub's public
+[Gitmoji Skill](https://github.com/github/awesome-copilot/tree/541d8f04995bdd454bbaea0c215c2a8ef7f21935/skills/gitmoji)
+([skills.sh](https://skills.sh/github/awesome-copilot/gitmoji)), from its
+awesome-copilot collection (MIT license), used unchanged as the starting point. It
+writes commit messages in the gitmoji convention, choosing the emoji that matches the
+intent of each change.
+
+The task: given a plain description of one change, reply with the gitmoji shortcode
+the commit should use, such as `:bug:`, and nothing else; an answer counts only when
+it matches exactly.
+
+We wrote 87 cases and split them once, before anything ran: 26 to work on the Skill,
+22 to choose between versions and 39 kept apart for one final test. On the choosing
+cases the plain rewrite solved 86% of the attempts (57 of 66), against 73% for
+SkillOpt's revision (48 of 66) and 64% for the original (42 of 66), so it was chosen.
+
+The improved Skill solved 20 more attempts on the final test: 17 cases did better, 17
+the same and 5 worse. If the two versions were equally good, a difference this large
+would turn up by chance about 0.1 times in 100.
+
+### React Best Practices
+
+On 15 Nov 2026 Techtree tried to improve Vercel's public
+[React Best Practices Skill](https://github.com/vercel-labs/agent-skills/tree/dc8367e6f91c022d83361f03c3313fa05e848ee5/skills/react-best-practices)
+([skills.sh](https://skills.sh/vercel-labs/agent-skills/vercel-react-best-practices)),
+from its agent-skills collection (MIT license), used unchanged as the starting point.
+It holds React and Next.js performance guidelines from Vercel Engineering: 70 rules
+in 8 categories, ranked by impact.
+
+The task: given a short piece of React, Next.js or TypeScript code and five of the
+Skill's rule ids, reply with the id of the one rule the code breaks, and nothing else;
+an answer counts only when it matches exactly.
+
+We wrote 83 cases and split them once, before anything ran: 25 to work on the Skill,
+21 to choose between versions and 37 kept apart for one final test. On the choosing
+cases the plain rewrite solved 73% of the attempts (46 of 63), against 71% for the
+original (45 of 63) and 59% for SkillOpt's revision (37 of 63), so it was chosen.
+
+The change did not help. On the final test the rewrite solved 3 fewer attempts than
+the original: 9 cases did better, 19 the same and 9 worse. If the two versions were
+equally good, a difference this large would turn up by chance about 74.5 times in
+100, so these cases cannot tell the two versions apart.
+
+### Reports
+
+- Each comparison's page has every case, the method, the tools and the report to
+  download. All published Results are at
+  [techtree.sh/results](https://techtree.sh/results).
+- The reports are also in this repository under
   [`platform/priv/train/`](platform/priv/train/), and
-  [Proof](https://techtree.sh/docs/verify) explains how to check it. The cases and
-  the improved Skill are not published.
+  [Proof](https://techtree.sh/docs/verify) explains how to check them. The cases and
+  the improved Skills are not published.
 
 ## Try it
 

@@ -1,0 +1,257 @@
+{
+  "schema_version": "techtree.train.v1alpha3",
+  "kind": "Comparison",
+  "date": "2026-11-14",
+  "skill": {
+    "name": "Gitmoji",
+    "maker": "GitHub",
+    "collection": "awesome-copilot",
+    "license": "MIT",
+    "summary": "Writes commit messages in the gitmoji convention, choosing the emoji that matches the intent of each change.",
+    "github_url": "https://github.com/github/awesome-copilot/tree/541d8f04995bdd454bbaea0c215c2a8ef7f21935/skills/gitmoji",
+    "skills_sh_url": "https://skills.sh/github/awesome-copilot/gitmoji"
+  },
+  "task": "Given a plain description of one change, reply with the gitmoji shortcode the commit should use, such as :bug:, and nothing else; an answer counts only when it matches exactly.",
+  "agent": {
+    "maker": "NVIDIA",
+    "name": "Nemotron 3 Nano 4B",
+    "model": "nemotron-3-nano:4b"
+  },
+  "scorer": {
+    "maker": "Prime Intellect",
+    "name": "Verifiers",
+    "version": "0.4.1"
+  },
+  "checker": {
+    "maker": "NVIDIA",
+    "name": "SkillEvaluator",
+    "version": "0.9.0"
+  },
+  "rewriter": {
+    "maker": "Anthropic",
+    "name": "Claude Opus 5.5"
+  },
+  "reviser": {
+    "maker": "Microsoft",
+    "name": "SkillOpt"
+  },
+  "proposer": {
+    "maker": "Anthropic",
+    "name": "Claude Opus 5.5"
+  },
+  "selected": "rewrite",
+  "repeats": 3,
+  "cases": {
+    "working": 26,
+    "choosing": 22,
+    "final": 39
+  },
+  "start": {
+    "no_skill": 0,
+    "original": 54
+  },
+  "choosing": {
+    "original": 42,
+    "rewrite": 57,
+    "revision": 48
+  },
+  "final": [
+    {
+      "case": "backend-style-guide-format",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "batched-price-lookups",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "c-implicit-conversion-warnings",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "cart-count-stale",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "checkout-down-empty-url",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "cli-config-toml",
+      "original": 0,
+      "improved": 0
+    },
+    {
+      "case": "config-parse-cached",
+      "original": 2,
+      "improved": 2
+    },
+    {
+      "case": "dark-theme-tokens",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "dashboard-migration-guide",
+      "original": 2,
+      "improved": 2
+    },
+    {
+      "case": "discount-calculator-tests",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "download-path-traversal",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "duplicate-project-action",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "editorconfig-markdown",
+      "original": 1,
+      "improved": 2
+    },
+    {
+      "case": "eslint-no-console-rule",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "eu-region-timeouts",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "gallery-resize-on-upload",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "go-line-wrapping",
+      "original": 2,
+      "improved": 2
+    },
+    {
+      "case": "heading-brand-font",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "import-command-reference",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "kotlin-coroutines-1-8",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "last-active-sort-order",
+      "original": 0,
+      "improved": 1
+    },
+    {
+      "case": "login-open-redirect",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "notification-retry-tests",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "order-export-deletes-file",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "prettier-frontend",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "pricing-table-restyle",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "pylint-billing-warnings",
+      "original": 0,
+      "improved": 3
+    },
+    {
+      "case": "react-18-3-bump",
+      "original": 1,
+      "improved": 3
+    },
+    {
+      "case": "remove-compact-view-setting",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "remove-pdf-preview",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "require-node-20",
+      "original": 2,
+      "improved": 1
+    },
+    {
+      "case": "sdk-region-required",
+      "original": 2,
+      "improved": 1
+    },
+    {
+      "case": "search-pagination-offset",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "session-cookie-flags",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "shared-price-formatter",
+      "original": 3,
+      "improved": 1
+    },
+    {
+      "case": "shared-retry-wrapper",
+      "original": 2,
+      "improved": 3
+    },
+    {
+      "case": "split-report-service",
+      "original": 3,
+      "improved": 1
+    },
+    {
+      "case": "streaming-log-parser",
+      "original": 3,
+      "improved": 3
+    },
+    {
+      "case": "webpack-5-94",
+      "original": 3,
+      "improved": 2
+    }
+  ],
+  "p_value": 0.0013626426201046274,
+  "chance_level": 0.05
+}

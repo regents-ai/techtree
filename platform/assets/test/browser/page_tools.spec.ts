@@ -145,9 +145,9 @@ test("the Train tools read every comparison the Train page shows, newest first, 
   await open(page, "none")
   const answer = await call(page, "train_comparisons", {}) as {ok: boolean; data: {comparisons: Array<{slug: string; final: {improved: {solved: number}}}>}}
   expect(answer.ok).toBe(true)
-  expect(answer.data.comparisons.map(comparison => comparison.slug)).toEqual(["dependabot-nemotron-3-nano-4b"])
+  expect(answer.data.comparisons.map(comparison => comparison.slug)).toEqual(["react-best-practices-nemotron-3-nano-4b", "dependabot-nemotron-3-nano-4b", "gitmoji-nemotron-3-nano-4b"])
 
-  const report = await call(page, "train_report", {slug: "dependabot-nemotron-3-nano-4b"}) as {ok: boolean; data: {final: Array<{improved: number}>}}
+  const report = await call(page, "train_report", {slug: "react-best-practices-nemotron-3-nano-4b"}) as {ok: boolean; data: {final: Array<{improved: number}>}}
   expect(report.ok).toBe(true)
   expect(report.data.final.reduce((sum, item) => sum + item.improved, 0)).toBe(answer.data.comparisons[0].final.improved.solved)
   expect(await call(page, "train_report", {slug: "missing"})).toMatchObject({ok: false, status: 404, error: {code: "comparison_not_found"}})

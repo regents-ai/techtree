@@ -365,7 +365,7 @@ defmodule TechtreeWeb.Layouts do
 
   defp description_for_path("/train/" <> _slug),
     do:
-      "A public Skill against an improved version on a final test: attempts solved, every case, the method and the tools."
+      "A public Skill against the revision chosen to improve it, on a final test: attempts solved, the verdict, every case, the method and the tools."
 
   defp description_for_path("/results/" <> _digest),
     do: "Inspect one published Techtree Result and its task-level evidence."

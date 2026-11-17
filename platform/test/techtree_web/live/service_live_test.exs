@@ -16,6 +16,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
 
   use TechtreeWeb.ConnCase, async: false
 
+  alias Techtree.Train.Comparisons
   alias TechtreeWeb.Components.AgentMessage
   alias TechtreeWeb.Services
 
@@ -88,6 +89,27 @@ defmodule TechtreeWeb.ServiceLiveTest do
       assert Enum.all?(hrefs(page, "#steps a"), &(&1 in tools)), "#{service.name}'s steps"
       assert markdown(conn, Services.path(service.id)) =~ "## Tools"
     end
+  end
+
+  test "the Skills page's tested tools each link every published result they did a part in",
+       %{conn: conn} do
+    results = for comparison <- Comparisons.list(), do: "/train/#{comparison.slug}"
+    assert length(results) == 3
+
+    page = page(conn, Services.path(:skills))
+
+    linked =
+      for tool <- LazyHTML.query(page, "#tools .mk-tools > div") do
+        {hd(hrefs(tool, "dt a")), hrefs(tool, ".mk-tools__results a")}
+      end
+
+    assert linked == [
+             {"https://github.com/NVIDIA/SkillEvaluator", results},
+             {"https://github.com/microsoft/SkillOpt", results},
+             {"https://github.com/PrimeIntellect-ai/verifiers", results}
+           ]
+
+    for result <- results, do: assert(markdown(conn, Services.path(:skills)) =~ "(#{result})")
   end
 
   test "each step that runs something shows its status, and the tools sit under theirs",

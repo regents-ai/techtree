@@ -46,7 +46,38 @@ defmodule TechtreeWeb.TrainLiveTest do
       for item <- comparison.cases do
         assert has_element?(view, ~s|#case-#{item.id}[data-change="#{item.change}"]|)
       end
+
+      # The verdict is the comparison's own, and the choosing step marks the
+      # revision that was selected and no other.
+      assert has_element?(view, ~s|#result-verdict[data-verdict="#{comparison.verdict}"]|)
+
+      assert [_chosen] =
+               view
+               |> render()
+               |> LazyHTML.from_document()
+               |> LazyHTML.query("#choosing .train-bar--improved")
+               |> Enum.to_list()
+
+      chosen =
+        if comparison.selected == :rewrite,
+          do: "rewrite",
+          else: String.downcase(comparison.reviser.name)
+
+      assert has_element?(view, "#choosing-#{chosen}.train-bar--improved")
     end
+  end
+
+  test "Results shows each comparison's verdict, an inconclusive one among them", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/results")
+
+    for comparison <- Comparisons.list() do
+      assert has_element?(
+               view,
+               ~s|#comparison-#{comparison.slug}[data-verdict="#{comparison.verdict}"]|
+             )
+    end
+
+    assert Enum.any?(Comparisons.list(), &(&1.verdict == :inconclusive))
   end
 
   test "a name with no comparison is a 404", %{conn: conn} do

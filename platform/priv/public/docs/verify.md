@@ -37,9 +37,10 @@ Repeating a Result needs another participant to run the same Climb and publish t
 
 ## Skill comparisons
 
-A Skill comparison, like the demonstration on the [home page](/), is a report Techtree ran itself: a public Skill as published (the original) against an improved version of it, on final-test cases kept apart before anything ran, each case asked the same number of times of each version by the same agent with the same settings. It is not signed. Its page offers the report to download.
+A Skill comparison, like the demonstrations on the [home page](/), is a report Techtree ran itself: a public Skill as published (the original) against the revision chosen to improve it, on final-test cases kept apart before anything ran, each case asked the same number of times of each version by the same agent with the same settings. It is not signed. Its page offers the report to download.
 
 - The report lists every final-test case with how many of its attempts each version solved, so the totals, the difference and the cases that did better, the same and worse on the page can be counted again from it.
+- The report also holds the chance reading and the level agreed before anything ran. A reading at or above that level makes the verdict inconclusive, whichever version solved more.
 - `shasum -a 256 <name>.json` prints the digest the download sends as its entity tag.
 - The original Skill is public, at the addresses the page links. The cases and the improved Skill are not published.
 

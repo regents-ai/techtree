@@ -501,15 +501,19 @@ defmodule TechtreeWeb.RunsLive.Index do
         <header class="mk-section__head">
           <h2 id="comparisons-title">Comparisons</h2>
           <p>
-            Demonstrations Techtree ran itself on public Skills: the Skill as published against an improved version, on final-test cases kept apart from the improvement, with the same agent and settings. They are not signed; each page offers its report to download.
+            Demonstrations Techtree ran itself on public Skills: the Skill as published against the revision chosen to improve it, on final-test cases kept apart from the improvement, with the same agent and settings. A difference within chance is reported as inconclusive. They are not signed; each page offers its report to download.
           </p>
         </header>
         <ul class="mk-status">
-          <li :for={comparison <- @comparisons} id={"comparison-#{comparison.slug}"}>
+          <li
+            :for={comparison <- @comparisons}
+            id={"comparison-#{comparison.slug}"}
+            data-verdict={comparison.verdict}
+          >
             <.link navigate={~p"/train/#{comparison.slug}"}>
               {comparison.skill.name} · Original {TrainCopy.percent(comparison.final.original)} → Improved {TrainCopy.percent(
                 comparison.final.improved
-              )}
+              )} · {TrainCopy.verdict_name(comparison)}
             </.link>
           </li>
         </ul>

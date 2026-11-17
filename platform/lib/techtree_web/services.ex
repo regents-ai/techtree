@@ -8,7 +8,9 @@ defmodule TechtreeWeb.Services do
   menus, its promise, its price level (1 to 4, shown as marks and never as a
   figure), the steps of the work in order, what the customer receives, the
   open-source tools for the project (each with its maker, its job there and
-  its status), notes, and the line that asks for a call. Models also carries
+  its status), notes, and the line that asks for a call. Every library is also
+  listed once (`libraries/0`) with what it does in a Techtree job, for the home
+  page's credits. Models also carries
   a second opening line and the two comparisons it reports; a page shows those
   parts only where its service has them. Security has no price level. The
   terms (`terms/0`) are the same for all four. The header's Services menu
@@ -31,11 +33,19 @@ defmodule TechtreeWeb.Services do
   @type words :: [String.t() | {String.t(), String.t()}]
   @type status :: :delivered | :tested | :planned
   @type step :: %{name: String.t(), status: status() | nil, words: words()}
+  @type library :: %{
+          name: String.t(),
+          maker: String.t(),
+          href: String.t(),
+          status: status(),
+          line: String.t()
+        }
   @type tool :: %{
           name: String.t(),
           maker: String.t(),
           href: String.t(),
           status: status(),
+          line: String.t(),
           job: String.t()
         }
   @type comparison :: %{name: String.t(), question: String.t(), answer: String.t()}
@@ -74,56 +84,103 @@ defmodule TechtreeWeb.Services do
 
   @statuses [:delivered, :tested, :planned]
 
-  # Each library once, with its status; a service gives it its job there
+  # Each library once, with its status and what it does in a Techtree job
+  # (`line`, for the home page's credits); a service gives it its job there
   # (`tool/2`).
-  @skill_evaluator %{
-    maker: "NVIDIA",
-    name: "SkillEvaluator",
-    href: "https://github.com/NVIDIA/SkillEvaluator",
-    status: :tested
-  }
-  @skill_opt %{
-    maker: "Microsoft",
-    name: "SkillOpt",
-    href: "https://github.com/microsoft/SkillOpt",
-    status: :tested
-  }
   @verifiers %{
     maker: "Prime Intellect",
     name: "Verifiers",
     href: "https://github.com/PrimeIntellect-ai/verifiers",
-    status: :tested
+    status: :tested,
+    line: "Holds the cases and scores every attempt, from the first measure to the final test."
+  }
+  @environments_hub %{
+    maker: "Prime Intellect",
+    name: "Environments Hub",
+    href: "https://app.primeintellect.ai/dashboard/environments",
+    status: :tested,
+    line: "Supplies the environment a Climb runs, pinned by version."
   }
   @prime_rl %{
     maker: "Prime Intellect",
     name: "prime-rl",
     href: "https://github.com/PrimeIntellect-ai/prime-rl",
-    status: :planned
+    status: :planned,
+    line: "Trains a smaller model on your accepted examples, then on scored practice."
   }
-  @harbor %{
-    maker: "Terminal-Bench",
-    name: "Harbor",
-    href: "https://github.com/harbor-framework/harbor",
-    status: :tested
+  @skill_evaluator %{
+    maker: "NVIDIA",
+    name: "SkillEvaluator",
+    href: "https://github.com/NVIDIA/SkillEvaluator",
+    status: :tested,
+    line: "Reviews a Skill as it is written."
+  }
+  @nemotron %{
+    maker: "NVIDIA",
+    name: "Nemotron",
+    href: "https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/",
+    status: :tested,
+    line: "The small open model in each published demonstration, run on our own machine."
   }
   @skill2env %{
     maker: "NVIDIA",
     name: "Skill2Env",
     href: "https://github.com/NVlabs/Skill2Env",
-    status: :planned
-  }
-  @repo2rlenv %{
-    maker: "Hugging Face",
-    name: "Repo2RLEnv",
-    href: "https://github.com/huggingface/Repo2RLEnv",
-    status: :planned
+    status: :planned,
+    line: "Generates practice tasks from a Skill."
   }
   @nemoclaw %{
     maker: "NVIDIA",
     name: "NemoClaw",
     href: "https://github.com/NVIDIA/NemoClaw",
-    status: :planned
+    status: :planned,
+    line: "Runs agents inside OpenShell, under the rules you set."
   }
+  @repo2rlenv %{
+    maker: "Hugging Face",
+    name: "Repo2RLEnv",
+    href: "https://github.com/huggingface/Repo2RLEnv",
+    status: :planned,
+    line:
+      "Generates practice tasks from a repository, its past fixes and recorded agent sessions."
+  }
+  @harbor %{
+    maker: "Terminal-Bench",
+    name: "Harbor",
+    href: "https://github.com/harbor-framework/harbor",
+    status: :tested,
+    line:
+      "Proves each practice task fair in a sealed setup: the worked solution passes and doing nothing scores zero."
+  }
+  @skill_opt %{
+    maker: "Microsoft",
+    name: "SkillOpt",
+    href: "https://github.com/microsoft/SkillOpt",
+    status: :tested,
+    line: "Proposes revisions to a Skill from scored attempts, measured against a plain rewrite."
+  }
+  @hermes %{
+    maker: "Nous Research",
+    name: "Hermes",
+    href: "https://github.com/NousResearch/hermes-agent",
+    status: :tested,
+    line: "Hosts Techtree’s plugin, and is the agent each Climb evaluates."
+  }
+
+  # Every library, grouped by maker in the order the home page credits them.
+  @libraries [
+    @verifiers,
+    @environments_hub,
+    @prime_rl,
+    @skill_evaluator,
+    @nemotron,
+    @skill2env,
+    @nemoclaw,
+    @repo2rlenv,
+    @harbor,
+    @skill_opt,
+    @hermes
+  ]
 
   @doc "The four services, in the order every list shows them."
   @spec all() :: [service()]
@@ -158,19 +215,21 @@ defmodule TechtreeWeb.Services do
             " reviews the Skill as it is written."
           ]),
           step("Baseline", :tested, [
-            "We measure your current Skill with your agent, several times over so chance is accounted for. The cases for the final test are set aside, and the improvement never sees them."
+            "We measure your current Skill with your agent through ",
+            named(@verifiers),
+            ", several times over so chance is accounted for. The cases for the final test are set aside, and the improvement never sees them."
           ]),
           step("Improvement", :tested, [
             named(@skill_opt),
-            " proposes revisions from scored attempts on the working cases."
+            " proposes revisions from scored attempts on the working cases, and a single plain rewrite is made beside it."
           ]),
           step("Selection", :tested, [
-            "The best revision is chosen on a separate set of cases. We measure a plain rewrite beside it, so you see what the automatic revisions add."
+            "The original and both revisions are measured on a separate set of cases, and the one that solves the most is chosen, so you see what the automatic revision adds over a plain rewrite."
           ]),
           step("Final test", :tested, [
             "A single run on the untouched cases, scored by ",
             named(@verifiers),
-            ", with the model, tools and limits held fixed."
+            ", with the model, tools and limits held fixed. A difference within chance is reported as inconclusive."
           ]),
           step(
             "Handover",
@@ -217,7 +276,7 @@ defmodule TechtreeWeb.Services do
           step("Success", nil, ["We agree what the test must tell you."]),
           step("Review", nil, ["You approve the test cases before any of them count."]),
           step("Build", :tested, [
-            "We package the cases and their scoring with ",
+            "We package the cases and their scoring as an environment for ",
             named(@verifiers),
             "."
           ]),
@@ -225,7 +284,7 @@ defmodule TechtreeWeb.Services do
             "We show that the scoring accepts known-good work and rejects plausible mistakes."
           ]),
           step("Baseline", :tested, [
-            "We measure your current agent or model, several times over, and explain where it fails."
+            "We measure your current agent or model with Verifiers, several times over, and explain where it fails."
           ]),
           step("Full run", :planned, [
             "For a large test, ",
@@ -265,7 +324,7 @@ defmodule TechtreeWeb.Services do
             "Intake",
             nil,
             [
-              "You bring the workflow, a Skill or a repository. An environment you already have, from Harbor, Prime or OpenEnv, starts with a review of what can be reused."
+              "You bring the workflow, a Skill or a repository. An environment you already have, on Prime Intellect’s Environments Hub, in Harbor’s format or in OpenEnv, starts with a review of what can be reused."
             ]
           ),
           step("Success", nil, ["We agree what an agent should be able to practise."]),
@@ -347,7 +406,9 @@ defmodule TechtreeWeb.Services do
             " before any training."
           ]),
           step("Plan", :tested, [
-            "We write a training plan in prime-rl’s format, with its cost, for your approval. Nothing trains without it."
+            "We write a training plan in the format of ",
+            named(@prime_rl),
+            ", with its cost, for your approval. Nothing trains without it."
           ]),
           step("Training", :planned, [
             named(@prime_rl),
@@ -432,6 +493,15 @@ defmodule TechtreeWeb.Services do
     |> Enum.flat_map(& &1.tools)
     |> Enum.uniq_by(& &1.href)
   end
+
+  @doc """
+  Every open-source project Techtree builds on, once each, grouped by maker
+  (Prime Intellect, NVIDIA, Hugging Face, Terminal-Bench, Microsoft, Nous
+  Research): the services' tools and the ones Techtree's own runs use, each
+  with what it does in a Techtree job and its status.
+  """
+  @spec libraries() :: [library()]
+  def libraries, do: @libraries
 
   @doc "A project's name with its maker's: \"NVIDIA’s SkillEvaluator\"."
   @spec label(%{maker: String.t(), name: String.t()}) :: String.t()

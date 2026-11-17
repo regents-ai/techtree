@@ -5,7 +5,8 @@ defmodule TechtreeWeb.ServiceLive do
   as numbered steps (a step that runs something carries its status, Tested or
   Planned, beside its name, and one line says what the two words mean), what
   the customer receives, the open-source tools for the project grouped by
-  status, the shared terms and the service's notes, and its price level
+  status (a tool that did a part in a published comparison links to its
+  result, `Techtree.Train.Comparisons`), the shared terms and the service's notes, and its price level
   beside the booking action (Models adds its two comparisons, the part only
   its entry carries); and Security at `/services/security`, with its two
   options (a one-off review and monthly monitoring of sites a team proves it
@@ -28,6 +29,7 @@ defmodule TechtreeWeb.ServiceLive do
 
   import TechtreeWeb.Components.Marketing, only: [field: 1, opening: 1, price: 1]
 
+  alias Techtree.Train.Comparisons
   alias TechtreeWeb.Components.{AgentMessage, BookCall, Enquiry}
   alias TechtreeWeb.Services
 
@@ -49,6 +51,7 @@ defmodule TechtreeWeb.ServiceLive do
        mailto: mailto(service),
        quoted: @quoted,
        tools_line: @tools_line,
+       comparisons: Comparisons.list(),
        status_line: Services.status_line(),
        terms: Services.terms()
      )}
@@ -128,11 +131,32 @@ defmodule TechtreeWeb.ServiceLive do
   end
 
   defp tools_markdown(tools) do
+    comparisons = Comparisons.list()
+
     tools
     |> Services.by_status()
     |> Enum.map_join("\n\n", fn {status, group} ->
       "### #{Services.status_name(status)}\n\n" <>
-        Enum.map_join(group, "\n", &"- [#{Services.label(&1)}](#{&1.href}): #{&1.job}")
+        Enum.map_join(group, "\n", fn tool ->
+          "- [#{Services.label(tool)}](#{tool.href}): #{tool.job}" <>
+            results_markdown(results(tool, comparisons))
+        end)
+    end)
+  end
+
+  defp results_markdown([]), do: ""
+
+  defp results_markdown(results),
+    do: " Results: " <> Enum.map_join(results, " · ", &"[#{&1.skill.name}](/train/#{&1.slug})")
+
+  # The published comparisons a tool did a part in: as the scorer, the check
+  # or the reviser, matched by maker and name.
+  defp results(%{maker: maker, name: name}, comparisons) do
+    Enum.filter(comparisons, fn comparison ->
+      Enum.any?(
+        [comparison.scorer, comparison.checker, comparison.reviser],
+        &match?(%{maker: ^maker, name: ^name}, &1)
+      )
     end)
   end
 
@@ -324,7 +348,19 @@ defmodule TechtreeWeb.ServiceLive do
                     <span class="mk-tools__maker">{tool.maker}’s</span> {tool.name}
                   </a>
                 </dt>
-                <dd>{tool.job}</dd>
+                <dd>
+                  {tool.job}
+                  <span :if={results(tool, @comparisons) != []} class="mk-tools__results">
+                    Results:
+                    <.link
+                      :for={comparison <- results(tool, @comparisons)}
+                      navigate={~p"/train/#{comparison.slug}"}
+                      class="text-link"
+                    >
+                      {comparison.skill.name}
+                    </.link>
+                  </span>
+                </dd>
               </div>
             </dl>
           </section>
