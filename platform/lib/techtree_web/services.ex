@@ -284,7 +284,9 @@ defmodule TechtreeWeb.Services do
             "We show that the scoring accepts known-good work and rejects plausible mistakes."
           ]),
           step("Baseline", :tested, [
-            "We measure your current agent or model with Verifiers, several times over, and explain where it fails."
+            "We measure your current agent or model with ",
+            named(@verifiers),
+            ", several times over, and explain where it fails."
           ]),
           step("Full run", :planned, [
             "For a large test, ",
@@ -415,7 +417,9 @@ defmodule TechtreeWeb.Services do
             " trains the model on your accepted examples, then on scored practice when the project calls for it."
           ]),
           step("Final test", :planned, [
-            "We test the trained model against the original on the unseen set, including the cost per successful task."
+            "We test the trained model against the original on the unseen set with ",
+            named(@verifiers),
+            ", including the cost per successful task."
           ]),
           step("Handover", :planned, [
             "You receive everything below, with help putting the model into service. When agents need to run under rules you set, we run them inside OpenShell with ",
