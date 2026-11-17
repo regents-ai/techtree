@@ -162,7 +162,7 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   defp comparison_row(comparison) do
     "- [#{comparison.skill.name}](/train/#{comparison.slug}): " <>
       "Original #{TrainCopy.figure(comparison.final.original)} → " <>
-      "Improved #{TrainCopy.figure(comparison.final.improved)} · #{TrainCopy.verdict_name(comparison)}"
+      "Revised #{TrainCopy.figure(comparison.final.improved)} · #{TrainCopy.verdict_name(comparison)}"
   end
 
   defp result_row(entry) do

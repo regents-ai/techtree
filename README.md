@@ -171,7 +171,7 @@ and kept the one that solved the most on the choosing cases. The line for chance
 agreed before anything ran: 5 in 100. A difference within it is reported as
 inconclusive.
 
-| Skill | Final test | Original | Improved | Verdict |
+| Skill | Final test | Original | Revised | Verdict |
 | --- | --- | --- | --- | --- |
 | [Dependabot](https://techtree.sh/train/dependabot-nemotron-3-nano-4b) | 38 cases, 3 times each | 35%, 40 of 114 | 81%, 92 of 114 | Improved |
 | [Gitmoji](https://techtree.sh/train/gitmoji-nemotron-3-nano-4b) | 39 cases, 3 times each | 68%, 79 of 117 | 85%, 99 of 117 | Improved |

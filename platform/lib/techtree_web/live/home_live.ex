@@ -162,7 +162,7 @@ defmodule TechtreeWeb.HomeLive do
         #{about(comparison)}
 
         - Original: #{Copy.percent(final.original)}
-        - Improved: #{Copy.percent(final.improved)}
+        - Revised: #{Copy.percent(final.improved)}
         - Verdict: #{Copy.verdict_name(comparison)}. #{Copy.verdict(comparison)}
 
         [Result](/train/#{comparison.slug}) · [GitHub](#{skill.github_url}) · [skills.sh](#{skill.skills_sh_url})
@@ -347,7 +347,7 @@ defmodule TechtreeWeb.HomeLive do
           <dd data-tally>{Copy.percent(@comparison.final.original)}</dd>
         </div>
         <div>
-          <dt>Improved</dt>
+          <dt>Revised</dt>
           <dd data-tally>{Copy.percent(@comparison.final.improved)}</dd>
         </div>
       </dl>

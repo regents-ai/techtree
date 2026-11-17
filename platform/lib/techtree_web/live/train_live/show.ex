@@ -60,7 +60,7 @@ defmodule TechtreeWeb.TrainLive.Show do
             <.bar id="result-original" label="Original" side={@comparison.final.original} />
             <.bar
               id="result-improved"
-              label="Improved"
+              label="Revised"
               side={@comparison.final.improved}
               improved
             />
@@ -120,7 +120,7 @@ defmodule TechtreeWeb.TrainLive.Show do
                 <tr>
                   <th scope="col">Case</th>
                   <th scope="col">Original</th>
-                  <th scope="col">Improved</th>
+                  <th scope="col">Revised</th>
                   <th scope="col">Change</th>
                 </tr>
               </thead>

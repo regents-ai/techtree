@@ -511,7 +511,7 @@ defmodule TechtreeWeb.RunsLive.Index do
             data-verdict={comparison.verdict}
           >
             <.link navigate={~p"/train/#{comparison.slug}"}>
-              {comparison.skill.name} · Original {TrainCopy.percent(comparison.final.original)} → Improved {TrainCopy.percent(
+              {comparison.skill.name} · Original {TrainCopy.percent(comparison.final.original)} → Revised {TrainCopy.percent(
                 comparison.final.improved
               )} · {TrainCopy.verdict_name(comparison)}
             </.link>

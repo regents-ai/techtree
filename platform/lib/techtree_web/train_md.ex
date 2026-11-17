@@ -52,7 +52,7 @@ defmodule TechtreeWeb.TrainMD do
     #{Copy.final_test(comparison)}
 
     - Original: #{Copy.figure(final.original)}
-    - Improved: #{Copy.figure(final.improved)}
+    - Revised: #{Copy.figure(final.improved)}
     - Verdict: #{Copy.verdict_name(comparison)}
     - Difference: #{Copy.difference(comparison)}
     - Cases: #{Copy.changes(comparison)}
@@ -68,7 +68,7 @@ defmodule TechtreeWeb.TrainMD do
 
     #{Copy.worse(comparison)}
 
-    | Case | Original | Improved | Change |
+    | Case | Original | Revised | Change |
     | --- | --- | --- | --- |
     #{cases}
 
