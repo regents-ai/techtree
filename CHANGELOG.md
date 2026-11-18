@@ -1,5 +1,15 @@
 # Changelog
 
+## Website (2026-11-18)
+
+### Added
+
+- **Swarm Verify.** A new service beside Security, for teams whose 100 to 500
+  agents share tasks, resources or spending limits: the first workflow it
+  covers, the failures it looks for, its three methods, what you receive and
+  its limits. Every method is planned and not yet run. It is built on Matt
+  Carey's Everystate, a TLA+ model checker, and is open to design partners.
+
 ## Website (2026-11-17)
 
 ### Added

@@ -3,8 +3,8 @@ defmodule TechtreeWeb.SiteMenu do
   The site's pages for the header and the footer (`TechtreeWeb.Layouts`).
 
   The header has one menu, Services: the four services
-  (`TechtreeWeb.Services`) with Security set apart beside them, each with a
-  Lucide icon and one short line. Results and Docs are plain links beside it.
+  (`TechtreeWeb.Services`) with Security and Swarm Verify set apart beside
+  them, each with a Lucide icon and one short line. Results and Docs are plain links beside it.
   The footer lists the services, the site's other pages and the files to hand
   an agent, in columns, by name.
   """
@@ -19,12 +19,12 @@ defmodule TechtreeWeb.SiteMenu do
   @type link :: %{name: String.t(), href: String.t()}
   @type column(entry) :: %{id: String.t(), title: String.t(), pages: [entry]}
 
-  @doc "The Services menu: the four services, then Security on its own."
+  @doc "The Services menu: the four services, then Security and Swarm Verify on their own."
   @spec services() :: [column(page())]
   def services do
     [
       column("services", "Services", Enum.map(Services.all(), &service/1)),
-      column("also", "Also", [service(Services.security())])
+      column("also", "Also", Enum.map(Services.others(), &service/1))
     ]
   end
 
@@ -40,7 +40,7 @@ defmodule TechtreeWeb.SiteMenu do
         "services",
         "Services",
         for(
-          service <- Services.all() ++ [Services.security()],
+          service <- Services.all() ++ Services.others(),
           do: link(service.name, Services.path(service.id))
         )
       ),

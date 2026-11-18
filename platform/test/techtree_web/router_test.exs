@@ -114,6 +114,7 @@ defmodule TechtreeWeb.RouterTest do
              "get /services/security",
              "get /services/security/sample-report",
              "get /services/skills",
+             "get /services/swarm-verify",
              "get /services/verify",
              "get /services/verify/sample-report",
              "get /services/watchdog",

@@ -32,7 +32,7 @@ defmodule TechtreeWeb.PagesTest do
 
   # The service pages, read as they render (`html/2`).
   @service_pages ~w(/services/skills /services/evals /services/environments /services/models
-                    /services/security)
+                    /services/security /services/swarm-verify)
 
   # Every human-facing page is written for a reader who has never opened a
   # protocol document.

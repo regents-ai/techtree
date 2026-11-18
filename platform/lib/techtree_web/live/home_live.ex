@@ -87,7 +87,10 @@ defmodule TechtreeWeb.HomeLive do
           "Price level: #{service.price} of 4. Tools: #{tool_names(service)}"
       end)
 
-    security = Services.security()
+    others =
+      Enum.map_join(Services.others(), "\n", fn service ->
+        "- [#{service.name}](#{Services.path(service.id)}): #{service.promise}"
+      end)
 
     process =
       @process
@@ -115,7 +118,7 @@ defmodule TechtreeWeb.HomeLive do
     #{@services_line}
 
     #{services}
-    - [#{security.name}](#{Services.path(:security)}): #{security.promise}
+    #{others}
     #{demonstrations_markdown(Comparisons.list())}
     ## Process
 

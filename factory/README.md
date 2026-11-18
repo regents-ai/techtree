@@ -42,7 +42,9 @@ Techtree-run evaluation, not an independent audit.
 | Models | The work you repeat, with real examples | A smaller trained model and a comparison with the original | [models/](models/README.md) |
 
 Security sits beside the four: a one-off review or a monthly watch, described on
-[techtree.sh](https://techtree.sh/services/security).
+[techtree.sh](https://techtree.sh/services/security). So does Swarm Verify, checks
+of the coordination behind a large agent fleet, by methods that are all Planned:
+[techtree.sh](https://techtree.sh/services/swarm-verify).
 
 ## Libraries
 

@@ -117,6 +117,7 @@ GET /services/evals             the Evals service
 GET /services/environments      the Environments service
 GET /services/models            the Models service
 GET /services/security          the Security service; /sample-report its sample
+GET /services/swarm-verify      the Swarm Verify service
 GET /formal                     Techtree Formal: formal verification, recent advances, code to prove
 GET /watchdog                   Signed in: add sites and addresses, prove ownership (Security)
 

@@ -26,7 +26,7 @@ defmodule TechtreeWeb.SitemapController do
 
   @fixed ~w(/ /results /docs /changelog /about /privacy /terms /services/skills
             /services/evals /services/environments /services/models /services/security
-            /services/security/sample-report /formal) ++
+            /services/security/sample-report /services/swarm-verify /formal) ++
            Enum.map(TechtreeWeb.DocsGuides.slugs(), &("/docs/" <> &1))
 
   # document/1 escapes every URL; the remaining values are ISO dates and fixed XML.

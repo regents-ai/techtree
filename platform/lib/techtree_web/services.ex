@@ -1,8 +1,8 @@
 defmodule TechtreeWeb.Services do
   @moduledoc """
   What Techtree sells: four services built around a customer's own workflows
-  (Skills, Evals, Environments and Models), and Security beside them. Each is
-  a paid custom project, delivered by people.
+  (Skills, Evals, Environments and Models), and Security and Swarm Verify
+  beside them (`others/0`). Each is a paid custom project, delivered by people.
 
   Each service is one map: its name, a Lucide icon, a short line for the
   menus, its promise, its price level (1 to 4, shown as marks and never as a
@@ -12,7 +12,8 @@ defmodule TechtreeWeb.Services do
   listed once (`libraries/0`) with what it does in a Techtree job, for the home
   page's credits. Models also carries
   a second opening line and the two comparisons it reports; a page shows those
-  parts only where its service has them. Security has no price level. The
+  parts only where its service has them. Security and Swarm Verify have no
+  price level, and each is a map of its own shape. The
   terms (`terms/0`) are the same for all four. The header's Services menu
   (`TechtreeWeb.SiteMenu`), the home page's cards and credits, each service's
   page (`TechtreeWeb.ServiceLive`) and its Markdown all read them from here, so
@@ -80,6 +81,23 @@ defmodule TechtreeWeb.Services do
           call: String.t(),
           options: [option()],
           rules: [String.t()]
+        }
+  @type stage :: %{name: String.t(), line: String.t()}
+  @type swarm_verify :: %{
+          id: :swarm_verify,
+          name: String.t(),
+          icon: String.t(),
+          line: String.t(),
+          promise: String.t(),
+          more: String.t(),
+          call: String.t(),
+          workflow: %{line: String.t(), stages: [stage()]},
+          failures: [String.t()],
+          steps: [step()],
+          receive: [String.t()],
+          loop: String.t(),
+          limits: [String.t()],
+          tools: [tool()]
         }
 
   @statuses [:delivered, :tested, :planned]
@@ -166,6 +184,14 @@ defmodule TechtreeWeb.Services do
     status: :tested,
     line: "Hosts Techtree’s plugin, and is the agent each Climb evaluates."
   }
+  @everystate %{
+    maker: "Matt Carey",
+    name: "Everystate",
+    href: "https://github.com/mattzcarey/everystate",
+    status: :planned,
+    line:
+      "Checks every reachable state of a fleet’s coordination model, and recorded runs against it."
+  }
 
   # Every library, grouped by maker in the order the home page credits them.
   @libraries [
@@ -179,7 +205,8 @@ defmodule TechtreeWeb.Services do
     @repo2rlenv,
     @harbor,
     @skill_opt,
-    @hermes
+    @hermes,
+    @everystate
   ]
 
   @doc "The four services, in the order every list shows them."
@@ -501,8 +528,8 @@ defmodule TechtreeWeb.Services do
   @doc """
   Every open-source project Techtree builds on, once each, grouped by maker
   (Prime Intellect, NVIDIA, Hugging Face, Terminal-Bench, Microsoft, Nous
-  Research): the services' tools and the ones Techtree's own runs use, each
-  with what it does in a Techtree job and its status.
+  Research, Matt Carey): the services' tools and the ones Techtree's own runs
+  use, each with what it does in a Techtree job and its status.
   """
   @spec libraries() :: [library()]
   def libraries, do: @libraries
@@ -581,10 +608,89 @@ defmodule TechtreeWeb.Services do
     }
   end
 
-  @doc "A service, or Security, by its id."
-  @spec fetch!(atom()) :: service() | security()
-  def fetch!(:security), do: security()
-  def fetch!(id), do: all() |> Map.new(&{&1.id, &1}) |> Map.fetch!(id)
+  @doc """
+  Swarm Verify, offered beside the four: checks of the coordination behind a
+  large agent fleet, by three methods, none of them run yet.
+  """
+  @spec swarm_verify() :: swarm_verify()
+  def swarm_verify do
+    %{
+      id: :swarm_verify,
+      name: "Swarm Verify",
+      icon: "network",
+      line: "Verify how agents coordinate",
+      promise:
+        "Find duplicate work, conflicting ownership, budget overruns and incomplete shutdowns in a large agent fleet before they reach production.",
+      more:
+        "For engineering teams and agent platform companies whose 100 to 500 agents share tasks, resources or spending limits.",
+      call:
+        "Tell us how your agents share their work. Swarm Verify is open to design partners with shared-state agent workloads.",
+      workflow: %{
+        line: "The first workflow Swarm Verify covers, in five stages.",
+        stages: [
+          %{name: "Claim", line: "An agent takes a task and holds it under a lease."},
+          %{name: "Reserve", line: "It sets aside its share of a spending limit."},
+          %{
+            name: "Execute",
+            line: "It does the work, including actions outside your systems, such as an email."
+          },
+          %{name: "Commit", line: "It records the result."},
+          %{
+            name: "Release",
+            line: "It gives back the task, the budget and anything else it held."
+          }
+        ]
+      },
+      failures: [
+        "An agent’s lease expires, a second agent takes the task over, and the first returns late and overwrites the new result.",
+        "A retry repeats a step that already finished.",
+        "An action outside your systems, such as an email, happens twice.",
+        "A canceled task keeps running, or stops without giving back what it held."
+      ],
+      steps: [
+        step("Model checking", :planned, [
+          "We write the rules your agents follow as a model with stated bounds, such as how many agents, tasks and retries, and check every state it can reach within them with ",
+          named(@everystate),
+          "."
+        ]),
+        step("Swarm experiments", :planned, [
+          "We run the fleet with faults injected on purpose: crashes, delays, retries, leases that expire and cancellation messages that never arrive."
+        ]),
+        step("Execution conformance", :planned, [
+          "We check runs your fleet has recorded against the same stated rules, step by step, with ",
+          named(@everystate),
+          "."
+        ])
+      ],
+      receive: [
+        "The first transition that breaks a rule, with every step that led to it.",
+        "The agents it affects.",
+        "A replay a coding agent can use to propose a fix.",
+        "Regression checks that rerun before each release."
+      ],
+      loop:
+        "Then one loop: change the harness, run the checks, reproduce a failure, repair it and run the checks again.",
+      limits: [
+        "Every report states its bounds, its assumptions and any telemetry it was missing.",
+        "A small model that passes is not proof that the whole fleet is correct.",
+        "Enforcement belongs in your own queue, budget or tool service, never in Swarm Verify."
+      ],
+      tools: [
+        tool(
+          @everystate,
+          "Explores every state the model can reach, and compares recorded runs with it. A TLA+ model checker written in Rust, under the MIT license."
+        )
+      ]
+    }
+  end
+
+  @doc "Security and Swarm Verify, offered beside the four, in the order every list shows them."
+  @spec others() :: [security() | swarm_verify()]
+  def others, do: [security(), swarm_verify()]
+
+  @doc "A service, Security or Swarm Verify, by its id."
+  @spec fetch!(atom()) :: service() | security() | swarm_verify()
+  def fetch!(id), do: (all() ++ others()) |> Map.new(&{&1.id, &1}) |> Map.fetch!(id)
 
   @doc "A service's page, by its id."
   @spec path(atom()) :: String.t()
@@ -593,6 +699,7 @@ defmodule TechtreeWeb.Services do
   def path(:environments), do: ~p"/services/environments"
   def path(:models), do: ~p"/services/models"
   def path(:security), do: ~p"/services/security"
+  def path(:swarm_verify), do: ~p"/services/swarm-verify"
 
   defp step(name, status, words), do: %{name: name, status: status, words: words}
 

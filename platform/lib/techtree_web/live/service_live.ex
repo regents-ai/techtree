@@ -8,9 +8,12 @@ defmodule TechtreeWeb.ServiceLive do
   status (a tool that did a part in a published comparison links to its
   result, `Techtree.Train.Comparisons`), the shared terms and the service's notes, and its price level
   beside the booking action (Models adds its two comparisons, the part only
-  its entry carries); and Security at `/services/security`, with its two
+  its entry carries); Security at `/services/security`, with its two
   options (a one-off review and monthly monitoring of sites a team proves it
-  owns) and the rules monitoring keeps.
+  owns) and the rules monitoring keeps; and Swarm Verify at
+  `/services/swarm-verify`, with the first workflow it covers in five stages,
+  the failures it looks for, its three methods as steps (each Planned), what
+  you receive and the loop after it, its limits and the library it is built on.
 
   Every page ends on Contact: booking a call (`TechtreeWeb.Components.BookCall`),
   an email, and the enquiry form with the page's service already chosen
@@ -85,6 +88,59 @@ defmodule TechtreeWeb.ServiceLive do
     #{service.call} #{BookCall.markdown(mailto(service))}
 
     #{AgentMessage.markdown("watchdog")}
+    """
+  end
+
+  def markdown(:swarm_verify) do
+    service = Services.swarm_verify()
+
+    stages =
+      service.workflow.stages
+      |> Enum.with_index(1)
+      |> Enum.map_join("\n", fn {stage, index} -> "#{index}. **#{stage.name}**: #{stage.line}" end)
+
+    """
+    # #{service.name}
+
+    #{service.promise}
+
+    #{service.more}
+
+    ## Workflow
+
+    #{service.workflow.line}
+
+    #{stages}
+
+    ## Failures
+
+    #{list(service.failures)}
+
+    ## Methods
+
+    #{Services.status_line()}
+
+    #{steps_markdown(service.steps)}
+
+    ## You receive
+
+    #{service.loop}
+
+    #{list(service.receive)}
+
+    ## Limits
+
+    #{list(service.limits)}
+
+    ## Tools
+
+    #{@tools_line}
+
+    #{tools_markdown(service.tools)}
+
+    ## Contact
+
+    #{service.call} #{BookCall.markdown(mailto(service))}
     """
   end
 
@@ -250,6 +306,93 @@ defmodule TechtreeWeb.ServiceLive do
     """
   end
 
+  def render(%{live_action: :swarm_verify} = assigns) do
+    ~H"""
+    <Layouts.page wide flush>
+      <.opening
+        eyebrow="Services"
+        title={@service.name}
+        line={@service.promise}
+        more={@service.more}
+        service="swarm-verify"
+        icon={@service.icon}
+        book_call={false}
+      >
+        <:actions>
+          <BookCall.book_call />
+          <a class="rg-button rg-button--secondary" href={@mailto}>Email us</a>
+        </:actions>
+      </.opening>
+
+      <section id="workflow" class="mk-section" aria-labelledby="workflow-title">
+        <header class="mk-section__head">
+          <h2 id="workflow-title">Workflow</h2>
+          <p>{@service.workflow.line}</p>
+        </header>
+        <ol
+          id="workflow-stages"
+          class="mk-sequence mk-sequence--five"
+          phx-hook="MarketingStagger"
+          phx-update="ignore"
+        >
+          <li
+            :for={{stage, index} <- Enum.with_index(@service.workflow.stages, 1)}
+            id={"stage-#{index}"}
+            data-stagger
+          >
+            <span class="mk-sequence__index" aria-hidden="true">
+              {String.pad_leading(Integer.to_string(index), 2, "0")}
+            </span>
+            <h3>{stage.name}</h3>
+            <p>{stage.line}</p>
+          </li>
+        </ol>
+      </section>
+
+      <section id="failures" class="mk-section mk-split" aria-labelledby="failures-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Workflow</p>
+          <h2 id="failures-title">Failures</h2>
+        </header>
+        <ul class="mk-status mk-status--prose">
+          <li :for={failure <- @service.failures}>{failure}</li>
+        </ul>
+      </section>
+
+      <section id="methods" class="mk-section" aria-labelledby="methods-title">
+        <header class="mk-section__head">
+          <h2 id="methods-title">Methods</h2>
+          <p>{@status_line}</p>
+        </header>
+        <.steps steps={@service.steps} />
+      </section>
+
+      <section id="receive" class="mk-section mk-split" aria-labelledby="receive-title">
+        <header class="mk-section__head">
+          <h2 id="receive-title">You receive</h2>
+          <p>{@service.loop}</p>
+        </header>
+        <ul class="mk-status mk-status--prose">
+          <li :for={item <- @service.receive}>{item}</li>
+        </ul>
+      </section>
+
+      <section id="limits" class="mk-section mk-split" aria-labelledby="limits-title">
+        <header class="mk-section__head">
+          <h2 id="limits-title">Limits</h2>
+        </header>
+        <ul id="limits-list" class="mk-status">
+          <li :for={limit <- @service.limits}>{limit}</li>
+        </ul>
+      </section>
+
+      <.tools tools={@service.tools} line={@tools_line} comparisons={@comparisons} />
+
+      <.contact service={@service} mailto={@mailto} client_key={@client_key} />
+    </Layouts.page>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.page wide flush>
@@ -277,22 +420,7 @@ defmodule TechtreeWeb.ServiceLive do
           <h2 id="process-title">Process</h2>
           <p>{@status_line}</p>
         </header>
-        <ol id="steps" class="mk-steps" phx-hook="MarketingStagger" phx-update="ignore">
-          <li
-            :for={{step, index} <- Enum.with_index(@service.steps, 1)}
-            id={"step-#{index}"}
-            data-stagger
-          >
-            <span class="mk-steps__index" aria-hidden="true">
-              {String.pad_leading(Integer.to_string(index), 2, "0")}
-            </span>
-            <div class="mk-steps__head">
-              <h3>{step.name}</h3>
-              <.status_word :if={step.status} status={step.status} />
-            </div>
-            <p class="mk-steps__words"><.words words={step.words} /></p>
-          </li>
-        </ol>
+        <.steps steps={@service.steps} />
       </section>
 
       <section id="receive" class="mk-section mk-split" aria-labelledby="receive-title">
@@ -327,45 +455,7 @@ defmodule TechtreeWeb.ServiceLive do
         </div>
       </section>
 
-      <section id="tools" class="mk-section mk-split" aria-labelledby="tools-title">
-        <header class="mk-section__head">
-          <h2 id="tools-title">Tools</h2>
-          <p>{@tools_line}</p>
-        </header>
-        <div class="mk-tools__groups">
-          <section
-            :for={{status, tools} <- Services.by_status(@service.tools)}
-            id={"tools-#{status}"}
-            aria-labelledby={"tools-#{status}-title"}
-          >
-            <h3 id={"tools-#{status}-title"} class="mk-tools__status">
-              <.status_word status={status} />
-            </h3>
-            <dl class="mk-tools">
-              <div :for={tool <- tools}>
-                <dt>
-                  <a href={tool.href} class="mk-tools__name">
-                    <span class="mk-tools__maker">{tool.maker}’s</span> {tool.name}
-                  </a>
-                </dt>
-                <dd>
-                  {tool.job}
-                  <span :if={results(tool, @comparisons) != []} class="mk-tools__results">
-                    Results:
-                    <.link
-                      :for={comparison <- results(tool, @comparisons)}
-                      navigate={~p"/train/#{comparison.slug}"}
-                      class="text-link"
-                    >
-                      {comparison.skill.name}
-                    </.link>
-                  </span>
-                </dd>
-              </div>
-            </dl>
-          </section>
-        </div>
-      </section>
+      <.tools tools={@service.tools} line={@tools_line} comparisons={@comparisons} />
 
       <section id="terms" class="mk-section mk-split" aria-labelledby="terms-title">
         <header class="mk-section__head">
@@ -392,6 +482,77 @@ defmodule TechtreeWeb.ServiceLive do
 
       <.contact service={@service} mailto={@mailto} client_key={@client_key} />
     </Layouts.page>
+    """
+  end
+
+  attr :steps, :list, required: true
+
+  # A service's steps in order, one ruled row each: its number, its name with
+  # its status where it runs something, and what happens in it.
+  defp steps(assigns) do
+    ~H"""
+    <ol id="steps" class="mk-steps" phx-hook="MarketingStagger" phx-update="ignore">
+      <li :for={{step, index} <- Enum.with_index(@steps, 1)} id={"step-#{index}"} data-stagger>
+        <span class="mk-steps__index" aria-hidden="true">
+          {String.pad_leading(Integer.to_string(index), 2, "0")}
+        </span>
+        <div class="mk-steps__head">
+          <h3>{step.name}</h3>
+          <.status_word :if={step.status} status={step.status} />
+        </div>
+        <p class="mk-steps__words"><.words words={step.words} /></p>
+      </li>
+    </ol>
+    """
+  end
+
+  attr :tools, :list, required: true
+  attr :line, :string, required: true
+  attr :comparisons, :list, required: true
+
+  # The open-source tools for the project, grouped by status, each linked with
+  # its maker and its job, and the published results it did a part in.
+  defp tools(assigns) do
+    ~H"""
+    <section id="tools" class="mk-section mk-split" aria-labelledby="tools-title">
+      <header class="mk-section__head">
+        <h2 id="tools-title">Tools</h2>
+        <p>{@line}</p>
+      </header>
+      <div class="mk-tools__groups">
+        <section
+          :for={{status, tools} <- Services.by_status(@tools)}
+          id={"tools-#{status}"}
+          aria-labelledby={"tools-#{status}-title"}
+        >
+          <h3 id={"tools-#{status}-title"} class="mk-tools__status">
+            <.status_word status={status} />
+          </h3>
+          <dl class="mk-tools">
+            <div :for={tool <- tools}>
+              <dt>
+                <a href={tool.href} class="mk-tools__name">
+                  <span class="mk-tools__maker">{tool.maker}’s</span> {tool.name}
+                </a>
+              </dt>
+              <dd>
+                {tool.job}
+                <span :if={results(tool, @comparisons) != []} class="mk-tools__results">
+                  Results:
+                  <.link
+                    :for={comparison <- results(tool, @comparisons)}
+                    navigate={~p"/train/#{comparison.slug}"}
+                    class="text-link"
+                  >
+                    {comparison.skill.name}
+                  </.link>
+                </span>
+              </dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    </section>
     """
   end
 

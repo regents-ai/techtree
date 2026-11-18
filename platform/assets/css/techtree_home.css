@@ -138,6 +138,7 @@
 .mk-service--environments { --mk-service-ground: #142019; --mk-service-ink: #E4EEE6; --field-ground: #142019; --field-ink: #2FA866; --field-glow: #C8F25C; }
 .mk-service--models { --mk-service-ground: #E4EEE6; --mk-service-ink: #0F1B14; --field-ground: #E4EEE6; --field-ink: #1E6B45; --field-glow: #2FA866; }
 .mk-service--security { --field-ground: #0D1611; --field-ink: #7ED8A9; --field-glow: #C8F25C; }
+.mk-service--swarm-verify { --field-ground: #0F1A14; --field-ink: #C8F25C; --field-glow: #7ED8A9; }
 .mk-service__words {
   position: relative; display: grid; grid-row: 1 / -1; grid-template-rows: subgrid; gap: var(--space-2); width: 100%;
   padding: var(--space-6) var(--space-3) var(--space-3);

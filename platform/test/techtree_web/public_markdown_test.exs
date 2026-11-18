@@ -27,6 +27,7 @@ defmodule TechtreeWeb.PublicMarkdownTest do
            "/services/models",
            "/services/security",
            "/services/security/sample-report",
+           "/services/swarm-verify",
            "/formal",
            "/results",
            "/results/" <> NetworkFixture.bundle_digest(),

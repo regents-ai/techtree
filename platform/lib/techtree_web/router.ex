@@ -264,6 +264,7 @@ defmodule TechtreeWeb.Router do
       live "/services/models", ServiceLive, :models
       live "/services/security", ServiceLive, :security
       get "/services/security/sample-report", PublicPagesController, :show
+      live "/services/swarm-verify", ServiceLive, :swarm_verify
       live "/formal", FormalLive
       live "/results", RunsLive.Index
       live "/results/:bundle_digest", RunsLive.Show

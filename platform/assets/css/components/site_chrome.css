@@ -77,7 +77,7 @@ html { scroll-padding-top: calc(var(--masthead-height) + var(--space-2)); }
 }
 
 /* The Services panel: the frame's width, under the header, the four services
-   two by two and Security beside them, set apart and smaller. */
+   two by two and Security and Swarm Verify beside them, set apart and smaller. */
 .mega {
   position: fixed; inset: calc(var(--masthead-height) + 1px) 0 auto; margin: 0 auto;
   width: min(calc(100% - 2 * var(--rg-page-gutter)), var(--rg-frame-max)); height: auto;

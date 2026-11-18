@@ -13,7 +13,7 @@ const pages = [...publicPages, "/train/dependabot-nemotron-3-nano-4b", "/train/g
 
 // The inner pages that open on the dark band.
 const openings = ["/results", "/wallet-bench", "/formal", "/services/skills", "/services/evals",
-  "/services/environments", "/services/models", "/services/security", "/docs", "/agents", "/agents/hermes",
+  "/services/environments", "/services/models", "/services/security", "/services/swarm-verify", "/docs", "/agents", "/agents/hermes",
   "/changelog", "/blog", "/about", "/account"]
 
 for (const theme of ["light", "dark"] as const) {

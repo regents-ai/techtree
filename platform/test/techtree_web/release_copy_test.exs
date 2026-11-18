@@ -34,7 +34,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
 
   # The service pages, read as they render (`page_html/2`).
   @service_pages ~w(/services/skills /services/evals /services/environments /services/models
-                    /services/security)
+                    /services/security /services/swarm-verify)
 
   @pages [
            "/",
@@ -198,6 +198,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "https://github.com/FrontierCS/FrontierSmith",
     "https://github.com/NVlabs/Skill2Env",
     "https://github.com/huggingface/Repo2RLEnv",
+    "https://github.com/mattzcarey/everystate",
     "https://github.com/regents-ai",
     "https://github.com/regents-ai/techtree",
     "https://github.com/regents-ai/techtree/stargazers"

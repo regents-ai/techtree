@@ -321,7 +321,7 @@ defmodule TechtreeWeb.Layouts do
       "A sample security review: one validated finding on the Agent Wallet Bench, fixed, verified and released."
 
   defp description_for_path("/services/" <> _service = path) do
-    case Enum.find(Services.all() ++ [Services.security()], &(Services.path(&1.id) == path)) do
+    case Enum.find(Services.all() ++ Services.others(), &(Services.path(&1.id) == path)) do
       nil -> description_for_path("/")
       service -> service.promise
     end

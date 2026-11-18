@@ -22,7 +22,7 @@ Techtree is built and run by Regents Labs, an agentic product lab whose products
 2. Together we agree what success means, how it is scored, and the scope and limits of the work.
 3. We measure a baseline, do the work, and run the final test on cases the work never saw. You receive what we built, with a report of what changed.
 
-The services are [Skills](/services/skills), [Evals](/services/evals), [Environments](/services/environments), [Models](/services/models) and [Security](/services/security).
+The services are [Skills](/services/skills), [Evals](/services/evals), [Environments](/services/environments), [Models](/services/models), [Security](/services/security) and [Swarm Verify](/services/swarm-verify).
 
 ## Contact
 

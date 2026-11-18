@@ -135,11 +135,12 @@ defmodule TechtreeWeb.HomeLiveTest do
                "Hugging Face",
                "Terminal-Bench",
                "Microsoft",
-               "Nous Research"
+               "Nous Research",
+               "Matt Carey"
              ]
 
     assert Enum.map(makers, &((elem(&1, 1) || "") =~ ~r|\A/images/built-on/|)) ==
-             [true, true, false, false, false, true]
+             [true, true, false, false, false, true, false]
 
     # The section is the library list itself, in its order, each with its status.
     assert Enum.flat_map(makers, &elem(&1, 2)) == Enum.map(Services.libraries(), & &1.href)
@@ -226,7 +227,10 @@ defmodule TechtreeWeb.HomeLiveTest do
                  "Price level: #{service.price} of 4."
     end
 
-    assert markdown =~ "[Security](/services/security)"
+    for service <- Services.others() do
+      assert markdown =~ "[#{service.name}](#{Services.path(service.id)}): #{service.promise}"
+    end
+
     assert markdown =~ "[Book a call](#{@booking})"
     refute markdown =~ ~r/\$\s*\d/
   end
@@ -314,7 +318,7 @@ defmodule TechtreeWeb.HomeLiveTest do
     Importer.import!(CatalogFixture.root())
 
     services =
-      for service <- Services.all() ++ [Services.security()], do: Services.path(service.id)
+      for service <- Services.all() ++ Services.others(), do: Services.path(service.id)
 
     for path <- [
           ~p"/",
@@ -323,6 +327,7 @@ defmodule TechtreeWeb.HomeLiveTest do
           ~p"/results",
           ~p"/services/evals",
           ~p"/services/security",
+          ~p"/services/swarm-verify",
           ~p"/climbs/hello-world-climb"
         ] do
       # Read as rendered: the service pages read the sign-in from the socket's
@@ -330,7 +335,8 @@ defmodule TechtreeWeb.HomeLiveTest do
       html = conn |> get(path) |> html_response(200)
       document = LazyHTML.from_document(html)
 
-      # The one menu's button opens its own panel: the four services, then Security.
+      # The one menu's button opens its own panel: the four services, then Security
+      # and Swarm Verify.
       assert for(
                trigger <- LazyHTML.query(document, ".masthead__trigger"),
                do: {trim(trigger), attribute(trigger, "popovertarget")}
@@ -339,9 +345,8 @@ defmodule TechtreeWeb.HomeLiveTest do
       assert [_one] = Enum.to_list(LazyHTML.query(document, "#menu-services[popover]"))
       assert hrefs(document, "#menu-services a") == services
 
-      assert hrefs(document, "#menu-services .menu-columns__column--also a") == [
-               "/services/security"
-             ]
+      assert hrefs(document, "#menu-services .menu-columns__column--also a") ==
+               Enum.map(Services.others(), &Services.path(&1.id))
 
       assert hrefs(document, ".masthead__link") == ["/results", "/docs"]
 

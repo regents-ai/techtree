@@ -80,7 +80,7 @@ defmodule TechtreeWeb.PublicDocuments do
 
   @payment "Tests use the person's own model account. Using Techtree is free; " <>
              "paid hosted runs are planned. Skills, Evals, Environments, Models, " <>
-             "Security and Techtree Formal are paid custom projects, delivered by people " <>
+             "Security, Swarm Verify and Techtree Formal are paid custom projects, delivered by people " <>
              "and scoped with each team."
 
   # The public documents change only with a release, so the release time is when

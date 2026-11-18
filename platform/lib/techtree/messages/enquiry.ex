@@ -20,7 +20,7 @@ defmodule Techtree.Messages.Enquiry do
 
   alias Techtree.Messages.Enquiry.SpendAllowance
 
-  @services [:skills, :evals, :environments, :models, :security]
+  @services [:skills, :evals, :environments, :models, :security, :swarm_verify]
   @shown_text "Use letters, numbers and marks you can see."
   # One @, a dot after it, and nothing spaced or hidden anywhere in it.
   @email ~r/\A[^\s@\p{Cc}\p{Cf}]+@[^\s@\p{Cc}\p{Cf}]+\.[^\s@\p{Cc}\p{Cf}]+\z/u

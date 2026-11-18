@@ -45,7 +45,7 @@ defmodule TechtreeWeb.EnquiryLiveTest do
   end
 
   test "a service's page has its service chosen, and the home page none", %{conn: conn} do
-    for service <- Services.all() ++ [Services.security()] do
+    for service <- Services.all() ++ Services.others() do
       page =
         conn |> get(Services.path(service.id)) |> html_response(200) |> LazyHTML.from_document()
 

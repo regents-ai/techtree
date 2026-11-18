@@ -70,6 +70,9 @@
 .mk-sequence__index { color: var(--color-fg-muted); font-family: var(--font-family-mono); font-size: .75rem; letter-spacing: .12em; }
 .mk-sequence h3 { font-size: 1.25rem; line-height: 1.25; }
 .mk-sequence p { margin-top: 0; color: var(--color-fg-muted); font-size: .875rem; }
+/* Swarm Verify's five stages: one row on a wide screen, where three to a row
+   would leave the second row a stage short. */
+@media (min-width: 64rem) { .mk-sequence.mk-sequence--five { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
 /* Facts beside what to copy: the section's two halves. */
 .mk-section > .mk-split, .mk-section > .facts { margin-top: var(--space-4); }

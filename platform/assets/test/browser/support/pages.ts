@@ -5,5 +5,5 @@
 export const publicPages = ["/", "/docs", "/docs/run-locally", "/docs/install", "/docs/test-a-skill", "/docs/api",
   "/docs/verify", "/results", "/wallet-bench", "/changelog", "/examples/tdd",
   "/services/skills", "/services/evals", "/services/environments", "/services/models", "/services/security",
-  "/services/security/sample-report", "/formal", "/account", "/account/agents", "/agents", "/agents/hermes",
+  "/services/security/sample-report", "/services/swarm-verify", "/formal", "/account", "/account/agents", "/agents", "/agents/hermes",
   "/about", "/privacy", "/terms"]

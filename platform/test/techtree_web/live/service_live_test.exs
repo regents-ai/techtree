@@ -5,8 +5,9 @@ defmodule TechtreeWeb.ServiceLiveTest do
   that runs something marked with its status), what the customer receives,
   the open-source tools grouped by status (by their own links), the shared
   terms, the price level and booking, and Models with its comparisons;
-  Security with its two options, its rules and the Agent Message button. Each
-  page's Markdown says the same.
+  Security with its two options, its rules and the Agent Message button; Swarm
+  Verify with its workflow, failures, methods (none run yet), what you receive,
+  limits and tools. Each page's Markdown says the same.
 
   The pages are read as they render: they read the sign-in from the socket's
   connect info, which the LiveView test harness does not carry. The connected
@@ -176,9 +177,11 @@ defmodule TechtreeWeb.ServiceLiveTest do
       assert markdown(conn, path) =~ "Price level: #{service.price} of 4."
     end
 
-    page = page(conn, ~p"/services/security")
-    refute has?(page, ".mk-price")
-    refute markdown(conn, ~p"/services/security") =~ "Price level"
+    for service <- Services.others() do
+      path = Services.path(service.id)
+      refute has?(page(conn, path), ".mk-price")
+      refute markdown(conn, path) =~ "Price level"
+    end
   end
 
   test "no service page, its search-engine data or its Markdown shows a figure for money",
@@ -211,8 +214,52 @@ defmodule TechtreeWeb.ServiceLiveTest do
     assert conn |> get(~p"/services/security/sample-report") |> html_response(200)
   end
 
+  test "Swarm Verify has its workflow, failures, methods, what you receive, limits and tools",
+       %{conn: conn} do
+    service = Services.swarm_verify()
+    path = Services.path(:swarm_verify)
+    page = page(conn, path)
+    markdown = markdown(conn, path)
+
+    assert ids(page, "main > section") ==
+             ~w(opening workflow failures methods receive limits tools contact)
+
+    assert text(page, "h1") == service.name
+    assert texts(page, "#workflow-stages h3") == Enum.map(service.workflow.stages, & &1.name)
+    assert texts(page, "#failures li") == service.failures
+    assert texts(page, "#steps h3") == Enum.map(service.steps, & &1.name)
+
+    assert texts(page, "#steps .mk-steps__words") ==
+             for(step <- service.steps, do: Enum.map_join(step.words, &plain/1))
+
+    # Nothing here has been run yet: every method, and the tool, shows Planned.
+    assert for(
+             marker <- LazyHTML.query(page, "#steps .mk-steps__head [data-status]"),
+             do: attribute(marker, "data-status")
+           ) == List.duplicate("planned", length(service.steps))
+
+    assert ids(page, "#tools .mk-tools__groups > section") == ["tools-planned"]
+
+    tools = Enum.map(service.tools, & &1.href)
+    assert hrefs(page, "#tools dt a") == tools
+    assert Enum.all?(hrefs(page, "#steps a"), &(&1 in tools))
+
+    assert texts(page, "#receive li") == service.receive
+    assert texts(page, "#limits-list li") == service.limits
+
+    for {step, index} <- Enum.with_index(service.steps, 1) do
+      assert markdown =~ "#{index}. **#{step.name}** (Planned):"
+    end
+
+    for line <- service.failures ++ service.receive ++ service.limits do
+      assert markdown =~ "- #{line}"
+    end
+
+    for tool <- service.tools, do: assert(markdown =~ "](#{tool.href})")
+  end
+
   test "each page and its Markdown start the same email, named for the service", %{conn: conn} do
-    for service <- Services.all() ++ [Services.security()] do
+    for service <- Services.all() ++ Services.others() do
       path = Services.path(service.id)
       [mailto] = hrefs(page(conn, path), ~s|#contact a[href^="mailto:"]|)
 
@@ -240,7 +287,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
     end
   end
 
-  defp paths, do: Enum.map(Services.all() ++ [Services.security()], &Services.path(&1.id))
+  defp paths, do: Enum.map(Services.all() ++ Services.others(), &Services.path(&1.id))
 
   defp plain({text, _href}), do: text
   defp plain(text), do: text
