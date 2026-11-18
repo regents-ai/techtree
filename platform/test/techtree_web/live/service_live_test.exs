@@ -6,8 +6,9 @@ defmodule TechtreeWeb.ServiceLiveTest do
   the open-source tools grouped by status (by their own links), the shared
   terms, the price level and booking, and Models with its comparisons;
   Security with its two options, its rules and the Agent Message button; Swarm
-  Verify with its workflow, failures, methods (none run yet), what you receive,
-  limits and tools. Each page's Markdown says the same.
+  Verify with its workflow, failures, methods (each Tested), the public
+  demonstration, what you receive, limits and tools. Each page's Markdown says
+  the same.
 
   The pages are read as they render: they read the sign-in from the socket's
   connect info, which the LiveView test harness does not carry. The connected
@@ -214,15 +215,16 @@ defmodule TechtreeWeb.ServiceLiveTest do
     assert conn |> get(~p"/services/security/sample-report") |> html_response(200)
   end
 
-  test "Swarm Verify has its workflow, failures, methods, what you receive, limits and tools",
+  test "Swarm Verify has its workflow, failures, methods, demonstration, what you receive, limits and tools",
        %{conn: conn} do
     service = Services.swarm_verify()
     path = Services.path(:swarm_verify)
     page = page(conn, path)
     markdown = markdown(conn, path)
+    {label, href} = service.demonstration.link
 
     assert ids(page, "main > section") ==
-             ~w(opening workflow failures methods receive limits tools contact)
+             ~w(opening workflow failures methods demonstration receive limits tools contact)
 
     assert text(page, "h1") == service.name
     assert texts(page, "#workflow-stages h3") == Enum.map(service.workflow.stages, & &1.name)
@@ -232,23 +234,31 @@ defmodule TechtreeWeb.ServiceLiveTest do
     assert texts(page, "#steps .mk-steps__words") ==
              for(step <- service.steps, do: Enum.map_join(step.words, &plain/1))
 
-    # Nothing here has been run yet: every method, and the tool, shows Planned.
+    # Every method, and the tool, has run on the public demonstration: each shows Tested.
     assert for(
              marker <- LazyHTML.query(page, "#steps .mk-steps__head [data-status]"),
              do: attribute(marker, "data-status")
-           ) == List.duplicate("planned", length(service.steps))
+           ) == List.duplicate("tested", length(service.steps))
 
-    assert ids(page, "#tools .mk-tools__groups > section") == ["tools-planned"]
+    assert ids(page, "#tools .mk-tools__groups > section") == ["tools-tested"]
 
     tools = Enum.map(service.tools, & &1.href)
     assert hrefs(page, "#tools dt a") == tools
     assert Enum.all?(hrefs(page, "#steps a"), &(&1 in tools))
 
+    demonstration = Enum.map_join(service.demonstration.words, &plain/1)
+    assert text(page, "#demonstration .mk-section__head > p:not([class])") == demonstration
+    assert hrefs(page, "#demonstration .mk-links a") == [href]
+    assert markdown =~ "[#{label}](#{href})"
+
+    for {text, link} <- Enum.filter(service.demonstration.words, &is_tuple/1),
+        do: assert(markdown =~ "[#{text}](#{link})")
+
     assert texts(page, "#receive li") == service.receive
     assert texts(page, "#limits-list li") == service.limits
 
     for {step, index} <- Enum.with_index(service.steps, 1) do
-      assert markdown =~ "#{index}. **#{step.name}** (Planned):"
+      assert markdown =~ "#{index}. **#{step.name}** (Tested):"
     end
 
     for line <- service.failures ++ service.receive ++ service.limits do

@@ -6,15 +6,26 @@
 
 - **Swarm Verify.** A new service beside Security, for teams whose 100 to 500
   agents share tasks, resources or spending limits: the first workflow it
-  covers, the failures it looks for, its three methods, what you receive and
-  its limits. Every method is planned and not yet run. It is built on Matt
-  Carey's Everystate, a TLA+ model checker, and is open to design partners.
+  covers, the failures it looks for, its three methods, the public
+  demonstration they ran on, what you receive and its limits. The three
+  methods have run on public models and a simulated run of 128 workers; no
+  customer fleet has been checked yet. It is built on Matt Carey's
+  Everystate, a TLA+ model checker, and is open to design partners.
 
 ### Changed
 
 - Plainer wording on the home page, the service pages, Results and Docs. Each
   service's Handover step names what you get, and Security's monthly option is
   monthly security testing for your websites.
+
+## Repository (2026-11-18)
+
+### Added
+
+- **Swarm Verify models.** Task leases, a shared budget and cancellation,
+  each with its unsafe and repaired design, checked with Matt Carey's
+  Everystate and cross-checked with TLC; a seeded run of 128 workers checked
+  against them.
 
 ## Website (2026-11-17)
 

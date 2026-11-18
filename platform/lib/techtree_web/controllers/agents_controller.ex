@@ -273,8 +273,9 @@ defmodule TechtreeWeb.AgentsController do
     and https://techtree.sh/services/models. Security is a one-off review or
     monthly monitoring of sites a team proves it owns:
     https://techtree.sh/services/security. Swarm Verify checks the
-    coordination behind a large agent fleet, by methods that are planned and
-    not yet run: https://techtree.sh/services/swarm-verify. Each page answers
+    coordination behind a large agent fleet, by methods tested on public
+    models and a simulated run of 128 workers, and on no customer fleet yet:
+    https://techtree.sh/services/swarm-verify. Each page answers
     Markdown. To ask for one, the person writes to build@regents.sh.
 
     ## Message the team

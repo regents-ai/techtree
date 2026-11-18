@@ -307,3 +307,16 @@ the Python has no dependencies. `make swarm-tlc` downloads `tla2tools.jar` 1.7.4
 (TLC 2.19, MIT) from the TLA+ project's GitHub release into `swarm-verify/_build/` and
 checks its SHA-256 before using it. Each run's logs and generated configurations are in
 `swarm-verify/_build/`.
+
+`make swarm-tlc` first runs `java -version` and stops with one line unless it works and
+reports 17 or later. On a Mac, `/usr/bin/java` is only a stand-in that says no Java is
+installed, so a JDK's `bin` folder has to come before it on PATH. The TLC numbers above
+were measured on Temurin 21 installed with mise, whose folder `mise where java@temurin-21`
+prints:
+
+```sh
+PATH="$(mise where java@temurin-21)/bin:$PATH" make swarm-tlc
+```
+
+Any other JDK 17 or later works the same way: put its `bin` folder first on PATH, or
+activate it with the version manager that installed it.

@@ -12,8 +12,9 @@ defmodule TechtreeWeb.ServiceLive do
   options (a one-off review and monthly monitoring of sites a team proves it
   owns) and the rules monitoring keeps; and Swarm Verify at
   `/services/swarm-verify`, with the first workflow it covers in five stages,
-  the failures it looks for, its three methods as steps (each Planned), what
-  you receive and the loop after it, its limits and the library it is built on.
+  the failures it looks for, its three methods as steps (each Tested), the
+  public demonstration they ran on, what you receive and the loop after it,
+  its limits and the library it is built on.
 
   Every page ends on Contact: booking a call (`TechtreeWeb.Components.BookCall`),
   an email, and the enquiry form with the page's service already chosen
@@ -93,6 +94,7 @@ defmodule TechtreeWeb.ServiceLive do
 
   def markdown(:swarm_verify) do
     service = Services.swarm_verify()
+    {label, href} = service.demonstration.link
 
     stages =
       service.workflow.stages
@@ -121,6 +123,12 @@ defmodule TechtreeWeb.ServiceLive do
     #{Services.status_line()}
 
     #{steps_markdown(service.steps)}
+
+    ## Demonstration
+
+    #{words_markdown(service.demonstration.words)}
+
+    [#{label}](#{href})
 
     ## You receive
 
@@ -365,6 +373,19 @@ defmodule TechtreeWeb.ServiceLive do
           <p>{@status_line}</p>
         </header>
         <.steps steps={@service.steps} />
+      </section>
+
+      <section id="demonstration" class="mk-section" aria-labelledby="demonstration-title">
+        <header class="mk-section__head">
+          <p class="mk-eyebrow">Methods</p>
+          <h2 id="demonstration-title">Demonstration</h2>
+          <p><.words words={@service.demonstration.words} /></p>
+          <p class="mk-links">
+            <a class="text-link" href={elem(@service.demonstration.link, 1)} rel="noopener">
+              {elem(@service.demonstration.link, 0)} <span aria-hidden="true">↗</span>
+            </a>
+          </p>
+        </header>
       </section>
 
       <section id="receive" class="mk-section mk-split" aria-labelledby="receive-title">

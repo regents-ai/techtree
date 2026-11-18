@@ -14,7 +14,8 @@ never saw. The tools in this repository are open; projects are quoted on a call.
   ([factory/environments](factory/environments/README.md)) and Models
   ([factory/models](factory/models/README.md)); Security sits beside them at
   https://techtree.sh/services/security, and Swarm Verify, whose methods are
-  all Planned, at https://techtree.sh/services/swarm-verify.
+  Tested on the public models in [swarm-verify](swarm-verify/README.md), at
+  https://techtree.sh/services/swarm-verify.
 - Libraries: the table in [README.md](README.md#libraries) gives each library's maker,
   job, reason and status.
 - Runs here today: the Hello World Climb and the experimental Evaluate & Climb

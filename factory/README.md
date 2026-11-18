@@ -43,7 +43,8 @@ Techtree-run evaluation, not an independent audit.
 
 Security sits beside the four: a one-off review or monthly security testing, described on
 [techtree.sh](https://techtree.sh/services/security). So does Swarm Verify, checks
-of the coordination behind a large agent fleet, by methods that are all Planned:
+of the coordination behind a large agent fleet, by methods tested on public models
+and a simulated run of 128 workers ([swarm-verify/](../swarm-verify/README.md)):
 [techtree.sh](https://techtree.sh/services/swarm-verify).
 
 ## Libraries

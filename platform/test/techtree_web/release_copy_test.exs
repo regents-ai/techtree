@@ -199,6 +199,7 @@ defmodule TechtreeWeb.ReleaseCopyTest do
     "https://github.com/NVlabs/Skill2Env",
     "https://github.com/huggingface/Repo2RLEnv",
     "https://github.com/mattzcarey/everystate",
+    "https://github.com/tlaplus/tlaplus",
     "https://github.com/regents-ai",
     "https://github.com/regents-ai/techtree",
     "https://github.com/regents-ai/techtree/stargazers"

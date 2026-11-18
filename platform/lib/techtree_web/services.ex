@@ -94,6 +94,7 @@ defmodule TechtreeWeb.Services do
           workflow: %{line: String.t(), stages: [stage()]},
           failures: [String.t()],
           steps: [step()],
+          demonstration: %{words: words(), link: {String.t(), String.t()}},
           receive: [String.t()],
           loop: String.t(),
           limits: [String.t()],
@@ -189,7 +190,7 @@ defmodule TechtreeWeb.Services do
     maker: "Matt Carey",
     name: "Everystate",
     href: "https://github.com/mattzcarey/everystate",
-    status: :planned,
+    status: :tested,
     line:
       "Checks every reachable state of a fleet’s coordination model, and recorded runs against it."
   }
@@ -620,7 +621,8 @@ defmodule TechtreeWeb.Services do
 
   @doc """
   Swarm Verify, offered beside the four: checks of the coordination behind a
-  large agent fleet, by three methods, none of them run yet.
+  large agent fleet, by three methods, each run on the public demonstration's
+  models and a simulated run of 128 workers, and on no customer fleet yet.
   """
   @spec swarm_verify() :: swarm_verify()
   def swarm_verify do
@@ -658,20 +660,32 @@ defmodule TechtreeWeb.Services do
         "A canceled task keeps running, or stops without giving back what it held."
       ],
       steps: [
-        step("Model checking", :planned, [
+        step("Model checking", :tested, [
           "We write the rules your agents follow as a model with stated bounds, such as how many agents, tasks and retries, and check every state it can reach within them with ",
           named(@everystate),
           "."
         ]),
-        step("Swarm experiments", :planned, [
+        step("Swarm experiments", :tested, [
           "We run the fleet with faults injected on purpose: crashes, delays, retries, leases that expire and cancellation messages that never arrive."
         ]),
-        step("Execution conformance", :planned, [
+        step("Execution conformance", :tested, [
           "We check runs your fleet has recorded against the same stated rules, step by step, with ",
           named(@everystate),
           "."
         ])
       ],
+      demonstration: %{
+        words: [
+          "Lease, budget and cancellation models, each with its unsafe and repaired design, checked with ",
+          named(@everystate),
+          " and cross-checked with ",
+          {"TLC", "https://github.com/tlaplus/tlaplus"},
+          ", and a seeded run of 128 simulated workers checked against them."
+        ],
+        link:
+          {"GitHub",
+           "https://github.com/regents-ai/techtree/tree/bc23f8d3eaa34f81d13f72907eaba73c6c5b2387/swarm-verify"}
+      },
       receive: [
         "The first transition that breaks a rule, with every step that led to it.",
         "The agents it affects.",
@@ -683,6 +697,7 @@ defmodule TechtreeWeb.Services do
       limits: [
         "Every report states its bounds, its assumptions and any telemetry it was missing.",
         "A small model that passes is not proof that the whole fleet is correct.",
+        "The public demonstration checks models of up to three agents and three tasks, and a simulated run of 128 workers. No customer fleet has been checked yet.",
         "Enforcement belongs in your own queue, budget or tool service, never in Swarm Verify."
       ],
       tools: [

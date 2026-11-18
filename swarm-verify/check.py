@@ -11,7 +11,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 import time
@@ -338,9 +337,19 @@ def tlc(jar, spec, config):
     return code, outcome, name, generated, distinct, seconds
 
 
+def require_java():
+    # Asks Java itself, since macOS keeps a /usr/bin/java that only says no Java is installed.
+    try:
+        probe = subprocess.run(["java", "-version"], capture_output=True, text=True, check=False)
+    except FileNotFoundError:
+        sys.exit("TLC needs Java 17 or later on PATH, and there is no java on PATH.")
+    version = re.search(r'version "(\d+)', probe.stderr)
+    if probe.returncode != 0 or version is None or int(version.group(1)) < 17:
+        said = (probe.stderr + probe.stdout).strip().partition("\n")[0]
+        sys.exit(f"TLC needs Java 17 or later on PATH, and `java -version` says: {said}")
+
+
 def check_tlc():
-    if shutil.which("java") is None:
-        sys.exit("TLC needs Java 17 or later on PATH.")
     jar = tla2tools()
     print("\nThe same configurations with TLC 2.19 (tla2tools.jar 1.7.4), one worker, beside Everystate")
     rows = []
@@ -515,6 +524,8 @@ def main():
     if mode == "fixtures":
         write_fixtures()
         return
+    if mode == "tlc":
+        require_java()
     BUILD.mkdir(exist_ok=True)
     if mode == "measure":
         measure()

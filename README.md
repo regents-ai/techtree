@@ -71,7 +71,9 @@ for your websites. [techtree.sh](https://techtree.sh/services/security)
 Checks of the coordination behind a large agent fleet, for teams whose 100 to 500
 agents share tasks, resources or spending limits: duplicate work, conflicting
 ownership, budget overruns and incomplete shutdowns. Its three methods (model
-checking, swarm experiments and execution conformance) are **Planned**.
+checking, swarm experiments and execution conformance) are **Tested** on the public
+[models and a simulated run of 128 workers](swarm-verify/README.md); no customer
+fleet has been checked yet.
 [techtree.sh](https://techtree.sh/services/swarm-verify)
 
 ### Terms
@@ -105,7 +107,7 @@ it (from its own documentation), and what it gives you.
 | Hugging Face's [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv) | Environments | Turns a repository into verifiable environments for coding agents. | It builds tasks from material that already exists: merged pull requests, commit history, security advisories and recorded agent sessions. | Practice tasks from your own code history. | Planned |
 | Nous Research's [Hermes](https://github.com/NousResearch/hermes-agent) | Skills | An open agent that creates and improves Skills as it works. | Its Skills follow the agentskills.io open standard. | The agent every Climb evaluates, and the host the [plugin](plugin/) adds Techtree to. | Tested |
 | [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | Evals, Environments | Evaluates agents in containers and generates rollouts for reinforcement learning. | One task format serves evaluation and training, for agents such as Claude Code, OpenHands and Codex CLI. | Tasks that need a working software environment, packaged so other tools can run them. | Tested |
-| Matt Carey's [Everystate](https://github.com/mattzcarey/everystate) | Swarm Verify | A TLA+ model checker written in Rust, MIT licensed: checks every reachable state of a model, and checks a log of the real system against it. | It reads ordinary TLA+ specs and TLC configuration files with no Java dependency, and its README reports TLC's own result and state counts on all 122 tlaplus/Examples models it ran. | The first state that breaks a stated rule of your fleet, as a trace you can replay. | Planned |
+| Matt Carey's [Everystate](https://github.com/mattzcarey/everystate) | Swarm Verify | A TLA+ model checker written in Rust, MIT licensed: checks every reachable state of a model, and checks a log of the real system against it. | It reads ordinary TLA+ specs and TLC configuration files with no Java dependency, and its README reports TLC's own result and state counts on all 122 tlaplus/Examples models it ran. | The first state that breaks a stated rule of your fleet, as a trace you can replay. | Tested |
 | [OpenEnv](https://github.com/openenv/OpenEnv), from its technical committee | Environments | Builds isolated environments for agent reinforcement learning, with a Gymnasium-style interface. | Twelve organizations steer its interface together, NVIDIA, Prime Intellect and Hugging Face among them. | An OpenEnv environment you already have, reviewed for reuse instead of rebuilt. | Planned |
 
 **Tested** means we have run it ourselves. **Planned** means it is part of the
