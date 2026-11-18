@@ -49,7 +49,7 @@ defmodule TechtreeWeb.ClimbCopy do
   @frontier_cs %{
     scope:
       "Ten open-ended optimisation problems with no known best answer, from Frontier-CS " <>
-        "(MIT licence) as chosen by the FrontierSmith authors. With thanks to both.",
+        "(MIT license) as chosen by the FrontierSmith authors. With thanks to both.",
     introduction:
       "ten open-ended programming problems with no known best answer, where every " <>
         "better answer scores higher",
