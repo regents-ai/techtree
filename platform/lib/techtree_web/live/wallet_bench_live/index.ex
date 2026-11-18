@@ -159,7 +159,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
         </header>
 
         <p :if={@bench == :unreadable} class="empty-state" role="status">
-          Wallet tests can't be shown right now. Try again in a minute.<br />
+          {Copy.unreadable()}<br />
           <.link
             href="#how-tests-run"
             phx-click={JS.set_attribute({"open", ""}, to: "#how-tests-run")}

@@ -4,22 +4,32 @@ defmodule TechtreeWeb.WalletBenchController do
   grids and list as Markdown (`TechtreeWeb.WalletBenchMD`), and
   `/wallet-bench.json`, the page's score grids as data, each score linked to
   its result on the page (`TechtreeWeb.WalletBenchScores`). Both are public and
-  may be kept for 30 seconds.
+  may be kept for 30 seconds. When the database can't be reached each answers
+  503 asking to try again (`TechtreeWeb.Outage`).
   """
 
   use TechtreeWeb, :controller
 
   alias Techtree.WalletBench
   alias TechtreeWeb.{ExactResponse, Outage, WalletBenchScores}
+  alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   def markdown(conn, _params) do
-    attempts = WalletBench.list_attempts!(load: [:turns, :model_spend_usd])
-    generated_at = DateTime.utc_now() |> DateTime.truncate(:second)
+    case Outage.read(fn -> WalletBench.list_attempts!(load: [:turns, :model_spend_usd]) end) do
+      {:ok, attempts} ->
+        generated_at = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    conn
-    |> put_resp_header("cache-control", "public, max-age=30")
-    |> put_resp_content_type("text/markdown", "utf-8")
-    |> send_resp(200, TechtreeWeb.WalletBenchMD.render(attempts, generated_at))
+        conn
+        |> put_resp_header("cache-control", "public, max-age=30")
+        |> put_resp_content_type("text/markdown", "utf-8")
+        |> send_resp(200, TechtreeWeb.WalletBenchMD.render(attempts, generated_at))
+
+      :database_down ->
+        conn
+        |> put_resp_header("retry-after", "30")
+        |> put_resp_content_type("text/markdown", "utf-8")
+        |> send_resp(503, Copy.unreadable() <> "\n")
+    end
   end
 
   @doc """

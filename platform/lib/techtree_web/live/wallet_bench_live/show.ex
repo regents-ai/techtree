@@ -5,12 +5,16 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
   checks and reasons, the bench's own checks, the funding sends of a money
   attempt, the stored evidence and everything that happened, in order.
   Updates as the attempt moves.
+
+  When the database can't be reached the page says so, as the Wallet Bench
+  does, instead of failing whole (`TechtreeWeb.Outage`).
   """
 
   use TechtreeWeb, :live_view
 
   alias Techtree.WalletBench
   alias Techtree.WalletBench.Catalog
+  alias TechtreeWeb.Outage
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   import TechtreeWeb.WalletBenchLive.Turn, only: [turn: 1, verdict: 1]
@@ -20,37 +24,76 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
-    with {:ok, id} <- Ecto.UUID.cast(id),
-         {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
-      if connected?(socket) do
-        TechtreeWeb.Endpoint.subscribe("wallet_bench:attempts")
-        TechtreeWeb.Endpoint.subscribe("wallet_bench:attempts:#{id}")
-      end
+    case Ecto.UUID.cast(id) do
+      {:ok, id} ->
+        if connected?(socket) do
+          TechtreeWeb.Endpoint.subscribe("wallet_bench:attempts")
+          TechtreeWeb.Endpoint.subscribe("wallet_bench:attempts:#{id}")
+        end
 
-      {:ok, show(socket, attempt)}
-    else
-      _missing -> raise TechtreeWeb.NotFoundError, "no wallet test has that number"
+        {:ok, socket |> assign(id: id) |> load()}
+
+      :error ->
+        raise TechtreeWeb.NotFoundError, "no wallet test has that number"
     end
   end
 
   @impl true
-  def handle_info(%Phoenix.Socket.Broadcast{}, socket) do
-    {:noreply, show(socket, WalletBench.get_attempt!(socket.assigns.attempt.id, load: @load))}
+  def handle_info(%Phoenix.Socket.Broadcast{}, socket), do: {:noreply, load(socket)}
+
+  # Every read the page makes, together. A refresh the database can't answer
+  # keeps what is already on screen; only a first read that fails says so.
+  defp load(socket) do
+    case Outage.read(fn -> read(socket.assigns.id) end) do
+      {:ok, nil} ->
+        raise TechtreeWeb.NotFoundError, "no wallet test has that number"
+
+      {:ok, {attempt, notes, events}} ->
+        show(socket, attempt, notes, events)
+
+      :database_down ->
+        socket
+        |> assign_new(:bench, fn -> :unreadable end)
+        |> assign_new(:page_title, fn -> "Wallet Bench" end)
+    end
   end
 
-  defp show(socket, attempt) do
+  # The attempt with its notes and its events, or nil when no attempt has that id.
+  defp read(id) do
+    case WalletBench.get_attempt!(id, load: @load, not_found_error?: false) do
+      nil -> nil
+      attempt -> {attempt, notes(attempt), WalletBench.list_attempt_events!(attempt.id)}
+    end
+  end
+
+  defp show(socket, attempt, notes, events) do
     assign(socket,
+      bench: :read,
       page_title: Copy.pair(attempt),
       attempt: attempt,
       judges: judges(attempt),
-      notes: notes(attempt),
+      notes: notes,
       wallet_version: wallet_version(attempt),
       verdicts: verdicts(attempt),
-      events: WalletBench.list_attempt_events!(attempt.id)
+      events: events
     )
   end
 
   @impl true
+  def render(%{bench: :unreadable} = assigns) do
+    ~H"""
+    <Layouts.page wide>
+      <article class="wallet-bench">
+        <header class="page-heading wallet-bench__intro">
+          <p class="back-link"><.link navigate={~p"/wallet-bench"}>← Wallet tests</.link></p>
+          <h1>Wallet Bench</h1>
+          <p class="empty-state" role="status">{Copy.unreadable()}</p>
+        </header>
+      </article>
+    </Layouts.page>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <Layouts.page wide>

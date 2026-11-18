@@ -56,7 +56,7 @@ nothing; the signed reads change only the time the site last saw the agent.
 | Read a Climb | `climbs_live_test.exs`. **Gap:** no browser check with an imported Climb |
 | Read the changelog, blog, About, which opens on "Open-source tools. Paid custom projects.", Privacy, Terms, the tdd example, the Security sample report, and Techtree Formal | `pages.spec.ts`, `public_markdown_test.exs`, `changelog_live_test.exs`, `pages_test.exs`, `tdd_showcase_live_test.exs`, `formal_live_test.exs` |
 | Land on a page that doesn't exist and find the way home | `pages.spec.ts`, `error_html_test.exs` |
-| Keep reading Home, Run locally, Docs, Results and Wallet Bench while the database is down | `outage_pages_test.exs`, `outage_property_test.exs`, `outage_test.exs` |
+| Keep reading Home, Run locally, Docs, Results and Wallet Bench while the database is down: a wallet test's page says the tests can't be shown (never that the test is missing) and a refresh keeps what it shows; its record, downloads and the bench's Markdown answer 503 asking to try again | `outage_pages_test.exs`, `outage_property_test.exs`, `outage_test.exs` |
 | On the Security service, press Agent Message beside the email button: its window gives three texts to paste into an agent (CLI, MCP, WebMCP) that name the tool, the command and the address the site publishes; each fits the screen and copies exactly as shown, at 1280 and 390 wide; Escape, the X or a press beside it closes it; a visitor sees no form; the service's Markdown gives the same three texts; no other service has the button | `agent_message.spec.ts`, `messages_pages_test.exs` |
 
 ## Signed in

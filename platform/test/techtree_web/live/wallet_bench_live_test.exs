@@ -127,7 +127,9 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
       for path <- [
             ~p"/wallet-bench?test=money",
             ~p"/wallet-bench?view=table",
-            ~p"/wallet-bench?#{[result: Ecto.UUID.generate()]}"
+            ~p"/wallet-bench?#{[result: Ecto.UUID.generate()]}",
+            ~p"/wallet-bench/#{Ecto.UUID.generate()}",
+            ~p"/wallet-bench/not-a-test"
           ] do
         assert_error_sent 404, fn -> get(conn, path) end
       end

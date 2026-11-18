@@ -7,13 +7,16 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   up in the turn's own list, never used as a path, and the bytes read back
   must match the fingerprint recorded with them (`Techtree.WalletBench.Evidence.recorded/2`).
   Everything stored was blanked before it was stored (`Techtree.WalletBench.Blank`).
+
+  When the database can't be reached (`TechtreeWeb.Outage`) each answers 503
+  asking to try again, never a 500 or a 404.
   """
 
   use TechtreeWeb, :controller
 
   alias Techtree.WalletBench
   alias Techtree.WalletBench.{Catalog, Evidence}
-  alias TechtreeWeb.ExactResponse
+  alias TechtreeWeb.{ExactResponse, Outage}
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   @load [:machine, :turns, :payments, :model_spend_usd, :judge_cost_usd]
@@ -24,11 +27,15 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   # sobelow_skip ["XSS.SendResp"]
   def show(conn, %{"id" => id, "turn" => turn_name, "file" => file}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
-         {:ok, attempt} <- WalletBench.get_attempt(id, load: [:turns]),
+         {:ok, %{} = attempt} <-
+           Outage.read(fn ->
+             WalletBench.get_attempt!(id, load: [:turns], not_found_error?: false)
+           end),
          %{evidence: %{^file => _recorded}} = turn <-
            Enum.find(attempt.turns, &(Catalog.turn_name(&1.test) == turn_name)) do
       with_download_place(conn, fn -> send_recorded(conn, turn, file) end)
     else
+      :database_down -> busy(conn)
       _missing -> raise TechtreeWeb.NotFoundError, "no recorded file has that name"
     end
   end
@@ -65,9 +72,10 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   """
   def results(conn, %{"id" => id}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
-         {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
-      with_download_place(conn, fn -> send_results(conn, attempt) end)
+         {:ok, {attempt, events}} <- Outage.read(fn -> read(id) end) do
+      with_download_place(conn, fn -> send_results(conn, attempt, events) end)
     else
+      :database_down -> busy(conn)
       _missing -> raise TechtreeWeb.NotFoundError, "no wallet test has that number"
     end
   end
@@ -79,11 +87,21 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   """
   def summary(conn, %{"id" => id}) do
     with {:ok, id} <- Ecto.UUID.cast(id),
-         {:ok, attempt} <- WalletBench.get_attempt(id, load: @load) do
+         {:ok, {attempt, events}} <- Outage.read(fn -> read(id) end) do
       conn
       |> put_resp_header("cache-control", "public, max-age=30")
-      |> json(summary(attempt))
+      |> json(record(attempt, events))
     else
+      :database_down ->
+        conn
+        |> put_resp_header("retry-after", "30")
+        |> ExactResponse.send_error(
+          503,
+          :wallet_test_unavailable,
+          "the wallet test can't be read right now; try again shortly",
+          "Wait the seconds in the Retry-After header, then ask again."
+        )
+
       _missing ->
         ExactResponse.send_error(
           conn,
@@ -92,6 +110,14 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
           "no wallet test has that id",
           "A test's id is the result in a score's address at #{url(~p"/wallet-bench.json")}."
         )
+    end
+  end
+
+  # The test with its timeline, or nil when no test has that id.
+  defp read(id) do
+    case WalletBench.get_attempt!(id, load: @load, not_found_error?: false) do
+      nil -> nil
+      attempt -> {attempt, WalletBench.list_attempt_events!(attempt.id)}
     end
   end
 
@@ -127,14 +153,14 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     |> render(:"503")
   end
 
-  defp send_results(conn, attempt) do
+  defp send_results(conn, attempt, events) do
     files =
       for turn <- attempt.turns,
           file <- Enum.sort(Map.keys(turn.evidence || %{})),
           do: {turn, file}
 
     case Enum.find_value(files, &unchecked/1) do
-      nil -> send_zip(conn, attempt, files)
+      nil -> send_zip(conn, attempt, events, files)
       {:error, reason} -> unread(conn, reason)
     end
   end
@@ -143,7 +169,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
     with :ok <- Evidence.check(turn, file), do: nil
   end
 
-  defp send_zip(conn, attempt, files) do
+  defp send_zip(conn, attempt, events, files) do
     folder = "wallet-test-#{String.slice(attempt.id, 0, 8)}"
     mtime = attempt.inserted_at
 
@@ -157,7 +183,9 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       end
 
     results =
-      Zstream.entry("#{folder}/results.json", [Jason.encode!(summary(attempt), pretty: true)],
+      Zstream.entry(
+        "#{folder}/results.json",
+        [Jason.encode!(record(attempt, events), pretty: true)],
         mtime: mtime
       )
 
@@ -188,7 +216,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
   # What the test's page shows, field by field: every value is named here, so
   # nothing else the bench keeps on a test can reach the download. The ids are
   # the ones the scores at /wallet-bench.json name.
-  defp summary(attempt) do
+  defp record(attempt, events) do
     %{
       id: attempt.id,
       harness_id: attempt.harness_id,
@@ -207,7 +235,7 @@ defmodule TechtreeWeb.WalletBenchEvidenceController do
       judge_cost_usd: attempt.judge_cost_usd,
       tests: Enum.map(attempt.turns, &turn_summary/1),
       timeline:
-        for event <- WalletBench.list_attempt_events!(attempt.id) do
+        for event <- events do
           %{at: event.inserted_at, label: Copy.step(event.step), failure: event.detail["failure"]}
         end,
       funding:

@@ -12,6 +12,10 @@ defmodule TechtreeWeb.WalletBenchCopy do
     Catalog.harness!(attempt.harness_id).name <> " × " <> Catalog.wallet!(attempt.wallet_id).name
   end
 
+  @doc "What a wallet test page says when the database can't be read."
+  @spec unreadable() :: String.t()
+  def unreadable, do: "Wallet tests can't be shown right now. Try again in a minute."
+
   @doc "The agent or wallet tool a version note is about, by name."
   @spec subject(%{kind: :harness | :wallet, subject_id: String.t()}) :: String.t()
   def subject(%{kind: :harness, subject_id: id}), do: Catalog.harness!(id).name

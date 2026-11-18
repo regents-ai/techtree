@@ -151,6 +151,53 @@ defmodule TechtreeWeb.OutagePagesTest do
     refute has_element?(live, "[role=status]", "No wallet tests have run yet")
   end
 
+  # Regression (18 Nov 20:00Z): scanner requests emptied the pool, and one wallet
+  # test's page failed whole while the Wallet Bench showed its note.
+  test "a wallet test's page says the tests can't be shown, not that the test is missing",
+       %{conn: conn} do
+    {:ok, live, _html} = quietly(fn -> live(conn, ~p"/wallet-bench/#{Ecto.UUID.generate()}") end)
+
+    assert has_element?(live, "[role=status]", TechtreeWeb.WalletBenchCopy.unreadable())
+  end
+
+  test "a wallet test's page keeps what it shows when a refresh loses the connection",
+       %{conn: conn} do
+    bring_back()
+    Ecto.Adapters.SQL.Sandbox.checkout(Techtree.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Techtree.Repo, {:shared, self()})
+    %{passed: attempt} = Techtree.WalletBenchFixture.seed!()
+
+    {:ok, live, _html} = live(conn, ~p"/wallet-bench/#{attempt.id}")
+    cut_database()
+
+    quietly(fn ->
+      send(live.pid, %Phoenix.Socket.Broadcast{topic: "wallet_bench:attempts", event: "changed"})
+      render(live)
+    end)
+
+    assert has_element?(live, "h1", TechtreeWeb.WalletBenchCopy.pair(attempt))
+    refute has_element?(live, "[role=status]", TechtreeWeb.WalletBenchCopy.unreadable())
+  end
+
+  test "a wallet test's record, its downloads and the bench's Markdown ask to try again",
+       %{conn: conn} do
+    id = Ecto.UUID.generate()
+
+    record = quietly(fn -> get(conn, ~p"/wallet-bench/#{id}/results.json") end)
+    assert Plug.Conn.get_resp_header(record, "retry-after") == ["30"]
+    assert %{"error" => %{"code" => "wallet_test_unavailable"}} = json_response(record, 503)
+
+    for path <- [
+          ~p"/wallet-bench/#{id}/results.zip",
+          ~p"/wallet-bench/#{id}/evidence/T1a/agent.txt",
+          ~p"/wallet-bench.md"
+        ] do
+      download = quietly(fn -> get(build_conn(), path) end)
+      assert Plug.Conn.get_resp_header(download, "retry-after") == ["30"]
+      assert response(download, 503)
+    end
+  end
+
   # A browser that holds a sign-in, made without the database: the claim's own
   # shape is all a page reads before it asks the database about it.
   defp signed_in(conn) do
