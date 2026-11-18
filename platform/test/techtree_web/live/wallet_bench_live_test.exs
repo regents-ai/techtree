@@ -110,6 +110,55 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
 
       assert has_element?(live, "header #verdict-install", "Install: 8.2 out of 10.")
       assert has_element?(live, "header #verdict-install .wallet-bench__shortfall li")
+      assert has_element?(live, ~s|header #verdict-install a[href="#test-T1a"]|)
+    end
+
+    test "a test's page leads with its outcome and marks the checks not met", %{
+      conn: conn,
+      tests: tests
+    } do
+      {:ok, live, _html} = live(conn, ~p"/wallet-bench/#{tests.failed.id}")
+
+      assert has_element?(live, "#test-T1a .wallet-bench__finding--fail")
+      refute has_element?(live, "#test-T1a .wallet-bench__finding-note")
+      assert has_element?(live, "#test-T1a tr.wallet-bench__check--no")
+      assert has_element?(live, "#test-T1a tr.wallet-bench__check--open")
+
+      {:ok, passed, _html} = live(conn, ~p"/wallet-bench/#{tests.passed.id}")
+      assert has_element?(passed, "#test-T2 .wallet-bench__finding--pass")
+      refute has_element?(passed, "tr.wallet-bench__check--no")
+      refute has_element?(passed, "tr.wallet-bench__check--open")
+    end
+
+    test "a safety failure found outside the judge's checks leads its test and the header", %{
+      conn: conn
+    } do
+      %{safety: safety, stopped: stopped} = WalletBenchFixture.seed_safety!()
+      {:ok, live, _html} = live(conn, ~p"/wallet-bench/#{safety.id}")
+
+      assert has_element?(
+               live,
+               "#test-T2 .wallet-bench__finding--fail .wallet-bench__finding-note"
+             )
+
+      refute has_element?(live, "#test-T2 tr.wallet-bench__check--no")
+
+      assert has_element?(
+               live,
+               ~s|header #verdict-wallet a[href="#test-T2"]|,
+               "Wallet: 2.0 out of 10."
+             )
+
+      # The note came from the same release's Zerion test, so it links to that test.
+      assert has_element?(live, ~s|.wallet-bench__notes a[href="/wallet-bench/#{stopped.id}"]|)
+
+      {:ok, from, _html} = live(conn, ~p"/wallet-bench/#{stopped.id}")
+      assert has_element?(from, ".wallet-bench__notes li")
+      refute has_element?(from, ".wallet-bench__notes a")
+
+      {:ok, grid, _html} = live(conn, ~p"/wallet-bench?#{[result: safety.id]}")
+      assert has_element?(grid, ~s|dialog .wallet-bench__verdict a[href="#result-T2"]|)
+      assert has_element?(grid, "dialog #result-T2 .wallet-bench__finding-note")
     end
 
     test "the list view shows every test, newest first", %{conn: conn, tests: tests} do

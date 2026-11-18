@@ -17,6 +17,11 @@
 - Plainer wording on the home page, the service pages, Results and Docs. Each
   service's Handover step names what you get, and Security's monthly option is
   monthly security testing for your websites.
+- **Wallet Bench.** A test's page now opens each test with its outcome and
+  why, and marks every check Yes, No or Open with its own sign and color, so
+  a check not met stands out. A safety failure found outside the judge's
+  checks says so plainly, and each score at the top jumps to its test. The
+  score grid now fills the page width, with even columns and larger boxes.
 
 ## Repository (2026-11-18)
 

@@ -20,15 +20,19 @@
 .wallet-bench__scores { display: grid; gap: var(--space-2); }
 .wallet-bench__key { font-size: .8125rem; }
 
-/* The score grid: an agent per row, a box per wallet tool. */
-.wallet-bench__grid { border-collapse: collapse; font-size: .8125rem; font-variant-numeric: tabular-nums; }
-.wallet-bench__grid th, .wallet-bench__grid td { padding: .375rem .5rem; text-align: center; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
-.wallet-bench__grid thead th { font-size: .75rem; vertical-align: bottom; white-space: normal; min-width: 4.5rem; }
-.wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: var(--rg-layer-card); min-width: 9rem; text-align: left; background: var(--color-bg); font-size: .875rem; }
+/* The score grid: an agent per row, a box per wallet tool. It spans the section, the Agent column
+   takes a set share and every score column splits the rest evenly, however many wallet tools there are. */
+.wallet-bench__grid { inline-size: 100%; border-collapse: collapse; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.wallet-bench__grid th, .wallet-bench__grid td { inline-size: 5.25rem; padding: .5rem .625rem; text-align: center; border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+.wallet-bench__grid thead th { font-size: .8125rem; vertical-align: bottom; white-space: normal; }
+.wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { position: sticky; left: 0; z-index: var(--rg-layer-card); inline-size: 16%; min-inline-size: 9rem; text-align: left; background: var(--color-bg); font-size: .9375rem; }
 .wallet-bench__grid .wallet-bench__total { background: color-mix(in oklab, var(--color-accent) 5%, var(--color-bg)); }
 .wallet-bench__grid thead .wallet-bench__total + th:not(.wallet-bench__total), .wallet-bench__grid td.wallet-bench__total + td:not(.wallet-bench__total) { border-left: 1px solid var(--hairline-strong); }
 .wallet-bench__score { display: inline-flex; align-items: center; justify-content: center; min-width: 2.25rem; min-height: 1.75rem; padding-inline: .375rem; text-decoration: none; color: var(--color-fg); }
-a.wallet-bench__score:hover { outline: 2px solid var(--color-fg); outline-offset: 1px; }
+/* Every box the same size, a link or not: no extra touch padding on the links, which are already 44px tall. */
+.wallet-bench__grid .wallet-bench__score { min-inline-size: 4rem; min-block-size: 2.75rem; padding-block: 0; font-size: .9375rem; }
+/* The page's text color, not the box's: a ring in the box's own text color vanishes against the page. */
+a.wallet-bench__score:is(:hover, :focus-visible) { outline: 2px solid var(--color-fg); outline-offset: 2px; }
 /* More checks met, a stronger box: from a tint of the accent up to the accent darkened. */
 .wallet-bench__score--1 { background: color-mix(in oklab, var(--color-accent) 18%, var(--color-bg)); }
 .wallet-bench__score--2 { background: color-mix(in oklab, var(--color-accent) 40%, var(--color-bg)); }
@@ -71,6 +75,32 @@ a.wallet-bench__score:hover { outline: 2px solid var(--color-fg); outline-offset
 .wallet-bench__test--open { border-left-color: var(--color-warning); }
 .wallet-bench__test > p { max-width: 65ch; }
 .wallet-bench__outcome { font-size: 1.125rem; }
+
+/* A test's finding, first in its section: the outcome with its mark, then why, in the test's tone. */
+.wallet-bench__finding { --wb-tone: var(--color-fg-muted); display: grid; gap: var(--space-1); padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in oklab, var(--wb-tone) 55%, var(--color-surface)); background: color-mix(in oklab, var(--wb-tone) 9%, var(--color-surface)); }
+.wallet-bench__finding--pass { --wb-tone: var(--color-success); }
+.wallet-bench__finding--fail { --wb-tone: var(--color-error); }
+.wallet-bench__finding--open { --wb-tone: var(--color-warning); }
+.wallet-bench__finding > p { max-width: 65ch; }
+.wallet-bench__finding-title { display: flex; align-items: center; gap: var(--space-1); color: var(--wb-tone); font-size: 1.125rem; }
+.wallet-bench__finding--plain .wallet-bench__finding-title { color: var(--color-fg); }
+.wallet-bench__finding-title .rg-icon { font-size: 1.25rem; }
+.wallet-bench__finding-note { padding-top: var(--space-1); border-top: 1px solid color-mix(in oklab, var(--wb-tone) 35%, var(--color-surface)); }
+
+/* Each check's answer carries its mark beside its word; a check not met is tinted as a whole row,
+   with a strip of its tone down the row's leading edge. */
+.wallet-bench__answer { display: inline-flex; align-items: center; gap: .375rem; }
+.wallet-bench__answer .rg-icon { font-size: 1.125rem; }
+.wallet-bench__check--yes .wallet-bench__answer { color: var(--color-success); }
+.wallet-bench__check--no { --wb-mark: var(--color-error); }
+.wallet-bench__check--open { --wb-mark: var(--color-warning); }
+.wallet-bench__check:is(.wallet-bench__check--no, .wallet-bench__check--open) .wallet-bench__answer { color: var(--wb-mark); }
+.wallet-bench .wallet-bench__criteria tr:is(.wallet-bench__check--no, .wallet-bench__check--open) { background-color: color-mix(in oklab, var(--wb-mark) 9%, var(--color-surface)); }
+.wallet-bench__check:is(.wallet-bench__check--no, .wallet-bench__check--open) > th { background: linear-gradient(in oklch, var(--wb-mark) 0 0) 0 0 / 3px 100% no-repeat; }
+
+.wallet-bench__notes { display: grid; gap: var(--space-1); }
+.wallet-bench__notes > p { max-width: 65ch; font-size: .875rem; }
+.wallet-bench__notes ul { display: grid; gap: var(--space-1); padding-left: var(--space-3); list-style: square; max-width: 65ch; }
 .wallet-bench__facts { display: grid; grid-template-columns: minmax(10rem, max-content) minmax(0, 1fr); gap: var(--space-1) var(--space-3); font-size: .875rem; }
 .wallet-bench__facts dt { color: var(--color-fg-muted); }
 .wallet-bench__facts dd { margin: 0; overflow-wrap: anywhere; }
@@ -89,16 +119,21 @@ a.wallet-bench__score:hover { outline: 2px solid var(--color-fg); outline-offset
 
 @media (pointer: coarse) {
   .wallet-bench__switch a, .wallet-bench__tests a { min-height: 2.75rem; }
-  a.wallet-bench__score { min-width: 2.75rem; min-height: 2.75rem; }
 }
 
 @media (max-width: 47.99rem) {
   .wallet-bench__window { inline-size: 100vw; max-inline-size: 100vw; max-block-size: 100dvh; block-size: 100dvh; margin: 0; border: 0; }
-  .wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { min-width: 7rem; }
+  /* On a phone the grid keeps its columns and scrolls sideways inside its frame. */
+  .wallet-bench__grid th, .wallet-bench__grid td { inline-size: 4.25rem; padding-inline: .5rem; }
+  .wallet-bench__grid th[scope="row"], .wallet-bench__grid thead th:first-child { inline-size: 7rem; min-inline-size: 7rem; white-space: normal; }
+  .wallet-bench__grid .wallet-bench__score { min-inline-size: 3.25rem; }
   .wallet-bench__facts { grid-template-columns: 1fr; }
   .wallet-bench__facts dd + dt { margin-top: var(--space-1); }
   .wallet-bench__criteria thead { display: none; }
   .wallet-bench__criteria tr { display: grid; gap: var(--space-1); padding-block: var(--space-2); border-bottom: 1px solid var(--hairline); }
   .wallet-bench__criteria th, .wallet-bench__criteria td { display: block; width: auto; padding: 0; border: 0; }
   .wallet-bench__criteria th[scope="row"] { width: auto; }
+  /* Stacked, a check not met keeps its strip down the whole row. */
+  .wallet-bench__check:is(.wallet-bench__check--no, .wallet-bench__check--open) { padding-inline: var(--space-2); background-image: linear-gradient(in oklch, var(--wb-mark) 0 0); background-size: 3px 100%; background-repeat: no-repeat; }
+  .wallet-bench__check:is(.wallet-bench__check--no, .wallet-bench__check--open) > th { background: none; }
 }

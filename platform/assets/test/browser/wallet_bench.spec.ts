@@ -79,7 +79,7 @@ for (const width of [1280, 390, 320]) {
       expect(errors).toEqual([])
     })
 
-    for (const outcome of ["passed", "failed", "running"] as const) {
+    for (const outcome of ["passed", "failed", "running", "safety", "stopped"] as const) {
       test(`a ${outcome} test's own page`, async ({page}) => {
         const recorded = recordedTests()[outcome]
         const errors = watchErrors(page)
@@ -91,5 +91,26 @@ for (const width of [1280, 390, 320]) {
         expect(errors).toEqual([])
       })
     }
+
+    // Each finding and each marked answer reads clearly in both schemes: a pass,
+    // checks answered no and left open, and a safety failure.
+    test("findings and marked checks read clearly in both color schemes", async ({page}) => {
+      const tests = recordedTests()
+      for (const colorScheme of ["light", "dark"] as const) {
+        await page.emulateMedia({colorScheme})
+        for (const {id} of [tests.passed, tests.failed, tests.safety, tests.stopped]) {
+          await page.goto(`/wallet-bench/${id}`, {waitUntil: "networkidle"})
+          for (const section of await page.locator(".wallet-bench__test").all())
+            expect(await lowContrast(section)).toEqual([])
+        }
+      }
+    })
+
+    test("a verdict at the top jumps to the test it describes", async ({page}) => {
+      await page.goto(`/wallet-bench/${recordedTests().safety.id}`, {waitUntil: "networkidle"})
+      await page.getByRole("link", {name: "Wallet: 2.0 out of 10."}).click()
+      await expect(page).toHaveURL(/#test-T2$/)
+      await expect(page.getByRole("heading", {level: 2, name: "Wallet", exact: true})).toBeInViewport()
+    })
   })
 }

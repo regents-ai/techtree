@@ -33,10 +33,10 @@ type Takeable = {
 
 // Everything the walk prepared before its server started (support/prepare.exs):
 // what a test takes, and what every test reads: the one published Result's
-// fingerprint and the three recorded Wallet Bench tests, by outcome.
+// fingerprint and the five recorded Wallet Bench tests, by outcome.
 type Prepared = Takeable & {
   result: string
-  recorded: {passed: RecordedTest; failed: RecordedTest; running: RecordedTest}
+  recorded: Record<"passed" | "failed" | "running" | "safety" | "stopped", RecordedTest>
 }
 
 const walk = `../tmp/${process.env.TECHTREE_BROWSER_PARTITION}-walk`

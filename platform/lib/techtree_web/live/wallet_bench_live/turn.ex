@@ -29,16 +29,25 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
       >
         {Copy.test(@turn.test)}
       </.dynamic_tag>
-      <p class="wallet-bench__outcome">
-        <strong>{if @turn.judgment,
-          do: Copy.outcome(@turn.judgment),
-          else: Copy.turn_state(@turn.state)}</strong>
+      <div
+        :if={@turn.judgment}
+        class={["wallet-bench__finding", "wallet-bench__finding--#{Copy.tone(@turn.judgment)}"]}
+      >
+        <p class="wallet-bench__finding-title">
+          <Regent.Icons.icon name={Copy.outcome_icon(@turn.judgment)} />
+          <strong>{Copy.outcome(@turn.judgment)}</strong>
+        </p>
+        <p>{@turn.judgment["summary"]}</p>
+        <p :if={Copy.safety_outside_checks?(@turn.judgment)} class="wallet-bench__finding-note">
+          {Copy.outside_checks(@turn.judgment)}
+        </p>
+      </div>
+      <p :if={!@turn.judgment} class="wallet-bench__outcome">
+        <strong>{Copy.turn_state(@turn.state)}</strong>
       </p>
       <p :if={@turn.failure} class="wallet-bench__failure">{@turn.failure}</p>
 
       <%= if @turn.judgment do %>
-        <p>{@turn.judgment["summary"]}</p>
-
         <table :if={@turn.judgment["criteria"]} class="results-ledger wallet-bench__criteria">
           <caption class="offscreen">Judge checks</caption>
           <thead>
@@ -49,13 +58,11 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
             </tr>
           </thead>
           <tbody>
-            <tr :for={key <- @turn.judgment["criteria"] |> Map.keys() |> Enum.sort()}>
-              <th scope="row">{Copy.criterion_question(@turn.test, key)}</th>
-              <td class="wallet-bench__value">
-                {Copy.criterion(@turn.judgment["criteria"][key]["value"])}
-              </td>
-              <td>{@turn.judgment["criteria"][key]["reason"]}</td>
-            </tr>
+            <.check
+              :for={key <- @turn.judgment["criteria"] |> Map.keys() |> Enum.sort()}
+              question={Copy.criterion_question(@turn.test, key)}
+              check={@turn.judgment["criteria"][key]}
+            />
           </tbody>
         </table>
 
@@ -117,16 +124,52 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
     """
   end
 
-  attr :ruling, :map, required: true
+  attr :question, :string, required: true
+  attr :check, :map, required: true, doc: "the judge's answer to one check, with its reason"
+
+  # One of the judge's checks: a check not met stands out as a row, and every
+  # answer carries its mark beside its word.
+  defp check(assigns) do
+    {state, icon} = Copy.answer_mark(assigns.check["value"])
+    assigns = assign(assigns, state: state, icon: icon)
+
+    ~H"""
+    <tr class={"wallet-bench__check wallet-bench__check--#{@state}"}>
+      <th scope="row">{@question}</th>
+      <td class="wallet-bench__value">
+        <span class="wallet-bench__answer">
+          <Regent.Icons.icon name={@icon} />{Copy.criterion(@check["value"])}
+        </span>
+      </td>
+      <td>{@check["reason"]}</td>
+    </tr>
+    """
+  end
+
+  attr :turn, :map, required: true, doc: "the turn whose ruling is the grid test's result"
   attr :test, :atom, required: true, doc: "the grid test the ruling is for"
+
+  attr :id_prefix, :string,
+    default: "test",
+    doc: "the id prefix of the turn's section, as `turn/1` takes"
+
   attr :rest, :global
 
-  @doc "A grid test's score out of 10, its outcome, and why it is under 10."
+  @doc """
+  A grid test's score out of 10, its outcome, and why it is under 10, its
+  title linking to the section of the turn it describes.
+  """
   def verdict(assigns) do
+    ruling = assigns.turn.judgment
+    score = Copy.score(ruling)
+
     assigns =
       assign(assigns,
-        score: Copy.score(assigns.ruling),
-        shortfall: Copy.shortfall(assigns.ruling, assigns.test)
+        ruling: ruling,
+        score: score,
+        title: "#{Copy.grid_test_name(assigns.test)}: #{score} out of 10.",
+        href: "##{assigns.id_prefix}-#{Catalog.turn_name(assigns.turn.test)}",
+        shortfall: Copy.shortfall(ruling, assigns.test)
       )
 
     ~H"""
@@ -140,8 +183,8 @@ defmodule TechtreeWeb.WalletBenchLive.Turn do
       </span>
       <div>
         <p>
-          <strong>{Copy.grid_test_name(@test)}: {@score} out of 10.</strong>
-          {Copy.outcome(@ruling)}. {Copy.checks_met(@ruling)} of {map_size(@ruling["criteria"])} checks met.
+          <a href={@href}>{@title}</a>
+          {Copy.verdict_line(@ruling)}
         </p>
         <ul :if={@shortfall != []} class="wallet-bench__shortfall">
           <li :for={reason <- @shortfall}>{reason}</li>

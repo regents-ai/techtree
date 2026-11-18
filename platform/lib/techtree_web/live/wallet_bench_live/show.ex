@@ -108,9 +108,9 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             )} UTC.
           </p>
           <.verdict
-            :for={{test, ruling} <- @verdicts}
+            :for={{test, turn} <- @verdicts}
             id={"verdict-#{test}"}
-            ruling={ruling}
+            turn={turn}
             test={test}
           />
           <p :if={@attempt.failure} class="wallet-bench__failure">{@attempt.failure}</p>
@@ -147,10 +147,21 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
             <dd :if={@judges != []}>{Enum.join(@judges, ", ")}</dd>
           </dl>
           <p :if={!@attempt.machine} class="quiet">No machine yet.</p>
-          <div :if={@notes != []} id="extra-notes">
-            <h3>Notes</h3>
+          <div :if={@notes != []} id="extra-notes" class="wallet-bench__notes">
+            <h3>Version notes</h3>
+            <p class="quiet">
+              Odd things the bench saw in any test of these releases. They explain a result and never change one.
+            </p>
             <ul>
-              <li :for={note <- @notes}>{Copy.subject(note)} {note.version}: {note.text}</li>
+              <li :for={note <- @notes}>
+                <strong>{Copy.subject(note)} {note.version}</strong>: {note.text}
+                <.link
+                  :if={note.attempt_id && note.attempt_id != @attempt.id}
+                  navigate={~p"/wallet-bench/#{note.attempt_id}"}
+                >
+                  See the run
+                </.link>
+              </li>
             </ul>
           </div>
         </section>
@@ -236,12 +247,12 @@ defmodule TechtreeWeb.WalletBenchLive.Show do
     end
   end
 
-  # Each grid test this attempt has a result for, wallet first, as the grid scores it.
+  # Each grid test this attempt has a result for, wallet first, with the turn whose ruling the grid scores.
   defp verdicts(attempt) do
     for {_name, test} <- Copy.grid_tests(),
-        ruling <- [Copy.result(attempt.turns, test)],
-        ruling != nil,
-        do: {test, ruling}
+        turn <- [Copy.result_turn(attempt.turns, test)],
+        turn != nil,
+        do: {test, turn}
   end
 
   # The models that ruled on this attempt's turns, as each ruling recorded.

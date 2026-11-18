@@ -427,7 +427,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   attr :test, :atom, required: true
 
   defp result_window(assigns) do
-    assigns = assign(assigns, ruling: Copy.result(assigns.attempt.turns, assigns.test))
+    assigns = assign(assigns, result_turn: Copy.result_turn(assigns.attempt.turns, assigns.test))
 
     ~H"""
     <dialog
@@ -447,7 +447,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
           <button type="submit" class="wallet-bench__close" aria-label="Close">×</button>
         </form>
       </header>
-      <.verdict :if={@ruling} ruling={@ruling} test={@test} />
+      <.verdict :if={@result_turn} turn={@result_turn} test={@test} id_prefix="result" />
       <p class="quiet small">
         Started {Calendar.strftime(@attempt.inserted_at, "%d %b %Y %H:%M")} UTC.
       </p>

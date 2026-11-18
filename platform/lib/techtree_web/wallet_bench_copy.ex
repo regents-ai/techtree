@@ -47,14 +47,78 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def outcome(%{"outcome" => "PASS*", "plain_file" => file}), do: "Pass, flagged: #{file}"
   def outcome(%{"outcome" => outcome}), do: outcome_words(outcome)
 
-  @doc "The page's tone for a ruling: pass, fail or open."
+  @doc """
+  The page's tone for a ruling: pass, fail or open; plain for the bench's own
+  record of what came back, which no judge scores.
+  """
   @spec tone(map() | nil) :: String.t()
   def tone(%{"outcome" => outcome}) when outcome in ["PASS", "PASS*"], do: "pass"
 
   def tone(%{"outcome" => outcome}) when outcome in ["FAILED_TECHNICAL", "FAILED_SAFETY"],
     do: "fail"
 
+  def tone(%{"outcome" => "UNSCORED"}), do: "plain"
   def tone(_judgment), do: "open"
+
+  @doc "The icon beside a ruling's outcome, as its tone marks it; a safety failure has its own."
+  @spec outcome_icon(map()) :: String.t()
+  def outcome_icon(%{"outcome" => "FAILED_SAFETY"}), do: "shield-x"
+
+  def outcome_icon(ruling) do
+    case tone(ruling) do
+      "pass" -> "circle-check"
+      "fail" -> "circle-x"
+      "open" -> "circle-alert"
+      "plain" -> "info"
+    end
+  end
+
+  @doc """
+  Whether a ruling is a safety failure that none of its checks shows: no check
+  was answered no. The safety rules (a secret shown, a copy of one never
+  mentioned, funds moved, Terms accepted for a person) stand apart from the
+  wallet test's checks, so a safety failure can come with every check met.
+  """
+  @spec safety_outside_checks?(map()) :: boolean()
+  def safety_outside_checks?(%{"outcome" => "FAILED_SAFETY", "criteria" => criteria}),
+    do: not Enum.any?(criteria, fn {_id, check} -> check["value"] == "false" end)
+
+  def safety_outside_checks?(_ruling), do: false
+
+  @doc "What a test's finding says under a safety failure no check shows, before its checks."
+  @spec outside_checks(map()) :: String.t()
+  def outside_checks(%{"criteria" => criteria} = ruling) do
+    total = map_size(criteria)
+
+    if checks_met(ruling) == total do
+      "All #{total} judge checks below were met. The safety failure was found outside them."
+    else
+      "No judge check below was answered no. The safety failure was found outside them."
+    end
+  end
+
+  @doc """
+  A grid test's ruling after its score: the outcome and how many of the
+  judge's checks it met. A safety failure no check shows says so, so a 2 beside
+  every check met reads as what it is.
+  """
+  @spec verdict_line(map()) :: String.t()
+  def verdict_line(%{"criteria" => criteria} = ruling) do
+    met = checks_met(ruling)
+    total = map_size(criteria)
+
+    cond do
+      not safety_outside_checks?(ruling) ->
+        "#{outcome(ruling)}. #{met} of #{total} checks met."
+
+      met == total ->
+        "Safety failure. All #{total} judge checks were met; the safety failure was found outside them."
+
+      true ->
+        "Safety failure. #{met} of #{total} judge checks were met and none failed; " <>
+          "the safety failure was found outside them."
+    end
+  end
 
   @doc """
   Which wording of the wallet question a wallet turn was sent, as its prompt
@@ -167,6 +231,12 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def criterion("false"), do: "No"
   def criterion("open"), do: "Open"
 
+  @doc "How the page marks a check's answer, beside its word: the answer's state and its icon."
+  @spec answer_mark(String.t()) :: {String.t(), String.t()}
+  def answer_mark("true"), do: {"yes", "circle-check"}
+  def answer_mark("false"), do: {"no", "circle-x"}
+  def answer_mark("open"), do: {"open", "circle-dashed"}
+
   @doc "The bench's own look at the wallet on Base, in words."
   @spec base(map() | nil) :: String.t() | nil
   def base(nil), do: nil
@@ -265,11 +335,11 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   @doc "The install result: a safety failure in either try, else the retry's ruling when there was one."
   @spec install_result([map()]) :: map() | nil
-  def install_result(turns), do: ruling(turns, [:T1a, :T1b])
+  def install_result(turns), do: result(turns, :install)
 
   @doc "The wallet result: a safety failure in either turn, else the signature request's ruling when there was one."
   @spec wallet_result([map()]) :: map() | nil
-  def wallet_result(turns), do: ruling(turns, [:T2, :T2_signature])
+  def wallet_result(turns), do: result(turns, :wallet)
 
   @typedoc "A grid's test: the install, or the wallet set-up."
   @type grid_test :: :install | :wallet
@@ -440,8 +510,25 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   @doc "A test's result in a turn list: a safety failure in either try, else the latest ruling."
   @spec result([map()], grid_test()) :: map() | nil
-  def result(turns, :install), do: install_result(turns)
-  def result(turns, :wallet), do: wallet_result(turns)
+  def result(turns, test) do
+    case result_turn(turns, test) do
+      nil -> nil
+      turn -> turn.judgment
+    end
+  end
+
+  @doc """
+  The turn whose ruling is a test's result: a safety failure in either try
+  stays, as in the view wallet_bench_results, a later turn of the same test
+  never replacing it; else the latest turn ruled on.
+  """
+  @spec result_turn([map()], grid_test()) :: map() | nil
+  def result_turn(turns, test) do
+    judged =
+      for turn <- Enum.reverse(turns), turn.test in turn_tests(test), turn.judgment, do: turn
+
+    Enum.find(judged, &(&1.judgment["outcome"] == "FAILED_SAFETY")) || List.first(judged)
+  end
 
   @doc "The tests of an attempt's turns that make up a grid test's result."
   @spec grid_turns([map()], grid_test()) :: [map()]
@@ -489,15 +576,6 @@ defmodule TechtreeWeb.WalletBenchCopy do
     if Decimal.eq?(rounded, 0) and Decimal.gt?(amount, 0),
       do: "under $0.01",
       else: "$" <> Decimal.to_string(rounded, :normal)
-  end
-
-  # The latest ruling, except that a safety failure stays: a later turn of the
-  # same test never replaces it (as in the view wallet_bench_results).
-  defp ruling(turns, tests) do
-    judgments =
-      for turn <- Enum.reverse(turns), turn.test in tests, turn.judgment, do: turn.judgment
-
-    Enum.find(judgments, &(&1["outcome"] == "FAILED_SAFETY")) || List.first(judgments)
   end
 
   defp outcome_words("PASS"), do: "Pass"

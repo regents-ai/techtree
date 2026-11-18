@@ -2,7 +2,7 @@
 # test database before the test server starts (playwright.config.ts), so no test
 # runs a script while the others run: people, each with a session of their own;
 # sessions of the team's one person; people with an agent paired; sets of projects
-# the team delivered; one published Result; and three recorded Wallet Bench tests.
+# the team delivered; one published Result; and five recorded Wallet Bench tests.
 # All of it goes to tmp/<partition>-walk/prepared.json. A test takes the next
 # person, session or set of projects that no other test has taken
 # (support/visitor.ts); there are three times as many of each as one walk takes, so
@@ -268,10 +268,12 @@ Application.put_env(:techtree, Techtree.Network.Key, private_key: Base.encode64(
     actor: NetworkFixture.paired_agent()
   )
 
-# Three recorded Wallet Bench tests (Techtree.WalletBenchFixture), by outcome:
-# passed, failed and running. Each recorded file goes where the test server reads
-# it (Techtree.EvidenceShelf).
-seeded = Techtree.WalletBenchFixture.seed!()
+# Five recorded Wallet Bench tests (Techtree.WalletBenchFixture), by outcome:
+# passed, failed, running, a safety failure with every check met, and a stopped
+# test a version note points to. Each recorded file goes where the test server
+# reads it (Techtree.EvidenceShelf).
+seeded =
+  Map.merge(Techtree.WalletBenchFixture.seed!(), Techtree.WalletBenchFixture.seed_safety!())
 
 for {key, body} <- Techtree.WalletBenchFixture.files(seeded),
     do: :ok = Techtree.WalletBench.Evidence.put(key, body, "text/plain")
