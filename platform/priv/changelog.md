@@ -23,6 +23,14 @@
   checks says so plainly, and each score at the top jumps to its test. The
   score grid now fills the page width, with even columns and larger boxes.
 
+### Fixed
+
+- The headline at the top of the home page and the other pages no longer
+  changes as its words finish rising. The tails of letters such as g and y and
+  the outer edges of letters such as r and s used to appear only once the
+  words had settled; they now show as the words rise. In Safari, the headline
+  and the lines around it no longer shift at that moment.
+
 ## Repository (2026-11-18)
 
 ### Added
