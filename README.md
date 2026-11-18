@@ -330,6 +330,7 @@ does not prove.
 
 More: [`contracts/`](contracts/README.md) (the registry contract),
 [`formal/`](formal/wallet_bench_funding/README.md) (the Wallet Bench funding model),
+[`swarm-verify/`](swarm-verify/README.md) (models of agent-swarm coordination),
 [`blog/`](blog/README.md), and [`docs/`](docs/), including
 [Open tools](docs/open-tools.md) (what each release offers and pins),
 [Proof](docs/proof.md) (what a Result proves, and privacy) and

@@ -41,7 +41,8 @@ and fails when any gate failed. A gate over its time budget (`CHECK_BUDGETS` in 
 `Makefile`) gets a `SLOW` line under its own, which never fails the check. It
 requires the platform prerequisites, Foundry, pinned Solidity dependencies, and
 Node for the pinned Quint that checks the
-[Wallet Bench funding model](../formal/wallet_bench_funding/README.md). It does not
+[Wallet Bench funding model](../formal/wallet_bench_funding/README.md) and the
+pinned Everystate that checks the [Swarm Verify models](../swarm-verify/README.md). It does not
 start paid inference, publish results, release packages, deploy, or transfer money.
 Setup can download dependencies.
 

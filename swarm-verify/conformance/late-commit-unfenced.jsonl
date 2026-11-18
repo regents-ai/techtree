@@ -1,0 +1,6 @@
+{"state":{"epoch":{"1":0},"live":{"1":false},"result":{"1":{"agent":0,"epoch":0}}}}
+{"action":"Claim","params":[1,1],"state":{"epoch":{"1":1,"...":0},"live":{"1":true,"...":0},"result":{"1":{"agent":0,"epoch":0},"...":0}},"task":1}
+{"action":"Expire","params":[1],"state":{"epoch":{"1":1,"...":0},"live":{"1":false,"...":0},"result":{"1":{"agent":0,"epoch":0},"...":0}},"task":1,"why":"lease ran out"}
+{"action":"Claim","params":[2,1],"state":{"epoch":{"1":2,"...":0},"live":{"1":true,"...":0},"result":{"1":{"agent":0,"epoch":0},"...":0}},"task":1}
+{"action":"Commit","params":[2],"state":{"epoch":{"1":2,"...":0},"live":{"1":false,"...":0},"result":{"1":{"agent":2,"epoch":2},"...":0}},"task":1}
+{"action":"Commit","params":[1],"state":{"epoch":{"1":2,"...":0},"live":{"1":false,"...":0},"result":{"1":{"agent":1,"epoch":1},"...":0}},"task":1}

@@ -1,0 +1,9 @@
+{
+  "name": "techtree-swarm-verify",
+  "private": true,
+  "description": "The Swarm Verify models and runs, checked with Matt Carey's Everystate.",
+  "license": "MIT",
+  "devDependencies": {
+    "everystate": "0.4.0"
+  }
+}

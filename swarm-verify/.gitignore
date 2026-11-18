@@ -1,0 +1,3 @@
+# The pinned Everystate (npm ci), the pinned TLC download and each run's logs.
+node_modules/
+_build/

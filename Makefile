@@ -12,7 +12,7 @@
 # for site.css, rewritten in place and never absent; and it drops and makes only
 # its own database. The other gates write nothing another reads.
 CHECK_LANES := platform-precommit platform-test check-change-runner check-plugin check-required-fixes \
-  check-cli check-siwa-latest check-contracts check-formal check-lab
+  check-cli check-siwa-latest check-contracts check-formal check-swarm check-lab
 CHECK_GATES := platform-setup $(CHECK_LANES)
 CHECK_LOGS := platform/_build/check
 # Each gate's budget in seconds, about 40% over its time in make check on a 16-core
@@ -21,7 +21,7 @@ CHECK_LOGS := platform/_build/check
 # it never fails the check.
 CHECK_BUDGETS := platform-setup:65 platform-precommit:165 platform-test:200 check-change-runner:12 \
   check-plugin:75 check-required-fixes:5 check-cli:5 check-siwa-latest:5 check-contracts:35 \
-  check-formal:20 check-lab:12
+  check-formal:20 check-swarm:30 check-lab:12
 # One gate, its output in its own log, then its exit code and seconds in the results.
 CHECK_GATE = start=$$(date +%s); $(MAKE) --no-print-directory $$gate > $(CHECK_LOGS)/$$gate.log 2>&1; \
   code=$$?; echo "$$gate $$code $$(( $$(date +%s) - start ))" >> $(CHECK_LOGS)/results
@@ -115,6 +115,17 @@ check-formal:
 
 formal-proof:
 	formal/wallet_bench_funding/check.sh proof
+
+# The Swarm Verify models of agent-swarm coordination (swarm-verify/README.md), checked
+# with Everystate, then the reference implementation's logs and a seeded run of 128
+# workers checked against them, in about 20 s with no Java. swarm-tlc also checks every
+# model with TLC and compares the two, which needs Java 17 or later on PATH.
+.PHONY: check-swarm swarm-tlc
+check-swarm:
+	swarm-verify/check.sh
+
+swarm-tlc:
+	swarm-verify/check.sh tlc
 
 # Under nice: the Solidity compiler and the fuzzer take every core they can, and
 # beside the other gates in make check they give way to them.
