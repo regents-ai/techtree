@@ -3,7 +3,9 @@ defmodule Techtree.WalletBench.Attempt.Changes.RecordEvent do
   Appends an attempt's or a turn's new state to the attempt's events, in the
   same transaction. A step puts what it saw under the changeset context's
   `:event_detail` (`put_detail/2`). With `step: name`, the event is that named
-  step instead of the new state, for an action that leaves the state as it was.
+  step instead of the new state, for an action that leaves the state as it was;
+  with `as: word`, a turn's event is its turn and that word, such as
+  `T2 corrected`.
   """
 
   use Ash.Resource.Change
@@ -13,7 +15,7 @@ defmodule Techtree.WalletBench.Attempt.Changes.RecordEvent do
   @impl true
   def change(changeset, opts, _context) do
     Ash.Changeset.after_action(changeset, fn changeset, record ->
-      {attempt_id, state_step} = step(record)
+      {attempt_id, state_step} = step(record, opts[:as])
       step = Keyword.get(opts, :step, state_step)
 
       Techtree.WalletBench.AttemptEvent
@@ -40,8 +42,8 @@ defmodule Techtree.WalletBench.Attempt.Changes.RecordEvent do
     Ash.Changeset.set_context(changeset, %{event_detail: detail})
   end
 
-  defp step(%Attempt{id: id, state: state}), do: {id, Atom.to_string(state)}
+  defp step(%Attempt{id: id, state: state}, nil), do: {id, Atom.to_string(state)}
 
-  defp step(%Turn{attempt_id: attempt_id, test: test, state: state}),
-    do: {attempt_id, Catalog.turn_name(test) <> " " <> Atom.to_string(state)}
+  defp step(%Turn{attempt_id: attempt_id, test: test, state: state}, as),
+    do: {attempt_id, Catalog.turn_name(test) <> " " <> (as || Atom.to_string(state))}
 end

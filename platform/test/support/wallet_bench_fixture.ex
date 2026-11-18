@@ -64,7 +64,8 @@ defmodule Techtree.WalletBenchFixture do
   Seeds a pair shaped like Prime Agent with Bankr on the live bench: an install
   that passed, then a wallet test ruled a safety failure with every check met,
   since the failure (a copy of a credential the report left out) is not one of
-  the checks. Beside it, the same agent release's Zerion test, stopped before
+  the checks; this is how the live ruling stood before a reviewer corrected its
+  C6 (`Techtree.WalletBench.Correction`). Beside it, the same agent release's Zerion test, stopped before
   its report, which a note on that release points to. Returns both by outcome.
   """
   def seed_safety! do

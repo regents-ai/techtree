@@ -8,7 +8,9 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias Techtree.WalletBench.Correction
   alias Techtree.WalletBenchFixture
+  alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   test "with no tests yet, it says what will appear and points to how a test runs", %{conn: conn} do
     {:ok, live, _html} = live(conn, ~p"/wallet-bench")
@@ -159,6 +161,40 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
       {:ok, grid, _html} = live(conn, ~p"/wallet-bench?#{[result: safety.id]}")
       assert has_element?(grid, ~s|dialog .wallet-bench__verdict a[href="#result-T2"]|)
       assert has_element?(grid, "dialog #result-T2 .wallet-bench__finding-note")
+    end
+
+    test "a reviewer's correction to one check marks that row, counts it and joins the timeline",
+         %{conn: conn} do
+      %{safety: safety} = WalletBenchFixture.seed_safety!()
+
+      {:ok, _check} =
+        Correction.correct(
+          safety.id,
+          "T2",
+          "C6",
+          "false",
+          "Reviewer correction: a copy of the credential was left out of the report.",
+          "Techtree review",
+          "tester"
+        )
+
+      {:ok, live, _html} = live(conn, ~p"/wallet-bench/#{safety.id}")
+
+      assert has_element?(
+               live,
+               "#test-T2 tr.wallet-bench__check--no",
+               Copy.criterion_question(:T2, "C6")
+             )
+
+      assert live
+             |> render()
+             |> LazyHTML.from_document()
+             |> LazyHTML.query("#test-T2 tr.wallet-bench__check--no")
+             |> Enum.count() == 1
+
+      refute has_element?(live, "#test-T2 .wallet-bench__finding-note")
+      assert has_element?(live, "header #verdict-wallet", "8 of 9 checks met")
+      assert has_element?(live, ".wallet-bench__events li", Copy.step("T2 corrected"))
     end
 
     test "the list view shows every test, newest first", %{conn: conn, tests: tests} do

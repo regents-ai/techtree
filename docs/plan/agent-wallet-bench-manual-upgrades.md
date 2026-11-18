@@ -104,6 +104,27 @@ submissions cannot create duplicate batch/pair/repeat records or machines. If on
 racing caller loses the unique constraint, resubmit the same manifest. A changed
 version or run condition needs a new plan and batch UUID.
 
+## Correct one judge check
+
+When a reviewer finds that the judge answered one check wrongly, record the
+correction rather than editing the ruling by hand. `check` prints one check of a
+test's ruling and changes nothing; `correct` sets that one check to `true`,
+`false` or `open` with the reviewer's reason, keeps the judge's own reason after
+it, and adds a "Reviewer correction" entry to the attempt's timeline. The
+outcome, summary, other checks, files and costs stay as they were; no judge is
+asked and nothing is spent. Running it again with the same answer changes
+nothing and adds no second entry.
+
+```sh
+mix techtree.wallet_bench check --attempt ATTEMPT_UUID --test T2 --criterion C6
+mix techtree.wallet_bench correct --attempt ATTEMPT_UUID --test T2 --criterion C6 \
+  --value false --reason "REASON" --reviewer "Techtree review" --operator NAME
+```
+
+In a running deployed release, call `Techtree.WalletBench.Correction.check/3`
+and `Techtree.WalletBench.Correction.correct/7` (attempt, test, check, answer,
+reason, reviewer, operator) through its operator RPC, so open pages update.
+
 ## Clean checkpoints and observed versions
 
 Each batch requests a new Sprite baseline for each selected harness. The existing

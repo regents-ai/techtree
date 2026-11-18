@@ -11,6 +11,10 @@
   methods have run on public models and a simulated run of 128 workers; no
   customer fleet has been checked yet. It is built on Matt Carey's
   Everystate, a TLA+ model checker, and is open to design partners.
+- **Wallet Bench.** A reviewer's correction to a single judge check is now
+  recorded with its own entry on the test's timeline, "Reviewer correction".
+  The check shows the reviewer's answer and reason with the judge's reason
+  after it; the rest of the ruling stays as the judge gave it.
 
 ### Changed
 

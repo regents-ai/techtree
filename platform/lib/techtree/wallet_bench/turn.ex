@@ -17,7 +17,9 @@ defmodule Techtree.WalletBench.Turn do
   before the attempt stops.
 
   A judged turn can be ruled on again (`:rejudge`) when the review guides
-  change: the same stored evidence, a new ruling, and nothing after it runs.
+  change: the same stored evidence, a new ruling, and nothing after it runs. A
+  reviewer's correction to one of its checks (`:correct_check`) changes only
+  that check, and the attempt's events record it as its own step.
   """
 
   use Ash.Resource,
@@ -30,7 +32,14 @@ defmodule Techtree.WalletBench.Turn do
 
   alias Techtree.WalletBench.Attempt.Changes.RecordEvent
   alias Techtree.WalletBench.{Catalog, Machine}
-  alias Techtree.WalletBench.Turn.Changes.{Advance, CollectTurn, JudgeTurn, StartTurn}
+
+  alias Techtree.WalletBench.Turn.Changes.{
+    Advance,
+    CollectTurn,
+    CorrectCheck,
+    JudgeTurn,
+    StartTurn
+  }
 
   postgres do
     table "wallet_bench_turns"
@@ -142,6 +151,25 @@ defmodule Techtree.WalletBench.Turn do
       change Techtree.WalletBench.Changes.Operator
       change {JudgeTurn, evidence: :stored}
       change RecordEvent
+    end
+
+    update :correct_check do
+      description "A reviewer's correction to one check of a judged turn's ruling; nothing else changes."
+      # The stored answer decides whether anything changes, and the judge's
+      # reason is kept in the new one, so the ruling is read first.
+      require_atomic? false
+
+      argument :criterion, :string, allow_nil?: false
+      argument :value, :string, allow_nil?: false
+      argument :reason, :string, allow_nil?: false
+      argument :reviewer, :string, allow_nil?: false, constraints: [max_length: 64]
+
+      validate one_of(:value, ["true", "false", "open"])
+
+      change filter(expr(state == :judged))
+      change Techtree.WalletBench.Changes.Operator
+      change CorrectCheck
+      change {RecordEvent, as: "corrected"}, where: changing(:judgment)
     end
 
     update :mark_failed do

@@ -49,7 +49,12 @@ defmodule Techtree.WalletBench do
     end
 
     resource Techtree.WalletBench.Turn do
+      define :get_turn, action: :read, get_by: [:attempt_id, :test]
       define :rejudge_turn, action: :rejudge
+
+      define :correct_turn_check,
+        action: :correct_check,
+        args: [:criterion, :value, :reason, :reviewer]
     end
 
     resource Techtree.WalletBench.AttemptEvent do

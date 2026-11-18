@@ -163,6 +163,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def step(step) do
     case String.split(step, " ") do
       [state] -> status(String.to_existing_atom(state))
+      [turn, "corrected"] -> test(test_of(turn)) <> ": Reviewer correction"
       [turn, state] -> test(test_of(turn)) <> ": " <> turn_state(String.to_existing_atom(state))
     end
   end
