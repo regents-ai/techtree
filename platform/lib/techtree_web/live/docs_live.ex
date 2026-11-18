@@ -272,7 +272,7 @@ defmodule TechtreeWeb.DocsLive do
           <span :if={@example.maximum_usd}>
             On your own Prime key, a run also stops once it has spent {@example.maximum_usd}.
           </span>
-          Before anything runs, Techtree shows these limits and waits for your yes.
+          Before anything runs, Techtree shows these limits and waits for your approval.
         </:fact>
         <:fact term="Time">
           About 15 minutes to set up. How long the run takes depends on the model service.
@@ -506,7 +506,7 @@ defmodule TechtreeWeb.DocsLive do
       <.prompt_block id="copy-docs-hermes" label="Hermes prompt" text={@instruction} />
       <p>
         Hermes may prepare commands and explain output. Techtree still stops before every
-        model call and waits for your own yes.
+        model call and waits for your approval.
       </p>
       <p :if={@plugin_commands}>
         The Techtree plugin for Hermes adds commands for the Hello World Climb and for

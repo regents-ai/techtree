@@ -21,8 +21,8 @@ Every project runs in the same six steps:
    for the final test aside.
 4. **Improve**: We make one change, to a Skill, an eval, an environment or a model,
    within the limits agreed up front.
-5. **Final test**: One run on cases the work never saw, with everything else held
-   fixed, so the difference is the change.
+5. **Final test**: We test the revision on held-out cases using the same setup as
+   the baseline.
 6. **Handover**: You keep the result, a report of what changed and what it costs to
    run, and one command that reruns the test.
 
@@ -41,7 +41,7 @@ Techtree-run evaluation, not an independent audit.
 | Environments | The workflow, a Skill or a repository | An environment that resets between runs, with realistic tasks | [environments/](environments/README.md) |
 | Models | The work you repeat, with real examples | A smaller trained model and a comparison with the original | [models/](models/README.md) |
 
-Security sits beside the four: a one-off review or a monthly watch, described on
+Security sits beside the four: a one-off review or monthly security testing, described on
 [techtree.sh](https://techtree.sh/services/security). So does Swarm Verify, checks
 of the coordination behind a large agent fleet, by methods that are all Planned:
 [techtree.sh](https://techtree.sh/services/swarm-verify).

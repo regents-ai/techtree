@@ -69,7 +69,7 @@ defmodule TechtreeWeb.TrainCopy do
   The verdict in a sentence: what the improved Skill did on the final test
   against the original, and whether chance explains it. One that did not help
   says so first: "did not help" when it solved no more, "did not clearly help"
-  when it solved more but within chance.
+  when it solved more but the test did not establish a difference.
   """
   @spec verdict(Comparisons.t()) :: String.t()
   def verdict(%{final: %{original: original, improved: improved}} = comparison) do
@@ -80,8 +80,8 @@ defmodule TechtreeWeb.TrainCopy do
 
     case comparison.verdict do
       :inconclusive ->
-        "#{did_not_help(difference)} #{did}, a difference within chance: " <>
-          "these cases cannot tell the two versions apart."
+        "#{did_not_help(difference)} #{did}. " <>
+          "The test did not establish a difference between the two versions."
 
       :worse ->
         "The change did not help. #{did}, more than chance explains."
@@ -101,11 +101,14 @@ defmodule TechtreeWeb.TrainCopy do
   """
   @spec chance(Comparisons.t()) :: String.t()
   def chance(%{p_value: p_value, chance_level: level} = comparison) do
-    side = if comparison.verdict == :inconclusive, do: "within", else: "beyond"
+    reading =
+      if comparison.verdict == :inconclusive,
+        do: "the test cannot rule out chance",
+        else: "this difference is beyond chance"
 
     "If the two versions were equally good, a difference this large would turn up by chance " <>
       "#{how_often(p_value)}. The line agreed before anything ran is #{per_hundred(level)} in 100, " <>
-      "so this difference is #{side} chance."
+      "so #{reading}."
   end
 
   @doc ~s(The chance reading as a short figure: "Under 1 in 1,000" or "About 74.5 in 100".)

@@ -1,8 +1,8 @@
 # Environments
 
-Turn your workflow into repeatable practice for agents. We generate realistic tasks
-from your Skill, repository or workflow, and prove that each one passes good work and
-fails bad work.
+We build environments for training and testing agents on your tasks. We generate
+realistic tasks from your Skill, repository or workflow, and check that each one
+passes good work and fails bad work.
 
 [techtree.sh/services/environments](https://techtree.sh/services/environments)
 
@@ -13,17 +13,19 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 1. **Intake**: You bring the workflow, a Skill or a repository. An environment you
    already have, from Harbor, Prime or OpenEnv, starts with a review of what can be
    reused.
-2. **Success**: We agree what an agent should be able to practise.
+2. **Success**: We agree what an agent should be able to do.
 3. **Tasks** (Planned): Tasks come from you, or we generate them: from a Skill with
    NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env), or from a repository,
    its past fixes and recorded agent sessions with Hugging Face's
    [Repo2RLEnv](https://github.com/huggingface/Repo2RLEnv).
-4. **Soundness** (Tested): Every task is proven fair with Terminal-Bench's
-   [Harbor](https://github.com/harbor-framework/harbor) in a sealed setup with no
-   network: doing nothing scores zero, the worked solution passes and bad work fails.
+4. **Soundness** (Tested): We check that reference solutions pass, known incorrect
+   solutions fail, and empty attempts score zero. Each task runs with
+   Terminal-Bench's [Harbor](https://github.com/harbor-framework/harbor) in a sealed
+   setup with no network.
 5. **Baseline** (Planned): We measure an agent on the tasks with Prime Intellect's
    [Verifiers](https://github.com/PrimeIntellect-ai/verifiers).
-6. **Handover**: You receive everything below.
+6. **Handover**: You get the environment, its tasks with worked solutions and
+   scoring, and commands to test and train agents on it.
 
 ## You receive
 
@@ -41,7 +43,7 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 
 | Library | Job here | License | Status |
 | --- | --- | --- | --- |
-| [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | The task format: instruction, container recipe, tests and solutions in one folder. The tasks `forge` builds follow it, and each one is proven fair in a sealed setup with no network. | Apache-2.0 | Tested |
+| [Harbor](https://github.com/harbor-framework/harbor), from the makers of Terminal-Bench | The task format: instruction, container recipe, tests and solutions in one folder. The tasks `forge` builds follow it, and each one is checked in a sealed setup with no network. | Apache-2.0 | Tested |
 | Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Runs the tasks and scores them, the same way for evaluation and for training. | MIT | Tested |
 | Prime Intellect's [Environments Hub](https://app.primeintellect.ai/dashboard/environments) | Hosts Verifiers environments at pinned versions. The HF Tasksmith Climb downloads its environment from it today. | A hosted service | Tested |
 | NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env) | Generates terminal tasks in Harbor's format from a Skill. `regents techtree forge` already follows its task layout and adapts its planning and building steps, pinned to one revision; using its own generator on a project is planned. | Apache-2.0 (its own source; Skills bundled with it keep their own terms) | Planned |
@@ -55,7 +57,7 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 environment from a Skill on your own computer. It is experimental. It needs Docker
 and a model provider; running an agent on the finished tasks also needs Hermes.
 Planning and building send your Skill's files to the provider you choose; every step
-that does so prints a review first and waits for your yes.
+that does so prints a review first and waits for your approval.
 
 ```sh
 regents techtree forge inspect-skill path/to/your-skill
@@ -91,7 +93,7 @@ each task before you accept a collection.
   bad.
 - A generated task is a starting point, not a guarantee. Each one is checked against
   a worked solution and a wrong one, and read by a person before it is accepted.
-- For ongoing work, failed attempts can propose new practice tasks, each one checked
+- For ongoing work, we can turn failed runs into new tasks, with each task reviewed
   before it is added. The idea comes from
   [the AutoEnvScaling research](https://auto-env-scaling.github.io/).
 

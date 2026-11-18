@@ -179,8 +179,8 @@ defmodule TechtreeWeb.RunsLive.Index do
       <.opening
         eyebrow="Evidence"
         title="Results"
-        line="Inspect what changed when a Skill changed."
-        more="One harness. One model. One challenge. Newest submissions first, not ranked by score."
+        line="Compare each Skill with its baseline."
+        more="Each comparison uses the same agent, model, and tasks. Newest submissions first, not ranked by score."
         shape={1}
         icon="list-checks"
       >
@@ -501,7 +501,7 @@ defmodule TechtreeWeb.RunsLive.Index do
         <header class="mk-section__head">
           <h2 id="comparisons-title">Comparisons</h2>
           <p>
-            Demonstrations Techtree ran itself on public Skills: the Skill as published against the revision chosen to improve it, on final-test cases kept apart from the improvement, with the same agent and settings. A difference within chance is reported as inconclusive. They are not signed; each page offers its report to download.
+            Demonstrations Techtree ran itself on public Skills: the Skill as published against the revision chosen to improve it, on final-test cases kept apart from the improvement, with the same agent and settings. When the test does not establish a difference between the two versions, we report the result as inconclusive. They are not signed; each page offers its report to download.
           </p>
         </header>
         <ul class="mk-status">

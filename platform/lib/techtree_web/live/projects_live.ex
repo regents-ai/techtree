@@ -405,7 +405,7 @@ defmodule TechtreeWeb.ProjectsLive do
 
   defp chance(nil), do: "Not measured"
   defp chance(p_value) when p_value < @beyond_chance, do: "Beyond chance"
-  defp chance(_p_value), do: "Within chance"
+  defp chance(_p_value), do: "Could be chance"
 
   defp worse(0), do: "No cases"
   defp worse(1), do: "1 case"

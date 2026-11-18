@@ -31,13 +31,14 @@ defmodule TechtreeWeb.HomeLive do
   @promise "Skills, evaluations, training environments and open-weight models, built around your " <>
              "workflows on open tools from Prime Intellect, NVIDIA Nemotron, Hugging Face and Harbor. " <>
              "Your agents, environment, or evals are provably upgraded after Techtree."
-  @services_line "Paid custom projects, delivered by people, around the workflows you rely on. " <>
+  @services_line "Custom AI projects from Regents Labs, built around the workflows you rely on. " <>
                    "Each uses open tools such as Prime Intellect’s Verifiers and NVIDIA’s " <>
                    "SkillEvaluator, marked Tested once we have run them ourselves."
   @demonstrations_line "Runs Techtree did itself on public Skills, not customer work. Each compares " <>
                          "the Skill as published with the version chosen to improve it, on " <>
-                         "final-test cases kept apart from the improvement. A difference within " <>
-                         "chance is reported as inconclusive."
+                         "final-test cases kept apart from the improvement. When the test does " <>
+                         "not establish a difference between the two versions, we report the " <>
+                         "result as inconclusive."
   @process_line "Every project runs in the same six steps."
   @process [
     {"Intake", "You bring real examples of the work, and the failures you already know about."},
@@ -48,11 +49,11 @@ defmodule TechtreeWeb.HomeLive do
     {"Improve",
      "We make one change, to a Skill, an eval, an environment or a model, within the limits agreed up front."},
     {"Final test",
-     "One run on cases the work never saw, with everything else held fixed, so the difference is the change."},
+     "We test the revision on held-out cases using the same setup as the baseline."},
     {"Handover",
      "You keep the result, a report of what changed and what it costs to run, and one command that reruns the test."}
   ]
-  @stack_line "Each project below is its maker’s own work, with the job it does for Techtree."
+  @stack_line "Tools we’ve tested and integrations we’re planning."
   @closing "Tell us about the workflow you want to improve."
   @mailto "mailto:build@regents.sh"
 

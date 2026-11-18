@@ -10,6 +10,12 @@
   its limits. Every method is planned and not yet run. It is built on Matt
   Carey's Everystate, a TLA+ model checker, and is open to design partners.
 
+### Changed
+
+- Plainer wording on the home page, the service pages, Results and Docs. Each
+  service's Handover step names what you get, and Security's monthly option is
+  monthly security testing for your websites.
+
 ## Website (2026-11-17)
 
 ### Added

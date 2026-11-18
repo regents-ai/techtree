@@ -17,9 +17,9 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 3. **Quality check** (Tested): NVIDIA's
    [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) reviews the Skill as it
    is written.
-4. **Baseline** (Tested): We measure your current Skill with your agent, several
-   times over so chance is accounted for. The cases for the final test are set
-   aside, and the improvement never sees them.
+4. **Baseline** (Tested): We measure your current Skill with your agent. We repeat
+   the baseline evaluation to measure how much results vary. The cases for the
+   final test are set aside, and the improvement never sees them.
 5. **Improvement** (Tested): Microsoft's [SkillOpt](https://github.com/microsoft/SkillOpt)
    proposes revisions from scored attempts on the working cases.
 6. **Selection** (Planned): The best revision is chosen on a separate set of cases.
@@ -27,13 +27,13 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 7. **Final test** (Tested): A single run on the untouched cases, scored by Prime
    Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers), with the
    model, tools and limits held fixed.
-8. **Handover**: You receive everything below. If the Skill did not improve, you
-   still receive the result and the reason.
+8. **Handover**: You get the revised Skill, its report, and one command that reruns
+   it. If the Skill did not improve, you still get the result and the reason.
 
 ## You receive
 
 - The original Skill and the revised one.
-- A before-and-after report: cost, new mistakes, and how sure the result is.
+- A report covering cost, new errors, and uncertainty in the results.
 - The exact setup it ran on.
 - One command that reruns it.
 
@@ -55,7 +55,7 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 Two Skill comparisons run from this repository today, through the public
 [regents-cli](https://github.com/regents-ai/regents-cli) command line. Both need
 Hermes, Docker and a model provider. Model calls go to the provider you choose and
-may cost money there; every paid step waits for your yes.
+may cost money there; every paid step waits for your approval.
 
 ### Hello World
 
@@ -85,7 +85,7 @@ Evaluate & Climb makes practice tasks from what your Skill teaches, then runs yo
 agent on them without the Skill and with it. It is experimental. Planning and
 building send your Skill's files to the model provider you choose. Each command
 prints the next one, and every step that sends anything to a model prints a review
-first and waits for your yes.
+first and waits for your approval.
 
 ```sh
 regents techtree forge inspect-skill path/to/your-skill

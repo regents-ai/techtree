@@ -48,4 +48,4 @@ A matching count shows that the page draws what the report says. It doesn't show
 
 ## Revision
 
-After a comparison, Techtree can export what an agent needs to write one revision of the Skill: the tasks it may study, how each side did on them, and what the Skill is meant to improve, leaving out anything that would give the answers away. You, or an agent you direct, write the revision; after your yes, Techtree compares the original with the revision under the same conditions. For a task collection, the revision is judged only on held-out tasks the improving agent never saw. Nothing revises a Skill on its own.
+After a comparison, Techtree can export what an agent needs to write one revision of the Skill: the tasks it may study, how each side did on them, and what the Skill is meant to improve, leaving out anything that would give the answers away. You, or an agent you direct, write the revision; once you approve, Techtree compares the original with the revision under the same conditions. For a task collection, the revision is judged only on held-out tasks the improving agent never saw. Nothing revises a Skill on its own.

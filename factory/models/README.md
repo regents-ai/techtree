@@ -20,16 +20,18 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 4. **Baseline** (Tested): We measure the small model and your current model with
    Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers)
    before any training.
-5. **Plan** (Tested): We write a training plan in prime-rl's format, with its cost,
-   for your approval. Nothing trains without it.
+5. **Plan** (Tested): We write a training plan in prime-rl's format, with its cost.
+   Training starts after you approve the plan and budget.
 6. **Training** (Planned): Prime Intellect's
    [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) trains the model on your
-   accepted examples, then on scored practice when the project calls for it.
+   accepted examples first. When the project calls for it, training continues with
+   reinforcement learning, using task scores as feedback.
 7. **Final test** (Planned): We test the trained model against the original on the
    unseen set, including the cost per successful task.
-8. **Handover** (Planned): You receive everything below, with help putting the model
-   into service. When agents need to run under rules you set, we run them inside
-   OpenShell with NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw).
+8. **Handover** (Planned): You get the trained model, its training recipe, and a test
+   package you can rerun, with help putting the model into service. When agents need
+   to run under rules you set, we run them inside OpenShell with NVIDIA's
+   [NemoClaw](https://github.com/NVIDIA/NemoClaw).
 
 ## You receive
 
@@ -58,7 +60,7 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 | --- | --- | --- | --- |
 | Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Holds the tasks that training and the final test share. | MIT | Tested |
 | NVIDIA's [Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/) | Open models, with weights and training data published on Hugging Face, that a small specialist can start from. | See each model's card | Tested |
-| Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Trains the model on your accepted examples, then on scored practice, on the same Verifiers environments the test uses. | Apache-2.0 | Planned |
+| Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Trains the model on your accepted examples, then with reinforcement learning on the same Verifiers environments the test uses, using task scores as feedback. | Apache-2.0 | Planned |
 | NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw) | Optional, when a project needs it: runs supported agents inside OpenShell, under the network rules you set. | Apache-2.0 | Planned |
 
 ## Run it
@@ -79,12 +81,12 @@ the last. It only writes the file. No training run starts from this repository.
 
 - Before training, we try a cheaper existing model and a better prompt or Skill. If
   that gets the saving, we say so.
-- A candidate that falls short still gives you a paid, useful answer: whether the
-  blocker is the data, an unclear task, model size, running cost or new mistakes.
+- If the model misses the target, we explain where it fell short: the data, an
+  unclear task, model size, running cost or new mistakes.
 - The figure we report is the total running cost per accepted outcome, at a quality
   level we agree. The one-time training cost is shown separately.
-- Training starts on your accepted examples. Scored practice comes next, once we have
-  checked the scoring.
+- Training starts on your accepted examples. Reinforcement learning comes next, once
+  we have checked the scoring.
 - Results from our own runs are labelled a Techtree-run evaluation, not an
   independent audit.
 

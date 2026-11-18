@@ -2,7 +2,7 @@ defmodule TechtreeWeb.Services do
   @moduledoc """
   What Techtree sells: four services built around a customer's own workflows
   (Skills, Evals, Environments and Models), and Security and Swarm Verify
-  beside them (`others/0`). Each is a paid custom project, delivered by people.
+  beside them (`others/0`). Each is a paid custom project from Regents Labs.
 
   Each service is one map: its name, a Lucide icon, a short line for the
   menus, its promise, its price level (1 to 4, shown as marks and never as a
@@ -124,7 +124,8 @@ defmodule TechtreeWeb.Services do
     name: "prime-rl",
     href: "https://github.com/PrimeIntellect-ai/prime-rl",
     status: :planned,
-    line: "Trains a smaller model on your accepted examples, then on scored practice."
+    line:
+      "Trains a smaller model on your accepted examples, then with reinforcement learning, using task scores as feedback."
   }
   @skill_evaluator %{
     maker: "NVIDIA",
@@ -168,7 +169,7 @@ defmodule TechtreeWeb.Services do
     href: "https://github.com/harbor-framework/harbor",
     status: :tested,
     line:
-      "Proves each practice task fair in a sealed setup: the worked solution passes and doing nothing scores zero."
+      "Checks each practice task in a sealed setup: the worked solution passes and doing nothing scores zero."
   }
   @skill_opt %{
     maker: "Microsoft",
@@ -244,7 +245,7 @@ defmodule TechtreeWeb.Services do
           step("Baseline", :tested, [
             "We measure your current Skill with your agent through ",
             named(@verifiers),
-            ", several times over so chance is accounted for. The cases for the final test are set aside, and the improvement never sees them."
+            ". We repeat the baseline evaluation to measure how much results vary. The cases for the final test are set aside, and the improvement never sees them."
           ]),
           step("Improvement", :tested, [
             named(@skill_opt),
@@ -256,19 +257,19 @@ defmodule TechtreeWeb.Services do
           step("Final test", :tested, [
             "A single run on the untouched cases, scored by ",
             named(@verifiers),
-            ", with the model, tools and limits held fixed. A difference within chance is reported as inconclusive."
+            ", with the model, tools and limits held fixed. When the test does not establish a difference between the two versions, we report the result as inconclusive."
           ]),
           step(
             "Handover",
             nil,
             [
-              "You receive everything below. If the Skill did not improve, you still receive the result and the reason."
+              "You get the revised Skill, its report, and one command that reruns it. If the Skill did not improve, you still get the result and the reason."
             ]
           )
         ],
         receive: [
           "The original Skill and the revised one.",
-          "A before-and-after report: cost, new mistakes, and how sure the result is.",
+          "A report covering cost, new errors, and uncertainty in the results.",
           "The exact setup it ran on.",
           "One command that reruns it."
         ],
@@ -301,7 +302,9 @@ defmodule TechtreeWeb.Services do
             ]
           ),
           step("Success", nil, ["We agree what the test must tell you."]),
-          step("Review", nil, ["You approve the test cases before any of them count."]),
+          step("Review", nil, [
+            "You approve the test cases before we use them to score your agent."
+          ]),
           step("Build", :tested, [
             "We package the cases and their scoring as an environment for ",
             named(@verifiers),
@@ -320,7 +323,9 @@ defmodule TechtreeWeb.Services do
             named(@prime_rl),
             " runs the whole evaluation at scale."
           ]),
-          step("Handover", nil, ["You receive everything below."])
+          step("Handover", nil, [
+            "You get the test suite, baseline scores, and a report of where your agent fails."
+          ])
         ],
         receive: [
           "Reviewed test cases.",
@@ -343,8 +348,8 @@ defmodule TechtreeWeb.Services do
         id: :environments,
         name: "Environments",
         icon: "boxes",
-        line: "Practice for agents on your work",
-        promise: "Turn your workflow into repeatable practice for agents.",
+        line: "Train and test agents on your tasks",
+        promise: "We build environments for training and testing agents on your tasks.",
         price: 3,
         call:
           "Bring the workflow, the Skill or the repository. We’ll agree which tasks the environment should hold.",
@@ -356,7 +361,7 @@ defmodule TechtreeWeb.Services do
               "You bring the workflow, a Skill or a repository. An environment you already have, on Prime Intellect’s Environments Hub, in Harbor’s format or in OpenEnv, starts with a review of what can be reused."
             ]
           ),
-          step("Success", nil, ["We agree what an agent should be able to practise."]),
+          step("Success", nil, ["We agree what an agent should be able to do."]),
           step("Tasks", :planned, [
             "Tasks come from you, or we generate them: from a Skill with ",
             named(@skill2env),
@@ -365,16 +370,18 @@ defmodule TechtreeWeb.Services do
             "."
           ]),
           step("Soundness", :tested, [
-            "Every task is proven fair with ",
+            "We check that reference solutions pass, known incorrect solutions fail, and empty attempts score zero. Each task runs with ",
             named(@harbor),
-            " in a sealed setup with no network: doing nothing scores zero, the worked solution passes and bad work fails."
+            " in a sealed setup with no network."
           ]),
           step("Baseline", :planned, [
             "We measure an agent on the tasks with ",
             named(@verifiers),
             "."
           ]),
-          step("Handover", nil, ["You receive everything below."])
+          step("Handover", nil, [
+            "You get the environment, its tasks with worked solutions and scoring, and commands to test and train agents on it."
+          ])
         ],
         receive: [
           "An environment that resets between runs.",
@@ -389,12 +396,12 @@ defmodule TechtreeWeb.Services do
             @repo2rlenv,
             "Generates tasks from a repository, its past fixes and recorded agent sessions."
           ),
-          tool(@harbor, "Proves each task fair in a sealed setup with no network."),
+          tool(@harbor, "Checks each task in a sealed setup with no network."),
           tool(@verifiers, "Runs the tasks and scores them.")
         ],
         notes: [
           [
-            "For ongoing work, failed attempts can propose new practice tasks, each one checked before it is added. The idea comes from ",
+            "For ongoing work, we can turn failed runs into new tasks, with each task reviewed before it is added. The idea comes from ",
             {"the AutoEnvScaling research", "https://auto-env-scaling.github.io/"},
             "."
           ]
@@ -437,11 +444,11 @@ defmodule TechtreeWeb.Services do
           step("Plan", :tested, [
             "We write a training plan in the format of ",
             named(@prime_rl),
-            ", with its cost, for your approval. Nothing trains without it."
+            ", with its cost. Training starts after you approve the plan and budget."
           ]),
           step("Training", :planned, [
             named(@prime_rl),
-            " trains the model on your accepted examples, then on scored practice when the project calls for it."
+            " trains the model on your accepted examples first. When the project calls for it, training continues with reinforcement learning, using task scores as feedback."
           ]),
           step("Final test", :planned, [
             "We test the trained model against the original on the unseen set with ",
@@ -449,7 +456,7 @@ defmodule TechtreeWeb.Services do
             ", including the cost per successful task."
           ]),
           step("Handover", :planned, [
-            "You receive everything below, with help putting the model into service. When agents need to run under rules you set, we run them inside OpenShell with ",
+            "You get the trained model, its training recipe, and a test package you can rerun, with help putting the model into service. When agents need to run under rules you set, we run them inside OpenShell with ",
             named(@nemoclaw),
             "."
           ])
@@ -480,7 +487,10 @@ defmodule TechtreeWeb.Services do
         },
         tools: [
           tool(@verifiers, "Holds the tasks that training and the final test share."),
-          tool(@prime_rl, "Trains the model on your accepted examples, then on scored practice."),
+          tool(
+            @prime_rl,
+            "Trains the model on your accepted examples, then with reinforcement learning, using task scores as feedback."
+          ),
           tool(
             @nemoclaw,
             "Optional, when a project needs it: runs supported agents inside OpenShell, under the rules you set."
@@ -491,13 +501,13 @@ defmodule TechtreeWeb.Services do
             "Before training, we try a cheaper existing model and a better prompt or Skill. If that gets the saving, we say so."
           ],
           [
-            "A candidate that falls short still gives you a paid, useful answer: whether the blocker is the data, an unclear task, model size, running cost or new mistakes."
+            "If the model misses the target, we explain where it fell short: the data, an unclear task, model size, running cost or new mistakes."
           ],
           [
             "The figure we report is the total running cost per accepted outcome, at a quality level we agree. The one-time training cost is shown separately."
           ],
           [
-            "Training starts on your accepted examples. Scored practice comes next, once we have checked the scoring."
+            "Training starts on your accepted examples. Reinforcement learning comes next, once we have checked the scoring."
           ],
           [
             "Results from our own runs are labelled a Techtree-run evaluation, not an independent audit."
@@ -512,7 +522,7 @@ defmodule TechtreeWeb.Services do
   def terms do
     [
       "Model and compute usage is billed separately, under a cap we agree first.",
-      "If you already have an eval or an environment, we reuse it. Missing foundations are quoted separately.",
+      "If you already have an eval or an environment, we reuse it. We quote separately for any evaluation or training environment we need to build.",
       "You pay for the scoped work and its evidence. If the result shows no improvement, you still receive it, with the reason."
     ]
   end
@@ -559,14 +569,14 @@ defmodule TechtreeWeb.Services do
     for status <- @statuses, groups[status], do: {status, groups[status]}
   end
 
-  @doc "Security, offered beside the four: a one-off review or a monthly watch."
+  @doc "Security, offered beside the four: a one-off review or monthly security testing."
   @spec security() :: security()
   def security do
     %{
       id: :security,
       name: "Security",
       icon: "shield-check",
-      line: "Review or watch what you run",
+      line: "Review or test what you run",
       promise: "Find and fix the security weaknesses that matter, once or every month.",
       call:
         "Tell us what you want checked, once or every month. We’ll agree the scope and the limits first.",
@@ -588,9 +598,9 @@ defmodule TechtreeWeb.Services do
           id: "monitoring",
           name: "Monitoring",
           line:
-            "A monthly watch on the sites you own. We test them for weaknesses the way a careful attacker would, inside limits you agree, and nothing else.",
+            "Monthly security testing for your websites. We test for exploitable vulnerabilities within the scope you approve.",
           items: [
-            "You add the web addresses you want watched, each one a site you own.",
+            "You add the web addresses you want tested, each one a site you own.",
             "You prove each site is yours: a short DNS record, or a small file at a set address. No proof, no testing.",
             "We test the proven addresses, inside the limits you agreed.",
             "You get only the weaknesses we reproduced, each with a fix, and we retest after you fix."

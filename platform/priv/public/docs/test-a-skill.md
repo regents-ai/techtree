@@ -1,6 +1,6 @@
 # Evaluate & Climb
 
-Techtree makes practice tasks from what your Skill teaches, then your agent works them without the Skill and with it. Every step that sends anything to a model prints a review first and waits for your yes. Each command prints the next one.
+Techtree makes practice tasks from what your Skill teaches, then your agent works them without the Skill and with it. Every step that sends anything to a model prints a review first and waits for your approval. Each command prints the next one.
 
 ```sh
 regents techtree forge inspect-skill path/to/your-skill

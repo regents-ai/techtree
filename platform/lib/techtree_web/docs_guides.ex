@@ -40,7 +40,7 @@ defmodule TechtreeWeb.DocsGuides do
       slug: "hermes",
       group: "Get started",
       title: "Use Hermes",
-      summary: "Let Hermes run each step, with your yes before every model call."
+      summary: "Let Hermes run each step. Approve each model call before it runs."
     },
     %{
       slug: "verify",

@@ -346,7 +346,7 @@ defmodule TechtreeWeb.RunsLive.Show do
               The run also stops once it has spent {@limits.maximum_usd}.
             </:fact>
             <:fact term="Before it starts">
-              Techtree shows these limits and waits for your yes.
+              Techtree shows these limits and waits for your approval.
             </:fact>
           </.definition_list>
           <p class="small quiet section-note">

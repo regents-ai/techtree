@@ -13,7 +13,7 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 1. **Intake**: You bring the job, with examples of good work and bad, or an eval you
    already have.
 2. **Success**: We agree what the test must tell you.
-3. **Review**: You approve the test cases before any of them count.
+3. **Review**: You approve the test cases before we use them to score your agent.
 4. **Build** (Tested): We package the cases and their scoring with Prime Intellect's
    [Verifiers](https://github.com/PrimeIntellect-ai/verifiers), and with
    Terminal-Bench's [Harbor](https://github.com/harbor-framework/harbor) when a case
@@ -25,7 +25,8 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 7. **Full run** (Planned): For a large test, Prime Intellect's
    [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) runs the whole
    evaluation at scale.
-8. **Handover**: You receive everything below.
+8. **Handover**: You get the test suite, baseline scores, and a report of where your
+   agent fails.
 
 ## You receive
 

@@ -30,8 +30,8 @@ Each service is a paid project around one of your workflows, quoted on a call.
 
 Bring your Skill, the agent and model that use it, real examples of the work, and the
 failures you already know about. You receive the original Skill and the revised one,
-a before-and-after report on cost, new mistakes and how sure the result is, the exact
-setup it ran on, and one command that reruns it.
+a report covering cost, new errors and uncertainty in the results, the exact setup it
+ran on, and one command that reruns it.
 [How it works](factory/skills/README.md) · [techtree.sh](https://techtree.sh/services/skills)
 
 ### Evals
@@ -63,8 +63,8 @@ of the design, not yet run).
 
 ### Security
 
-A one-off review of an application or agent integration, or a monthly watch on sites
-you own. [techtree.sh](https://techtree.sh/services/security)
+A one-off review of an application or agent integration, or monthly security testing
+for your websites. [techtree.sh](https://techtree.sh/services/security)
 
 ### Swarm Verify
 
@@ -79,16 +79,16 @@ checking, swarm experiments and execution conformance) are **Planned**.
 The four services are sold on the same terms:
 
 - Model and compute usage is billed separately, under a cap we agree first.
-- If you already have an eval or an environment, we reuse it. Missing foundations
-  are quoted separately.
+- If you already have an eval or an environment, we reuse it. We quote separately
+  for any evaluation or training environment we need to build.
 - You pay for the scoped work and its evidence. If the result shows no improvement,
   you still receive it, with the reason.
 
 ## Libraries
 
-These are the open-source projects behind the services, grouped by maker. Each
-one is its maker's work. For each: what it does, why we chose it (from its own
-documentation), and what it gives you.
+These are the open-source projects behind the services, grouped by maker: tools
+we've tested and integrations we're planning. For each: what it does, why we chose
+it (from its own documentation), and what it gives you.
 
 | Library | Service | What it does | Why we chose it | What you get | Status |
 | --- | --- | --- | --- | --- | --- |
@@ -138,8 +138,8 @@ Every project runs in the same six steps:
    for the final test aside.
 4. **Improve**: We make one change, to a Skill, an eval, an environment or a model,
    within the limits agreed up front.
-5. **Final test**: One run on cases the work never saw, with everything else held
-   fixed, so the difference is the change.
+5. **Final test**: We test the revision on held-out cases using the same setup as
+   the baseline.
 6. **Handover**: You keep the result, a report of what changed and what it costs to
    run, and one command that reruns the test.
 
@@ -177,8 +177,8 @@ NVIDIA's SkillEvaluator 0.9.0 checked the original Skill. Each made two revision
 from the working cases alone, a single plain rewrite by Anthropic's Claude Opus 5.5
 and a revision by Microsoft's SkillOpt with Claude Opus 5.5 proposing its changes,
 and kept the one that solved the most on the choosing cases. The line for chance was
-agreed before anything ran: 5 in 100. A difference within it is reported as
-inconclusive.
+agreed before anything ran: 5 in 100. When the test does not establish a difference
+between the two versions, we report the result as inconclusive.
 
 | Skill | Final test | Original | Revised | Verdict |
 | --- | --- | --- | --- | --- |
