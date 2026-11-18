@@ -35,6 +35,10 @@ defmodule Techtree.Application do
         # key is there before the endpoint below serves a page.
         Techtree.SharedReading,
         points_board_child(),
+        # The process group Oban's notifier joins. Left to the notifier, the
+        # first one to start owns it, so its restart took the group down and the
+        # restarted notifier could join a group that was still exiting.
+        %{id: Oban.Notifiers.PG, start: {:pg, :start_link, [Oban.Notifiers.PG]}},
         {Oban,
          AshOban.config(
            Application.fetch_env!(:techtree, :ash_domains),
