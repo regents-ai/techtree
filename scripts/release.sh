@@ -70,7 +70,8 @@ fail() {
 # Like the deploy (platform/scripts/deploy_site.sh), the build keeps the live
 # image's served files, so it pulls that image from Fly's registry. Fly's
 # registry sign-in expires, so Docker is signed in to it again each time.
-if ! previous="$(flyctl image show --app techtree-sh --json | jq -er 'map("\(.Registry)/\(.Repository)@\(.Digest)") | unique | .[]')"; then
+# The release-command helper a refused deploy leaves behind serves nothing.
+if ! previous="$(flyctl machine list --app techtree-sh --json | jq -er '[.[] | select(.config.metadata.fly_process_group != "fly_app_release_command") | "\(.image_ref.registry)/\(.image_ref.repository)@\(.image_ref.digest)"] | unique | .[]')"; then
   echo "Refusing to release: the live image can't be read, so its files can't be kept." >&2
   exit 1
 fi

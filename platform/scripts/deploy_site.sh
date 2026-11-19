@@ -40,7 +40,8 @@ release() {
   # rollover, and one of those files, asked for again once the deploy is done.
   local live_images previous_image live_page previous_script
 
-  if ! live_images="$(flyctl image show --app "$app" --json | jq -er 'map("\(.Registry)/\(.Repository)@\(.Digest)") | unique | .[]')"; then
+  # The release-command helper a refused deploy leaves behind serves nothing.
+  if ! live_images="$(flyctl machine list --app "$app" --json | jq -er '[.[] | select(.config.metadata.fly_process_group != "fly_app_release_command") | "\(.image_ref.registry)/\(.image_ref.repository)@\(.image_ref.digest)"] | unique | .[]')"; then
     echo "Refusing to deploy: the live image can't be read, so its files can't be kept." >&2
     exit 1
   fi

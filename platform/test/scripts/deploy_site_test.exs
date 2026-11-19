@@ -43,7 +43,7 @@ defmodule Techtree.DeploySiteScriptTest do
     repo
   end
 
-  # Stand-ins: flyctl answers `image show` from image.json and records each
+  # Stand-ins: flyctl answers `machine list` from machines.json and records each
   # `deploy`, the build and the switch each with its own status; curl answers
   # the home page from home.html and the old script with its status; lockf
   # records each lock it holds and runs the command, and its try-once probe of
@@ -51,7 +51,7 @@ defmodule Techtree.DeploySiteScriptTest do
   defp fakes(dir, scenario) do
     bin = Path.join(dir, "bin")
     File.mkdir_p!(bin)
-    File.write!(Path.join(dir, "image.json"), scenario[:image])
+    File.write!(Path.join(dir, "machines.json"), scenario[:machines])
     File.write!(Path.join(dir, "home.html"), scenario[:page])
 
     stand_in = fn name, body ->
@@ -61,7 +61,7 @@ defmodule Techtree.DeploySiteScriptTest do
 
     stand_in.("flyctl", """
     case "$1" in
-      image) #{if scenario[:image_fails], do: "exit 1", else: ~s(cat "$FAKE_DIR/image.json")} ;;
+      machine) #{if scenario[:machines_fail], do: "exit 1", else: ~s(cat "$FAKE_DIR/machines.json")} ;;
       deploy)
         echo "$@" >> "$FAKE_DIR/deploys"
         case "$*" in
@@ -98,7 +98,9 @@ defmodule Techtree.DeploySiteScriptTest do
 
   defp deploy(dir, scenario) do
     repo = checkout(dir)
-    bin = fakes(dir, Map.merge(%{image: Jason.encode!([image(@live)]), page: @page}, scenario))
+
+    bin =
+      fakes(dir, Map.merge(%{machines: Jason.encode!([machine(@live)]), page: @page}, scenario))
 
     System.cmd("bash", [Path.join(repo, "platform/scripts/deploy_site.sh")],
       env: [{"PATH", bin <> ":" <> System.get_env("PATH")}, {"FAKE_DIR", dir}],
@@ -106,10 +108,17 @@ defmodule Techtree.DeploySiteScriptTest do
     )
   end
 
-  defp image(ref) do
+  # One machine as `flyctl machine list --json` lists it: a serving machine is
+  # in the "app" group; Fly's release-command helper is in its own.
+  defp machine(ref, group \\ "app", state \\ "started") do
     [registry, rest] = String.split(ref, "/", parts: 2)
     [repository, digest] = String.split(rest, "@")
-    %{"Registry" => registry, "Repository" => repository, "Digest" => digest}
+
+    %{
+      "state" => state,
+      "config" => %{"metadata" => %{"fly_process_group" => group}},
+      "image_ref" => %{"registry" => registry, "repository" => repository, "digest" => digest}
+    }
   end
 
   defp deployed(dir), do: File.read(Path.join(dir, "deploys"))
@@ -148,15 +157,15 @@ defmodule Techtree.DeploySiteScriptTest do
 
   test "no deploy when the live image can't be read", %{tmp_dir: dir} do
     for scenario <- [
-          %{image_fails: true},
-          %{image: "[]"},
+          %{machines_fail: true},
+          %{machines: "[]"},
           %{
-            image:
+            machines:
               Jason.encode!([
-                image("registry.fly.io/patchbay@sha256:" <> String.duplicate("cd", 32))
+                machine("registry.fly.io/patchbay@sha256:" <> String.duplicate("cd", 32))
               ])
           },
-          %{image: Jason.encode!([image("registry.fly.io/techtree-sh@deployment-01ABC")])}
+          %{machines: Jason.encode!([machine("registry.fly.io/techtree-sh@deployment-01ABC")])}
         ] do
       case_dir = Path.join(dir, Integer.to_string(:erlang.unique_integer([:positive])))
 
@@ -171,7 +180,7 @@ defmodule Techtree.DeploySiteScriptTest do
     other = "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ef", 32)
 
     assert {output, status} =
-             deploy(dir, %{image: Jason.encode!([image(@live), image(other), image(@live)])})
+             deploy(dir, %{machines: Jason.encode!([machine(@live), machine(other)])})
 
     assert status != 0
     assert output =~ "Refusing to deploy: the machines run different images"
@@ -180,9 +189,24 @@ defmodule Techtree.DeploySiteScriptTest do
   end
 
   test "machines on the same image deploy as one", %{tmp_dir: dir} do
-    assert {_output, 0} = deploy(dir, %{image: Jason.encode!([image(@live), image(@live)])})
+    assert {_output, 0} =
+             deploy(dir, %{machines: Jason.encode!([machine(@live), machine(@live)])})
+
     assert {:ok, deploys} = deployed(dir)
     assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+  end
+
+  # A deploy Fly refused at its release command leaves that helper machine
+  # behind, stopped, with the image that never went live.
+  test "a leftover release-command helper on another image does not stop the deploy",
+       %{tmp_dir: dir} do
+    other = "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ef", 32)
+    helper = machine(other, "fly_app_release_command", "stopped")
+
+    assert {_output, 0} = deploy(dir, %{machines: Jason.encode!([machine(@live), helper])})
+    assert {:ok, deploys} = deployed(dir)
+    assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+    refute deploys =~ other
   end
 
   # A 2 MB home page that names its script near the top: a search that stops at
