@@ -80,7 +80,7 @@ defmodule TechtreeWeb.PointsEntries do
   end
 
   defp once(%{"id" => id, "points" => points}, summary, open?) do
-    done = open? and Map.fetch!(summary.done, id).times >= 1
+    done = open? and Map.fetch!(summary.done, id) >= 1
 
     %{
       label: Rules.label(id),
@@ -105,7 +105,7 @@ defmodule TechtreeWeb.PointsEntries do
 
     case room do
       %{remaining: remaining} ->
-        done = Map.fetch!(summary.done, id).times
+        done = Map.fetch!(summary.done, id)
 
         %{
           item
