@@ -12,11 +12,12 @@ defmodule TechtreeWeb.WalletBenchGridTest do
   alias TechtreeWeb.WalletBenchCopy, as: Copy
 
   setup do
-    WalletBenchFixture.seed!()
-    %{attempts: WalletBench.list_attempts!(load: [:turns])}
+    tests = WalletBenchFixture.seed!()
+    %{tests: tests, attempts: WalletBench.list_attempts!(load: [:turns])}
   end
 
   test "the wallet grid: a row per agent asked the wallet question, every tool a column", %{
+    tests: tests,
     attempts: attempts
   } do
     grid = Copy.grid(attempts, :wallet)
@@ -38,7 +39,50 @@ defmodule TechtreeWeb.WalletBenchGridTest do
     assert Enum.all?(others, &(&1.overall == nil and &1.speed == nil))
     assert others == Enum.sort_by(others, & &1.agent)
 
-    assert [{:result, %{score: 10.0}}, :not_run, :not_run | _rest] = hermes.cells
+    # MoonPay's install did not work, so its wallet test never started.
+    failed_id = tests.failed.id
+
+    assert [{:result, %{score: 10.0}}, :not_run, {:install_not_passed, ^failed_id} | _rest] =
+             hermes.cells
+  end
+
+  test "only the newest attempt's install, over and not a pass, keeps a box from Not run", %{
+    tests: tests
+  } do
+    cases = WalletBenchFixture.seed_install_cases!()
+    attempts = WalletBench.list_attempts!(load: [:turns])
+    grid = Copy.grid(attempts, :wallet)
+    cells = fn agent -> Enum.find(grid.rows, &(&1.agent == agent)).cells end
+    passed_id = tests.passed.id
+    failed_id = tests.failed.id
+
+    # Bankr's newer install did not work, but its older wallet result stands;
+    # MoonPay's only install did not work; Zerion's newest attempt stopped
+    # before any test, so its older safety failure doesn't count.
+    assert [
+             {:result, %{attempt_id: ^passed_id, score: 10.0}},
+             :not_run,
+             {:install_not_passed, ^failed_id},
+             :not_run | _fixed
+           ] = cells.("Hermes Agent")
+
+    # Claude Code's MoonPay install is still on its retry; it has no other attempt.
+    assert [:not_run, :not_run, :not_run, :not_run | _fixed] = cells.("Claude Code")
+
+    # A box with no result adds nothing to its row's mean or time.
+    assert %{overall: 10.0, speed: 61.2} = Enum.find(grid.rows, &(&1.agent == "Hermes Agent"))
+    assert %{overall: nil} = Enum.find(grid.rows, &(&1.agent == "Claude Code"))
+
+    # The install grid has no such box: each pair shows its newest install result.
+    bankr_id = cases.bankr.id
+    zerion_id = cases.zerion_safety.id
+
+    assert [
+             {:result, %{attempt_id: ^bankr_id}},
+             :not_run,
+             {:result, %{attempt_id: ^failed_id}},
+             {:result, %{attempt_id: ^zerion_id, score: 2.0}} | _fixed
+           ] = Enum.find(Copy.grid(attempts, :install).rows, &(&1.agent == "Hermes Agent")).cells
   end
 
   test "the install grid takes the failed install's own count", %{attempts: attempts} do
@@ -131,9 +175,10 @@ defmodule TechtreeWeb.WalletBenchGridTest do
     grid = Copy.grid(attempts, :wallet)
     shown = Copy.with_results(grid)
 
-    assert Enum.map(shown.wallets, & &1.name) == ["Bankr"]
-    assert Enum.all?(shown.rows, &(length(&1.cells) == 1))
-    assert length(shown.set_aside) == length(grid.wallets) - 1
+    # MoonPay has no wallet result, but its install that did not pass keeps its column.
+    assert Enum.map(shown.wallets, & &1.name) == ["Bankr", "MoonPay"]
+    assert Enum.all?(shown.rows, &(length(&1.cells) == 2))
+    assert length(shown.set_aside) == length(grid.wallets) - 2
 
     for wallet <- grid.wallets, wallet.fixed do
       assert {wallet.name, wallet.fixed.reason} in shown.set_aside

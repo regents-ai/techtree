@@ -356,9 +356,12 @@ defmodule TechtreeWeb.WalletBenchCopy do
   @doc """
   The score grid for one test: a row for every agent that takes it, a column
   for every wallet tool, the tools that run first. Each cell is the pair's
-  newest result for the test (`{:result, ...}`), `:not_run` when it has none,
-  or `{:fixed, reason}` for a wallet tool that never runs. Each row carries its
-  agent's middle time for the test and its mean score out of 10; rows run from the
+  newest result for the test (`{:result, ...}`); on the wallet grid, with no
+  result, `{:install_not_passed, attempt_id}` when the pair's newest attempt
+  ended its install test without a pass (`install_not_passed?/1`), so its
+  wallet test never started; else `:not_run`; or `{:fixed, reason}` for a
+  wallet tool that never runs. Each row carries its agent's middle time for the
+  test and its mean score out of 10, from results only; rows run from the
   highest mean down, agents with no result last. Takes attempts newest first,
   with turns.
   """
@@ -385,17 +388,40 @@ defmodule TechtreeWeb.WalletBenchCopy do
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
       |> Map.new(fn {harness_id, times} -> {harness_id, middle(times)} end)
 
-    assemble(test, newest, speeds)
+    stopped =
+      for attempt <- Enum.uniq_by(attempts, &{&1.harness_id, &1.wallet_id}),
+          test == :wallet and install_not_passed?(attempt.turns),
+          into: %{},
+          do: {{attempt.harness_id, attempt.wallet_id}, attempt.id}
+
+    assemble(test, newest, speeds, stopped)
+  end
+
+  @doc """
+  Whether an attempt's install test is over without a pass, so its wallet test
+  never started: its last install turn is ruled on and the install result is
+  not a pass. Only a pass (`PASS`) goes on to the wallet test
+  (`Techtree.WalletBench.Turn.Changes.Advance`); a retry still to be ruled on,
+  or one that failed, is not over this way.
+  """
+  @spec install_not_passed?([map()]) :: boolean()
+  def install_not_passed?(turns) do
+    case List.last(grid_turns(turns, :install)) do
+      %{judgment: %{}} -> install_result(turns)["outcome"] != "PASS"
+      _unruled -> false
+    end
   end
 
   @doc """
   The score grid for one test from what it is made of: each pair's newest
-  ruling, `{attempt_id, ruling}` by `{harness_id, wallet_id}`, and each agent's
-  middle time by `harness_id`. `grid/2` and the scores feed
-  (`TechtreeWeb.WalletBenchScores`) both build the grid here.
+  ruling, `{attempt_id, ruling}` by `{harness_id, wallet_id}`; each agent's
+  middle time by `harness_id`; and the pairs whose newest attempt's install did
+  not pass, its `attempt_id` by `{harness_id, wallet_id}` (empty for the install
+  grid). `grid/2` and the scores feed (`TechtreeWeb.WalletBenchScores`) both
+  build the grid here.
   """
-  @spec assemble(grid_test(), map(), map()) :: %{wallets: [map()], rows: [map()]}
-  def assemble(test, newest, speeds) do
+  @spec assemble(grid_test(), map(), map(), map()) :: %{wallets: [map()], rows: [map()]}
+  def assemble(test, newest, speeds, stopped) do
     wallets =
       Catalog.wallet_ids()
       |> Enum.map(&Catalog.wallet!/1)
@@ -404,7 +430,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
     rows =
       for id <- Catalog.harness_ids(), first_turn(test) in Catalog.tests(id) do
         harness = Catalog.harness!(id)
-        cells = for wallet <- wallets, do: cell(newest, harness.id, wallet)
+        cells = for wallet <- wallets, do: cell(newest, stopped, harness.id, wallet)
         %{agent: harness.name, cells: cells, speed: speeds[harness.id], overall: overall(cells)}
       end
 
@@ -466,9 +492,9 @@ defmodule TechtreeWeb.WalletBenchCopy do
     ]
 
   @doc """
-  The grid with only the wallet tools some agent has a result for. The others
-  are in `set_aside`, each with why it has no column: its fixed reason, or
-  that it is not tested yet.
+  The grid with only the wallet tools some agent has a result for, or an
+  install that did not pass. The others are in `set_aside`, each with why it
+  has no column: its fixed reason, or that it is not tested yet.
   """
   @spec with_results(%{wallets: [map()], rows: [map()]}) :: %{
           wallets: [map()],
@@ -478,7 +504,7 @@ defmodule TechtreeWeb.WalletBenchCopy do
   def with_results(%{wallets: wallets, rows: rows}) do
     kept =
       for {_wallet, index} <- Enum.with_index(wallets),
-          Enum.any?(rows, &match?({:result, _}, Enum.at(&1.cells, index))),
+          Enum.any?(rows, &column?(Enum.at(&1.cells, index))),
           do: index
 
     %{
@@ -490,6 +516,10 @@ defmodule TechtreeWeb.WalletBenchCopy do
         end
     }
   end
+
+  defp column?({:result, _result}), do: true
+  defp column?({:install_not_passed, _attempt_id}), do: true
+  defp column?(_cell), do: false
 
   @doc "How many of the judge's checks a ruling met."
   @spec checks_met(map()) :: non_neg_integer()
@@ -540,10 +570,15 @@ defmodule TechtreeWeb.WalletBenchCopy do
 
   defp first_turn(test), do: hd(turn_tests(test))
 
-  defp cell(_newest, _harness_id, %{fixed: %{reason: reason}}), do: {:fixed, reason}
+  defp cell(_newest, _stopped, _harness_id, %{fixed: %{reason: reason}}), do: {:fixed, reason}
 
-  defp cell(newest, harness_id, %{id: wallet_id}) do
-    case newest[{harness_id, wallet_id}] do
+  defp cell(newest, stopped, harness_id, %{id: wallet_id}) do
+    pair = {harness_id, wallet_id}
+
+    case newest[pair] do
+      nil when is_map_key(stopped, pair) ->
+        {:install_not_passed, stopped[pair]}
+
       nil ->
         :not_run
 

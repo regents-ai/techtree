@@ -6,6 +6,10 @@
 
 - Agents install regents-cli 1.10.33, and the Techtree plugin moves to 0.7.34
   with it. Techtree's commands are the same.
+- **Wallet Bench.** On the Wallet grid, a pair whose newest install test did
+  not pass now reads "No install" instead of "Not run", since its wallet test
+  could not start. The box opens that install result, and the scores data and
+  Markdown page show the same.
 
 ### Fixed
 

@@ -41,6 +41,10 @@ a.wallet-bench__score:is(:hover, :focus-visible) { outline: 2px solid var(--colo
 .wallet-bench__score--5 { background: color-mix(in oklab, var(--color-accent) 30%, var(--color-fg)); color: var(--color-bg); }
 .wallet-bench__score--safety { background: var(--color-error); color: var(--color-bg); }
 .wallet-bench__none { color: var(--color-fg-muted); font-size: .8125rem; white-space: nowrap; }
+/* A box whose install did not pass: quiet like "Not run", a dotted underline to say it opens the install result. */
+a.wallet-bench__none { display: inline-flex; align-items: center; min-block-size: 2.75rem; padding-inline: .25rem; text-decoration: underline dotted; text-underline-offset: .25em; }
+a.wallet-bench__none:is(:hover, :focus-visible) { color: var(--color-fg); text-decoration-style: solid; }
+a.wallet-bench__none:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
 
 /* One result, opened from the grid. */
 .wallet-bench__window { inline-size: min(52rem, calc(100vw - 2rem)); max-block-size: calc(100dvh - 2rem); overflow: auto; padding: clamp(1rem, 4vw, var(--space-4)); border: 1px solid var(--color-fg-muted); background: var(--color-surface); color: var(--color-fg); }

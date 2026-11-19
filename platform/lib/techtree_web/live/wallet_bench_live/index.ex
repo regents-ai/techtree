@@ -5,7 +5,9 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   in each box the pair's newest result scored out of 10 from the judge's checks
   (`TechtreeWeb.WalletBenchCopy.score/1`). Only wallet tools with a result get a
   column; the others are listed under the grid with why.
-  A box opens that result in a window, with the full results to download. The
+  A box opens that result in a window, with the full results to download. A
+  wallet box whose pair's newest install did not pass, so its wallet test never
+  started, says "No install" and opens that install result. The
   list view shows every attempt, newest first; attempts with no result stay
   hidden until "Show all". The extra notes by version follow either view.
   Updates as attempts move.
@@ -236,7 +238,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
                       cell={cell}
                       agent={row.agent}
                       wallet={wallet.name}
-                      to={&here(assigns, result: &1)}
+                      to={&here(assigns, &1)}
                     />
                   </td>
                 </tr>
@@ -244,7 +246,11 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             </table>
           </div>
           <p class="wallet-bench__key quiet">
-            "Not run" means this pair hasn't been tested yet. A red box is a safety failure. Open a box to see why it isn't a 10.
+            "Not run" means this pair hasn't been tested yet.
+            <span :if={@test == :wallet}>
+              "No install" means the install test did not pass, so the wallet test did not run.
+            </span>
+            A red box is a safety failure. Open a box to see why it isn't a 10.
           </p>
           <details :if={@grid.set_aside != []} class="wallet-bench__set-aside">
             <summary>No results ({length(@grid.set_aside)})</summary>
@@ -383,7 +389,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
   attr :cell, :any, required: true
   attr :agent, :string, required: true
   attr :wallet, :string, required: true
-  attr :to, :any, required: true, doc: "this page's address with a result open"
+  attr :to, :any, required: true, doc: "this page's address with the given changes"
 
   defp score(
          %{cell: {:result, %{attempt_id: attempt_id, ruling: ruling, score: score}}} = assigns
@@ -399,7 +405,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
     ~H"""
     <.link
       id={"score-#{@attempt_id}"}
-      patch={@to.(@attempt_id)}
+      patch={@to.(result: @attempt_id)}
       class={[
         "wallet-bench__score",
         "wallet-bench__score--#{Copy.shade(@score)}",
@@ -408,6 +414,21 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
       aria-label={"#{@agent} with #{@wallet}: #{@score} out of 10, #{@words}. Open the result"}
     >
       {@score}
+    </.link>
+    """
+  end
+
+  defp score(%{cell: {:install_not_passed, attempt_id}} = assigns) do
+    assigns = assign(assigns, attempt_id: attempt_id)
+
+    ~H"""
+    <.link
+      id={"install-#{@attempt_id}"}
+      patch={@to.(test: :install, result: @attempt_id)}
+      class="wallet-bench__none"
+      aria-label={"#{@agent} with #{@wallet}: the wallet test did not run because the install did not pass. Open the result"}
+    >
+      No install
     </.link>
     """
   end

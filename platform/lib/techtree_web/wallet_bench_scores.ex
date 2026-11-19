@@ -4,7 +4,9 @@ defmodule TechtreeWeb.WalletBenchScores do
   to show: for each test, every agent's row with its middle time in seconds,
   its mean score and a cell per wallet tool. A cell is `"scored"`, with its
   score out of 10, the ruling in words and the address of its result window on
-  this site; `"not_tested"`; or `"cannot_run"`, with the reason.
+  this site; `"install_not_passed"`, with the address of the install result
+  that kept the wallet test from starting (wallet test only); `"not_tested"`;
+  or `"cannot_run"`, with the reason.
 
   Postgres works out what the grids need, each pair's newest ruling and each
   agent's middle time, so a read returns one row per pair and agent however
@@ -39,6 +41,20 @@ defmodule TechtreeWeb.WalletBenchScores do
   SELECT DISTINCT ON (harness_id, wallet_id) harness_id, wallet_id, attempt_id, judgment
   FROM ruled
   ORDER BY harness_id, wallet_id, attempt_at DESC
+  """
+
+  # Each pair's newest attempt's install turns, oldest first, for
+  # WalletBenchCopy.install_not_passed?/1 (as grid/2 reads them).
+  @newest_install """
+  SELECT n.harness_id, n.wallet_id, n.id, t.test, t.judgment
+  FROM (
+    SELECT DISTINCT ON (harness_id, wallet_id) id, harness_id, wallet_id
+    FROM wallet_bench_attempts
+    ORDER BY harness_id, wallet_id, inserted_at DESC
+  ) n
+  JOIN wallet_bench_turns t ON t.attempt_id = n.id
+  WHERE t.test = ANY($1)
+  ORDER BY t.inserted_at
   """
 
   # The middle of each agent's judged times for a test, the later of the two
@@ -81,7 +97,7 @@ defmodule TechtreeWeb.WalletBenchScores do
   defp feed do
     grids =
       for {name, test} <- Copy.grid_tests(),
-          do: {name, test, Copy.assemble(test, newest(name), speeds(name))}
+          do: {name, test, Copy.assemble(test, newest(name), speeds(name), stopped(test))}
 
     %{
       page: url(~p"/wallet-bench"),
@@ -108,6 +124,25 @@ defmodule TechtreeWeb.WalletBenchScores do
         do: {{harness_id, wallet_id}, {Ecto.UUID.cast!(attempt_id), judgment}}
   end
 
+  # The pairs whose newest attempt's install did not pass, so their wallet test never started.
+  defp stopped(:install), do: %{}
+
+  defp stopped(:wallet) do
+    for {{pair, attempt_id}, turns} <-
+          Repo.query!(@newest_install, [@groups["install"]]).rows
+          |> Enum.group_by(
+            fn [harness_id, wallet_id, attempt_id, _test, _judgment] ->
+              {{harness_id, wallet_id}, Ecto.UUID.cast!(attempt_id)}
+            end,
+            fn [_harness_id, _wallet_id, _attempt_id, test, judgment] ->
+              %{test: String.to_existing_atom(test), judgment: judgment}
+            end
+          ),
+        Copy.install_not_passed?(turns),
+        into: %{},
+        do: {pair, attempt_id}
+  end
+
   defp speeds(name) do
     for [harness_id, seconds] <- Repo.query!(@speeds, [@groups[name]]).rows,
         into: %{},
@@ -130,6 +165,13 @@ defmodule TechtreeWeb.WalletBenchScores do
       score: score,
       outcome: Copy.outcome(ruling),
       result: url(~p"/wallet-bench?#{[test: test, result: attempt_id]}")
+    }
+
+  defp cell({:install_not_passed, attempt_id}, wallet, _test),
+    do: %{
+      wallet_tool: wallet.name,
+      state: "install_not_passed",
+      result: url(~p"/wallet-bench?#{[test: "install", result: attempt_id]}")
     }
 
   defp cell(:not_run, wallet, _test), do: %{wallet_tool: wallet.name, state: "not_tested"}

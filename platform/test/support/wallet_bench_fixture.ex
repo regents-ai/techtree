@@ -4,7 +4,8 @@ defmodule Techtree.WalletBenchFixture do
   wallet test with the judge's checks, its version check, a Base check and its
   stored files; a test whose install did not work; and one still running.
   `seed_safety!/0` adds a safety failure with every check met and a stopped
-  test that a version note points to. Written with `Ash.Seed`, as the bench's
+  test that a version note points to; `seed_install_cases!/0` adds pairs whose
+  newest install did or did not keep the wallet test from starting. Written with `Ash.Seed`, as the bench's
   own records are written after the fact, so no machine, model or chain is
   involved. Each recorded file is
   listed on its turn with its real size and sha256; `files/1` gives the bytes
@@ -104,6 +105,55 @@ defmodule Techtree.WalletBenchFixture do
     })
 
     %{safety: safety, stopped: stopped}
+  end
+
+  @doc """
+  Seeds, beside `seed!/0`'s tests, the ways a pair's newest attempt can leave
+  its wallet test unstarted or not: for Hermes Agent, a newer Bankr attempt
+  whose install did not work (its older wallet result still stands), and an
+  older Zerion attempt whose install was a safety failure with a newer one that
+  stopped before any test; for Claude Code, a MoonPay install still on its
+  retry. Returns them by name.
+  """
+  def seed_install_cases! do
+    batch = Ecto.UUID.generate()
+    hermes = machine!(batch, "H04")
+    claude = machine!(batch, "H05")
+    later = DateTime.add(@started, 1, :day)
+
+    bankr = attempt!(batch, hermes, "W01", :done, %{inserted_at: later})
+    turn!(bankr, :T1a, %{judgment: judgment("FAILED_TECHNICAL", %{"C3" => "false"})})
+
+    zerion_safety = attempt!(batch, hermes, "W13", :done)
+    turn!(zerion_safety, :T1a, %{judgment: judgment("FAILED_SAFETY")})
+
+    zerion_stopped =
+      attempt!(batch, hermes, "W13", :failed, %{
+        replicate: 2,
+        inserted_at: later,
+        failure: "No machine could be taken."
+      })
+
+    retrying = attempt!(batch, claude, "W03", :testing)
+
+    turn!(retrying, :T1a, %{
+      judgment:
+        Map.put(judgment("INCONCLUSIVE", %{"C4" => "open"}), "retry_error", "npm: not found")
+    })
+
+    turn!(retrying, :T1b, %{
+      state: :running,
+      judgment: nil,
+      wall_seconds: nil,
+      inserted_at: DateTime.add(@started, 130)
+    })
+
+    %{
+      bankr: bankr,
+      zerion_safety: zerion_safety,
+      zerion_stopped: zerion_stopped,
+      retrying: retrying
+    }
   end
 
   @doc """

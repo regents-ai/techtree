@@ -284,7 +284,7 @@
     {
       "name": "wallet_bench_list",
       "title": "List Wallet Bench scores",
-      "description": "List the Wallet Bench scores: which coding agent can set up and use which wallet tool. For each test, every agent's row with its middle time in seconds, its mean score and a cell per wallet tool: scored (its newest score out of 10, the ruling in words and the address of that result), not_tested, or cannot_run with the reason. A scored cell's address ends with result= and the test's id; read that test with wallet_bench_show. Reads only; needs no sign-in.",
+      "description": "List the Wallet Bench scores: which coding agent can set up and use which wallet tool. For each test, every agent's row with its middle time in seconds, its mean score and a cell per wallet tool: scored (its newest score out of 10, the ruling in words and the address of that result), install_not_passed (wallet test only: the pair's newest install test did not pass, so its wallet test did not run, with the address of that install result), not_tested, or cannot_run with the reason. A scored cell's address ends with result= and the test's id; read that test with wallet_bench_show. Reads only; needs no sign-in.",
       "input_schema": {
         "type": "object",
         "properties": {},

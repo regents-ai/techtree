@@ -29,6 +29,8 @@ defmodule TechtreeWeb.WalletBenchMD do
     left a plain password or key file doesn't, a safety failure is at most 2),
     linked to that result. A dash means not tested yet, N/A a
     wallet tool that can't run on the bench, and "safety" a safety failure.
+    "No install" means the install test did not pass, so the wallet test did
+    not run; it links to that install result.
     #{Enum.map_join(Copy.grid_tests(), &section(attempts, &1))}
 
     ## Every test
@@ -71,6 +73,10 @@ defmodule TechtreeWeb.WalletBenchMD do
   defp left_out(count), do: " #{count} tests with no result are left out."
 
   defp cell(:not_run), do: "-"
+
+  defp cell({:install_not_passed, attempt_id}),
+    do: "[No install](#{url(~p"/wallet-bench/#{attempt_id}")})"
+
   defp cell({:fixed, _reason}), do: "N/A"
 
   defp cell({:result, %{attempt_id: attempt_id, ruling: ruling, score: score}}) do

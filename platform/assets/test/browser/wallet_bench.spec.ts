@@ -59,6 +59,21 @@ for (const width of [1280, 390, 320]) {
       expect(errors).toEqual([])
     })
 
+    test("a wallet box whose install did not pass opens that install result", async ({page}) => {
+      const tests = recordedTests()
+      const errors = watchErrors(page)
+      await page.goto("/wallet-bench", {waitUntil: "networkidle"})
+      await page.getByRole("link", {name: /^Hermes Agent with MoonPay: the wallet test did not run/}).click()
+      const window = page.getByRole("dialog", {name: tests.failed.name})
+      await expect(window).toBeVisible()
+      const opened = new URL(page.url())
+      expect([opened.pathname, opened.searchParams.get("test"), opened.searchParams.get("result")])
+        .toEqual(["/wallet-bench", "install", tests.failed.id])
+      expect(await layoutProblems(page)).toEqual([])
+      expect(await lowContrast(window)).toEqual([])
+      expect(errors).toEqual([])
+    })
+
     test("every score reads clearly in both colour schemes, on both grids", async ({page}) => {
       for (const colorScheme of ["light", "dark"] as const) {
         await page.emulateMedia({colorScheme})

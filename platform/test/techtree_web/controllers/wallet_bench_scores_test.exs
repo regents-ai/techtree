@@ -64,6 +64,40 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
     assert Enum.any?(install["rows"], &(&1["agent"] == "Cline"))
   end
 
+  test "a wallet box whose newest install did not pass links to that install result", %{
+    conn: conn,
+    tests: tests
+  } do
+    WalletBenchFixture.seed_install_cases!()
+    body = conn |> get(~p"/wallet-bench.json") |> json_response(200)
+    [%{"test" => "wallet"} = wallet, %{"test" => "install"} = install] = body["tests"]
+    agent = fn grid, name -> Enum.find(grid["rows"], &(&1["agent"] == name)) end
+
+    assert [bankr, foundry, moonpay, zerion | _fixed] = agent.(wallet, "Hermes Agent")["cells"]
+
+    # The older wallet result stands over a newer install that did not work.
+    assert %{"state" => "scored", "score" => 10.0} = bankr
+    assert foundry["state"] == "not_tested"
+
+    assert moonpay == %{
+             "wallet_tool" => "MoonPay",
+             "state" => "install_not_passed",
+             "result" => url(~p"/wallet-bench?#{[test: "install", result: tests.failed.id]}")
+           }
+
+    # Its newest attempt stopped before any test; the older install doesn't count.
+    assert zerion["state"] == "not_tested"
+    assert %{"overall" => 10.0, "seconds" => 61} = agent.(wallet, "Hermes Agent")
+
+    # An install still on its retry, and a pair never tried, are not tested.
+    assert agent.(wallet, "Claude Code")["cells"] |> Enum.take(4) |> Enum.map(& &1["state"]) ==
+             ~w(not_tested not_tested not_tested not_tested)
+
+    refute Enum.any?(install["rows"], fn row ->
+             Enum.any?(row["cells"], &(&1["state"] == "install_not_passed"))
+           end)
+  end
+
   test "a flagged pass that met every check is a 9.0, and the feed says why", %{
     conn: conn,
     tests: tests
@@ -90,6 +124,8 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
   # The page and the feed build their grids from the same pieces; Postgres's
   # answer must be the page's own.
   test "the feed's grids are the page's grids" do
+    WalletBenchFixture.seed_install_cases!()
+
     # An install that was retried after a safety failure: the failure stands.
     machine = Techtree.WalletBench.Machine |> Ash.read!(authorize?: false) |> hd()
 
@@ -168,6 +204,7 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
   end
 
   defp cell({:result, %{score: score}}), do: score
+  defp cell({:install_not_passed, _attempt_id}), do: "install_not_passed"
   defp cell(:not_run), do: "not_tested"
   defp cell({:fixed, _reason}), do: "cannot_run"
 
@@ -189,8 +226,9 @@ defmodule TechtreeWeb.WalletBenchScoresTest do
     for _reader <- 1..3, do: assert(conn |> get(~p"/wallet-bench.json") |> json_response(200))
 
     reads = Stream.repeatedly(fn -> receive do: (:read -> 1), after: (0 -> nil) end)
-    # Two tests, each with its newest rulings and its middle times.
-    assert reads |> Enum.take_while(& &1) |> Enum.sum() == 4
+    # Two tests, each with its newest rulings and its middle times, and the
+    # wallet test's newest installs.
+    assert reads |> Enum.take_while(& &1) |> Enum.sum() == 5
   end
 
   # Regression (v171): the live database keeps the bench's tables in the site's

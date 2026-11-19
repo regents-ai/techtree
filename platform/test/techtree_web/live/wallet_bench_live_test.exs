@@ -91,6 +91,21 @@ defmodule TechtreeWeb.WalletBenchLiveTest do
       refute has_element?(wallet, "th[scope=row]", "Cline")
     end
 
+    test "a wallet box whose install did not pass opens that install result", %{
+      conn: conn,
+      tests: tests
+    } do
+      {:ok, live, _html} = live(conn, ~p"/wallet-bench")
+
+      box =
+        ~s|a[aria-label="Hermes Agent with MoonPay: the wallet test did not run because the install did not pass. Open the result"]|
+
+      live |> element(box) |> render_click()
+      assert_patch(live, ~p"/wallet-bench?#{[test: "install", result: tests.failed.id]}")
+      assert has_element?(live, "dialog h2", "Hermes Agent × MoonPay")
+      assert has_element?(live, "dialog .wallet-bench__verdict", "Install: 8.2 out of 10.")
+    end
+
     test "a result opened by its address shows on load", %{conn: conn, tests: tests} do
       {:ok, live, _html} =
         live(conn, ~p"/wallet-bench?#{[test: "install", result: tests.failed.id]}")
