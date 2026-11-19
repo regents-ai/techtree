@@ -112,11 +112,11 @@ defmodule Techtree.MixProject do
       # Test too: precommit runs in the test environment and checks the AGENTS.md block.
       {:usage_rules, "~> 1.3", only: [:dev, :test], runtime: false},
       {:ash_phoenix, "~> 2.3.26"},
-      # ash_postgres main with #910 until a Hex release carries it: upserts use the
+      # ash_postgres 2.16.0 by its git tag, which carries #910: upserts use the
       # repo's prefix, which picks each site's schema on the shared database.
       {:ash_postgres,
        git: "https://github.com/ash-project/ash_postgres.git",
-       ref: "55db7d449aad351d200c5f300fca2a83e0a8734c",
+       ref: "e36aa20a9f000f3f3bd89b0816fa9460156cb13c",
        override: true},
       {:ash, "~> 3.37"},
       {:ash_oban, "~> 0.10.3"},
