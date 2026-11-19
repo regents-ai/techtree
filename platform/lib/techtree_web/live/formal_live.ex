@@ -248,13 +248,13 @@ defmodule TechtreeWeb.FormalLive do
           <div>
             <dt>Found</dt>
             <dd>
-              Two ways past the total. If the database ran at repeatable read, three tests could each keep a payment against a total of two; a test on Postgres shows the same, and Techtree runs at read committed. And a Base server that is behind could make a lost payment look replaced, freeing room past the total; Techtree now reads Base at its finalized block, and the model was checked again.
+              Two ways past the total. If the database ran at repeatable read, three tests could each keep a payment against a total of two, so Techtree runs at read committed. And a Base server that is behind could make a lost payment look replaced, freeing room past the total; Techtree now reads Base at its finalized block, and the model was checked again.
             </dd>
           </div>
           <div>
             <dt>Code</dt>
             <dd>
-              The proof covers the design, not the code. A test on Postgres and tests against a stand-in Base server tie the two together.
+              The proof covers the design, not the code.
             </dd>
           </div>
         </dl>
