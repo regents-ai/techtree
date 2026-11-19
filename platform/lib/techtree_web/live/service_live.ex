@@ -42,7 +42,7 @@ defmodule TechtreeWeb.ServiceLive do
   # What the page says about money beyond the price level and the terms:
   # nothing more.
   @quoted "Quoted on a call."
-  @tools_line "Open-source libraries for your project, each named with its maker."
+  @tools_line "Open-source libraries and hosted services for your project, each named with its maker."
 
   @impl true
   def mount(_params, _session, socket) do
