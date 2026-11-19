@@ -31,7 +31,8 @@ defmodule Techtree.WalletBench.Turn do
     notifiers: [Ash.Notifier.PubSub]
 
   alias Techtree.WalletBench.Attempt.Changes.RecordEvent
-  alias Techtree.WalletBench.{Catalog, Machine}
+  alias Techtree.WalletBench.{Catalog, Failure}
+  alias Techtree.WalletBench.Changes.KeepErrors
 
   alias Techtree.WalletBench.Turn.Changes.{
     Advance,
@@ -59,7 +60,8 @@ defmodule Techtree.WalletBench.Turn do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -74,7 +76,8 @@ defmodule Techtree.WalletBench.Turn do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -92,7 +95,8 @@ defmodule Techtree.WalletBench.Turn do
         backoff fn %Oban.Job{attempt: attempt} -> 30 * Integer.pow(2, attempt) end
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -180,7 +184,7 @@ defmodule Techtree.WalletBench.Turn do
       change set_attribute(:state, :failed)
 
       change fn changeset, _context ->
-        message = changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error()
+        message = Failure.give_up(changeset)
 
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
@@ -211,6 +215,10 @@ defmodule Techtree.WalletBench.Turn do
     prefix "wallet_bench"
     publish_all :create, ["attempts", :attempt_id]
     publish_all :update, ["attempts", :attempt_id]
+  end
+
+  changes do
+    change KeepErrors
   end
 
   attributes do

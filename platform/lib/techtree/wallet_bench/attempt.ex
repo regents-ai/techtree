@@ -47,7 +47,8 @@ defmodule Techtree.WalletBench.Attempt do
     SignFunding
   }
 
-  alias Techtree.WalletBench.{Catalog, Machine}
+  alias Techtree.WalletBench.{Catalog, Failure, Machine}
+  alias Techtree.WalletBench.Changes.KeepErrors
 
   postgres do
     table "wallet_bench_attempts"
@@ -67,7 +68,8 @@ defmodule Techtree.WalletBench.Attempt do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -82,7 +84,8 @@ defmodule Techtree.WalletBench.Attempt do
         max_attempts(5)
         on_error(:stop)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -97,7 +100,8 @@ defmodule Techtree.WalletBench.Attempt do
         max_attempts(3)
         on_error(:funding_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -112,7 +116,8 @@ defmodule Techtree.WalletBench.Attempt do
         max_attempts(10)
         on_error(:sending_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -127,7 +132,8 @@ defmodule Techtree.WalletBench.Attempt do
         max_attempts(5)
         on_error(:revoke_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -241,9 +247,7 @@ defmodule Techtree.WalletBench.Attempt do
       change set_attribute(:state, :revoking)
 
       change fn changeset, _context ->
-        message =
-          "The bench could not sign the funding: " <>
-            (changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error())
+        message = Failure.give_up(changeset)
 
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
@@ -275,9 +279,7 @@ defmodule Techtree.WalletBench.Attempt do
       change set_attribute(:state, :revoking)
 
       change fn changeset, _context ->
-        message =
-          "The funding sends' receipts could not be read, so their outcome is unknown and funding is paused: " <>
-            (changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error())
+        message = Failure.give_up(changeset)
 
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
@@ -333,7 +335,7 @@ defmodule Techtree.WalletBench.Attempt do
       change set_attribute(:state, :revoking)
 
       change fn changeset, _context ->
-        message = changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error()
+        message = Failure.give_up(changeset)
 
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
@@ -367,9 +369,7 @@ defmodule Techtree.WalletBench.Attempt do
       change set_attribute(:state, :failed)
 
       change fn changeset, _context ->
-        message =
-          "The model key could not be confirmed removed, so the machine is being deleted: " <>
-            (changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error())
+        message = Failure.give_up(changeset)
 
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
@@ -388,7 +388,7 @@ defmodule Techtree.WalletBench.Attempt do
       change set_attribute(:state, :failed)
 
       change fn changeset, _context ->
-        message = changeset |> Ash.Changeset.get_argument(:error) |> Machine.describe_error()
+        message = Failure.give_up(changeset)
 
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
@@ -441,6 +441,10 @@ defmodule Techtree.WalletBench.Attempt do
     prefix "wallet_bench"
     publish_all :create, ["attempts"]
     publish_all :update, ["attempts"]
+  end
+
+  changes do
+    change KeepErrors
   end
 
   attributes do

@@ -29,7 +29,8 @@ defmodule Techtree.WalletBench.Machine do
     authorizers: [Ash.Policy.Authorizer],
     extensions: [AshOban]
 
-  alias Techtree.WalletBench.{Blank, Catalog}
+  alias Techtree.WalletBench.{Catalog, Failure}
+  alias Techtree.WalletBench.Changes.KeepErrors
 
   alias Techtree.WalletBench.Machine.Changes.{
     BuildBaseline,
@@ -56,7 +57,8 @@ defmodule Techtree.WalletBench.Machine do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -71,7 +73,8 @@ defmodule Techtree.WalletBench.Machine do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -86,7 +89,8 @@ defmodule Techtree.WalletBench.Machine do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -101,7 +105,8 @@ defmodule Techtree.WalletBench.Machine do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -116,7 +121,8 @@ defmodule Techtree.WalletBench.Machine do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -131,7 +137,8 @@ defmodule Techtree.WalletBench.Machine do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -146,7 +153,8 @@ defmodule Techtree.WalletBench.Machine do
         max_attempts(5)
         on_error(:mark_failed)
         on_error_fails_job?(true)
-        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure), not raw text.
+        # A job that gives up logs one safe line (TechtreeWeb.UnexpectedFailure) and its
+        # error's blanked text (Techtree.WalletBench.Failure), never AshOban's raw report.
         log_errors?(false)
         log_final_error?(false)
         lock_for_update?(false)
@@ -269,7 +277,7 @@ defmodule Techtree.WalletBench.Machine do
       change set_attribute(:state, :failed)
 
       change fn changeset, _context ->
-        message = changeset |> Ash.Changeset.get_argument(:error) |> describe_error()
+        message = Failure.give_up(changeset)
 
         changeset
         |> Ash.Changeset.force_change_attribute(:failure, message)
@@ -315,6 +323,10 @@ defmodule Techtree.WalletBench.Machine do
     policy action_type([:create, :update, :destroy, :action]) do
       forbid_if always()
     end
+  end
+
+  changes do
+    change KeepErrors
   end
 
   attributes do
@@ -382,17 +394,4 @@ defmodule Techtree.WalletBench.Machine do
   identities do
     identity :unique_name, [:name]
   end
-
-  @doc """
-  A failed step's error, as public text: blanked of secret patterns
-  (`Techtree.WalletBench.Blank`), since it can carry a command's output, and cut
-  to 2,000 characters.
-  """
-  @spec describe_error(term()) :: String.t()
-  def describe_error(error),
-    do: error |> error_text() |> Blank.blank(Blank.site_known()) |> String.slice(0, 2000)
-
-  defp error_text(error) when is_binary(error), do: error
-  defp error_text(%{__exception__: true} = error), do: Exception.message(error)
-  defp error_text(error), do: inspect(error)
 end

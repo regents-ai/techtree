@@ -1,5 +1,14 @@
 # Changelog
 
+## Website (2026-11-19)
+
+### Fixed
+
+- **Wallet Bench.** When a test stops because one of its steps could not go
+  on, its page and its downloaded record now say why in plain words, such as
+  "The judge's model provider refused the bench's access, so this test was
+  not judged." They used to show the bench's internal error text.
+
 ## Website (2026-11-18)
 
 ### Added

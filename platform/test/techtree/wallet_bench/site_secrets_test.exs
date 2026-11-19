@@ -28,10 +28,15 @@ defmodule Techtree.WalletBench.SiteSecretsTest do
 
   test "stored failure text never keeps the site's own keys" do
     text =
-      Machine.describe_error(
-        "failed with plainmodelvalue42, plainbankrvalue42 and plainspritesvalue42"
+      %Machine{state: :created, name: "wb-test-secrets", harness_id: "H05"}
+      |> Ash.Changeset.for_update(
+        :mark_failed,
+        %{error: "failed with plainmodelvalue42, plainbankrvalue42 and plainspritesvalue42"},
+        authorize?: false
       )
+      |> Ash.Changeset.get_attribute(:failure)
 
+    assert text =~ "failed with"
     refute text =~ "plainmodelvalue42"
     refute text =~ "plainbankrvalue42"
     refute text =~ "plainspritesvalue42"
