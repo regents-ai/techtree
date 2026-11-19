@@ -30,7 +30,10 @@ config :techtree, :metrics_listener, ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 9091
 # Points runs on one calendar for every Regents site, from this moment (Sean,
 # 13 November). It is set once and never moved: seasons, bonuses and corrections
 # count from it.
-config :regent_points, starts_at: ~U[2026-11-16 17:00:00Z]
+# Earning is on here only: the five account awards, nothing in development or tests.
+config :regent_points,
+  starts_at: ~U[2026-11-16 17:00:00Z],
+  approved_rules: ~w(account.activated social.x social.github social.farcaster agent.activated)
 
 # Do not print debug messages in production
 config :logger, level: :info

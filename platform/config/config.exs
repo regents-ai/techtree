@@ -15,7 +15,7 @@ config :regent_points,
   chain_client: Techtree.ChainClient,
   program_id: "regents-points-v1",
   starts_at: nil,
-  approved_rules: ~w(account.activated social.x social.github social.farcaster agent.activated),
+  approved_rules: [],
   adapters: %{
     "account.activated" => Techtree.Points.AccountActivated,
     "agent.activated" => Techtree.Points.PairedAgent,
