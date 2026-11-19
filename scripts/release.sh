@@ -12,10 +12,11 @@
 # registry, signing Docker in to it first.
 #
 # The smoke check starts the image, in the staging role, against a throwaway
-# PostgreSQL 17 named as the staging database on its own Docker network, and
-# removes both afterwards. It prepares that empty database with the release's
-# bootstrap-staging command, runs the release's migrate command against it,
-# imports the catalog snapshot this tree added last on the
+# PostgreSQL, at the version platform/.tool-versions names, named as the staging
+# database on its own Docker network, and removes both afterwards. It prepares
+# that empty database with the release's bootstrap-staging command, runs the
+# release's migrate command against it, imports the catalog snapshot this tree
+# added last on the
 # stable channel, as production does, starts the server, and checks the health
 # endpoint, the commit and image /capabilities.json names, the catalog served,
 # the home page, a built stylesheet, the one JSON visit line the home page's
@@ -33,6 +34,9 @@ run="techtree-smoke-$$"
 context="$(mktemp -d)"
 database_url="postgres://smoke:smoke@regents-staging-db.internal/techtree_smoke"
 catalog="$(git log -1 --no-renames --diff-filter=A --name-only --format= "$commit" -- platform/priv/catalog/sources | head -n 1 | cut -d/ -f5)"
+# The throwaway database is the PostgreSQL version platform/.tool-versions names.
+postgres="$(awk '$1 == "postgres" { print $2 }' platform/.tool-versions)"
+[[ -n $postgres ]] || { echo "platform/.tool-versions names no postgres version." >&2; exit 1; }
 
 cleanup() {
   status=$?
@@ -94,8 +98,11 @@ docker run --detach --name "$run-db" --network "$run" \
   --network-alias regents-staging-db.internal \
   --env POSTGRES_USER=smoke --env POSTGRES_DB=techtree_smoke \
   --env POSTGRES_HOST_AUTH_METHOD=trust \
-  docker.io/library/postgres:17 >/dev/null
+  "docker.io/library/postgres:$postgres" >/dev/null
 wait_for "the database" docker exec "$run-db" pg_isready --quiet --host 127.0.0.1 --username smoke
+server_version="$(docker exec "$run-db" psql --username smoke --dbname techtree_smoke --tuples-only --no-align --command 'SHOW server_version')"
+# The answer is the version, then the build's own note, such as "17.12 (Debian 17.12-1.pgdg13+1)".
+[[ ${server_version%% *} == "$postgres" ]] || fail "the throwaway database is PostgreSQL $server_version, not $postgres"
 
 release_env=(
   --network "$run"
@@ -174,4 +181,4 @@ echo "  capabilities    $base/capabilities.json names commit $commit, image $ima
 echo "  catalog served  $served_catalog"
 echo "  static asset    $stylesheet answered $stylesheet_answer"
 echo "  visit line      the home page's request wrote one JSON line"
-echo "  database        the running server queried $connected_database"
+echo "  database        the running server queried $connected_database on PostgreSQL $server_version"

@@ -19,8 +19,8 @@ ARG PREVIOUS_IMAGE
 FROM docker.io/library/gcc@sha256:07280eb2e744f1b7a2d8d4a3894c089ea07266c109758afc388a634bd098e4eb AS native
 # hexpm/elixir:1.20.5-erlang-29.1.2-debian-trixie-20261027-slim
 FROM docker.io/hexpm/elixir@sha256:bb266918bb26de22fb02ff19430f47e76331001601df0fc820806c21cd4164e0 AS elixir
-# node:26.13.0-trixie-slim
-FROM docker.io/library/node@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39 AS node
+# node:26.13.1-trixie-slim
+FROM docker.io/library/node@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS node
 # debian:trixie-20261027-slim
 FROM docker.io/library/debian@sha256:f6b08b09a05725f9431502d3b5714f5c4576e82c1a84fa1debe0c24a7e0c3ec4 AS slim
 

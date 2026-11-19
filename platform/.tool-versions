@@ -1,4 +1,4 @@
 erlang 29.1.2
 elixir 1.20.5-otp-29
-nodejs 26.13.0
-postgres 17.7
+nodejs 26.13.1
+postgres 17.12
