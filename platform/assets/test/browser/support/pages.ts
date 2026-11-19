@@ -3,7 +3,7 @@
 // open these; pages that depend on what a database or a folder of reports holds
 // are added by each.
 export const publicPages = ["/", "/docs", "/docs/run-locally", "/docs/install", "/docs/test-a-skill", "/docs/api",
-  "/docs/verify", "/results", "/wallet-bench", "/changelog", "/examples/tdd",
+  "/docs/verify", "/docs/factory", "/results", "/wallet-bench", "/changelog", "/examples/tdd",
   "/services/skills", "/services/evals", "/services/environments", "/services/models", "/services/security",
   "/services/security/sample-report", "/services/swarm-verify", "/formal", "/account", "/account/agents", "/agents", "/agents/hermes",
   "/about", "/privacy", "/terms"]

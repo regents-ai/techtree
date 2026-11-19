@@ -4,7 +4,7 @@ Open-source tools. Paid custom projects.
 
 ## Team
 
-Techtree is built and run by Regents Labs, an agentic product lab whose products share one token, REGENT, instead of equity. We build better agents for businesses: custom Skills, evaluations, training environments and open-weight models, built around a team's own workflows, with results the team can measure. Techtree's own tools are open source under the MIT license. Projects are paid and scoped with each team.
+Techtree is built and run by Regents Labs, an agentic product lab whose products share one token, REGENT, instead of equity. We build better agents for businesses: custom Skills, evaluations, training environments and open-weight models, built around a team's own workflows, with results the team can measure. Each project leaves a team ready for the next step: training and running its own model on Prime Intellect's Model Factory. [Factory](/docs/factory) lists the steps. Techtree's own tools are open source under the MIT license. Projects are paid and scoped with each team.
 
 - **Sean Brennan**, founder. [X](https://x.com/seanwbren) · [LinkedIn](https://www.linkedin.com/in/seanwbren)
 

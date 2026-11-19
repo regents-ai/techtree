@@ -2,7 +2,9 @@
 
 A smaller model for the work you repeat. Techtree tests your current AI workflow,
 builds a specialist, and measures the difference on cases it never saw. You keep the
-model, the evaluation and the evidence behind the decision.
+model, the evaluation and the evidence behind the decision. The training plan is a
+prime-rl configuration, so it runs on Prime Intellect's hosted training or on a
+[Model Factory](https://www.primeintellect.ai/model-factory) of your own.
 
 [techtree.sh/services/models](https://techtree.sh/services/models)
 
@@ -20,8 +22,9 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 4. **Baseline** (Tested): We measure the small model and your current model with
    Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers)
    before any training.
-5. **Plan** (Tested): We write a training plan in prime-rl's format, with its cost.
-   Training starts after you approve the plan and budget.
+5. **Plan** (Tested): We write a training plan as a prime-rl configuration, the file
+   Prime Intellect's hosted training runs, with its cost. Training starts after you
+   approve the plan and budget.
 6. **Training** (Planned): Prime Intellect's
    [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) trains the model on your
    accepted examples first. When the project calls for it, training continues with
@@ -61,6 +64,7 @@ Tested: we have run it ourselves. Planned: part of the design, not yet run.
 | Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | Holds the tasks that training and the final test share. | MIT | Tested |
 | NVIDIA's [Nemotron](https://www.nvidia.com/en-us/ai-data-science/foundation-models/nemotron/) | Open models, with weights and training data published on Hugging Face, that a small specialist can start from. | See each model's card | Tested |
 | Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Trains the model on your accepted examples, then with reinforcement learning on the same Verifiers environments the test uses, using task scores as feedback. | Apache-2.0 | Planned |
+| Prime Intellect's [Model Factory](https://www.primeintellect.ai/model-factory) | Trains, serves and improves a model you own, on hosted machines or a dedicated cluster. | Hosted service | Planned |
 | NVIDIA's [NemoClaw](https://github.com/NVIDIA/NemoClaw) | Optional, when a project needs it: runs supported agents inside OpenShell, under the network rules you set. | Apache-2.0 | Planned |
 
 ## Run it
@@ -87,6 +91,8 @@ the last. It only writes the file. No training run starts from this repository.
   level we agree. The one-time training cost is shown separately.
 - Training starts on your accepted examples. Reinforcement learning comes next, once
   we have checked the scoring.
+- Once the model is in service, real use shows where it falls short. We can turn
+  those failures into new tasks and rerun the same test on each new version.
 - Results from our own runs are labelled a Techtree-run evaluation, not an
   independent audit.
 

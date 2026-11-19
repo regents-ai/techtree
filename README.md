@@ -18,9 +18,9 @@ Open-source tools. Paid custom projects.
 Techtree is an independent company. We help teams adopt what NVIDIA, Prime Intellect
 and others publish in the open, and we take on the smaller engagements: one Skill,
 one eval suite, one environment or one specialist model. When a team needs training
-at scale, we hand it an environment and an eval we have already checked, built to
-run on those makers' own tools. We have no agreement with any of these companies and
-do not speak for them.
+at scale, we hand it a test, an environment and a training plan we have already
+checked, built to run on Prime Intellect's Model Factory and those makers' own tools.
+We have no agreement with any of these companies and do not speak for them.
 
 ## Services
 
@@ -96,6 +96,7 @@ it (from its own documentation), and what it gives you.
 | --- | --- | --- | --- | --- | --- |
 | Prime Intellect's [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) | All four | Defines tasks, runs them and scores them. | One environment serves both evaluation and training, and it works with prime-rl and the Environments Hub. | The final test and any training share one task definition. | Tested |
 | Prime Intellect's [prime-rl](https://github.com/PrimeIntellect-ai/prime-rl) | Evals, Models | Runs supervised fine-tuning, reinforcement learning and evaluation. | It covers post-training end to end, reads Verifiers environments natively, and scales to 1000+ GPUs. | A training recipe you can run again at a larger scale. | Planned |
+| Prime Intellect's [Model Factory](https://www.primeintellect.ai/model-factory) | Models | A hosted service that trains, serves and improves a model a company owns, on machines used on demand or on a dedicated cluster. | Its hosted training runs a prime-rl configuration file on Verifiers environments, and it serves the trained model from an endpoint in the OpenAI format. | A training plan and environment that run on Prime Intellect's hosted training or on a Model Factory of your own. | Planned |
 | Prime Intellect's [Environments Hub](https://app.primeintellect.ai/dashboard/environments) | Environments | Hosts Verifiers environments for others to install. | Verifiers and prime-rl both load environments from it. | Your environment, ready to publish at a pinned version if you choose to. Publishing yours there is planned. | Tested |
 | NVIDIA's [SkillEvaluator](https://github.com/NVIDIA/SkillEvaluator) | Skills | Checks a Skill and measures its effect on task results. | Its static check needs no API key, GPU or Docker, so problems show up before any paid run. | A Skill checked for safety and form, then measured with the agent. | Tested |
 | NVIDIA's [Skill2Env](https://github.com/NVlabs/Skill2Env) | Environments | Turns an Agent Skill into terminal tasks. | Its tasks come out ready for reinforcement learning, in Harbor's task format. | Practice tasks drawn from your own Skill. | Planned |

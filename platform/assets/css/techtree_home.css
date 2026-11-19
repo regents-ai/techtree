@@ -208,6 +208,12 @@
 .mk-maker__name { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem var(--space-1); }
 .mk-maker__job { color: var(--color-fg-muted); font-size: .875rem; text-wrap: pretty; }
 
+/* Under the Factory's four steps: what comes once the first model is in
+   service, the quieter note on who Techtree is, and where to read on. */
+.mk-factory__after { display: grid; justify-items: start; gap: var(--space-2); max-width: 46rem; margin-top: var(--space-5); }
+.mk-factory__after > p:first-child { font-size: 1.0625rem; text-wrap: pretty; }
+.mk-factory__note { color: var(--color-fg-muted); font-size: .875rem; }
+
 /* The demonstrations side by side, three across where there is room: each
    card's two figures stay side by side, and its verdict sits under them. */
 .mk-offer.mk-offer--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }

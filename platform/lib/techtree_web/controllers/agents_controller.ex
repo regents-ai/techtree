@@ -278,6 +278,10 @@ defmodule TechtreeWeb.AgentsController do
     https://techtree.sh/services/swarm-verify. Each page answers
     Markdown. To ask for one, the person writes to build@regents.sh.
 
+    To see what a company needs before its first run on Prime Intellect's
+    Model Factory, step by step, and which Techtree service covers each, read
+    https://techtree.sh/docs/factory.
+
     ## Message the team
 
     To leave Techtree's team a private message, such as a question about

@@ -1,11 +1,14 @@
 defmodule TechtreeWeb.HomeLive do
   @moduledoc """
-  The home page, in six parts: the promise with Book Call, naming whose open
+  The home page, in seven parts: the promise with Book Call, naming whose open
   tools the work is built on; the four services as cards with their price
   levels and the tools each uses under their status (`TechtreeWeb.Services`);
-  the demonstrations, every published comparison side by side
-  (`Techtree.Train.Comparisons`), each with its two figures, its verdict, its
-  page and the Skill's own links, whatever the verdict; how a project runs, in
+  Factory, the four things a first run on Prime Intellect's Model Factory
+  needs, in order, each with the service that delivers it, then the guide
+  (`/docs/factory`) and Model Factory's own page; the demonstrations, every
+  published comparison side by side (`Techtree.Train.Comparisons`), each with
+  its two figures, its verdict, its page and the Skill's own links, whatever
+  the verdict; how a project runs, in
   six steps; the open-source projects we build on, under each maker's logo or
   name, each with what it does in a Techtree job and its status, all drawn
   from `Services.libraries/0` so the two never differ; and Contact: a last
@@ -30,10 +33,30 @@ defmodule TechtreeWeb.HomeLive do
   @title "Better agents for your business."
   @promise "Skills, evaluations, training environments and open-weight models, built around your " <>
              "workflows on open tools from Prime Intellect, NVIDIA Nemotron, Hugging Face and Harbor. " <>
-             "Your agents, environment, or evals are provably upgraded after Techtree."
+             "Your agents, environment, or evals are provably upgraded after Techtree, and what you " <>
+             "keep is ready for Prime Intellect’s Model Factory."
   @services_line "Custom AI projects from Regents Labs, built around the workflows you rely on. " <>
                    "Each uses open tools such as Prime Intellect’s Verifiers and NVIDIA’s " <>
                    "SkillEvaluator, marked Tested once we have run them ourselves."
+  @factory_line "Prime Intellect’s Model Factory gives a company the loop frontier labs run: train a " <>
+                  "model on your tasks, deploy it, and use what real use shows to train the next one. " <>
+                  "The first run needs four things. Each Techtree service delivers one, in the format " <>
+                  "the factory takes."
+  # What the first factory run needs, in order, and the service that delivers each.
+  @factory [
+    {"Test", :evals,
+     "A test on cases the model never trains on. It tells you whether training worked, and whether the new model beats what you rent today."},
+    {"Tasks", :environments,
+     "Your tasks with their tools and scoring, built with Prime Intellect’s Verifiers or in Harbor’s format, so a model can be trained on them."},
+    {"Baseline", :skills,
+     "What your current agent scores before any training. Often a better Skill on the model you already use is enough, and we say so."},
+    {"Recipe", :models,
+     "A training plan written as a prime-rl configuration, the file Prime Intellect’s hosted training runs, with its cost agreed first."}
+  ]
+  @factory_after "After the first model is in service, failed runs from real use become new tasks, " <>
+                   "each one reviewed, and the same test checks every new version."
+  @factory_note "Techtree is independent of Prime Intellect and uses its open tools."
+  @model_factory "https://www.primeintellect.ai/model-factory"
   @demonstrations_line "Runs Techtree did itself on public Skills, not customer work. Each compares " <>
                          "the Skill as published with the version chosen to improve it, on " <>
                          "final-test cases kept apart from the improvement. When the test does " <>
@@ -67,6 +90,11 @@ defmodule TechtreeWeb.HomeLive do
        promise: @promise,
        services_line: @services_line,
        services: Services.all(),
+       factory_line: @factory_line,
+       factory: factory(),
+       factory_after: @factory_after,
+       factory_note: @factory_note,
+       model_factory: @model_factory,
        comparisons: Comparisons.list(),
        demonstrations_line: @demonstrations_line,
        process_line: @process_line,
@@ -91,6 +119,13 @@ defmodule TechtreeWeb.HomeLive do
     others =
       Enum.map_join(Services.others(), "\n", fn service ->
         "- [#{service.name}](#{Services.path(service.id)}): #{service.promise}"
+      end)
+
+    factory =
+      factory()
+      |> Enum.with_index(1)
+      |> Enum.map_join("\n", fn {step, index} ->
+        "#{index}. #{step.label} ([#{step.name}](#{step.path})): #{step.line}"
       end)
 
     process =
@@ -120,6 +155,18 @@ defmodule TechtreeWeb.HomeLive do
 
     #{services}
     #{others}
+
+    ## Factory
+
+    #{@factory_line}
+
+    #{factory}
+
+    #{@factory_after}
+
+    #{@factory_note}
+
+    [Guide](/docs/factory) · [Model Factory](#{@model_factory})
     #{demonstrations_markdown(Comparisons.list())}
     ## Process
 
@@ -243,6 +290,44 @@ defmodule TechtreeWeb.HomeLive do
             </div>
           </li>
         </ul>
+      </section>
+
+      <section id="factory" class="mk-section" aria-labelledby="factory-title">
+        <header class="mk-section__head">
+          <h2 id="factory-title">Factory</h2>
+          <p>{@factory_line}</p>
+        </header>
+        <ol
+          id="factory-steps"
+          class="mk-sequence mk-sequence--four"
+          phx-hook="MarketingStagger"
+          phx-update="ignore"
+        >
+          <li
+            :for={{step, index} <- Enum.with_index(@factory, 1)}
+            id={"factory-#{step.id}"}
+            data-stagger
+          >
+            <span class="mk-sequence__index">0{index}</span>
+            <h3>{step.label}</h3>
+            <p>{step.line}</p>
+            <.link navigate={step.path} class="text-link">
+              {step.name} <span aria-hidden="true">→</span>
+            </.link>
+          </li>
+        </ol>
+        <div class="mk-factory__after">
+          <p>{@factory_after}</p>
+          <p class="mk-factory__note">{@factory_note}</p>
+          <p class="mk-links">
+            <.link navigate={~p"/docs/factory"} class="text-link">
+              Guide <span aria-hidden="true">→</span>
+            </.link>
+            <a href={@model_factory} class="text-link" rel="noopener">
+              Model Factory <span aria-hidden="true">↗</span>
+            </a>
+          </p>
+        </div>
       </section>
 
       <section
@@ -387,6 +472,13 @@ defmodule TechtreeWeb.HomeLive do
     |> Enum.map_join(" ", fn {status, tools} ->
       "#{Services.status_name(status)}: #{Enum.map_join(tools, " · ", &Services.label/1)}."
     end)
+  end
+
+  # What the first factory run needs, each with the service that delivers it.
+  defp factory do
+    for {label, id, line} <- @factory do
+      %{id: id, label: label, name: Services.fetch!(id).name, path: Services.path(id), line: line}
+    end
   end
 
   # Whose open-source projects we build on, in `Services.libraries/0`'s order:

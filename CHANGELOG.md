@@ -2,6 +2,17 @@
 
 ## Website (2026-11-19)
 
+### Added
+
+- **Factory.** For teams that want to train and run their own model on Prime
+  Intellect's Model Factory, the home page has a new Factory section: the four
+  things a first run needs (a test, tasks with scoring, a baseline and a
+  training plan), each with the service that delivers it. A new guide in the
+  Docs, Factory, goes through the steps from deciding to improving. The Models
+  page now says its training plan is a prime-rl configuration, and lists Model
+  Factory among the tools Techtree plans to use. Techtree is independent of
+  Prime Intellect and uses its open tools.
+
 ### Changed
 
 - **Points.** Five account actions now earn Regent Points on Techtree:

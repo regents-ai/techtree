@@ -96,6 +96,10 @@ each task before you accept a collection.
 - For ongoing work, we can turn failed runs into new tasks, with each task reviewed
   before it is added. The idea comes from
   [the AutoEnvScaling research](https://auto-env-scaling.github.io/).
+- Environments built with Prime Intellect's
+  [Verifiers](https://github.com/PrimeIntellect-ai/verifiers) are what its
+  [Model Factory](https://www.primeintellect.ai/model-factory) trains and evaluates on,
+  so the environment you keep is the one a training run uses.
 
 ## Start
 

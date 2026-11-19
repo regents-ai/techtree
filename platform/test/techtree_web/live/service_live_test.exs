@@ -44,6 +44,7 @@ defmodule TechtreeWeb.ServiceLiveTest do
     models: [
       "https://github.com/PrimeIntellect-ai/verifiers",
       "https://github.com/PrimeIntellect-ai/prime-rl",
+      "https://www.primeintellect.ai/model-factory",
       "https://github.com/NVIDIA/NemoClaw"
     ]
   }

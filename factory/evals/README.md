@@ -79,6 +79,8 @@ rest, and `--json` prints the answer as JSON. The environment and its scoring ar
 - An eval measures the cases it holds. A pass on them is evidence about that work,
   not about every task the agent might meet.
 - Results from our own runs are a Techtree-run evaluation, not an independent audit.
+- The test outlives the project: it is the check each new model version passes before
+  it goes into service.
 
 ## Start
 

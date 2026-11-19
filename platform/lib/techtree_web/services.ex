@@ -23,7 +23,8 @@ defmodule TechtreeWeb.Services do
   that runs something carries a status (`status_line/0`): Delivered on a
   customer's project, Tested in Techtree's own runs, or Planned. A step that is
   people agreeing, reviewing or handing over carries none. A tool is another
-  company's open-source project, named with its maker (`label/1`), never as
+  company's open-source project, or a hosted one such as Prime Intellect's
+  Model Factory, named with its maker (`label/1`), never as
   part of Techtree, and has a status of its own; a page groups a service's
   tools by status (`by_status/1`) and leaves out a status none of them has. A
   step or a note is a list of words and links: a link is `{text, href}`.
@@ -128,6 +129,14 @@ defmodule TechtreeWeb.Services do
     line:
       "Trains a smaller model on your accepted examples, then with reinforcement learning, using task scores as feedback."
   }
+  @model_factory %{
+    maker: "Prime Intellect",
+    name: "Model Factory",
+    href: "https://www.primeintellect.ai/model-factory",
+    status: :planned,
+    line:
+      "Trains, serves and improves a model you own, on hosted machines or a dedicated cluster."
+  }
   @skill_evaluator %{
     maker: "NVIDIA",
     name: "SkillEvaluator",
@@ -200,6 +209,7 @@ defmodule TechtreeWeb.Services do
     @verifiers,
     @environments_hub,
     @prime_rl,
+    @model_factory,
     @skill_evaluator,
     @nemotron,
     @skill2env,
@@ -342,6 +352,9 @@ defmodule TechtreeWeb.Services do
         notes: [
           [
             "A better eval catches the failures that matter and scores the same work the same way every time. It need not produce a higher pass rate: it gives you a test you can trust."
+          ],
+          [
+            "The test outlives the project: it is the check each new model version passes before it goes into service."
           ]
         ]
       },
@@ -405,6 +418,11 @@ defmodule TechtreeWeb.Services do
             "For ongoing work, we can turn failed runs into new tasks, with each task reviewed before it is added. The idea comes from ",
             {"the AutoEnvScaling research", "https://auto-env-scaling.github.io/"},
             "."
+          ],
+          [
+            "Environments built with ",
+            named(@verifiers),
+            " are what its Model Factory trains and evaluates on, so the environment you keep is the one a training run uses."
           ]
         ]
       },
@@ -415,7 +433,7 @@ defmodule TechtreeWeb.Services do
         line: "A smaller model for repeated work",
         promise: "A smaller model for the work you repeat.",
         more:
-          "Techtree tests your current AI workflow, builds a specialist, and measures the difference on cases it never saw. You keep the model, the evaluation and the evidence behind the decision.",
+          "Techtree tests your current AI workflow, builds a specialist, and measures the difference on cases it never saw. You keep the model, the evaluation and the evidence behind the decision. The training plan is a prime-rl configuration, so it runs on Prime Intellect’s hosted training or on a Model Factory of your own.",
         price: 4,
         call:
           "Bring the one task you repeat and what it costs you today. We’ll agree the quality bar and the final test before any training.",
@@ -443,9 +461,7 @@ defmodule TechtreeWeb.Services do
             " before any training."
           ]),
           step("Plan", :tested, [
-            "We write a training plan in the format of ",
-            named(@prime_rl),
-            ", with its cost. Training starts after you approve the plan and budget."
+            "We write a training plan as a prime-rl configuration, the file Prime Intellect’s hosted training runs, with its cost. Training starts after you approve the plan and budget."
           ]),
           step("Training", :planned, [
             named(@prime_rl),
@@ -492,6 +508,7 @@ defmodule TechtreeWeb.Services do
             @prime_rl,
             "Trains the model on your accepted examples, then with reinforcement learning, using task scores as feedback."
           ),
+          tool(@model_factory, @model_factory.line),
           tool(
             @nemoclaw,
             "Optional, when a project needs it: runs supported agents inside OpenShell, under the rules you set."
@@ -509,6 +526,9 @@ defmodule TechtreeWeb.Services do
           ],
           [
             "Training starts on your accepted examples. Reinforcement learning comes next, once we have checked the scoring."
+          ],
+          [
+            "Once the model is in service, real use shows where it falls short. We can turn those failures into new tasks and rerun the same test on each new version."
           ],
           [
             "Results from our own runs are labelled a Techtree-run evaluation, not an independent audit."

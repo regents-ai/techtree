@@ -83,6 +83,36 @@ defmodule TechtreeWeb.HomeLiveTest do
     refute has_element?(live, "#service-security")
   end
 
+  test "Factory sits between the services and the demonstrations, each step leading to its service, then the guide",
+       %{conn: conn} do
+    {:ok, _live, html} = live(conn, ~p"/")
+    document = LazyHTML.from_document(html)
+
+    assert for(
+             section <- LazyHTML.query(document, "main section.mk-section"),
+             do: attribute(section, "id")
+           ) ==
+             ["services", "factory", "demonstration", "process", "stack"]
+
+    assert hrefs(document, "#factory-steps > li a") ==
+             Enum.map([:evals, :environments, :skills, :models], &Services.path/1)
+
+    assert hrefs(document, "#factory .mk-factory__after a") ==
+             ["/docs/factory", "https://www.primeintellect.ai/model-factory"]
+
+    markdown = conn |> put_req_header("accept", "text/markdown") |> get(~p"/") |> response(200)
+    [before_factory, factory] = String.split(markdown, "\n## Factory\n")
+    [factory, after_factory] = String.split(factory, "\n## Demonstrations\n")
+    assert before_factory =~ "\n## Services\n"
+    assert after_factory =~ "\n## Process\n"
+
+    for path <-
+          Enum.map([:evals, :environments, :skills, :models], &Services.path/1) ++
+            ["/docs/factory"] do
+      assert factory =~ "](#{path})"
+    end
+  end
+
   test "the demonstrations show every comparison side by side, each with its own figures, verdict and links",
        %{conn: conn} do
     comparisons = Comparisons.list()

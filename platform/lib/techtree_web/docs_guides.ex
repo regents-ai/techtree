@@ -73,6 +73,13 @@ defmodule TechtreeWeb.DocsGuides do
       summary: "Pair an agent with your account, and what it can then read."
     },
     %{
+      slug: "factory",
+      group: "Background",
+      title: "Factory",
+      summary:
+        "The steps before a first run on Prime Intellect's Model Factory, and where Techtree helps."
+    },
+    %{
       slug: "where-this-goes",
       group: "Background",
       title: "Roadmap",

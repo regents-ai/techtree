@@ -3,9 +3,9 @@ import {expect, test} from "./support/test"
 import {layoutProblems, layoutShift, lowContrast, watchErrors, watchShifts} from "./support/visitor"
 
 // The home page (TechtreeWeb.HomeLive) at a desktop width and two phone widths,
-// with the GPU on: the promise, the four services with their price levels, the
-// demonstrations side by side, whose figures count up, the process, the credits
-// and the closing.
+// with the GPU on: the promise, the four services with their price levels,
+// Factory's four steps, the demonstrations side by side, whose figures count up,
+// the process, the credits and the closing.
 // Nothing moves the layout as it arrives. A visitor who asked for less motion,
 // or whose browser has no WebGPU, keeps every still picture and every figure as
 // the server wrote it.
@@ -26,7 +26,7 @@ const figures = (page: Page) => tallies(page).locator("dd").allTextContents()
 // Every block of words on the page, and every button in them.
 const wordBlocks = (page: Page) =>
   page.locator(["#hero :is(h1, .mk-hero__lede, .rg-button)", "#services :is(.mk-section__head, .mk-service__words)",
-    "#demonstration :is(.mk-section__head, h3, .mk-tallies > div, .mk-demos__verdict, .mk-links)", "#process :is(.mk-section__head, li)",
+    "#factory :is(.mk-section__head, li, .mk-factory__after)", "#demonstration :is(.mk-section__head, h3, .mk-tallies > div, .mk-demos__verdict, .mk-links)", "#process :is(.mk-section__head, li)",
     "#stack :is(.mk-section__head, .mk-maker__projects)", "#begin :is(h2, .mk-closing__line, .rg-button)"].join(", "))
 
 for (const width of [1280, 390, 320]) {

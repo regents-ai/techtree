@@ -73,6 +73,14 @@
 /* Swarm Verify's five stages: one row on a wide screen, where three to a row
    would leave the second row a stage short. */
 @media (min-width: 64rem) { .mk-sequence.mk-sequence--five { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+/* The home page's Factory: four steps, two to a row on a middling screen and
+   one row on a wide one. Each ends on the service that delivers it, the four
+   links level however long each line runs. */
+@media (min-width: 48rem) { .mk-sequence.mk-sequence--four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 64rem) { .mk-sequence.mk-sequence--four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.mk-sequence--four > li { grid-template-rows: auto auto 1fr auto; }
+.mk-sequence--four p { text-wrap: pretty; }
+.mk-sequence--four > li > .text-link { justify-self: start; margin-top: var(--space-1); }
 
 /* Facts beside what to copy: the section's two halves. */
 .mk-section > .mk-split, .mk-section > .facts { margin-top: var(--space-4); }
