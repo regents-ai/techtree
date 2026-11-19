@@ -482,13 +482,18 @@ place, `/tmp/regent-shared-db-release.lock` when it is free and
 `/tmp/regent-shared-db-release-2.lock` otherwise. Never wrap the script in
 `lockf` yourself.
 
-The script refuses to deploy, saying why, when the tree is not clean or not
-pushed, when the live image can't be read or the machines run different
-images, or when the live page can't be read or names no site script; the build
-stops when the previous image can't be pulled or holds no manifest. After the
-deploy it asks for the previous release's site script again and fails unless it
-still answers. `test/scripts/deploy_site_test.exs` runs the script through each
-of these with stand-ins for `flyctl`, `curl` and `lockf`.
+The live image is the one the machines of the `app` group, the group that
+serves the site, run; the release-command helper, other groups and destroyed
+machines are left out, and a stopped `app` machine counts, since it starts
+again on its own image. The script refuses to deploy, saying why, when the tree
+is not clean or not pushed, when the live image can't be read (no `app` machine
+is started, or one names no image) or the `app` machines run different images,
+or when the live page can't be read or names no site script; the build stops
+when the previous image can't be pulled or holds no manifest. After the deploy
+it fails unless `/capabilities.json` reports the commit just deployed and the
+previous release's site script still answers. `make release` reads the live
+image the same way. `test/scripts/deploy_site_test.exs` runs the script through
+each of these with stand-ins for `flyctl`, `curl` and `lockf`.
 
 After each release, `make live-check` from the monorepo root reads techtree.sh
 (`scripts/live-check.sh`). First it reads it signed out in headless Chromium at

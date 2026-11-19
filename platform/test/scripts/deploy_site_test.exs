@@ -2,7 +2,8 @@ defmodule Techtree.DeploySiteScriptTest do
   @moduledoc """
   scripts/deploy_site.sh refuses to deploy unless it can name the live image
   (whose files the new release keeps) and the live page's script, and fails
-  unless that script still answers after the deploy. The whole run holds
+  unless, after the deploy, the site reports the commit just deployed and that
+  script still answers. The whole run holds
   Techtree's own deploy lock; the image is built under no shared lock, and only
   the switch to it takes one of the two places on the database every site
   shares. Each case runs the real script in a throwaway pushed checkout, with
@@ -20,6 +21,7 @@ defmodule Techtree.DeploySiteScriptTest do
 
   @script Path.expand("../../scripts/deploy_site.sh", __DIR__)
   @live "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ab", 32)
+  @other "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ef", 32)
   @page ~s(<script src="/assets/js/site-0123abcd.js?vsn=d"></script>)
 
   # A clean checkout holding the script, pushed to its upstream, as the script requires.
@@ -45,7 +47,8 @@ defmodule Techtree.DeploySiteScriptTest do
 
   # Stand-ins: flyctl answers `machine list` from machines.json and records each
   # `deploy`, the build and the switch each with its own status; curl answers
-  # the home page from home.html and the old script with its status; lockf
+  # the home page from home.html, /capabilities.json with the checkout's commit
+  # unless the scenario names another, and the old script with its status; lockf
   # records each lock it holds and runs the command, and its try-once probe of
   # the first database place finds it free or taken as the scenario says.
   defp fakes(dir, scenario) do
@@ -75,6 +78,9 @@ defmodule Techtree.DeploySiteScriptTest do
     for arg in "$@"; do url="$arg"; done
     case "$url" in
       https://techtree.sh/) #{if scenario[:page_fails], do: "exit 22", else: ~s(cat "$FAKE_DIR/home.html")} ;;
+      https://techtree.sh/capabilities.json)
+        echo "$url" >> "$FAKE_DIR/asked"
+        printf '{"build":{"commit":"%s"}}' "#{scenario[:live_commit] || "$(git rev-parse HEAD)"}" ;;
       *) echo "$url" >> "$FAKE_DIR/asked"; exit #{scenario[:old_script_exit] || 0} ;;
     esac
     """)
@@ -109,7 +115,7 @@ defmodule Techtree.DeploySiteScriptTest do
   end
 
   # One machine as `flyctl machine list --json` lists it: a serving machine is
-  # in the "app" group; Fly's release-command helper is in its own.
+  # in the "app" group; Fly's release-command helper and other groups are not.
   defp machine(ref, group \\ "app", state \\ "started") do
     [registry, rest] = String.split(ref, "/", parts: 2)
     [repository, digest] = String.split(rest, "@")
@@ -142,7 +148,9 @@ defmodule Techtree.DeploySiteScriptTest do
              "/tmp/regent-shared-db-release.lock"
            ]
 
-    assert File.read!(Path.join(dir, "asked")) =~ "https://techtree.sh/assets/js/site-0123abcd.js"
+    assert File.read!(Path.join(dir, "asked")) ==
+             "https://techtree.sh/capabilities.json\nhttps://techtree.sh/assets/js/site-0123abcd.js\n"
+
     assert output =~ "The previous release's /assets/js/site-0123abcd.js still answers."
   end
 
@@ -165,7 +173,16 @@ defmodule Techtree.DeploySiteScriptTest do
                 machine("registry.fly.io/patchbay@sha256:" <> String.duplicate("cd", 32))
               ])
           },
-          %{machines: Jason.encode!([machine("registry.fly.io/techtree-sh@deployment-01ABC")])}
+          %{machines: Jason.encode!([machine("registry.fly.io/techtree-sh@deployment-01ABC")])},
+          # A stopped machine may start again, but only a started one shows what is live.
+          %{machines: Jason.encode!([machine(@live, "app", "stopped")])},
+          %{
+            machines:
+              Jason.encode!([
+                machine(@live),
+                Map.update!(machine(@live), "image_ref", &Map.delete(&1, "digest"))
+              ])
+          }
         ] do
       case_dir = Path.join(dir, Integer.to_string(:erlang.unique_integer([:positive])))
 
@@ -176,37 +193,50 @@ defmodule Techtree.DeploySiteScriptTest do
     end
   end
 
-  test "no deploy when the machines run different images", %{tmp_dir: dir} do
-    other = "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ef", 32)
+  # A stopped serving machine starts again on its own image when traffic comes.
+  test "no deploy when the serving machines run different images, started or stopped",
+       %{tmp_dir: dir} do
+    for state <- ["started", "stopped"] do
+      case_dir = Path.join(dir, state)
+      machines = Jason.encode!([machine(@live), machine(@other, "app", state)])
 
-    assert {output, status} =
-             deploy(dir, %{machines: Jason.encode!([machine(@live), machine(other)])})
-
-    assert status != 0
-    assert output =~ "Refusing to deploy: the machines run different images"
-    assert output =~ other
-    assert deployed(dir) == {:error, :enoent}
+      assert {output, status} = deploy(case_dir, %{machines: machines})
+      assert status != 0
+      assert output =~ "Refusing to deploy: the machines run different images"
+      assert output =~ @other
+      assert deployed(case_dir) == {:error, :enoent}
+    end
   end
 
-  test "machines on the same image deploy as one", %{tmp_dir: dir} do
-    assert {_output, 0} =
-             deploy(dir, %{machines: Jason.encode!([machine(@live), machine(@live)])})
+  test "serving machines on the same image deploy as one, started or stopped", %{tmp_dir: dir} do
+    for state <- ["started", "stopped"] do
+      case_dir = Path.join(dir, state)
+      machines = Jason.encode!([machine(@live), machine(@live, "app", state)])
 
-    assert {:ok, deploys} = deployed(dir)
-    assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+      assert {_output, 0} = deploy(case_dir, %{machines: machines})
+      assert {:ok, deploys} = deployed(case_dir)
+      assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+    end
   end
 
   # A deploy Fly refused at its release command leaves that helper machine
-  # behind, stopped, with the image that never went live.
-  test "a leftover release-command helper on another image does not stop the deploy",
+  # behind, stopped, with the image that never went live. Only the app group
+  # serves the site, and a destroyed machine never serves again.
+  test "machines that don't serve the site on another image do not stop the deploy",
        %{tmp_dir: dir} do
-    other = "registry.fly.io/techtree-sh@sha256:" <> String.duplicate("ef", 32)
-    helper = machine(other, "fly_app_release_command", "stopped")
+    for {name, other_machine} <- [
+          helper: machine(@other, "fly_app_release_command", "stopped"),
+          worker: machine(@other, "worker"),
+          destroyed: machine(@other, "app", "destroyed")
+        ] do
+      case_dir = Path.join(dir, Atom.to_string(name))
+      machines = Jason.encode!([machine(@live), other_machine])
 
-    assert {_output, 0} = deploy(dir, %{machines: Jason.encode!([machine(@live), helper])})
-    assert {:ok, deploys} = deployed(dir)
-    assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
-    refute deploys =~ other
+      assert {_output, 0} = deploy(case_dir, %{machines: machines})
+      assert {:ok, deploys} = deployed(case_dir)
+      assert deploys =~ "--build-arg PREVIOUS_IMAGE=#{@live}"
+      refute deploys =~ @other
+    end
   end
 
   # A 2 MB home page that names its script near the top: a search that stops at
@@ -248,6 +278,15 @@ defmodule Techtree.DeploySiteScriptTest do
     assert status != 0
     refute output =~ "still answers"
     refute File.exists?(Path.join(dir, "asked"))
+  end
+
+  test "the deploy fails when the site reports another commit after it", %{tmp_dir: dir} do
+    stale = String.duplicate("0", 40)
+
+    assert {output, status} = deploy(dir, %{live_commit: stale})
+    assert status != 0
+    assert output =~ stale
+    assert File.read!(Path.join(dir, "asked")) == "https://techtree.sh/capabilities.json\n"
   end
 
   test "the deploy fails when the old script does not answer after it", %{tmp_dir: dir} do

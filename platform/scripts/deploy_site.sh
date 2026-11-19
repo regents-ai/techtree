@@ -38,10 +38,15 @@ switch() {
 release() {
   # The live image, whose served files the new release keeps through the
   # rollover, and one of those files, asked for again once the deploy is done.
-  local live_images previous_image live_page previous_script
+  local live_images previous_image live_page previous_script live_commit
 
-  # The release-command helper a refused deploy leaves behind serves nothing.
-  if ! live_images="$(flyctl machine list --app "$app" --json | jq -er '[.[] | select(.config.metadata.fly_process_group != "fly_app_release_command") | "\(.image_ref.registry)/\(.image_ref.repository)@\(.image_ref.digest)"] | unique | .[]')"; then
+  # Only the app group serves the site. A stopped app machine starts again on
+  # its own image, so it counts; a destroyed one never serves again. One must be
+  # started to show what is live, and each must name its image.
+  if ! live_images="$(flyctl machine list --app "$app" --json | jq -er '
+    [.[] | select(.config.metadata.fly_process_group == "app" and .state != "destroyed" and .state != "destroying")]
+    | select(any(.[]; .state == "started") and all(.[]; .image_ref | .registry and .repository and .digest))
+    | map(.image_ref | "\(.registry)/\(.repository)@\(.digest)") | unique | .[]')"; then
     echo "Refusing to deploy: the live image can't be read, so its files can't be kept." >&2
     exit 1
   fi
@@ -88,6 +93,20 @@ release() {
     "$@"
 
   switch
+
+  # The blue-green switch (fly.toml) returns only once the old machines are
+  # gone, so the site already answers with the new release's commit.
+  if ! live_commit="$(curl -fsS https://techtree.sh/capabilities.json | jq -er .build.commit)"; then
+    echo "After the deploy, techtree.sh/capabilities.json can't be read, so the release is not proved live." >&2
+    exit 1
+  fi
+
+  if [[ "$live_commit" != "$commit" ]]; then
+    echo "After the deploy, techtree.sh reports commit $live_commit, not $commit." >&2
+    exit 1
+  fi
+
+  echo "techtree.sh reports commit $commit."
 
   if ! curl -fsS -o /dev/null "https://techtree.sh$previous_script"; then
     echo "After the deploy, the previous release's $previous_script does not answer." >&2

@@ -124,9 +124,11 @@ laptop building locally makes an arm64 image Fly's machines cannot run) with
 one machine (`--ha=false`). The new image keeps the live release's served files
 beside its own, so the script first reads the live image and a script the live
 page names, and refuses when it can't read either, or when the machines run
-different images. Once the deploy is done it asks for that script again and
-fails unless it still answers. There is no deploy without a live release to
-keep files from.
+different images. Only machines of the `app` group, which serves the site,
+count, started or stopped; at least one must be started and each must name its
+image. Once the deploy is done it fails unless `/capabilities.json` reports the
+commit just deployed and that script still answers. There is no deploy without
+a live release to keep files from.
 
 ### 6. Import the release the image carries
 
