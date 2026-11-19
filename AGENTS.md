@@ -32,7 +32,7 @@ never saw. The tools in this repository are open; projects are quoted on a call.
 This monorepo is the source of truth for Techtree development. Keep changes scoped
 to the component that owns the behavior:
 
-- `contracts/` owns registry Solidity, scripts and tests; run Foundry checks there.
+- `contracts/` owns registry Solidity and scripts; run Foundry checks there.
 - `plugin/` owns the Hermes integration and Skills.
 - `platform/` owns techtree.sh, publication ingestion, and public result views.
 - `lab/` owns the payment-terms environment and its runner; run

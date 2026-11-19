@@ -121,7 +121,6 @@ defmodule TechtreeWeb.Plugs.PageMarkdown do
   defp markdown(:formal, _conn) do
     PublicDocuments.formal()
     |> String.replace("{{frontier}}", TechtreeWeb.FormalLive.frontier_markdown())
-    |> String.replace("{{example}}", TechtreeWeb.FormalLive.example_url())
     |> String.replace("{{mailto}}", TechtreeWeb.FormalLive.mailto())
   end
 

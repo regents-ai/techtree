@@ -8,7 +8,7 @@ own the registry.
 | [regents-cli](https://github.com/regents-ai/regents-cli) | **Executes** | Everything that runs, builds or verifies, on your own machine, under `regents techtree`: Climbs and runs, Skill environments (`regents techtree forge`), signing and offline proof checks, and publication. | [regents-cli](https://github.com/regents-ai/regents-cli#techtree) |
 | [`plugin/`](../plugin/) | **Adapts** | A thin Hermes adapter over regents-cli: it runs `regents techtree` with fixed arguments, reads one JSON answer back, and asks the person before anything that spends or publishes. No evaluation logic, and no network of its own. | [Plugin](../plugin/README.md) |
 | [`platform/`](../platform/) | **Publishes** | techtree.sh: the install guide and bootstrap, the catalog, publication intake, Results and verification pages, the service pages and the changelog. | [Platform](../platform/README.md) |
-| [`contracts/`](../contracts/) | **Registry** | The `TechtreeGraphRegistryV1` Solidity contract, its deployment scripts and Foundry tests. | [Contracts](../contracts/README.md) |
+| [`contracts/`](../contracts/) | **Registry** | The `TechtreeGraphRegistryV1` Solidity contract and its deployment scripts. | [Contracts](../contracts/README.md) |
 | [`lab/`](../lab/) | **Measures** | The payment-terms environment, its runner and the training settings file. | [Lab](../lab/README.md) |
 
 ## Setup
@@ -40,10 +40,9 @@ every gate's output, the failed ones last, then one line per gate with its secon
 and fails when any gate failed. A gate over its time budget (`CHECK_BUDGETS` in the
 `Makefile`) gets a `SLOW` line under its own, which never fails the check. It
 requires the platform prerequisites, Foundry, pinned Solidity dependencies, and
-Node for the pinned Quint that checks the
-[Wallet Bench funding model](../formal/wallet_bench_funding/README.md) and the
-pinned Everystate that checks the [Swarm Verify models](../swarm-verify/README.md). It does not
-start paid inference, publish results, release packages, deploy, or transfer money.
+Node for the pinned Everystate that checks the
+[Swarm Verify models](../swarm-verify/README.md). It does not start paid inference,
+publish results, release packages, deploy, or transfer money.
 Setup can download dependencies.
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) and [AGENTS.md](../AGENTS.md) for the

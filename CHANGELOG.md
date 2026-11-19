@@ -29,6 +29,9 @@
 - **Pages.** A single address that requests pages unusually fast, more than
   two a second for a minute, is now asked to wait a moment, so one busy
   crawler cannot slow the site for everyone else.
+- **Formal.** The page no longer shows the Wallet Bench funding example. It
+  still explains what a proof covers, lists recent advances and takes code to
+  prove by email.
 
 ### Fixed
 
@@ -52,6 +55,10 @@
   checks and the audits) and the contract and model checks, and
   `make live-check` still reads the live site after each release.
   `make browser` and `make check-change` are gone.
+- **Contracts.** The registry contract's tests are gone; `make check-contracts`
+  still checks its formatting and that it builds.
+- **Formal.** The Wallet Bench funding model and its proof are gone, with
+  `make check-formal` and `make formal-proof`.
 
 ## Website (2026-11-18)
 

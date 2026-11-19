@@ -11,7 +11,7 @@ defmodule TechtreeWeb.PublicDocuments do
   the database, from release files or from their LiveView's own data answer
   Markdown in the router instead (`TechtreeWeb.Plugs.PageMarkdown`), with the
   same closing line; the home page and the service pages under `/services`
-  are among them, and so is `/formal`, its words kept here (`formal/0`) with its frontier list, example
+  are among them, and so is `/formal`, its words kept here (`formal/0`) with its frontier list
   and email filled in there. About, Privacy, Terms and Security's sample report
   show the same words as pages, so the two never say different things. The other
   pages' own designs are their LiveViews, and their Markdown is the same facts
@@ -109,9 +109,8 @@ defmodule TechtreeWeb.PublicDocuments do
   defp title("# " <> rest), do: rest |> String.split("\n", parts: 2) |> hd()
 
   @doc """
-  Techtree Formal's Markdown, with `{{frontier}}`, `{{example}}` and `{{mailto}}`
-  where `TechtreeWeb.FormalLive` fills in its frontier list, the worked
-  example's address and its email address.
+  Techtree Formal's Markdown, with `{{frontier}}` and `{{mailto}}` where
+  `TechtreeWeb.FormalLive` fills in its frontier list and its email address.
   """
   @spec formal() :: String.t()
   def formal, do: @sources["formal"]

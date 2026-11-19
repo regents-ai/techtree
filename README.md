@@ -332,7 +332,6 @@ does not prove.
 | [`platform/`](platform/README.md) | The site at techtree.sh: install guide, Results, service pages and the changelog. |
 
 More: [`contracts/`](contracts/README.md) (the registry contract),
-[`formal/`](formal/wallet_bench_funding/README.md) (the Wallet Bench funding model),
 [`swarm-verify/`](swarm-verify/README.md) (models of agent-swarm coordination),
 [`blog/`](blog/README.md), and [`docs/`](docs/), including
 [Open tools](docs/open-tools.md) (what each release offers and pins),

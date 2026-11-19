@@ -29,6 +29,9 @@
 - **Pages.** A single address that requests pages unusually fast, more than
   two a second for a minute, is now asked to wait a moment, so one busy
   crawler cannot slow the site for everyone else.
+- **Formal.** The page no longer shows the Wallet Bench funding example. It
+  still explains what a proof covers, lists recent advances and takes code to
+  prove by email.
 
 ### Fixed
 

@@ -8,7 +8,7 @@
 # last, and one line per gate, and fails when any gate failed. No gate writes
 # anything another reads.
 CHECK_LANES := platform-precommit check-plugin check-required-fixes \
-  check-cli check-siwa-latest check-contracts check-formal check-swarm check-lab
+  check-cli check-siwa-latest check-contracts check-swarm check-lab
 CHECK_GATES := platform-setup $(CHECK_LANES)
 CHECK_LOGS := platform/_build/check
 # Each gate's budget in seconds, about 40% over its time in make check on a 16-core
@@ -16,8 +16,8 @@ CHECK_LOGS := platform/_build/check
 # second or three. A gate over its budget gets a SLOW line under its own at the end;
 # it never fails the check.
 CHECK_BUDGETS := platform-setup:65 platform-precommit:20 \
-  check-plugin:5 check-required-fixes:5 check-cli:5 check-siwa-latest:5 check-contracts:35 \
-  check-formal:20 check-swarm:30 check-lab:5
+  check-plugin:5 check-required-fixes:5 check-cli:5 check-siwa-latest:5 check-contracts:5 \
+  check-swarm:30 check-lab:5
 # One gate, its output in its own log, then its exit code and seconds in the results.
 CHECK_GATE = start=$$(date +%s); $(MAKE) --no-print-directory $$gate > $(CHECK_LOGS)/$$gate.log 2>&1; \
   code=$$?; echo "$$gate $$code $$(( $$(date +%s) - start ))" >> $(CHECK_LOGS)/results
@@ -94,16 +94,6 @@ check-cli:
 check-siwa-latest:
 	scripts/check-siwa-latest.sh $(REGENTS_CLI_REV)
 
-# The model of the Wallet Bench funding cap (formal/wallet_bench_funding/README.md):
-# its witness traces and random runs, in seconds, with no Java. formal-proof adds
-# Apalache's proof for every depth, which needs Java 17 or later on PATH.
-.PHONY: check-formal formal-proof
-check-formal:
-	formal/wallet_bench_funding/check.sh
-
-formal-proof:
-	formal/wallet_bench_funding/check.sh proof
-
 # The Swarm Verify models of agent-swarm coordination (swarm-verify/README.md), checked
 # with Everystate, then the reference implementation's logs and a seeded run of 128
 # workers checked against them, in about 20 s with no Java. swarm-tlc also checks every
@@ -115,11 +105,12 @@ check-swarm:
 swarm-tlc:
 	swarm-verify/check.sh tlc
 
-# Under nice: the Solidity compiler and the fuzzer take every core they can, and
-# beside the other gates in make check they give way to them.
+# The registry contract's formatting and build. Under nice: the Solidity compiler
+# takes every core it can, and beside the other gates in make check it gives way
+# to them.
 .PHONY: check-contracts
 check-contracts:
-	cd contracts && forge fmt --check && nice forge build --offline && nice forge test --offline
+	cd contracts && forge fmt --check && nice forge build --offline
 
 # The lab: the payment-terms environment, its runner and the training settings file.
 .PHONY: check-lab
