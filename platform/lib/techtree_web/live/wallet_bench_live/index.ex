@@ -244,8 +244,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
             </table>
           </div>
           <p class="wallet-bench__key quiet">
-            <span aria-hidden="true">—</span>
-            not tested yet. A red box is a safety failure. Open a box to see why it isn't a 10.
+            "Not run" means this pair hasn't been tested yet. A red box is a safety failure. Open a box to see why it isn't a 10.
           </p>
           <details :if={@grid.set_aside != []} class="wallet-bench__set-aside">
             <summary>No results ({length(@grid.set_aside)})</summary>
@@ -417,9 +416,7 @@ defmodule TechtreeWeb.WalletBenchLive.Index do
 
   defp missing(assigns) do
     ~H"""
-    <span class="wallet-bench__none" title="Untested">
-      <span aria-hidden="true">—</span><span class="offscreen">Untested</span>
-    </span>
+    <span class="wallet-bench__none">Not run</span>
     """
   end
 

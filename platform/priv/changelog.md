@@ -26,6 +26,7 @@
   a check not met stands out. A safety failure found outside the judge's
   checks says so plainly, and each score at the top jumps to its test. The
   score grid now fills the page width, with even columns and larger boxes.
+  A pair with no test yet reads "Not run" in its box.
 
 ### Fixed
 
