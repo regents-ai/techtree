@@ -93,7 +93,9 @@ defmodule Techtree.MixProject do
        ref: @elixir_utils_ref,
        sparse: "siwa/siwa-elixir/apps/siwa",
        override: true},
-      {:regent_points, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "points"},
+      # Points alone is ahead of the other libraries: the program's current rules.
+      {:regent_points,
+       git: @elixir_utils, ref: "caba486c5629be8a2381028c86d6c2dc78862480", sparse: "points"},
       {:regent_identity,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ash_components/identity"},
       {:regent_agents,
