@@ -1,12 +1,13 @@
 defmodule Techtree.Points.AwardRecheckTest do
-  # Invariant: a linked social account earns only if the link is still saved when
-  # the award is written. A link removed after Points accepted the offer, but
-  # before the award ran, earns nothing; a link that stays earns once.
+  # Invariant: a linked social account earns only if the link is still saved, to
+  # the same account, when the award is written. A link removed, or moved to
+  # another account, after Points accepted the offer but before the award ran,
+  # earns nothing; a link that stays earns once.
   use ExUnit.Case, async: false
 
   import Ecto.Query
   require Ash.Query
-  alias RegentPoints.{Entry, Event, IntakeWorker, Store, Worker}
+  alias RegentPoints.{Entry, Event, IntakeWorker, Rejection, Store, Worker}
   alias Techtree.Accounts.VerifiedSession
   alias Techtree.Repo
 
@@ -54,6 +55,25 @@ defmodule Techtree.Points.AwardRecheckTest do
     assert [%{processing_status: :confirmed}] = events(account.id)
   end
 
+  test "a link moved to another account before the award runs earns for neither",
+       %{did: did, x: x, account: account} do
+    other_did = "did:privy:recheck-" <> Ecto.UUID.generate()
+    assert {:ok, other, []} = other_did |> session([]) |> VerifiedSession.establish()
+
+    # The person signs in without X, then the other person links the same X account.
+    assert {:ok, _account, []} = did |> session([]) |> VerifiedSession.establish()
+    assert {:ok, _other, []} = other_did |> session([x]) |> VerifiedSession.establish()
+
+    account.id |> awards() |> run(Worker)
+    run(offers(), IntakeWorker)
+    other.id |> awards() |> run(Worker)
+
+    assert points(account.id) == []
+    assert points(other.id) == []
+    assert [%{processing_status: :rejected, reason_code: "award_refused"}] = events(account.id)
+    assert "account_changed" in refusals(x)
+  end
+
   # Oban's job rows are not Ash records, so the queued jobs are read straight from
   # its table.
   defp offers do
@@ -93,6 +113,13 @@ defmodule Techtree.Points.AwardRecheckTest do
     Ash.Query.filter(Entry, account_id == ^account_id and rule_id == "social.x")
     |> Ash.read!(actor: Store.system())
     |> Enum.map(& &1.points_micro_delta)
+  end
+
+  defp refusals(%{subject: subject}) do
+    Rejection
+    |> Ash.read!(actor: Store.system())
+    |> Enum.filter(&(&1.source["source_event_key"] == "x:" <> subject))
+    |> Enum.map(& &1.reason_code)
   end
 
   defp session(did, linked_socials) do
