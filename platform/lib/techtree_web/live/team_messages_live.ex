@@ -455,7 +455,7 @@ defmodule TechtreeWeb.TeamMessagesLive do
           <dt>Verdict</dt>
           <dd><ProjectsLive.verdict verdict={Manifest.verdict(@package.manifest)} /></dd>
         </div>
-        <div>
+        <div :if={@package.manifest["line"] == "skills"}>
           <dt>Before</dt>
           <dd>
             {@package.manifest["summary"]["original"]["solved"]} of {@package.manifest["summary"][
@@ -463,7 +463,7 @@ defmodule TechtreeWeb.TeamMessagesLive do
             ]["attempts"]}
           </dd>
         </div>
-        <div>
+        <div :if={@package.manifest["line"] == "skills"}>
           <dt>After</dt>
           <dd>
             {@package.manifest["summary"]["selected"]["solved"]} of {@package.manifest["summary"][
@@ -471,7 +471,7 @@ defmodule TechtreeWeb.TeamMessagesLive do
             ]["attempts"]}
           </dd>
         </div>
-        <div>
+        <div :if={@package.manifest["line"] == "skills"}>
           <dt>Difference</dt>
           <dd>{ProjectsLive.difference(@package.manifest["summary"]["difference"])}</dd>
         </div>

@@ -1,17 +1,17 @@
 defmodule Techtree.Projects.Manifest do
   @moduledoc """
-  A package's `manifest.json`, format `uplift-package/1`: what the work found,
-  written by the factory that ran it. Only the Skills line exists.
+  A package's `manifest.json`, written by the factory that ran it. Skills
+  packages use `uplift-package/1` with structured comparison evidence. Evals,
+  Environments and Models use `uplift-package/2` with a verdict, report and
+  service-specific files.
 
   It is checked strictly before anything is kept. Every object has exactly its
   keys, each named once; every value has its type; every count is a whole
   number from 0 to 1,000,000; every list holds at most 2,000 items; each
   solved count is at most its attempts, and each case's at most its repeats;
-  every candidate is original, rewrite or skillopt. `files` names every other
-  file in the package once, in path order, each inside the package's layout:
-  `report.md`, `original/`, `selected/`, `cases/final/` and `rerun/`, with
-  `report.md` and `rerun/README.md` always there. `Techtree.Projects.Package`
-  checks the files themselves against it.
+  every Skill candidate is original, rewrite or skillopt. `files` names every
+  other file in the package once, in path order, inside its service's layout.
+  `Techtree.Projects.Package` checks the files themselves against it.
 
   A refusal names the first thing wrong by its place in the file, such as
   `summary.original.solved`.
@@ -23,9 +23,28 @@ defmodule Techtree.Projects.Manifest do
   @candidates ["original", "rewrite", "skillopt"]
   @folders ["original/", "selected/", "cases/final/", "rerun/"]
   @required_files ["report.md", "rerun/README.md"]
+  @service_files @required_files ++ ["rerun/test.json"]
+  @service_folders %{
+    "evals" => ["eval/", "rerun/"],
+    "environments" => ["tasks/", "rerun/"],
+    "models" => ["adapter/", "plan/", "cases/held-out/", "rerun/"]
+  }
+  @service_verdicts %{
+    "evals" => ["pass_bar_met", "pass_bar_not_met"],
+    "environments" => ["completed", "insufficient_tasks"],
+    "models" => ["improved", "inconclusive", "not_improved"]
+  }
+  @model_files ~w(adapter/adapter_config.json adapter/adapter_model.safetensors plan/sft.toml plan/dataset/train.jsonl)
 
   @count {:whole, 0, @most}
   @positive {:whole, 1, @most}
+  @file_list {:list,
+              {:object,
+               [
+                 {"path", :path},
+                 {"sha256", :sha256},
+                 {"size_bytes", {:whole, 0, @most_file_bytes}}
+               ]}}
   @candidate {:object,
               [
                 {"candidate", {:one_of, @candidates}},
@@ -94,41 +113,65 @@ defmodule Techtree.Projects.Manifest do
                     {"digest", :sha256}
                   ]}}
               ]}},
-            {"files",
-             {:list,
-              {:object,
-               [
-                 {"path", :path},
-                 {"sha256", :sha256},
-                 {"size_bytes", {:whole, 0, @most_file_bytes}}
-               ]}}}
+            {"files", @file_list}
           ]}
 
   @uuid ~r/\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/
   @sha256 ~r/\A[0-9a-f]{64}\z/
   @decimal ~r/\A(?:0|[1-9][0-9]*)(?:\.[0-9]+)?\z/
 
+  @service_shape [
+    {"schema", {:one_of, ["uplift-package/2"]}},
+    {"line", {:one_of, Map.keys(@service_folders)}},
+    {"title", {:name, 200}},
+    {"job_id", :uuid},
+    {"created_at", :utc_time},
+    {"success", {:text, 2_000}},
+    {"files", @file_list}
+  ]
+
   @doc "The manifest as a map with string keys, or what is wrong with it."
   @spec parse(binary()) :: {:ok, map()} | {:error, String.t()}
   def parse(json) do
     with {:ok, decoded} <- decode(json),
          {:ok, manifest} <- plain(decoded),
-         :ok <- check(manifest, @shape, []),
+         :ok <- check(manifest, shape(manifest), []),
          :ok <- within_attempts(manifest),
-         :ok <- files_in_layout(manifest["files"]) do
+         :ok <- files_in_layout(manifest) do
       {:ok, manifest}
     end
   end
 
+  defp shape(%{"schema" => "uplift-package/2", "line" => line})
+       when is_map_key(@service_verdicts, line) do
+    {:object, @service_shape ++ [{"verdict", {:one_of, @service_verdicts[line]}}]}
+  end
+
+  defp shape(_), do: @shape
+
   @doc "A checked manifest's service line, as a project keeps it."
-  @spec line(map()) :: :skills
+  @spec line(map()) :: :skills | :evals | :environments | :models
   def line(%{"line" => "skills"}), do: :skills
+  def line(%{"line" => "evals"}), do: :evals
+  def line(%{"line" => "environments"}), do: :environments
+  def line(%{"line" => "models"}), do: :models
 
   @doc "A checked manifest's verdict, as a project keeps it."
-  @spec verdict(map()) :: :improved | :inconclusive | :not_improved
+  @spec verdict(map()) ::
+          :improved
+          | :inconclusive
+          | :not_improved
+          | :pass_bar_met
+          | :pass_bar_not_met
+          | :completed
+          | :insufficient_tasks
   def verdict(%{"verdict" => "improved"}), do: :improved
   def verdict(%{"verdict" => "inconclusive"}), do: :inconclusive
   def verdict(%{"verdict" => "not_improved"}), do: :not_improved
+  def verdict(%{"verdict" => "pass_bar_met"}), do: :pass_bar_met
+  def verdict(%{"verdict" => "pass_bar_not_met"}), do: :pass_bar_not_met
+  def verdict(%{"verdict" => "completed"}), do: :completed
+  def verdict(%{"verdict" => "insufficient_tasks"}), do: :insufficient_tasks
 
   defp decode(json) do
     case Jason.decode(json, objects: :ordered_objects) do
@@ -254,6 +297,8 @@ defmodule Techtree.Projects.Manifest do
       value |> String.split("/") |> Enum.all?(&(&1 not in ["", ".", ".."]))
   end
 
+  defp within_attempts(%{"schema" => "uplift-package/2"}), do: :ok
+
   defp within_attempts(manifest) do
     summary = manifest["summary"]
 
@@ -282,23 +327,50 @@ defmodule Techtree.Projects.Manifest do
       else: {:error, "In manifest.json, #{place(at)} solved more than its repeats."}
   end
 
-  defp files_in_layout(files) do
+  defp files_in_layout(%{"line" => line, "files" => files, "verdict" => verdict}) do
     paths = Enum.map(files, & &1["path"])
+    folders = Map.get(@service_folders, line, @folders)
+    required = required_files(line)
 
     cond do
       paths != Enum.sort(Enum.uniq(paths)) ->
         {:error, "In manifest.json, files must be in path order, each path once."}
 
-      outside = Enum.find(paths, &(&1 != "report.md" and not String.starts_with?(&1, @folders))) ->
+      outside = Enum.find(paths, &(&1 != "report.md" and not String.starts_with?(&1, folders))) ->
         {:error,
          "In manifest.json, files lists #{outside}, which is outside the package's layout."}
 
-      missing = Enum.find(@required_files, &(&1 not in paths)) ->
+      missing = Enum.find(required, &(&1 not in paths)) ->
         {:error, "In manifest.json, files doesn't list #{missing}."}
 
       true ->
-        :ok
+        service_files(line, verdict, paths)
     end
+  end
+
+  defp required_files("skills"), do: @required_files
+  defp required_files("models"), do: @service_files ++ @model_files
+  defp required_files(_), do: @service_files
+
+  defp service_files("evals", _verdict, paths) do
+    if Enum.count(paths, &(String.starts_with?(&1, "eval/") and String.ends_with?(&1, ".whl"))) ==
+         1,
+       do: :ok,
+       else: {:error, "In manifest.json, files must list one evaluation wheel."}
+  end
+
+  defp service_files("environments", "completed", paths),
+    do: need_files(paths, "tasks/")
+
+  defp service_files("models", _verdict, paths),
+    do: need_files(paths, "cases/held-out/")
+
+  defp service_files(_, _verdict, _paths), do: :ok
+
+  defp need_files(paths, folder) do
+    if Enum.any?(paths, &String.starts_with?(&1, folder)),
+      do: :ok,
+      else: {:error, "In manifest.json, files doesn't list any file under #{folder}."}
   end
 
   defp each(items, check) do

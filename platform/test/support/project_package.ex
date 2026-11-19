@@ -151,6 +151,30 @@ defmodule Techtree.ProjectPackage do
     |> tar_gz()
   end
 
+  @doc "A version 2 package using a service's own deliverables."
+  @spec service(String.t(), String.t(), map(), (map() -> map())) :: binary()
+  def service(line, verdict, deliverables, change \\ & &1) do
+    files =
+      Map.merge(
+        %{
+          "report.md" => "# Service report\n\nThe recorded outcome.\n",
+          "rerun/README.md" => "Run the included checks with the pinned tool.\n",
+          "rerun/test.json" => "{}\n"
+        },
+        deliverables
+      )
+
+    build(
+      files: files,
+      manifest: fn manifest ->
+        manifest
+        |> Map.take(~w(title job_id created_at success files))
+        |> Map.merge(%{"schema" => "uplift-package/2", "line" => line, "verdict" => verdict})
+        |> change.()
+      end
+    )
+  end
+
   @doc "A path inside the built package's folder, as the tar names it."
   @spec at(String.t()) :: String.t()
   def at(path), do: "#{@folder}/#{path}"

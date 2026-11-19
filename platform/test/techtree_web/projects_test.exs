@@ -96,6 +96,38 @@ defmodule TechtreeWeb.ProjectsTest do
            ]
   end
 
+  test "an evaluation package reaches its owner with the service report and download", context do
+    bytes =
+      ProjectPackage.service("evals", "pass_bar_not_met", %{
+        "eval/example-1.0-py3-none-any.whl" => "wheel"
+      })
+
+    {:ok, project} =
+      Projects.deliver_project(context.owner.privy_user_id, bytes, actor: context.admin)
+
+    list = page(context.owner_conn, ~p"/account/projects")
+    assert text(list, "#project-#{project.id}") =~ "Evals"
+
+    details = page(context.owner_conn, ~p"/account/projects/#{project.id}")
+    assert text(details, "#project-report") =~ "The recorded outcome"
+    assert details |> LazyHTML.query("#project-cases") |> Enum.empty?()
+
+    assert response(get(context.owner_conn, ~p"/account/projects/#{project.id}/package"), 200) ==
+             bytes
+
+    agent = paired_agent(context.owner)
+
+    assert %{
+             "service" => "evals",
+             "verdict" => "pass_bar_not_met",
+             "summary" => nil,
+             "cases" => nil,
+             "selection" => nil,
+             "setup" => nil,
+             "report_md" => "# Service report\n\nThe recorded outcome.\n"
+           } = agent |> get(~p"/api/v1/account/projects/#{project.id}") |> json_response(200)
+  end
+
   test "another person finds nothing, and a signed-out visitor is asked to sign in", context do
     %{conn: conn, project: project} = context
     {other, _account} = signed_in(conn)

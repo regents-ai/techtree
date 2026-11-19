@@ -36,6 +36,12 @@
   words had settled; they now show as the words rise. In Safari, the headline
   and the lines around it no longer shift at that moment.
 
+### Projects
+
+- Team delivery accepts Evals, Environments and Models packages under the
+  existing upload limit. Owners get the service report, verdict, checksum
+  and package download in Projects. Skills packages keep their comparison.
+
 ## Repository (2026-11-18)
 
 ### Added

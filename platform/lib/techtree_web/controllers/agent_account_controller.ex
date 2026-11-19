@@ -78,7 +78,7 @@ defmodule TechtreeWeb.AgentAccountController do
     |> listed()
     |> Map.merge(%{
       success: manifest["success"],
-      summary: Map.delete(manifest["summary"], "cost_cents"),
+      summary: manifest["summary"] && Map.delete(manifest["summary"], "cost_cents"),
       cases: manifest["cases"],
       selection: manifest["selection"],
       setup: manifest["setup"],

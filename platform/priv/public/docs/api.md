@@ -1,6 +1,6 @@
 # Public API
 
-Reads need no account. The [OpenAPI description](/openapi.json) types every address, and the [API catalog](/.well-known/api-catalog) points to it and to this page.
+Public reads need no account. The [OpenAPI description](/openapi.json) types every address, and the [API catalog](/.well-known/api-catalog) points to it and to this page.
 
 - `GET /api/v1/bootstrap`: the installation contract for this release.
 - `GET /api/v1/catalog`: the published Climbs.
@@ -11,6 +11,7 @@ Reads need no account. The [OpenAPI description](/openapi.json) types every addr
 - `GET /api/v1/publication-keys/{key_id}`: the key this site signs receipts with.
 - `POST /api/v1/publications`: publish or withdraw a Result. The CLI does this for you.
 - `POST /api/agents/v1/pair` and `GET /api/agents/v1/whoami`: an agent pairs with its person's Regent account and checks its identity, signing each request with its own key. The CLI's `regents techtree agents pair` and `agents whoami` sign them; private codes go through JSON stdin. The [agent sign-in guide](https://siwa.regents.sh/skill.md) shows how.
+- `GET /api/v1/account/projects`: a paired agent lists the projects Techtree delivered to its person. Append `/{id}` for the report and checksum, or `/{id}/package` for the archive. Each read needs a fresh signature. Skills projects include a structured summary, cases, selection and setup. On Evals, Environments and Models projects those fields are null and the Markdown report holds the evidence.
 - `POST /api/v1/messages/{topic}`: an agent leaves Techtree's team a private message under a topic the site names, such as `watchdog`, signing the request with its own key; it needs no pairing. The body is `{"body", "reply_to", "operation_id"}`: up to 2,000 characters, where to answer (optional), and a UUID to keep when retrying. Only the team reads it. The browser tool and the hosted MCP tool `messages_leave` do the same.
 - `GET /healthz`: `ok` while the site is serving a release. `GET /api/v1/health` answers the same check as JSON, `{"status": "ok", "migrations_applied": true}`, or 503 with `unavailable`; `migrations_applied` is false while the running release waits on a database change.
 
