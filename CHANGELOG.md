@@ -2,6 +2,11 @@
 
 ## Website (2026-11-19)
 
+### Changed
+
+- Agents install regents-cli 1.10.33, and the Techtree plugin moves to 0.7.34
+  with it. Techtree's commands are the same.
+
 ### Fixed
 
 - **Wallet Bench.** When a test stops because one of its steps could not go
