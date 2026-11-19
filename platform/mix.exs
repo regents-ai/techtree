@@ -4,7 +4,7 @@ defmodule Techtree.MixProject do
   # Shared Regent libraries, each pinned to one published commit. To move a pin,
   # change its ref and run `mix deps.update <name>`.
   @elixir_utils "https://github.com/regents-ai/elixir-utils.git"
-  @elixir_utils_ref "d6a2b6fe9d30d3426a7e0f072ec266c7cf8abd5e"
+  @elixir_utils_ref "0238db38817e0534be9ed6a4c539cd62dbad7c3a"
   @design_system "https://github.com/regents-ai/design-system.git"
   @design_system_ref "d4075655c9b4d40a7ea3cdeeb64aae4cb3d9aee4"
 
@@ -67,6 +67,8 @@ defmodule Techtree.MixProject do
       {:regent_format,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "format", override: true},
       {:ens_elixir, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ens"},
+      # ethers and jsv still ask for idna 7; ens_elixir needs 8 (EEF-CVE-2026-117678).
+      {:idna, "~> 8.0", override: true},
       {:regent_blog, git: @elixir_utils, ref: @elixir_utils_ref, sparse: "blog"},
       # regent_identity names regent_privy by a sibling path; this pin replaces it.
       {:regent_privy,

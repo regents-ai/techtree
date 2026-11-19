@@ -17,6 +17,10 @@
   on, its page and its downloaded record now say why in plain words, such as
   "The judge's model provider refused the bench's access, so this test was
   not judged." They used to show the bench's internal error text.
+- **Security.** A very long, specially shaped name could keep the site busy
+  for seconds while it checked an ENS name. The name library is updated
+  (idna 8.0.0, EEF-CVE-2026-117678). ENS names with emoji are now accepted,
+  and names with an empty part are refused.
 
 ## Website (2026-11-18)
 
