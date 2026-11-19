@@ -91,6 +91,7 @@ from this repository's `plugin/` folder; earlier records name commits of the arc
 | [`climb-v0.7.31`](../platform/priv/releases/climb-v0.7.31/) | `regents-cli` 1.10.30 | `4a78156` (regents-cli tag `v1.10.30`) | `26bf0c4` (`plugin/`) | `4a78156` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-16 |
 | [`climb-v0.7.32`](../platform/priv/releases/climb-v0.7.32/) | `regents-cli` 1.10.31 | `2e8b98c` (regents-cli tag `v1.10.31`) | `68c59f9` (`plugin/`) | `2e8b98c` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-17 |
 | [`climb-v0.7.33`](../platform/priv/releases/climb-v0.7.33/) | `regents-cli` 1.10.32 | `a972d34` (regents-cli tag `v1.10.32`) | `803035c` (`plugin/`) | `a972d34` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-17 |
+| [`climb-v0.7.34`](../platform/priv/releases/climb-v0.7.34/) | `regents-cli` 1.10.33 | `c12d856` (regents-cli tag `v1.10.33`) | `67b3068` (`plugin/`) | `c12d856` | `sha256:78a9ec72…` | 0.21.3 | 2026-11-19 |
 
 The evaluated subject is Hermes 0.19.0 up to `climb-v0.3.0`, Hermes v2026.7.20 from
 `climb-v0.3.1`, and Hermes v2026.9.24 with GPT-6 Luna at high reasoning from
