@@ -64,11 +64,12 @@ defmodule Techtree.Accounts.LinkedIdentity do
     end
 
     # Each account's link to one provider made before a moment, such as the time the
-    # Points start run reads them.
+    # Points start run reads them, by provider, subject and account alone.
     read :linked_before do
       argument :provider, :atom, allow_nil?: false
       argument :at, :utc_datetime_usec, allow_nil?: false
       filter expr(provider == ^arg(:provider) and inserted_at < ^arg(:at))
+      prepare build(select: [:provider, :subject, :human_account_id])
     end
 
     destroy :remove_verified do

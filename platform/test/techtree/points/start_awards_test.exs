@@ -64,9 +64,10 @@ defmodule Techtree.Points.StartAwardsTest do
 
     assert Enum.all?(points(account.id), &(DateTime.compare(&1.earned_at, start) == :eq))
 
-    # A later run finds the account already recorded and offers nothing more.
+    # A later run finds the account has earned and offers nothing more for it.
+    {:ok, [pairing]} = RegentAgents.pairing_histories(did)
     assert :ok = StartAwards.perform(%Oban.Job{})
-    assert Enum.flat_map(@rules, &offers/1) == []
+    assert offers_of([to_string(account.id), "x:" <> x.subject, pairing.id]) == []
   end
 
   test "what an account did after the start, before the site switched Points on, earns once, at its own time" do
@@ -124,9 +125,12 @@ defmodule Techtree.Points.StartAwardsTest do
       assert DateTime.compare(earned_at, done_at) == :eq
     end
 
-    # A later run finds both accounts already recorded and offers nothing more.
+    # A later run finds both accounts have earned and offers nothing more for them.
     assert :ok = StartAwards.perform(%Oban.Job{})
-    assert Enum.flat_map(@rules, &offers/1) == []
+
+    assert offers_of([to_string(early.id), to_string(account.id), "x:" <> x.subject, pairing.id]) ==
+             []
+
     assert length(points(early.id)) == 1
     assert length(points(account.id)) == 3
   end
@@ -140,6 +144,12 @@ defmodule Techtree.Points.StartAwardsTest do
           j.worker == "RegentPoints.IntakeWorker" and j.state == "available" and
             fragment("?->>'rule_id'", j.args) == ^rule
     )
+  end
+
+  # The queued offers for these sources. An account another test leaves in the
+  # database, whose event still waits, is offered again by every run.
+  defp offers_of(keys) do
+    @rules |> Enum.flat_map(&offers/1) |> Enum.filter(&(&1.args["source_event_key"] in keys))
   end
 
   # Points' check of every offer for the rule, then its award for the account.

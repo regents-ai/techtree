@@ -161,8 +161,8 @@ config :techtree, Oban,
     crontab:
       [
         {"17 4 * * *", Techtree.ErrorPruner},
-        # From the Points start, the one-time points for what accounts have that Points
-        # has not recorded; the run itself goes at most once a day.
+        # From the Points start, the one-time points for what accounts have that has not
+        # earned; once a run succeeds, no other runs that day.
         {"@hourly", RegentPoints.StartAwards},
         # One line for each kind of shared reading a producer rereads on notice.
         {"* * * * *", Techtree.SharedReading.Heal, args: %{kind: "points_board"}}

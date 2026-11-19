@@ -3,12 +3,14 @@ defmodule Techtree.Points.AwardRecheckTest do
   # the same account, when the award is written. A link removed after Points
   # accepted the offer but before the award ran earns nothing; a link moved to
   # another account meanwhile earns nothing for the first and once for the account
-  # that holds it, when its own offer is checked; a link that stays earns once.
+  # that holds it, when its own offer is checked, or at the next start run when
+  # that offer was turned away while the first award still waited; a link that
+  # stays earns once.
   use ExUnit.Case, async: false
 
   import Ecto.Query
   require Ash.Query
-  alias RegentPoints.{Entry, Event, IntakeWorker, Rejection, Store, Worker}
+  alias RegentPoints.{Entry, Event, IntakeWorker, Rejection, StartAwards, Store, Worker}
   alias Techtree.Accounts.VerifiedSession
   alias Techtree.Repo
 
@@ -70,6 +72,31 @@ defmodule Techtree.Points.AwardRecheckTest do
     assert "account_changed" in refusals(x)
 
     # The other person's offer takes over the refused event and earns once.
+    run(offers(), IntakeWorker)
+    other.id |> awards() |> run(Worker)
+
+    assert points(account.id) == []
+    assert [10_000_000] = points(other.id)
+    assert [%{processing_status: :confirmed}] = events(other.id)
+    assert events(account.id) == []
+  end
+
+  test "a moved link whose offer was turned away while the first award waited earns at the next start run",
+       %{did: did, x: x, account: account} do
+    other_did = "did:privy:recheck-" <> Ecto.UUID.generate()
+    assert {:ok, other, []} = other_did |> session([]) |> VerifiedSession.establish()
+    assert {:ok, _account, []} = did |> session([]) |> VerifiedSession.establish()
+    assert {:ok, _other, []} = other_did |> session([x]) |> VerifiedSession.establish()
+
+    # The other person's offer is checked while the first award still waits.
+    run(offers(), IntakeWorker)
+    assert "source_identity_conflict" in refusals(x)
+    assert events(other.id) == []
+
+    account.id |> awards() |> run(Worker)
+    assert [%{processing_status: :rejected, reason_code: "award_refused"}] = events(account.id)
+
+    assert :ok = StartAwards.perform(%Oban.Job{})
     run(offers(), IntakeWorker)
     other.id |> awards() |> run(Worker)
 
