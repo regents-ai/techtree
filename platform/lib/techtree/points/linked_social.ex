@@ -3,10 +3,13 @@ defmodule Techtree.Points.LinkedSocial do
   Regent Points' check of a linked social account: it reads the saved link and
   answers with what Points records. The provider and subject are the proof, so
   one social account earns once, whichever account links it; a link removed
-  before the check earns nothing.
+  before the check earns nothing. When several accounts hold the same social
+  account, the check answers for the one that linked it first and still holds
+  it, so a later link by another account moves nothing earned or waiting.
 
   `existing/2` lists the links to the rule's provider made before the moment
-  `RegentPoints.StartAwards` asks about, the time it runs, and still there.
+  `RegentPoints.StartAwards` asks about, the time it runs, and still there, one
+  for each social account: its first.
   """
 
   alias Techtree.Accounts
@@ -15,7 +18,7 @@ defmodule Techtree.Points.LinkedSocial do
   def verify(%{"source_event_key" => key}) do
     [provider, subject] = String.split(key, ":", parts: 2)
 
-    case Accounts.get_linked_identity_by_subject(provider, subject, actor: %System{}) do
+    case Accounts.get_first_link(provider, subject, actor: %System{}) do
       {:ok, %{} = identity} -> {:ok, facts(identity, key)}
       {:ok, nil} -> {:error, :link_not_found}
       {:error, reason} -> {:retry, reason}
@@ -23,7 +26,10 @@ defmodule Techtree.Points.LinkedSocial do
   end
 
   def existing("social." <> provider, at) do
-    for identity <- Accounts.linked_identities_before!(provider, at, actor: %System{}) do
+    links = Accounts.linked_identities_before!(provider, at, actor: %System{})
+
+    # Of the accounts that hold one social account, only the first to link it.
+    for identity <- Enum.uniq_by(links, & &1.subject) do
       {identity.human_account_id,
        %{
          source_app: "regents",

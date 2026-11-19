@@ -1,6 +1,7 @@
 defmodule Techtree.Accounts.VerifiedSession do
   @moduledoc "Exchanges verified Privy evidence for the canonical human account."
 
+  alias Ash.Error.Changes.InvalidAttribute
   alias Techtree.Accounts
   alias Techtree.Accounts.EnsIdentity
   alias Techtree.Actors.System
@@ -11,8 +12,8 @@ defmodule Techtree.Accounts.VerifiedSession do
   Registers or refreshes the account the verified session names, gives the
   person their shared profile when they have none, reconciles its linked
   socials and asks
-  Ethereum for its wallet's ENS name again, returning the providers another
-  account already holds.
+  Ethereum for its wallet's ENS name again, returning the providers whose social
+  account another account already holds where it cannot be shared.
   Without a linked wallet the account's wallet evidence is withdrawn instead.
   """
   def establish(%RegentPrivy.Session{privy_user_id: did} = verified) do
@@ -72,19 +73,20 @@ defmodule Techtree.Accounts.VerifiedSession do
 
   defp reconcile(account_id, linked_socials) do
     with {:ok, existing} <- Accounts.list_linked_identities_for_account(account_id, actor: @actor),
-         {:ok, conflicts} <- upsert_socials(linked_socials, account_id) do
+         {:ok, conflicts} <- upsert_socials(linked_socials, existing, account_id) do
       kept = linked_socials |> Enum.map(& &1.provider) |> MapSet.new()
       remove_missing(existing, kept, conflicts)
     end
   end
 
-  # The first social per provider wins; a provider whose subject another
-  # account holds is reported as a conflict rather than stopping the sign-in.
-  defp upsert_socials(linked_socials, account_id) do
+  # The first social per provider wins; a provider whose subject another account
+  # holds, where that provider's accounts are not shared, is reported as a
+  # conflict rather than stopping the sign-in.
+  defp upsert_socials(linked_socials, existing, account_id) do
     linked_socials
     |> Enum.uniq_by(& &1.provider)
     |> Enum.reduce_while({:ok, []}, fn social, {:ok, conflicts} ->
-      case upsert_social(social, account_id) do
+      case upsert_social(social, existing, account_id) do
         :ok -> {:cont, {:ok, conflicts}}
         :conflict -> {:cont, {:ok, [social.provider | conflicts]}}
         {:error, error} -> {:halt, {:error, error}}
@@ -92,7 +94,9 @@ defmodule Techtree.Accounts.VerifiedSession do
     end)
   end
 
-  defp upsert_social(%{provider: provider, subject: subject} = social, account_id) do
+  # `existing` is the account's own links, so whether another account holds the
+  # subject is never read here: the database answers that when it is linked.
+  defp upsert_social(%{provider: provider, subject: subject} = social, existing, account_id) do
     identity =
       social
       |> Map.take([:provider, :subject, :username, :display_name])
@@ -102,18 +106,18 @@ defmodule Techtree.Accounts.VerifiedSession do
         human_account_id: account_id
       })
 
-    with {:ok, current} <-
-           Accounts.get_linked_identity_by_subject(provider, subject, actor: @actor),
-         :ok <- subject_available(current, account_id),
-         {:ok, _identity} <- save_social(current, identity) do
-      :ok
-    else
-      {:error, :already_linked} -> :conflict
-      {:error, error} -> conflict_or_error(error, provider, subject, account_id)
+    current = Enum.find(existing, &(&1.provider == provider and &1.subject == subject))
+
+    case save_social(current, identity) do
+      {:ok, _identity} -> :ok
+      {:error, error} -> conflict_or_error(error)
     end
   end
 
-  # A subject new to the account links it; the same subject again refreshes it.
+  # A subject new to the account links it: a first link for the provider, or one
+  # that replaces the account's earlier subject. A subject other accounts hold is
+  # linked here as well when its provider's accounts are shared; otherwise the
+  # database refuses it. The same subject again refreshes it.
   defp save_social(nil, identity), do: Accounts.upsert_linked_identity(identity, actor: @actor)
 
   defp save_social(current, identity) do
@@ -124,18 +128,19 @@ defmodule Techtree.Accounts.VerifiedSession do
     )
   end
 
-  defp subject_available(nil, _account_id), do: :ok
-  defp subject_available(%{human_account_id: id}, id), do: :ok
-  defp subject_available(_identity, _account_id), do: {:error, :already_linked}
-
-  # A concurrent sign-in may have taken the subject between the read and the
-  # upsert; re-reading tells a conflict apart from a real failure.
-  defp conflict_or_error(error, provider, subject, account_id) do
-    case Accounts.get_linked_identity_by_subject(provider, subject, actor: @actor) do
-      {:ok, %{human_account_id: id}} when id != account_id -> :conflict
-      _result -> {:error, error}
-    end
+  # `LinkedIdentity` `:unique_subject_per_provider` refuses a subject another
+  # account holds, one a concurrent sign-in just took included, with an error on
+  # the subject alone that names the unique rule: that is the conflict.
+  defp conflict_or_error(%Ash.Error.Invalid{errors: errors} = error) do
+    if Enum.any?(errors, &subject_taken?/1), do: :conflict, else: {:error, error}
   end
+
+  defp conflict_or_error(error), do: {:error, error}
+
+  defp subject_taken?(%InvalidAttribute{field: :subject, private_vars: vars}),
+    do: vars[:constraint_type] == :unique
+
+  defp subject_taken?(_error), do: false
 
   defp remove_missing(existing, kept, conflicts) do
     existing

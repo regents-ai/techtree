@@ -36,8 +36,8 @@ defmodule Techtree.Accounts do
       define :list_my_linked_identities, action: :read_mine
       define :list_linked_identities_for_account, action: :for_account, args: [:human_account_id]
 
-      define :get_linked_identity_by_subject,
-        action: :by_provider_subject,
+      define :get_first_link,
+        action: :first_link,
         args: [:provider, :subject],
         not_found_error?: false
 
