@@ -14,8 +14,6 @@
   },
   "include": [
     "js/**/*.ts",
-    "js/**/*.tsx",
-    "test/*.test.ts",
-    "vitest.config.ts"
+    "js/**/*.tsx"
   ]
 }

@@ -223,12 +223,6 @@ the API serves their exact bytes like every other content-addressed object.
 Published v2 reports must name that same Campaign and execution plan. The HTTP
 route and publication-submission envelope versions are unchanged.
 
-Publication tests use a synthetic v2 proof and CLI-produced submission in
-`test/support/fixtures/proof-v2/` and `test/support/fixtures/publication/`,
-committed as fixtures. This is protocol conformance, not a paid evaluation or
-release certification. The archived v0.1 proof under
-`test/support/fixtures/proof/` remains unchanged.
-
 `priv/catalog` holds the generated export rather than committed source.
 regents-cli is the single owner of those artifacts. Sync one in before
 importing:
@@ -273,8 +267,8 @@ the asset build passes.
 
 After dependency changes, run `npm ci --ignore-scripts` and `npm audit` in
 `assets/`, audit the exact Hex versions in `mix.lock` against OSV, and run
-`make check-platform` from the monorepo root. Tests and asset compilation are
-compatibility checks, not substitutes for vulnerability audits. Live Privy
+`make check-platform` from the monorepo root. The static checks and asset
+compilation are compatibility checks, not substitutes for vulnerability audits. Live Privy
 login and wallet signing still require a separate release smoke test.
 
 ## The pages
@@ -316,32 +310,27 @@ Do not clone recursive Solidity submodules for a web-only change.
 
 ## Development
 
-Requires Elixir/Erlang, Node 22.18 or newer (a test loads the TypeScript
-directly) and PostgreSQL 14 or newer. Run from `platform/`; registry-contract
-checks separately require Foundry.
+Requires Elixir/Erlang, Node 22.18 or newer and PostgreSQL 14 or newer. Run
+from `platform/`; registry-contract checks separately require Foundry.
 
 ```bash
 mix setup       # deps, database, assets
 mix precommit   # warnings-as-errors, unused locks, Hex audit, format, Credo, Sobelow,
-                # compile-time links, Ash codegen, TypeScript typecheck, script tests,
-                # the browser walk
-mix test        # the ExUnit tests; make check runs them beside mix precommit
+                # compile-time links, Ash codegen, TypeScript typecheck
 ```
 
 The API's description is one file, `priv/public/openapi.json`, written by hand:
 the site serves it at `/openapi.json` with its own address added, and
 `make check-cli` reads it as it is. Add a route to it in the same commit as the
-router's line; a test fails on a route it leaves out, and on a request budget
-that differs from production's in `config/config.exs`.
+router's line.
 
-`mix setup` and `mix test` prepare the local database with
-`mix techtree.setup_local_auth`, which takes the staging bootstrap's own steps in
-production's order (`Techtree.Release.prepare_database!/2`): the shared
+`mix setup` prepares the local database with `mix techtree.setup_local_auth`,
+which takes the staging bootstrap's own steps in production's order
+(`Techtree.Release.prepare_database!/2`): the shared
 `regent_names.platform_human_users` table this repository reads but does not own,
 every shared change this site carries, then Techtree's own migrations. Running it
 again changes nothing. It refuses any database that is not on `127.0.0.1` (or
-`::1`) and named with `_dev` or `_test` at the end; test databases are named
-`techtree<MIX_TEST_PARTITION>_test`.
+`::1`) and named with `_dev` at the end.
 
 `mix phx.server` needs `PRIVY_APP_ID` and `PRIVY_VERIFICATION_KEY`; without them the
 local server refuses to start, because nobody could sign in. Other tasks run without them.
@@ -380,7 +369,7 @@ only an agent acting as its person; any other agent is refused with
 answer leaves, so an unpairing during a request never sends the person's data.
 
 `ETHEREUM_READ_RPC_URL` optionally enables the template's ENS lookup at sign-in.
-It must be HTTPS and is ignored in tests. No lookup runs when it is absent.
+It must be HTTPS. No lookup runs when it is absent.
 `TECHTREE_BASE_NODE_URL` optionally names the site's own Base node for the Points
 reads; the public node is used without it.
 
@@ -388,7 +377,7 @@ The account migration adds three site-owned tables: session authorities, linked
 identities and ENS projections. It references the existing shared human-account
 table; it does not replace the shared identity, Agents or Points schemas.
 
-`PGUSER`, `PGPASSWORD`, and `PGHOST` override the development and test database
+`PGUSER`, `PGPASSWORD`, and `PGHOST` override the development database
 connection when the local server does not use the defaults (`postgres`, `postgres`,
 `127.0.0.1`). If your
 server has no `postgres` role, set `PGUSER` to your own role, for example
@@ -434,7 +423,7 @@ see a public page signed out until the next load. Nothing is granted either way.
 
 ## Shared database namespace
 
-Development and test databases use `public` by default. Production runs on the shared
+Development databases use `public` by default. Production runs on the shared
 `regents_prod` database (Fly Managed Postgres cluster `regents-platform-prod`) with
 `TECHTREE_DB_SCHEMA=techtree_app`, set as a Fly secret together with the two
 database URLs; that namespace holds the complete product schema, publication sequence
@@ -492,8 +481,7 @@ or when the live page can't be read or names no site script; the build stops
 when the previous image can't be pulled or holds no manifest. After the deploy
 it fails unless `/capabilities.json` reports the commit just deployed and the
 previous release's site script still answers. `make release` reads the live
-image the same way. `test/scripts/deploy_site_test.exs` runs the script through
-each of these with stand-ins for `flyctl`, `curl` and `lockf`.
+image the same way.
 
 After each release, `make live-check` from the monorepo root reads techtree.sh
 (`scripts/live-check.sh`). First it reads it signed out in headless Chromium at
@@ -515,7 +503,7 @@ the site has moved. It writes nothing and starts no visit; the signed reads
 change nothing but the time the site last saw the agent. Once the release
 record is committed on top, name the released commit:
 `make live-check COMMIT=<commit>`. It does not sign in as a person or call a
-signed browser tool; those are proved by the local browser tests only.
+signed browser tool.
 
 ## Shared database changes
 
@@ -550,38 +538,9 @@ same login. It prints what the database and the release disagree about: the
 migrations the release carries that the database has not applied (`pending:`),
 applied versions whose file the release does not carry (`applied-without-file:`)
 and shared changes their own ledgers do not hold (`shared-pending:`), or `none`.
-It applies and creates nothing. `test/techtree/release_test.exs` runs every one
-of these commands against throwaway databases.
+It applies and creates nothing.
 
 ## Checking a change
-
-From the repository root, `make check-change` compares the working tree with the
-common ancestor of `BASE` (default `origin/main`) and includes new files. Use
-`python3 scripts/check-change.py --plan` to see its selection, or `--platform` to
-explicitly exercise the complete platform check path.
-
-For platform changes it keeps the static gates, splits **every** ExUnit test across
-two independent local test databases, runs the full JavaScript suite and the site's
-configured headless Chromium walk. Server pages and CSS run the whole walk; they
-cannot be selected safely through JavaScript imports. Unknown paths, dependency,
-shared-library, migration and build changes use the existing `make check` instead.
-Documentation-only output is not runtime or release evidence. `make check` remains
-the full integration/protected-change gate, including its network advisory check.
-Additional chain, device, showcase or security browser configurations still apply
-when the changed behavior needs them; the default walk does not include every configuration.
-
-Install the locked Mix and npm dependencies using this site's setup instructions
-first. The runner installs esbuild only if missing. `--jobs 1` runs tests serially;
-`--jobs 4` permits four parts when capacity allows. The default is two, with the
-site's established connection pool sizes. No `--stale`, retries or skipped failures.
-It admits two runner invocations at once, one per checkout, and refuses to start
-below 50 GiB free. Other heavy commands share the same two-run workspace budget.
-Failed shard logs and private failure records stay in `platform/_build/check-change/`;
-the ordinary `mix test --failed` is marked for a complete rerun after a failed or
-interrupted shard run. Passing shard scratch is removed. Browser worker counts stay
-with each site’s existing configuration. Only owned processes and throwaway test
-databases are cleaned up, including on
-failure or interruption. A cleanup failure fails the command.
 
 Shared adoption records the template revision, dependency pins, migration owner
 and order, compatible consumer state, and checks actually run. Keep one integrating

@@ -50,7 +50,7 @@ defmodule TechtreeWeb.GithubStars.Reader do
       retry: false
     ]
 
-    case Req.get(Keyword.merge(request, Keyword.get(config, :req_options, []))) do
+    case Req.get(request) do
       {:ok, %{status: 200, body: %{"stargazers_count" => count}}}
       when is_integer(count) and count >= 0 ->
         {:ok, count}

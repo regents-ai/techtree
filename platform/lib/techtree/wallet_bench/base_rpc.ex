@@ -1,9 +1,8 @@
 defmodule Techtree.WalletBench.BaseRpc do
   @moduledoc """
   The bench's calls to Base, through the address set as `base_rpc` in
-  `:techtree, Techtree.WalletBench`: Base's public RPC, or a local copy of Base
-  when testing. One call, one answer; nothing here retries. Tests add Req
-  options, such as a `Req.Test` plug, under `:req_options` in the same settings.
+  `:techtree, Techtree.WalletBench`: Base's public RPC, or another address such
+  as a local copy of Base. One call, one answer; nothing here retries.
   """
 
   @usdc "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
@@ -55,13 +54,10 @@ defmodule Techtree.WalletBench.BaseRpc do
   end
 
   defp request(method, params) do
-    Req.post(
-      url(),
-      [
-        json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
-        retry: false,
-        receive_timeout: 30_000
-      ] ++ Keyword.get(config(), :req_options, [])
+    Req.post(url(),
+      json: %{jsonrpc: "2.0", id: 1, method: method, params: params},
+      retry: false,
+      receive_timeout: 30_000
     )
   end
 

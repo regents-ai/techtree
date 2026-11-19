@@ -42,4 +42,4 @@ Each command takes `--json` for machine-readable output.
 make -C lab check
 ```
 
-Formatting, lint, types and tests. The root `make check` runs it too.
+Formatting, lint and types. The root `make check` runs it too.

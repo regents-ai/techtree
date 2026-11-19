@@ -29,11 +29,6 @@ defmodule Techtree.Watchdog.Ownership do
   only `{:error, :proof_missing}` says the proof is positively not there (the
   TXT record is absent or different, or the file is missing or different).
   Every other error means the proof could not be read this time.
-
-  Every request is a `Req` request built with `request_options/0`, so tests
-  drive both methods with `Req.Test` and the real resolver and site are never
-  reached. The file fetch's adapter is `SingleRequest` unless `:file_adapter`
-  is configured, as the test configuration does to stay on this machine.
   """
 
   alias Techtree.Watchdog.Ownership.SingleRequest
@@ -81,9 +76,7 @@ defmodule Techtree.Watchdog.Ownership do
   def verify(%{ownership_method: :well_known_file} = host), do: verify_well_known(host)
 
   defp verify_dns(host) do
-    options =
-      [url: @resolver, params: [name: txt_name(host), type: "TXT"]]
-      |> Keyword.merge(request_options())
+    options = [url: @resolver, params: [name: txt_name(host), type: "TXT"]]
 
     request([]) |> Req.get(options) |> dns_result(record_value(host))
   end
@@ -103,11 +96,9 @@ defmodule Techtree.Watchdog.Ownership do
 
   defp verify_well_known(host) do
     with {:ok, address} <- guard_public(host) do
-      options = Keyword.merge([url: address_url(address)], request_options())
-
       request(hostname: host.origin)
-      |> Req.merge(adapter: file_adapter())
-      |> Req.get(options)
+      |> Req.merge(adapter: SingleRequest)
+      |> Req.get(url: address_url(address))
       |> file_result(record_value(host))
     end
   end
@@ -185,7 +176,7 @@ defmodule Techtree.Watchdog.Ownership do
   defp guard_addresses(origin) do
     case :inet.parse_address(String.to_charlist(origin)) do
       {:ok, address} -> judge([address])
-      {:error, _not_an_address} -> judge(resolver().(origin))
+      {:error, _not_an_address} -> judge(resolve(origin))
     end
   end
 
@@ -197,11 +188,7 @@ defmodule Techtree.Watchdog.Ownership do
       else: {:error, :host_not_public}
   end
 
-  defp resolver do
-    Application.get_env(:techtree, __MODULE__, [])[:resolver] || (&default_resolve/1)
-  end
-
-  defp default_resolve(origin) do
+  defp resolve(origin) do
     charlist = String.to_charlist(origin)
     Enum.flat_map([:inet, :inet6], &resolve(charlist, &1))
   end
@@ -246,12 +233,4 @@ defmodule Techtree.Watchdog.Ownership do
       decode_body: false
     )
   end
-
-  defp file_adapter,
-    do: Application.get_env(:techtree, __MODULE__, [])[:file_adapter] || SingleRequest
-
-  @doc "Req options tests override to answer both methods without a network."
-  @spec request_options() :: keyword()
-  def request_options,
-    do: Application.get_env(:techtree, __MODULE__, [])[:req_options] || []
 end

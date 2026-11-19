@@ -10,8 +10,7 @@
  * - `backdrop`: contour lines that drift across the top of a service card.
  *
  * Every picture is laid out in CSS pixels and scaled to the canvas, so a phone
- * and a wide screen see the same picture. This file imports nothing, so the
- * unit tests read the same uniforms the page sends.
+ * and a wide screen see the same picture.
  */
 
 export const SCENES = ["glow", "screen", "mark", "backdrop"] as const

@@ -41,6 +41,18 @@
   (idna 8.0.0, EEF-CVE-2026-117678). ENS names with emoji are now accepted,
   and names with an empty part are refused.
 
+## Repository (2026-11-19)
+
+### Removed
+
+- **Tests.** The repository's automated tests are gone: the site's server,
+  script and browser tests, the plugin's and the lab's tests, and the change
+  runner that chose which of them to run. `make check` keeps the static checks
+  (compiling with warnings as errors, formatting, Credo, Sobelow, the type
+  checks and the audits) and the contract and model checks, and
+  `make live-check` still reads the live site after each release.
+  `make browser` and `make check-change` are gone.
+
 ## Website (2026-11-18)
 
 ### Added

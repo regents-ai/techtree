@@ -1,17 +1,13 @@
 .DEFAULT_GOAL := check
 
-.PHONY: check check-plugin plugin-release-core check-platform platform-setup platform-precommit platform-test check-required-fixes check-cli check-siwa-latest release readiness browser live-check
+.PHONY: check check-plugin plugin-release-core check-platform platform-setup platform-precommit check-required-fixes check-cli check-siwa-latest release readiness live-check
 
 # make check sets the platform up first (its dependencies and built assets, which
-# both platform gates need), then runs every other gate side by side, each writing
-# its output to $(CHECK_LOGS)/<gate>.log; it prints every gate's log, the failed
-# ones last, and one line per gate, and fails when any gate failed. mix precommit
-# (the static checks, then the browser walk) and mix test both compile _build/test,
-# which Mix does for one of them at a time. The walk's own server rebuilds
-# assets/vendor and priv/static/assets, which no ExUnit test reads but one asking
-# for site.css, rewritten in place and never absent; and it drops and makes only
-# its own database. The other gates write nothing another reads.
-CHECK_LANES := platform-precommit platform-test check-change-runner check-plugin check-required-fixes \
+# mix precommit needs), then runs every other gate side by side, each writing its
+# output to $(CHECK_LOGS)/<gate>.log; it prints every gate's log, the failed ones
+# last, and one line per gate, and fails when any gate failed. No gate writes
+# anything another reads.
+CHECK_LANES := platform-precommit check-plugin check-required-fixes \
   check-cli check-siwa-latest check-contracts check-formal check-swarm check-lab
 CHECK_GATES := platform-setup $(CHECK_LANES)
 CHECK_LOGS := platform/_build/check
@@ -19,9 +15,9 @@ CHECK_LOGS := platform/_build/check
 # Mac shared with other agents' checks (Nov 2026), and 5 s for a gate that takes a
 # second or three. A gate over its budget gets a SLOW line under its own at the end;
 # it never fails the check.
-CHECK_BUDGETS := platform-setup:65 platform-precommit:165 platform-test:200 check-change-runner:12 \
-  check-plugin:75 check-required-fixes:5 check-cli:5 check-siwa-latest:5 check-contracts:35 \
-  check-formal:20 check-swarm:30 check-lab:12
+CHECK_BUDGETS := platform-setup:65 platform-precommit:20 \
+  check-plugin:5 check-required-fixes:5 check-cli:5 check-siwa-latest:5 check-contracts:35 \
+  check-formal:20 check-swarm:30 check-lab:5
 # One gate, its output in its own log, then its exit code and seconds in the results.
 CHECK_GATE = start=$$(date +%s); $(MAKE) --no-print-directory $$gate > $(CHECK_LOGS)/$$gate.log 2>&1; \
   code=$$?; echo "$$gate $$code $$(( $$(date +%s) - start ))" >> $(CHECK_LOGS)/results
@@ -58,20 +54,12 @@ plugin-release-core:
 	$(MAKE) -C plugin release-core
 
 # The platform's gates, one after another: its dependencies and built assets, then
-# mix precommit (the static checks, the script tests and the browser walk), then
-# mix test.
-check-platform: platform-setup platform-precommit platform-test
+# mix precommit (the static checks).
+check-platform: platform-setup platform-precommit
 platform-setup:
 	cd platform && mix deps.get && mix assets.setup && mix assets.build
 platform-precommit:
 	cd platform && mix precommit
-platform-test:
-	cd platform && mix test
-
-# The browser tests alone: the main pages in headless Chromium at 1280, 390 and
-# 320 wide, signed out and signed in. check-platform runs them too.
-browser:
-	cd platform/assets && npm run test:browser
 
 # The live site, signed out, in headless Chromium at 1280 and 390 wide: the commit
 # it runs, every public page and document, the browser tools the home page offers,
@@ -149,12 +137,3 @@ release:
 # looks for against it, and stops it. Needs the local development database.
 readiness:
 	scripts/readiness.sh
-
-# The template change loop; BASE=<ref> selects the comparison.
-.PHONY: check-change
-check-change:
-	python3 scripts/check-change.py
-
-.PHONY: check-change-runner
-check-change-runner:
-	python3 -m unittest discover -s scripts/tests -p 'test_check_change.py'

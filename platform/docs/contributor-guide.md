@@ -21,17 +21,16 @@ is a release action, not a website change.
 
 The site has **one write address, fixed by decision 0038**: `POST
 /api/v1/publications`, which takes a signed publication or a signed withdrawal
-and nothing else. Every other published route answers GET and HEAD only, and a
-test asserts a 405 with an `Allow` header for anything else. Do not add a
+and nothing else. Every other published route answers GET and HEAD only, and
+anything else gets a 405 with an `Allow` header. Do not add a
 second write, a form, a file upload, or any path a reader could post to from a
 page. If a design seems to need one, it is the wrong design for this product.
 
 ## The copy guards are rulings, not lint
 
-`test/techtree_web/release_copy_test.exs` and the page tests encode wording
-decisions that were made deliberately. They will fail a change for saying
-things that seem harmless. Each rule guards a real way readers have been — or
-could be — misled:
+These wording decisions were made deliberately, and they rule out things that
+seem harmless. Each rule guards a real way readers have been — or could be —
+misled:
 
 - **Never quote a price.** Cost is whatever the reader's model provider
   charges. A figure on a page is a promise the product cannot keep.
@@ -57,19 +56,17 @@ could be — misled:
   implementation words stay on the protocol page, where naming them is the
   point.
 
-If a guard blocks a change you believe in, open the discussion — do not weaken
-the guard.
+If a rule blocks a change you believe in, open the discussion — do not weaken
+the rule.
 
 ## Checks
 
 ```
 mix precommit
-mix test
 ```
 
-must both be fully green before any change is proposed: formatting,
-`compile --warnings-as-errors`, and the full test suite including the copy
-guards, the 405 method surface, and the release-candidate tests. Database
+must be fully green before any change is proposed: formatting,
+`compile --warnings-as-errors`, Credo, Sobelow and the other static checks. Database
 connection settings (`PGUSER`, `PGPASSWORD`, `PGHOST`) can be supplied as
 environment variables; see the README.
 

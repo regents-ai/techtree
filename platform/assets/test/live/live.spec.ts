@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs"
 import {expect, test} from "@playwright/test"
-import {publicPages} from "../browser/support/pages"
-import {layoutProblems, watchErrors} from "../browser/support/visitor"
+import {publicPages} from "./pages"
+import {layoutProblems, watchErrors} from "./visitor"
 
 // The live site, signed out, read as a visitor's and an agent's browser read it
 // (skills/regent-workflow, "Live checks"): it runs the commit this checkout is at,
@@ -55,9 +55,9 @@ const moved = [
   ["/services/watchdog", "/services/security"],
 ]
 
-// A stand-in document.modelContext holds what the page registers, as
-// test/browser/page_tools.spec.ts does locally. Set on the document itself, it
-// takes the place of the browser's own where the site's trial token offers one.
+// A stand-in document.modelContext holds what the page registers. Set on the
+// document itself, it takes the place of the browser's own where the site's
+// trial token offers one.
 const withPageTools = `
   const held = new Map()
   Object.defineProperty(document, "modelContext", {value: {

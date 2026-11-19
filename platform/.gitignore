@@ -5,9 +5,6 @@ local-only-*
 # The directory Mix will write compiled artifacts to.
 /_build/
 
-# If you run "mix test --cover", coverage assets end up here.
-/cover/
-
 # The directory Mix downloads your dependencies sources to.
 /deps/
 
@@ -23,7 +20,7 @@ erl_crash.dump
 # Also ignore archive artifacts (built via "mix archive.build").
 *.ez
 
-# Temporary files, for example, from tests.
+# Temporary files.
 /tmp/
 
 # Ignore package tarball (built via "mix hex.build").
@@ -63,6 +60,5 @@ npm-debug.log
 /blog_content/
 /skills_content/
 
-# What a browser test run leaves behind on failure.
+# What the live check (make live-check) leaves behind.
 /assets/test-results/
-/assets/playwright-report/

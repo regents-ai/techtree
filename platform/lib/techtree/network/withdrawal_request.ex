@@ -10,8 +10,6 @@ defmodule Techtree.Network.WithdrawalRequest do
 
   ## The document
 
-  Fixed by `test/support/fixtures/schemas/publication-withdrawal.schema.json`
-  and built against that file rather than against anybody's description of it.
   It is the signed envelope every document in this protocol is written as,
   carrying a payload of exactly three members:
 

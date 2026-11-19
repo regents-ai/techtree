@@ -1,7 +1,7 @@
 """Import the Hermes plugin package under an importable name.
 
 Hermes loads a plugin by path, so this directory is the package. Its name is
-not a Python identifier, so the tests and the scripts here load it under the
+not a Python identifier, so the scripts here load it under the
 stable name `techtree_hermes`, exactly as the host loads it under a name of
 its own.
 """

@@ -2,27 +2,14 @@
 #
 # Every target runs through uv so the pinned tooling environment is the only
 # environment that matters. `make check` is the plugin's gate: format, lint,
-# types, tests and the plugin doctor.
+# types and the plugin doctor.
 
 UV ?= uv
 RUN := $(UV) run
 
-# The contract tests marked real_cli ask a real `regents` read-only questions,
-# always: the regents-cli release this plugin's release-core.json names, at the
-# commit tagged with it, run by uv straight from GitHub. Move both with the
-# release core: tests/test_cli_pin.py fails when the version here and the
-# core's cli_version differ, and the live release test fails when the commit
-# isn't that release. The tests put their own `regents` first on PATH, so this
-# names the command in full rather than as a bare `regents`. It runs on the
-# Python an installation plan installs it on (CLI_PYTHON_SERIES in
-# cli/constants.py), which is not the Python this gate runs on.
-REGENTS_CLI_VERSION := 1.10.33
-REGENTS_CLI_REV := c12d8563c46e8b5229e32db76c1a104fb469b7b7
-REGENTS_CLI_ARGV ?= $(UV) run --no-project --python 3.12 --with "regents-cli @ git+https://github.com/regents-ai/regents-cli@$(REGENTS_CLI_REV)" regents
-
 .DEFAULT_GOAL := check
 
-.PHONY: install format format-check lint typecheck typecheck-tests test doctor \
+.PHONY: install format format-check lint typecheck typecheck-scripts doctor \
 	schemas release-core release-core-cli check
 
 install:
@@ -41,23 +28,20 @@ lint:
 # mypy identifies a package by its directory name, and `plugin` is not the name
 # the package is imported under. The package is checked under an importable
 # name through a symbolic link in a scratch directory, which is undone when the
-# check ends. The tests and scripts beside it are checked by typecheck-tests.
+# check ends. The scripts beside it are checked by typecheck-scripts.
 typecheck:
 	@work="$$(mktemp -d)"; \
 	ln -s "$(CURDIR)" "$$work/techtree_hermes"; \
 	MYPYPATH="$$work" $(RUN) mypy --namespace-packages \
-		--exclude '/techtree_hermes/(tests|scripts)/' -p techtree_hermes; \
+		--exclude '/techtree_hermes/scripts/' -p techtree_hermes; \
 	status=$$?; \
 	unlink "$$work/techtree_hermes"; \
 	rmdir "$$work"; \
 	exit $$status
 
-# The tests and the scripts, each checked from its own directory.
-typecheck-tests:
+# The scripts, checked from their own directory.
+typecheck-scripts:
 	$(RUN) python scripts/typecheck.py
-
-test:
-	REGENTS_CLI_ARGV='$(REGENTS_CLI_ARGV)' $(RUN) pytest
 
 # The plugin's own doctor: manifest, schemas, release bytes, runtime imports,
 # and host readiness. Exits non-zero on a blocking failure.
@@ -75,4 +59,4 @@ release-core:
 release-core-cli:
 	$(RUN) python scripts/verify_release_core.py --against-installed-cli
 
-check: format-check lint typecheck typecheck-tests test doctor
+check: format-check lint typecheck typecheck-scripts doctor

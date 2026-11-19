@@ -15,8 +15,8 @@ config :techtree, Oban, prefix: database_schema
 config :error_tracker, prefix: database_schema
 
 # The motion lab at /animations (TechtreeWeb.Showcase). Production must choose
-# "public" or "off", and any other value stops the boot. Development and tests
-# are "public" unless told otherwise.
+# "public" or "off", and any other value stops the boot. Development is
+# "public" unless told otherwise.
 showcase =
   case {config_env(), System.get_env("TECHTREE_SHOWCASE")} do
     {:prod, "public"} -> :public
@@ -69,58 +69,48 @@ if base_rpc = System.get_env("WALLETBENCH_BASE_RPC") do
   config :techtree, Techtree.WalletBench, base_rpc: base_rpc
 end
 
-# Tests keep their own evidence store (config/test.exs).
-if config_env() != :test do
-  config :techtree, Techtree.WalletBench.Evidence,
-    endpoint: System.get_env("WALLETBENCH_AWS_ENDPOINT_URL_S3"),
-    bucket: System.get_env("WALLETBENCH_BUCKET_NAME"),
-    region: System.get_env("WALLETBENCH_AWS_REGION"),
-    access_key_id: System.get_env("WALLETBENCH_AWS_ACCESS_KEY_ID"),
-    secret_access_key: System.get_env("WALLETBENCH_AWS_SECRET_ACCESS_KEY")
-end
+# The bucket that keeps each wallet test's evidence (Techtree.WalletBench.Evidence).
+config :techtree, Techtree.WalletBench.Evidence,
+  endpoint: System.get_env("WALLETBENCH_AWS_ENDPOINT_URL_S3"),
+  bucket: System.get_env("WALLETBENCH_BUCKET_NAME"),
+  region: System.get_env("WALLETBENCH_AWS_REGION"),
+  access_key_id: System.get_env("WALLETBENCH_AWS_ACCESS_KEY_ID"),
+  secret_access_key: System.get_env("WALLETBENCH_AWS_SECRET_ACCESS_KEY")
 
-# Tests sign in to their own app id (config/test.exs), whatever the shell sets.
-if config_env() != :test do
-  config :techtree, :privy,
-    app_id: System.get_env("PRIVY_APP_ID"),
-    verification_key: System.get_env("PRIVY_VERIFICATION_KEY")
-end
+config :techtree, :privy,
+  app_id: System.get_env("PRIVY_APP_ID"),
+  verification_key: System.get_env("PRIVY_VERIFICATION_KEY")
 
 # The template's optional ENS lookup, disabled unless this site's endpoint is set.
-if config_env() != :test do
-  if ethereum_read_rpc_url = System.get_env("ETHEREUM_READ_RPC_URL") do
-    case URI.new(ethereum_read_rpc_url) do
-      {:ok, %URI{scheme: "https", host: host}} when host not in [nil, ""] ->
-        config :techtree, :ethereum_read_rpc_url, ethereum_read_rpc_url
+if ethereum_read_rpc_url = System.get_env("ETHEREUM_READ_RPC_URL") do
+  case URI.new(ethereum_read_rpc_url) do
+    {:ok, %URI{scheme: "https", host: host}} when host not in [nil, ""] ->
+      config :techtree, :ethereum_read_rpc_url, ethereum_read_rpc_url
 
-      _invalid ->
-        raise "ETHEREUM_READ_RPC_URL must be an https address"
-    end
+    _invalid ->
+      raise "ETHEREUM_READ_RPC_URL must be an https address"
   end
 end
 
 # The server reads Base through its own node when one is set, such as a private
-# node whose address carries a key; wallets still add the public address. Tests
-# read no chain, whatever the shell sets.
-if config_env() != :test do
-  node_overrides =
-    for {chain_id, setting} <- [{8453, "TECHTREE_BASE_NODE_URL"}],
-        node_url = System.get_env(setting),
-        into: %{} do
-      case URI.new(node_url) do
-        {:ok, %URI{scheme: scheme, host: host}}
-        when scheme in ["http", "https"] and host not in [nil, ""] ->
-          {chain_id, node_url}
+# node whose address carries a key; wallets still add the public address.
+node_overrides =
+  for {chain_id, setting} <- [{8453, "TECHTREE_BASE_NODE_URL"}],
+      node_url = System.get_env(setting),
+      into: %{} do
+    case URI.new(node_url) do
+      {:ok, %URI{scheme: scheme, host: host}}
+      when scheme in ["http", "https"] and host not in [nil, ""] ->
+        {chain_id, node_url}
 
-        _invalid ->
-          raise "#{setting} must be an http or https address"
-      end
+      _invalid ->
+        raise "#{setting} must be an http or https address"
     end
+  end
 
-  config :techtree,
-         :chain_nodes,
-         Map.merge(Application.fetch_env!(:techtree, :chain_nodes), node_overrides)
-end
+config :techtree,
+       :chain_nodes,
+       Map.merge(Application.fetch_env!(:techtree, :chain_nodes), node_overrides)
 
 # Agents' signed requests are checked by this sign-in service instead, such as one
 # running on this machine.
@@ -206,22 +196,6 @@ end
 config :techtree, :logger, [
   TechtreeWeb.VisitLog.handler(%{type: :standard_io}, Logger.default_formatter())
 ]
-
-# The browser tests' server (assets/playwright.config.ts) writes its visit lines in
-# production's shape to a file of its own, which assets/test/browser/visits.spec.ts
-# reads to replay a visit.
-if config_env() == :test and System.get_env("TECHTREE_BROWSER_TEST") == "1" do
-  partition = System.get_env("MIX_TEST_PARTITION")
-
-  config :logger, level: :info
-
-  config :techtree, :logger, [
-    TechtreeWeb.VisitLog.handler(
-      %{file: String.to_charlist(Path.expand("../tmp/#{partition}-lines.jsonl", __DIR__))},
-      LoggerJSON.Formatters.Basic.new(metadata: TechtreeWeb.VisitLog.fields())
-    )
-  ]
-end
 
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
@@ -341,7 +315,7 @@ if config_env() == :prod do
   config :techtree, Techtree.Repo, database_config
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
-  # A default value is used in config/dev.exs and config/test.exs but you
+  # A default value is used in config/dev.exs but you
   # want to use a different value for prod and you most likely don't want
   # to check this value into version control, so we use an environment
   # variable instead.

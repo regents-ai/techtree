@@ -5,8 +5,7 @@ defmodule Techtree.WalletBench.Evidence do
 
   Requests are signed with Req's AWS signature step. `config/runtime.exs` sets
   the endpoint, bucket, region and keys from the `WALLETBENCH_AWS_*` and
-  `WALLETBENCH_BUCKET_NAME` environment variables; tests add Req options, such as
-  a `Req.Test` plug, under `:req_options`.
+  `WALLETBENCH_BUCKET_NAME` environment variables.
   """
 
   alias Techtree.WalletBench.Catalog
@@ -121,18 +120,16 @@ defmodule Techtree.WalletBench.Evidence do
     config = Application.fetch_env!(:techtree, __MODULE__)
 
     Req.new(
-      [
-        base_url: Keyword.fetch!(config, :endpoint),
-        url: "/" <> Keyword.fetch!(config, :bucket) <> "/" <> encode_key(key),
-        decode_body: false,
-        retry: false,
-        aws_sigv4: [
-          service: :s3,
-          region: Keyword.fetch!(config, :region),
-          access_key_id: Keyword.fetch!(config, :access_key_id),
-          secret_access_key: Keyword.fetch!(config, :secret_access_key)
-        ]
-      ] ++ Keyword.get(config, :req_options, [])
+      base_url: Keyword.fetch!(config, :endpoint),
+      url: "/" <> Keyword.fetch!(config, :bucket) <> "/" <> encode_key(key),
+      decode_body: false,
+      retry: false,
+      aws_sigv4: [
+        service: :s3,
+        region: Keyword.fetch!(config, :region),
+        access_key_id: Keyword.fetch!(config, :access_key_id),
+        secret_access_key: Keyword.fetch!(config, :secret_access_key)
+      ]
     )
   end
 

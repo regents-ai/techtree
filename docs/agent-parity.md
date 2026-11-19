@@ -12,8 +12,8 @@ connector is served from hosted MCP behind its switch (`TECHTREE_CLAUDE_CONNECTO
 off in production): a connected app calls as itself with its four identity tools and, once
 paired with the agent permission, as that agent with the same tools and `messages_leave`. Every other hosted MCP
 and Claude connector cell is a gap owned by the **Techtree MCP lane**, closed as its
-operation becomes one action whose answer is the route's. The checks that prove each surface
-are in `docs/feature-map.md`.
+operation becomes one action whose answer is the route's. Every surface is listed in
+`docs/feature-map.md`.
 
 ## Hosted MCP
 

@@ -16,7 +16,6 @@
 # architecture and MIX_ENV.
 _build
 deps
-cover
 doc
 .fetch
 *.ez
@@ -31,8 +30,7 @@ priv/static/cache_manifest.json
 priv/static/**/*.gz
 npm-debug.log
 
-# Tests, scratch space, and editor state are not part of what is served.
-test
+# Scratch space and editor state are not part of what is served.
 tmp
 .elixir_ls
 .lexical

@@ -12,11 +12,6 @@ __pycache__/
 .vscode/
 *.swp
 
-# Test and coverage output.
-.pytest_cache/
-.coverage
-htmlcov/
-
 # Build output. The plugin ships as a checkout, so nothing here is a release
 # artifact - anything that appears is local.
 build/

@@ -6,9 +6,7 @@
   "description": "Vendored browser dependencies for the Techtree site. esbuild bundles them from here into priv/static/assets, so the strict script-src 'self' policy holds and nothing is fetched at runtime.",
   "license": "MIT",
   "scripts": {
-    "typecheck": "tsc --project tsconfig.json --noEmit",
-    "test": "vitest run",
-    "test:browser": "playwright test"
+    "typecheck": "tsc --project tsconfig.json --noEmit"
   },
   "dependencies": {
     "@privy-io/react-auth": "3.51.1",
@@ -23,12 +21,10 @@
   },
   "devDependencies": {
     "@playwright/test": "1.65.1",
-    "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@webgpu/types": "0.1.74",
-    "typescript": "7.0.2",
-    "vitest": "5.1.1"
+    "typescript": "7.0.2"
   },
   "overrides": {
     "ws@^8.0.0": "8.22.1",

@@ -208,11 +208,7 @@ It reads two files that shipped inside the plugin, then tells Hermes which
 tools exist. That is the whole of it.
 
 Loading the plugin never installs software, never reaches the network, never
-starts Docker, never runs Techtree, and never calls a model. This is enforced
-by a test that seals off every way of starting a process, opening a socket, or
-writing a file, and then requires the plugin to load anyway. It lives with the
-rest of the plugin's suite in this directory, as
-`tests/contract/test_no_registration_side_effects.py`.
+starts Docker, never runs Techtree, and never calls a model.
 
 ## Commands
 
@@ -308,32 +304,21 @@ services/approvals.py approval and plan records
 tools/               the tools the agent calls
 services/            the container assembled during registration
 skills/              bundled read-only operator Skills
-tests/               the plugin's test suite: unit, contract, integration
 scripts/             the plugin's own checkers: doctor, schemas, release bytes, types
 ```
 
-Everything above `tests/` is the plugin package. The tests and checkers sit
-beside it, and a suite that proves the guards work has to carry the attacks
-they catch, which is what the install-time scan reports from those two
-directories.
+Everything above `scripts/` is the plugin package. The checkers sit beside it.
 
 ## Development
 
 ```bash
 make install    # sync the tooling environment
-make check      # format, lint, types, tests, and the plugin doctor
+make check      # format, lint, types, and the plugin doctor
 ```
 
 The plugin runtime uses only the Python standard library, and never imports
 regents' Python package: the regents JSON answer is the only boundary
 between the two. The plugin doctor fails the build if that stops being true.
-
-The contract tests that ask a real regents read-only questions run when
-`REGENTS_CLI_ARGV` names the command to run:
-
-```bash
-make test REGENTS_CLI_ARGV="$(command -v regents)"
-```
 
 ## What it remembers
 

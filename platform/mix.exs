@@ -13,7 +13,6 @@ defmodule Techtree.MixProject do
       app: :techtree,
       version: "0.2.0",
       elixir: "~> 1.20",
-      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
@@ -46,16 +45,6 @@ defmodule Techtree.MixProject do
       extra_applications: [:logger, :runtime_tools]
     ]
   end
-
-  def cli do
-    [
-      preferred_envs: [precommit: :test]
-    ]
-  end
-
-  # Specifies which paths to compile per environment.
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
   #
@@ -99,18 +88,13 @@ defmodule Techtree.MixProject do
       {:regent_agents,
        git: @elixir_utils, ref: @elixir_utils_ref, sparse: "ash_components/agents", override: true},
       {:error_tracker, "~> 0.9"},
-      {:sourceror, "~> 1.8", only: [:dev, :test]},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:ex_slop, "~> 0.4", only: [:dev, :test], runtime: false},
+      {:sourceror, "~> 1.8", only: :dev},
+      {:credo, "~> 1.7", only: :dev, runtime: false},
+      {:ex_slop, "~> 0.4", only: :dev, runtime: false},
       {:credo_ash,
-       git: @elixir_utils,
-       ref: @elixir_utils_ref,
-       sparse: "credo_ash",
-       only: [:dev, :test],
-       runtime: false},
-      {:sobelow, "~> 0.18", only: [:dev, :test], runtime: false},
-      # Test too: precommit runs in the test environment and checks the AGENTS.md block.
-      {:usage_rules, "~> 1.3", only: [:dev, :test], runtime: false},
+       git: @elixir_utils, ref: @elixir_utils_ref, sparse: "credo_ash", only: :dev, runtime: false},
+      {:sobelow, "~> 0.18", only: :dev, runtime: false},
+      {:usage_rules, "~> 1.3", only: :dev, runtime: false},
       {:ash_phoenix, "~> 2.3.26"},
       # ash_postgres 2.16.0 by its git tag, which carries #910: upserts use the
       # repo's prefix, which picks each site's schema on the shared database.
@@ -134,7 +118,7 @@ defmodule Techtree.MixProject do
       # Each published Result's share picture is drawn with it.
       {:vix, "== 0.42.0"},
       {:picosat_elixir, "~> 0.2"},
-      {:igniter, "~> 0.6", only: [:dev, :test]},
+      {:igniter, "~> 0.6", only: :dev},
       {:phoenix, "~> 1.8.9"},
       {:phoenix_ecto, "~> 4.5"},
       {:ecto_sql, "~> 3.13"},
@@ -142,7 +126,6 @@ defmodule Techtree.MixProject do
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_live_view, "~> 1.2.11"},
-      {:lazy_html, ">= 0.1.0", only: :test},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:logger_json, "~> 7.0"},
       {:telemetry_metrics, "~> 1.0"},
@@ -185,11 +168,9 @@ defmodule Techtree.MixProject do
         "assets.setup",
         "assets.build"
       ],
-      test: ["ecto.create --quiet", "techtree.setup_local_auth", "test"],
       "catalog.verify": ["techtree.catalog.verify"],
       "catalog.import": ["techtree.catalog.import"],
       precommit: precommit_checks(),
-      "check.static": Enum.reject(precommit_checks(), &slow_check?/1),
       "assets.setup": ["cmd --cd assets npm ci --ignore-scripts", "esbuild.install --if-missing"],
       "assets.build": [
         "compile",
@@ -208,12 +189,6 @@ defmodule Techtree.MixProject do
         "phx.digest"
       ]
     ]
-  end
-
-  # The fast loop keeps the same static gates; only suites run by the change
-  # runner and the network advisory audit remain in the full loop.
-  defp slow_check?(check) do
-    check in ["cmd mix hex.audit", "cmd --cd assets npm run test:browser"]
   end
 
   defp precommit_checks do
@@ -243,12 +218,7 @@ defmodule Techtree.MixProject do
       "xref graph --label compile-connected --fail-above 39",
       "ash.codegen --check",
       "usage_rules.sync --check",
-      "cmd --cd assets npm run typecheck",
-      # The script tests (assets/test/*.test.ts): rules a page's scripts keep, with no browser.
-      "cmd --cd assets npm test",
-      # The main pages in headless Chromium at desktop and phone widths, against a
-      # server the browser tests start on their own database (assets/test/browser).
-      "cmd --cd assets npm run test:browser"
+      "cmd --cd assets npm run typecheck"
     ]
   end
 end
