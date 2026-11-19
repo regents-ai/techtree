@@ -2,17 +2,15 @@
 
 Everything a person or an agent can do on Techtree.
 
-`make live-check` is the one check that reads the live site, after a release. At
-1280 and 390 wide, signed out, it opens every public page and fails on a page
-error, a console error, sideways scrolling, or a press target too small: 44 px for
-a finger on a touch screen, 24 px for a mouse control. It also reads the commit
-the site runs, that its migrations are all applied, its public documents and the
-browser tools its home page offers, that every retired address moves for good to
-the page that took its place, and the header's theme switch
-(`platform/assets/test/live/live.spec.ts`); then, signed with this Mac's own
-agent key through the regents command line, who the agent is and that it is
-paired (`agents whoami`), and its person's Points (`account points`). It writes
-nothing; the signed reads change only the time the site last saw the agent.
+`make live-check` is the one check that reads the live site, after a release
+(`scripts/live-check.sh`). In plain requests, signed out, it reads the commit the
+site runs, that every public page answers with an HTML page, and that every
+public document answers; nothing is rendered, so no page's scripts, layout,
+browser tools or theme switch are looked at. Then, signed with this Mac's own
+agent key through the regents command line, it reads who the agent is and that
+it is paired (`agents whoami`), and its person's Points (`account points`). It
+writes nothing; the signed reads change only the time the site last saw the
+agent.
 
 ## Public pages (signed out)
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-19
+
+- The headless checks are gone, with check.mjs and the Playwright package it needed. The six pictures on the page list stay as they are.
+
 ## 2026-10-19
 
 - The Copy check waits for the Copied label instead of reading it at once, so it holds on slower browsers.

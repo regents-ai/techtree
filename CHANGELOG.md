@@ -59,6 +59,11 @@
   still checks its formatting and that it builds.
 - **Formal.** The Wallet Bench funding model and its proof are gone, with
   `make check-formal` and `make formal-proof`.
+- **Live check.** `make live-check` no longer opens the live site in a browser.
+  It makes plain requests instead (the commit the site runs, every public page
+  and document), then the two signed reads as before; nothing is rendered.
+  Playwright is gone from the site's packages, and the one-purpose mockups'
+  check script with it.
 
 ## Website (2026-11-18)
 

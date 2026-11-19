@@ -1,17 +1,23 @@
 #!/usr/bin/env bash
-# The live check (skills/regent-workflow, "Live checks"): techtree.sh read the way
-# a visitor's and an agent's browser read it, and the way an agent reads it
-# through the regents command line, never with raw curl.
+# The live check, after each release: plain requests to techtree.sh, then two
+# reads an agent signs through the regents command line.
 #
 #   make live-check                 the site should run this checkout's HEAD
 #   make live-check COMMIT=<commit> the site should run that commit (after the
 #                                   release record has been committed on top)
 #
-# First, headless Chromium at 1280 and 390 wide, signed out
-# (platform/assets/test/live): the live commit from /capabilities.json, every
-# public page, the public documents, the browser tools the home page offers and
-# every public read among them, the Agent Message window, and the header's theme
-# switch from a light-set and a dark-set device.
+# First, plain requests with curl, signed out, each address once: no cookie is
+# sent and none is kept, and every request sends Global Privacy Control, so none
+# starts a visit. /capabilities.json must answer 200 and name the commit above
+# as the one the site runs; every public page listed below must answer 200 with
+# an HTML page; every public document listed below must answer 200. Each address
+# prints one pass or fail line; every one is read before a failure stops the
+# check, and the signed reads run only when all of them pass.
+#
+# Nothing is rendered (Sean, 19 Nov 2026, "delete all tests": the browser walk
+# went with them). Page scripts, the browser tools the home page offers, the Agent Message window,
+# the header's theme switch and the layout at phone width are not looked at, and
+# neither are a page's console errors or the size of its press targets.
 #
 # Then two reads signed with this Mac's own agent key, in place, through the
 # regents command line (Sean, 12 Nov 2026, 15 a): `regents techtree agents
@@ -24,22 +30,91 @@
 # signature, key, wallet or account id. A missing regents, a refusal or an
 # answer without those fields fails the check.
 #
-# It writes nothing: no form is sent, no signed tool is called in the browser,
-# the pages start no visit (Global Privacy Control), and the signed reads change
-# nothing but the time the site last saw the agent.
-# Run it from a checkout of the live commit, or of the release record on top of
-# it: the pages and tools are checked against this checkout's page list and tool
-# manifest.
+# It writes nothing: the requests send no form and start no visit, and the
+# signed reads change nothing but the time the site last saw the agent. Run it
+# from a checkout of the live commit, or of the release record on top of it.
 set -euo pipefail
 
 live_url="https://techtree.sh"
 
 root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
-CHECKOUT_COMMIT="$(git -C "$root" rev-parse "${1:-HEAD}^{commit}")"
-export CHECKOUT_COMMIT
+checkout_commit="$(git -C "$root" rev-parse "${1:-HEAD}^{commit}")"
 
-cd "$root/platform/assets"
-LIVE_URL="$live_url" npx playwright test --config playwright.live.config.ts
+# Every public page whose address is the same on any Techtree, signed out.
+pages=(/ /docs /docs/run-locally /docs/install /docs/test-a-skill /docs/api
+  /docs/verify /docs/factory /results /wallet-bench /changelog /examples/tdd
+  /services/skills /services/evals /services/environments /services/models
+  /services/security /services/security/sample-report /services/swarm-verify
+  /formal /account /account/agents /agents /agents/hermes /about /privacy /terms)
+
+# The public documents beside them.
+documents=(/healthz /api/v1/health /openapi.json /train.json /wallet-bench.json
+  /skill.md /agents.md /llms.txt /sitemap.xml)
+
+checked=0
+failed=0
+
+pass() {
+  echo "  ✓ $1"
+}
+
+fail() {
+  echo "  ✗ $1: $2"
+  failed=$((failed + 1))
+}
+
+# One plain request: the address, then what its answer must be (capabilities,
+# page or document). curl prints the body, then a last line with the status and
+# the content type; when it fails, it says why on the line above.
+read_address() {
+  local path="$1" kind="$2" accept="*/*" answer last status type body live_commit
+  checked=$((checked + 1))
+  if [[ $kind == page ]]; then
+    accept="text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+  fi
+  if ! answer="$(curl --fail --silent --show-error --max-time 20 \
+    --header "Accept: $accept" --header "Sec-GPC: 1" \
+    --write-out '\n%{http_code} %{content_type}' "$live_url$path")"; then
+    last="${answer##*$'\n'}"
+    fail "$path" "status ${last%% *}"
+    return
+  fi
+  last="${answer##*$'\n'}"
+  status="${last%% *}"
+  type="${last#* }"
+  body="${answer%$'\n'*}"
+
+  if [[ $status != 200 ]]; then
+    fail "$path" "status $status"
+  elif [[ $kind == page && ($type != text/html* || $body != *"</html>"*) ]]; then
+    fail "$path" "status 200 without an HTML page ($type)"
+  elif [[ $kind == capabilities ]]; then
+    if ! live_commit="$(jq -er '.build.commit | strings' <<<"$body")"; then
+      fail "$path" "names no build commit"
+    elif [[ $live_commit != "$checkout_commit" ]]; then
+      fail "$path" "the site runs $live_commit, not $checkout_commit; run it from a checkout of the live commit, or name it with COMMIT=<commit>"
+    else
+      pass "$path runs $live_commit"
+    fi
+  else
+    pass "$path"
+  fi
+}
+
+echo "Plain requests to $live_url, signed out:"
+read_address /capabilities.json capabilities
+for path in "${pages[@]}"; do
+  read_address "$path" page
+done
+for path in "${documents[@]}"; do
+  read_address "$path" document
+done
+
+if ((failed > 0)); then
+  echo "  ✗ $failed of $checked addresses failed."
+  exit 1
+fi
+echo "  ✓ $checked of $checked addresses answered."
 
 if ! command -v regents >/dev/null; then
   echo "✗ Signed reads: regents is not installed on this Mac (uv tool install regents-cli)."

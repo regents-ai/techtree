@@ -24,18 +24,3 @@ node serve.mjs   # serves site/ at http://localhost:4015/
 Edit pages in `src/pages/`, then rebuild. Styling for the mockups lives in
 `site/assets/css/mockup.css`; behaviour (theme switch, crown, copy buttons,
 button motion) in `site/assets/js/mockup.js`.
-
-## Checks
-
-```sh
-npm install                          # once: installs Playwright
-npx playwright install chromium      # once, if Chromium is not installed yet
-node check.mjs           # headless checks
-node check.mjs --shots   # same, and retakes the six pictures in site/page-list/shots/
-```
-
-Needs the server running. Covers every page at
-desktop, phone and 320px widths in light and dark: no sideways scrolling, no
-console errors, no failed loads, the crown draws or shows its still picture,
-the footer is present, every internal link and anchor lands, the theme switch,
-Copy and Copy link, the hover arrow and press, and reduced motion.

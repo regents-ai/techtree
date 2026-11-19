@@ -59,6 +59,3 @@ npm-debug.log
 /priv/static/images/blog/
 /blog_content/
 /skills_content/
-
-# What the live check (make live-check) leaves behind.
-/assets/test-results/

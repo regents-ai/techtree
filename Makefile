@@ -61,14 +61,13 @@ platform-setup:
 platform-precommit:
 	cd platform && mix precommit
 
-# The live site, signed out, in headless Chromium at 1280 and 390 wide: the commit
-# it runs, every public page and document, the browser tools the home page offers,
-# the Agent Message window and the theme switch; then two reads signed with this
-# Mac's own agent key through the regents command line: who the agent is and that
-# it is paired, and its person's Points (scripts/live-check.sh). It writes nothing;
-# the signed reads change only the time the site last saw the agent. Run it
-# after each release; COMMIT=<commit> names the released commit once the release
-# record sits on top of it.
+# The live site, signed out, in plain requests: the commit it runs, and that every
+# public page answers with an HTML page and every public document answers; nothing
+# is rendered. Then two reads signed with this Mac's own agent key through the
+# regents command line: who the agent is and that it is paired, and its person's
+# Points (scripts/live-check.sh). It writes nothing; the signed reads change only
+# the time the site last saw the agent. Run it after each release; COMMIT=<commit>
+# names the released commit once the release record sits on top of it.
 live-check:
 	scripts/live-check.sh $(COMMIT)
 

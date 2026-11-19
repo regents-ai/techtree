@@ -484,26 +484,24 @@ previous release's site script still answers. `make release` reads the live
 image the same way.
 
 After each release, `make live-check` from the monorepo root reads techtree.sh
-(`scripts/live-check.sh`). First it reads it signed out in headless Chromium at
-1280 and 390 wide (`platform/assets/test/live/live.spec.ts`): the site
-runs this checkout's commit with every migration applied, every public page opens with no error, no sideways
-scrolling and no press target too small, the public documents answer in their
-own type, the home page offers exactly this checkout's browser tools and every
-public read among them answers, the Agent Message window opens, and the header's
-theme switch turns the theme once a press on two pages, from a light-set and a
-dark-set device, with the choice held over a reload. Then it reads two signed
-routes as an agent, with this Mac's own agent key through the regents command
-line: `regents techtree agents whoami` must show the agent signed in here and
-paired with a person's account, and `regents techtree account points` must
-answer that person's Points with the fields `cli/COMMANDS.md` describes. Each
-read prints one pass or fail line, never its answer. A refusal, an answer
-without those fields or a missing `regents` fails the check; keep `regents`
-current (`uv tool upgrade regents-cli`), since an older one may call an address
-the site has moved. It writes nothing and starts no visit; the signed reads
-change nothing but the time the site last saw the agent. Once the release
-record is committed on top, name the released commit:
-`make live-check COMMIT=<commit>`. It does not sign in as a person or call a
-signed browser tool.
+(`scripts/live-check.sh`). First it makes plain requests, signed out, with no
+cookie: `/capabilities.json` must name this checkout's commit, every public page
+in the script's list must answer 200 with an HTML page, and every public
+document in its list must answer 200. Each address prints one pass or fail line,
+and all are read before a failure stops the check. Nothing is rendered: page
+scripts, the browser tools the home page offers, the Agent Message window, the
+header's theme switch and the layout at phone width are not looked at. Then it
+reads two signed routes as an agent, with this Mac's own agent key through the
+regents command line: `regents techtree agents whoami` must show the agent
+signed in here and paired with a person's account, and `regents techtree
+account points` must answer that person's Points with the fields
+`cli/COMMANDS.md` describes. Each read prints one pass or fail line, never its
+answer. A refusal, an answer without those fields or a missing `regents` fails
+the check; keep `regents` current (`uv tool upgrade regents-cli`), since an
+older one may call an address the site has moved. It writes nothing and starts
+no visit; the signed reads change nothing but the time the site last saw the
+agent. Once the release record is committed on top, name the released commit:
+`make live-check COMMIT=<commit>`. It does not sign in as a person.
 
 ## Shared database changes
 
