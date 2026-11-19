@@ -27,6 +27,11 @@ config :techtree, :behind_fly_proxy, true
 # The private port fly.toml names under [metrics]; Fly routes no public traffic to it.
 config :techtree, :metrics_listener, ip: {0, 0, 0, 0, 0, 0, 0, 0}, port: 9091
 
+# Points runs on one calendar for every Regents site, from this moment (Sean,
+# 13 November). It is set once and never moved: seasons, bonuses and corrections
+# count from it.
+config :regent_points, starts_at: ~U[2026-11-16 17:00:00Z]
+
 # Do not print debug messages in production
 config :logger, level: :info
 

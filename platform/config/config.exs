@@ -15,7 +15,7 @@ config :regent_points,
   chain_client: Techtree.ChainClient,
   program_id: "regents-points-v1",
   starts_at: nil,
-  approved_rules: [],
+  approved_rules: ~w(account.activated social.x social.github social.farcaster agent.activated),
   adapters: %{
     "account.activated" => Techtree.Points.AccountActivated,
     "agent.activated" => Techtree.Points.PairedAgent,
@@ -161,6 +161,8 @@ config :techtree, Oban,
     crontab:
       [
         {"17 4 * * *", Techtree.ErrorPruner},
+      # From the Points start, the one-time points for what accounts already had.
+      {"@hourly", RegentPoints.StartAwards},
         # One line for each kind of shared reading a producer rereads on notice.
         {"* * * * *", Techtree.SharedReading.Heal, args: %{kind: "points_board"}}
       ] ++ if(read_payments, do: [{"*/5 * * * *", Techtree.Jobs.Watch}], else: [])
