@@ -5,7 +5,8 @@ defmodule Techtree.Points.PairedAgent do
   pairing code.
 
   `existing/2` lists, for `RegentPoints.StartAwards`, each person's earliest
-  pairing made before the Points start that is still paired.
+  pairing made before the moment the run asks about, the time it runs, that is
+  still paired.
   """
 
   alias Techtree.Accounts
@@ -18,8 +19,8 @@ defmodule Techtree.Points.PairedAgent do
     end
   end
 
-  def existing("agent.activated", starts_at) do
-    {:ok, pairings} = RegentAgents.pairings_held_from_before(starts_at)
+  def existing("agent.activated", at) do
+    {:ok, pairings} = RegentAgents.pairings_held_from_before(at)
 
     accounts =
       pairings

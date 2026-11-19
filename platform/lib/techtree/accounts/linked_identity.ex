@@ -63,7 +63,8 @@ defmodule Techtree.Accounts.LinkedIdentity do
       filter expr(provider == ^arg(:provider) and subject == ^arg(:subject))
     end
 
-    # Each account's link to one provider made before a moment, such as the Points start.
+    # Each account's link to one provider made before a moment, such as the time the
+    # Points start run reads them.
     read :linked_before do
       argument :provider, :atom, allow_nil?: false
       argument :at, :utc_datetime_usec, allow_nil?: false

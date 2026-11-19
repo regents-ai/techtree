@@ -1,13 +1,16 @@
 defmodule Techtree.Points.StartAwardsTest do
   # Invariant: an account, its linked social account and its paired agent from
   # before the Points start earn their one-time awards at the start, once, through
-  # this site's own checks, without the person doing anything.
+  # this site's own checks, without the person doing anything; those from after
+  # the start that Points has not recorded earn them once, at their own time.
   use ExUnit.Case, async: false
 
   import Ecto.Query
   require Ash.Query
   alias RegentPoints.{Entry, Event, IntakeWorker, StartAwards, Store, Worker}
+  alias Techtree.Accounts
   alias Techtree.Accounts.VerifiedSession
+  alias Techtree.Actors.System
   alias Techtree.Repo
 
   @rules ["account.activated", "social.x", "agent.activated"]
@@ -64,6 +67,68 @@ defmodule Techtree.Points.StartAwardsTest do
     # A later run finds the account already recorded and offers nothing more.
     assert :ok = StartAwards.perform(%Oban.Job{})
     assert Enum.flat_map(@rules, &offers/1) == []
+  end
+
+  test "what an account did after the start, before the site switched Points on, earns once, at its own time" do
+    early_did = "did:privy:before-start-" <> Ecto.UUID.generate()
+    assert {:ok, early, []} = early_did |> session([]) |> VerifiedSession.establish()
+
+    # Points has started, but this site has not switched it on yet.
+    Process.sleep(1_000)
+    start = DateTime.utc_now()
+    Application.put_env(:regent_points, :starts_at, start)
+    Process.sleep(1_000)
+
+    did = "did:privy:after-start-" <> Ecto.UUID.generate()
+    x = %{provider: :x, subject: "x-" <> Ecto.UUID.generate(), username: "late"}
+    assert {:ok, account, []} = did |> session([x]) |> VerifiedSession.establish()
+
+    code = RegentAgents.issue_pairing_code!(actor: %RegentAgents.Person{privy_user_id: did})
+
+    RegentAgents.pair_agent!(code.code, "Late", :codex,
+      actor: %RegentAgents.Agent{wallet: wallet()}
+    )
+
+    # Their offers were turned down while the site had nothing approved.
+    for rule <- @rules, do: run(offers(rule), IntakeWorker)
+    assert points(early.id) == []
+    assert points(account.id) == []
+
+    # The account's time can be up to half a second ahead of the clock.
+    Process.sleep(1_000)
+    Application.put_env(:regent_points, :approved_rules, @rules)
+
+    assert :ok = StartAwards.perform(%Oban.Job{})
+    for id <- [early.id, account.id], rule <- @rules, do: award(rule, id)
+
+    # The account from before the start still earns at the start.
+    assert [%{rule_id: "account.activated", earned_at: early_at}] = points(early.id)
+    assert DateTime.compare(early_at, start) == :eq
+
+    assert [
+             {"account.activated", 25_000_000, created_at},
+             {"agent.activated", 25_000_000, paired_at},
+             {"social.x", 10_000_000, linked_at}
+           ] = points(account.id) |> Enum.map(&{&1.rule_id, &1.points_micro_delta, &1.earned_at})
+
+    {:ok, saved} = Accounts.points_account(account.id, actor: %System{})
+    {:ok, link} = Accounts.get_linked_identity_by_subject(:x, x.subject, actor: %System{})
+    {:ok, [pairing]} = RegentAgents.pairing_histories(did)
+
+    for {earned_at, done_at} <- [
+          {created_at, saved.created_at},
+          {paired_at, pairing.paired_at},
+          {linked_at, link.inserted_at}
+        ] do
+      assert DateTime.after?(earned_at, start)
+      assert DateTime.compare(earned_at, done_at) == :eq
+    end
+
+    # A later run finds both accounts already recorded and offers nothing more.
+    assert :ok = StartAwards.perform(%Oban.Job{})
+    assert Enum.flat_map(@rules, &offers/1) == []
+    assert length(points(early.id)) == 1
+    assert length(points(account.id)) == 3
   end
 
   # Oban's job rows are not Ash records, so the queued offers are read straight

@@ -1,8 +1,9 @@
 defmodule Techtree.Points.AwardRecheckTest do
   # Invariant: a linked social account earns only if the link is still saved, to
-  # the same account, when the award is written. A link removed, or moved to
-  # another account, after Points accepted the offer but before the award ran,
-  # earns nothing; a link that stays earns once.
+  # the same account, when the award is written. A link removed after Points
+  # accepted the offer but before the award ran earns nothing; a link moved to
+  # another account meanwhile earns nothing for the first and once for the account
+  # that holds it, when its own offer is checked; a link that stays earns once.
   use ExUnit.Case, async: false
 
   import Ecto.Query
@@ -55,7 +56,7 @@ defmodule Techtree.Points.AwardRecheckTest do
     assert [%{processing_status: :confirmed}] = events(account.id)
   end
 
-  test "a link moved to another account before the award runs earns for neither",
+  test "a link moved to another account before the award runs earns for the one who holds it",
        %{did: did, x: x, account: account} do
     other_did = "did:privy:recheck-" <> Ecto.UUID.generate()
     assert {:ok, other, []} = other_did |> session([]) |> VerifiedSession.establish()
@@ -65,13 +66,17 @@ defmodule Techtree.Points.AwardRecheckTest do
     assert {:ok, _other, []} = other_did |> session([x]) |> VerifiedSession.establish()
 
     account.id |> awards() |> run(Worker)
+    assert [%{processing_status: :rejected, reason_code: "award_refused"}] = events(account.id)
+    assert "account_changed" in refusals(x)
+
+    # The other person's offer takes over the refused event and earns once.
     run(offers(), IntakeWorker)
     other.id |> awards() |> run(Worker)
 
     assert points(account.id) == []
-    assert points(other.id) == []
-    assert [%{processing_status: :rejected, reason_code: "award_refused"}] = events(account.id)
-    assert "account_changed" in refusals(x)
+    assert [10_000_000] = points(other.id)
+    assert [%{processing_status: :confirmed}] = events(other.id)
+    assert events(account.id) == []
   end
 
   # Oban's job rows are not Ash records, so the queued jobs are read straight from

@@ -34,7 +34,7 @@ defmodule Techtree.Accounts.HumanAccount do
       prepare build(load: [:display_name, :ens_name, :ens_avatar_url])
     end
 
-    # The accounts made before a moment, such as the Points start.
+    # The accounts made before a moment, such as the time the Points start run reads them.
     read :created_before do
       argument :at, :utc_datetime_usec, allow_nil?: false
       filter expr(created_at < ^arg(:at))

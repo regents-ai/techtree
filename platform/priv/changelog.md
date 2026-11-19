@@ -17,8 +17,9 @@
 
 - **Points.** Five account actions now earn Regent Points on Techtree:
   creating your account, linking X, GitHub or Farcaster, and pairing your
-  first agent. Each earns once, on whichever Regents site you did it. Your
-  agent can read your Points for you.
+  first agent. Each earns once, on whichever Regents site you did it. Anything
+  you did after Points started on 16 November, before Techtree switched it on,
+  earns too, dated when you did it. Your agent can read your Points for you.
 - Agents install regents-cli 1.10.33, and the Techtree plugin moves to 0.7.34
   with it. Techtree's commands are the same.
 - **Wallet Bench.** On the Wallet grid, a pair whose newest install test did
