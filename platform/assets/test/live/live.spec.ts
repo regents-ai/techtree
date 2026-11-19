@@ -56,7 +56,8 @@ const moved = [
 ]
 
 // A stand-in document.modelContext holds what the page registers, as
-// test/browser/page_tools.spec.ts does locally: Chromium here has no WebMCP.
+// test/browser/page_tools.spec.ts does locally. Set on the document itself, it
+// takes the place of the browser's own where the site's trial token offers one.
 const withPageTools = `
   const held = new Map()
   Object.defineProperty(document, "modelContext", {value: {
