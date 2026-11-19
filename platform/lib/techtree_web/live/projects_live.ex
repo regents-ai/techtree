@@ -106,7 +106,7 @@ defmodule TechtreeWeb.ProjectsLive do
         <h2 id="project-verdict-title">Verdict</h2>
         <.verdict verdict={@project.verdict} />
       </div>
-      <p>{verdict_line(@project.verdict)}</p>
+      <p>{verdict_line(@project.line, @project.verdict)}</p>
       <dl class="project-facts">
         <div>
           <dt>Goal</dt>
@@ -115,7 +115,11 @@ defmodule TechtreeWeb.ProjectsLive do
       </dl>
     </section>
 
-    <section class="account-panel" aria-labelledby="project-comparison-title">
+    <section
+      :if={@project.line == :skills}
+      class="account-panel"
+      aria-labelledby="project-comparison-title"
+    >
       <h2 id="project-comparison-title">Comparison</h2>
       <p class="project-note">
         The original Skill and the selected one on the final test: {count(
@@ -157,10 +161,7 @@ defmodule TechtreeWeb.ProjectsLive do
 
     <section class="account-panel project-download" aria-labelledby="project-download-title">
       <h2 id="project-download-title">Download</h2>
-      <p>
-        One compressed file with the report, your original and selected Skill, the final
-        test’s cases and the steps to run the test again.
-      </p>
+      <p>{package_contents(@project.line)}</p>
       <div class="project-download__action">
         <a
           id="project-download"
@@ -188,7 +189,11 @@ defmodule TechtreeWeb.ProjectsLive do
       <p class="project-note">The checksum is the file’s SHA-256, to check the download.</p>
     </section>
 
-    <section class="account-panel" aria-labelledby="project-cases-title">
+    <section
+      :if={@project.line == :skills}
+      class="account-panel"
+      aria-labelledby="project-cases-title"
+    >
       <h2 id="project-cases-title">Cases</h2>
       <div
         class="project-table"
@@ -222,7 +227,11 @@ defmodule TechtreeWeb.ProjectsLive do
       </div>
     </section>
 
-    <section class="account-panel" aria-labelledby="project-candidates-title">
+    <section
+      :if={@project.line == :skills}
+      class="account-panel"
+      aria-labelledby="project-candidates-title"
+    >
       <h2 id="project-candidates-title">Candidates</h2>
       <div class="project-table" role="region" aria-labelledby="project-candidates-title" tabindex="0">
         <table id="project-candidates">
@@ -244,7 +253,11 @@ defmodule TechtreeWeb.ProjectsLive do
       </div>
     </section>
 
-    <section class="account-panel account-details" aria-labelledby="project-setup-title">
+    <section
+      :if={@project.line == :skills}
+      class="account-panel account-details"
+      aria-labelledby="project-setup-title"
+    >
       <h2 id="project-setup-title">Setup</h2>
       <dl>
         <div>
@@ -379,18 +392,54 @@ defmodule TechtreeWeb.ProjectsLive do
   def verdict_name(:improved), do: "Improved"
   def verdict_name(:inconclusive), do: "No clear difference"
   def verdict_name(:not_improved), do: "Not improved"
+  def verdict_name(:pass_bar_met), do: "Pass bar met"
+  def verdict_name(:pass_bar_not_met), do: "Pass bar not met"
+  def verdict_name(:completed), do: "Completed"
+  def verdict_name(:insufficient_tasks), do: "Too few sound tasks"
 
-  defp verdict_tone(:improved), do: "success"
+  defp verdict_tone(verdict) when verdict in [:improved, :pass_bar_met, :completed], do: "success"
   defp verdict_tone(_verdict), do: "neutral"
 
-  defp verdict_line(:improved),
+  defp verdict_line(:skills, :improved),
     do: "The selected Skill did better than the original on the final test."
 
-  defp verdict_line(:inconclusive),
+  defp verdict_line(:skills, :inconclusive),
     do: "The final test found no clear difference between the selected Skill and the original."
 
-  defp verdict_line(:not_improved),
+  defp verdict_line(:skills, :not_improved),
     do: "The selected Skill did not do better than the original on the final test."
+
+  defp verdict_line(:evals, :pass_bar_met), do: "The baseline met the agreed pass bar."
+
+  defp verdict_line(:evals, :pass_bar_not_met),
+    do: "The baseline fell short of the agreed pass bar."
+
+  defp verdict_line(:environments, :completed),
+    do: "The environment passed its task checks and ran a baseline."
+
+  defp verdict_line(:environments, :insufficient_tasks),
+    do: "Too few tasks passed their checks to run a baseline."
+
+  defp verdict_line(:models, :improved),
+    do: "The trained model met the improvement bar on held-out cases."
+
+  defp verdict_line(:models, :inconclusive),
+    do: "The held-out test did not establish a difference."
+
+  defp verdict_line(:models, :not_improved),
+    do: "The trained model fell short of the improvement bar."
+
+  defp package_contents(:skills),
+    do:
+      "One compressed file with the report, your original and selected Skill, the final test’s cases and the steps to run the test again."
+
+  defp package_contents(:evals),
+    do: "The report, the reviewed evaluation and how to run it again."
+
+  defp package_contents(:environments),
+    do: "The report, any sound tasks and how to check them again."
+
+  defp package_contents(:models), do: "The report, trained adapter, recipe and held-out test."
 
   # The share of attempts solved, as a percentage of the bar's length.
   defp share(%{"solved" => solved, "attempts" => attempts}), do: solved * 100 / attempts

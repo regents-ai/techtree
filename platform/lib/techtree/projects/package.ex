@@ -2,9 +2,9 @@ defmodule Techtree.Projects.Package do
   @moduledoc """
   A project's package as the team uploads it: one gzipped tar the factory made,
   which unpacks into one folder (such as `release-slugs-851620ff/`) holding
-  `manifest.json` (`Techtree.Projects.Manifest`), `report.md`, the original
-  and selected Skill, the final test's cases and how to run it again. The
-  manifest names each file by its path inside that folder.
+  `manifest.json` (`Techtree.Projects.Manifest`), `report.md`, the service's
+  deliverables, and how to run its checks again. The manifest names each
+  file by its path inside that folder.
 
   It is opened in memory and refused, with nothing kept, unless all of this
   holds: at most 5 MB as uploaded and 25 MB unpacked; one gzip stream with

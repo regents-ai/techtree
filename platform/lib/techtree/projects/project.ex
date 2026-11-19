@@ -145,12 +145,26 @@ defmodule Techtree.Projects.Project do
   attributes do
     uuid_primary_key :id
     attribute :title, :string, allow_nil?: false, public?: true, constraints: [max_length: 200]
-    attribute :line, :atom, allow_nil?: false, public?: true, constraints: [one_of: [:skills]]
+
+    attribute :line, :atom,
+      allow_nil?: false,
+      public?: true,
+      constraints: [one_of: [:skills, :evals, :environments, :models]]
 
     attribute :verdict, :atom,
       allow_nil?: false,
       public?: true,
-      constraints: [one_of: [:improved, :inconclusive, :not_improved]]
+      constraints: [
+        one_of: [
+          :improved,
+          :inconclusive,
+          :not_improved,
+          :pass_bar_met,
+          :pass_bar_not_met,
+          :completed,
+          :insufficient_tasks
+        ]
+      ]
 
     # The checked manifest, the report and the package as uploaded, until the
     # project is withdrawn.

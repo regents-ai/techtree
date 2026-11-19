@@ -170,6 +170,40 @@ defmodule Techtree.Projects.PackageTest do
     end
   end
 
+  test "service manifests pair each verdict with its own files" do
+    eval = %{"eval/example-1.0-py3-none-any.whl" => "wheel"}
+
+    model = %{
+      "adapter/adapter_config.json" => "{}",
+      "adapter/adapter_model.safetensors" => "weights",
+      "plan/sft.toml" => "",
+      "plan/dataset/train.jsonl" => "",
+      "cases/held-out/case.json" => "{}"
+    }
+
+    for {line, verdict, files} <- [
+          {"evals", "pass_bar_met", eval},
+          {"environments", "completed", %{"tasks/task/task.toml" => ""}},
+          {"environments", "insufficient_tasks", %{}},
+          {"models", "inconclusive", model}
+        ] do
+      assert {:ok, %{manifest: %{"line" => ^line, "verdict" => ^verdict}}} =
+               Package.read(ProjectPackage.service(line, verdict, files))
+    end
+
+    for {line, verdict, files, reason} <- [
+          {"evals", "improved", eval, "verdict"},
+          {"evals", "pass_bar_met", %{}, "evaluation wheel"},
+          {"environments", "completed", %{}, "tasks/"},
+          {"models", "inconclusive", Map.delete(model, "adapter/adapter_model.safetensors"),
+           "adapter_model.safetensors"},
+          {"evals", "pass_bar_met", Map.put(eval, "tasks/private", "stray"), "outside"}
+        ] do
+      assert {:error, message} = Package.read(ProjectPackage.service(line, verdict, files))
+      assert message =~ reason
+    end
+  end
+
   test "a manifest naming a key twice is refused" do
     bytes =
       ProjectPackage.build(
