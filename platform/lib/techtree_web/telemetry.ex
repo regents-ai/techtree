@@ -36,7 +36,9 @@ defmodule TechtreeWeb.Telemetry do
   each kind, how many keys are held, how many have never been read, how long ago
   the oldest was read, the size of each reading offered as a percent of its kind's
   limit, each reading that could not be taken and each one refused.
-  The publication rate-limit table reports each sweep. The engine's memory, run
+  The publication rate-limit table reports each sweep. Each public read refused
+  because its client address is over the `page_read` allowance is counted by
+  where the address came from (`TechtreeWeb.Plugs.PageRead`). The engine's memory, run
   queues and process counts come from telemetry_poller's default poller, every
   10 seconds (`config/config.exs`).
 
@@ -168,6 +170,7 @@ defmodule TechtreeWeb.Telemetry do
       counter("techtree.privy.browser_failure.total", tags: [:reason]),
       counter("techtree.privy.session_refused.total", tags: [:stage, :reason]),
       counter("techtree.session_bootstrap.rate_limited.total", tags: [:source]),
+      counter("techtree.page_read.rate_limited.total", tags: [:source]),
       counter("techtree.session_authority.absent_row.total"),
       distribution("health.db_queue.microseconds",
         event_name: [:techtree, :repo, :query],

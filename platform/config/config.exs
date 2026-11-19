@@ -261,11 +261,15 @@ config :techtree, :name_first, :chosen
 
 # A message for the team (`Techtree.Messages`): 10 an hour from each sender and
 # 30 an hour from each client address. An enquiry from the contact form: 5 an
-# hour from each client address.
+# hour from each client address. Public page reads (`TechtreeWeb.Plugs.PageRead`):
+# 120 a minute from each client address, 2 a second sustained, well above a
+# person or a polite crawler; the crawl that backed up the database on 18 Nov
+# sent 5 a second.
 config :techtree, :limits,
   message: [limit: 10, window_seconds: 3600],
   message_address: [limit: 30, window_seconds: 3600],
-  enquiry_address: [limit: 5, window_seconds: 3600]
+  enquiry_address: [limit: 5, window_seconds: 3600],
+  page_read: [limit: 120, window_seconds: 60]
 
 config :techtree, :chain_nodes, %{8453 => "https://mainnet.base.org"}
 

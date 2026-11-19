@@ -93,6 +93,7 @@ nothing; the signed reads change only the time the site last saw the agent.
 | --- | --- |
 | Read `/agents.md`, `/llms.txt`, `/openapi.json` and the bootstrap | `agents_controller_test.exs`, `bootstrap_controller_test.exs`, `open_api_test.exs` |
 | Read whether the site is serving at `/healthz` and `GET /api/v1/health`, which also says whether the running release's migrations are all applied (`migrations_applied`) and stays 200 while one waits | `health_controller_test.exs`; the live check reads it true after a release |
+| Read the public pages, `/sitemap.xml`, `/llms.txt`, `/agents.md` and a Wallet Bench test's `results.json` up to 120 times a minute from one address; the next read that minute is refused with 429 and how many seconds to wait, another address reads on, and the health check is never counted | `page_read_test.exs` |
 | Read the catalog, Climbs, objects and publications | `catalog_controller_test.exs`, `climb_controller_test.exs`, `object_controller_test.exs`, `publication_*_test.exs` |
 | Publish a Result and report a Climb | `publication_controller_test.exs`, `test/techtree/network/` |
 | Sign in with its wallet and use the four agent addresses (publications, Model Climb reports, `/api/v1/account`, `/api/v1/profile`) only while acting as its person: unsigned 401, unpaired `agent_not_paired`, person not here `person_not_here`, and an unpairing during the request sends none of the person's data | `agent_wallet_test.exs` |

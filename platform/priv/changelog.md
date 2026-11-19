@@ -14,6 +14,9 @@
   not pass now reads "No install" instead of "Not run", since its wallet test
   could not start. The box opens that install result, and the scores data and
   Markdown page show the same.
+- **Pages.** A single address that requests pages unusually fast, more than
+  two a second for a minute, is now asked to wait a moment, so one busy
+  crawler cannot slow the site for everyone else.
 
 ### Fixed
 

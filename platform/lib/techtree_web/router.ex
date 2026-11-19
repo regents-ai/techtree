@@ -28,6 +28,12 @@ defmodule TechtreeWeb.Router do
     plug TechtreeWeb.Plugs.PageMarkdown
   end
 
+  # Each client address's allowance of public reads the database answers,
+  # spent before anything here reads it (`TechtreeWeb.Plugs.PageRead`).
+  pipeline :page_read do
+    plug TechtreeWeb.Plugs.PageRead
+  end
+
   pipeline :browser do
     plug :fetch_session
     plug :fetch_cookies
@@ -243,7 +249,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:public_page, :browser, :visitor_browser]
+    pipe_through [:page_read, :public_page, :browser, :visitor_browser]
 
     # The page's first render hands its visit to the connected page (TechtreeWeb.VisitLog).
     live_session :public, session: {TechtreeWeb.Live.Session, :render_context, []} do
@@ -281,7 +287,7 @@ defmodule TechtreeWeb.Router do
   end
 
   scope "/", TechtreeWeb do
-    pipe_through [:motion_lab, :html_only, :browser, :visitor_browser]
+    pipe_through [:motion_lab, :page_read, :html_only, :browser, :visitor_browser]
 
     live_session :motion_lab,
       session: {TechtreeWeb.Live.Session, :render_context, []},
@@ -300,20 +306,32 @@ defmodule TechtreeWeb.Router do
     pipe_through :api
 
     get "/wallet-bench.json", WalletBenchController, :scores
-    get "/wallet-bench/:id/results.json", WalletBenchEvidenceController, :summary
     get "/train.json", TrainController, :index
+  end
+
+  # The database answers these, and the endpoint's request budget does not
+  # count them.
+  scope "/", TechtreeWeb do
+    pipe_through [:page_read, :api]
+
+    get "/wallet-bench/:id/results.json", WalletBenchEvidenceController, :summary
+  end
+
+  scope "/", TechtreeWeb do
+    pipe_through :page_read
+
+    get "/sitemap.xml", SitemapController, :index
+    get "/agents.md", AgentsController, :show
+    get "/llms.txt", PublicPagesController, :llms
   end
 
   scope "/", TechtreeWeb do
     get "/healthz", HealthController, :show
-    get "/sitemap.xml", SitemapController, :index
     get "/results/:bundle_digest/share.png", ResultShareCardController, :show
     get "/robots.txt", PublicPagesController, :robots
-    get "/agents.md", AgentsController, :show
     get "/agents/:agent/skill.md", PublicPagesController, :agent_skill_guide
     get "/wallet-bench.md", WalletBenchController, :markdown
     get "/train/:slug/report.json", TrainController, :report
-    get "/llms.txt", PublicPagesController, :llms
     get "/capabilities.json", PublicPagesController, :capabilities
     get "/.well-known/security.txt", PublicPagesController, :security
     get "/.well-known/api-catalog", PublicPagesController, :api_catalog
